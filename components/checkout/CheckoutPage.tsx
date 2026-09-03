@@ -20,6 +20,10 @@ import {
 } from "@/lib/hooks/usePromoCode";
 import { supabase } from "@/lib/supabase";
 import type { Order, ShippingAddress } from "@/lib/types/store";
+import Image from "next/image";
+import Link from "next/link";
+import Button from "@/components/ui/Button";
+import { shortDate } from "@/components/orders/orderFormat";
 
 
 const REQUIRED_SHIPPING_FIELDS = ["name", "line1", "city", "country"] as const;
@@ -69,9 +73,10 @@ function useOrderData(orderId: string) {
             *,
             product:products (id, title, slug, listing_type, delivery_type,
               media:product_media (media_url, is_primary),
-              seller:profiles!products_seller_id_fkey (id, username, display_name, avatar_url)
+              seller:profiles!products_seller_id_fkey (id, username, display_name, avatar_url),
+              commission_listing:commission_listings (terms)
             ),
-            pricing:product_pricing (id, pricing_type, variant_name, price, currency)
+            pricing:product_pricing!orders_pricing_id_fkey (id, pricing_type, variant_name, price, currency, delivery_days, revisions)
           `
           )
           .eq("id", orderId)
@@ -188,71 +193,60 @@ function PromoCodeSection({
   const isLoading = validating || applying || removing;
   const promoError = validateError || applyError || removeError;
 
+  const [open, setOpen] = useState(false);
+
   if (applied) {
     return (
-      <div className="rounded-2xl border border-green-300 bg-green-50 p-4 space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-ui font-semibold text-green-800">
-              Promo applied successfully
-            </p>
-            <p className="text-xs font-body text-green-700 mt-1">
-              Code{" "}
-              <span className="font-semibold">{applied.code}</span>{" "}
-              saved you {formatCurrency(applied.discount, currency)}
-            </p>
-          </div>
-          <button
-            onClick={async () => {
-              const result = await remove(orderId);
-              if (!result?.success) return;
-              const finalAmount = asAmount(result.final_amount, orderAmount);
-              setApplied(null);
-              setCode("");
-              clear();
-              onApplied(
-                0,
-                finalAmount,
-                typeof result.buyer_fee === "number" ? result.buyer_fee : null
-              );
-            }}
-            disabled={removing}
-            className="rounded-full border border-green-300 px-3 py-1 text-xs font-ui font-semibold text-green-700 hover:bg-green-100 disabled:opacity-60"
-          >
-            {removing ? "Removing..." : "Remove"}
-          </button>
-        </div>
-
-        <div className="rounded-xl bg-surface/80 border border-green-200 px-3 py-2 text-sm font-body text-green-900">
-          <span className="text-green-700">Total updated:</span>{" "}
-          <span className="line-through opacity-70">
-            {formatCurrency(applied.originalAmount, currency)}
-          </span>{" "}
-          <span className="font-semibold">
-            {formatCurrency(applied.finalAmount, currency)}
-          </span>
-        </div>
-
-        {removeError && (
-          <p className="text-xs text-red-600">{removeError}</p>
-        )}
+      <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-2xl border border-emerald-200 bg-emerald-50/60">
+        <p className="text-sm font-ui text-ink min-w-0 truncate">
+          <span className="font-semibold">{applied.code}</span> applied · −{formatCurrency(applied.discount, currency)}
+        </p>
+        <button
+          type="button"
+          onClick={async () => {
+            const result = await remove(orderId);
+            if (!result?.success) return;
+            const finalAmount = asAmount(result.final_amount, orderAmount);
+            setApplied(null);
+            setCode("");
+            clear();
+            onApplied(0, finalAmount, typeof result.buyer_fee === "number" ? result.buyer_fee : null);
+          }}
+          disabled={removing}
+          className="text-xs font-ui font-semibold text-muted hover:text-ink disabled:opacity-60 shrink-0"
+        >
+          {removing ? "Removing…" : "Remove"}
+        </button>
+        {removeError && <p className="text-xs text-red-600">{removeError}</p>}
       </div>
     );
   }
 
+  if (!open) {
+    return (
+      <button type="button" onClick={() => setOpen(true)} className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-2xl border border-border-light bg-surface text-left hover:border-border-strong transition-colors">
+        <span className="text-sm font-ui text-ink">Have a promo code?</span>
+        <span className="text-xs font-ui font-semibold text-purple-primary">Add</span>
+      </button>
+    );
+  }
+
   return (
-    <div className="space-y-2">
+    <div className="rounded-2xl border border-border-light bg-surface p-4 space-y-2">
+      <label htmlFor="promo-code" className="block text-sm font-ui font-semibold text-ink">Promo code</label>
       <div className="flex gap-2">
         <input
+          id="promo-code"
           type="text"
           value={code}
           onChange={(event) => {
             setCode(event.target.value);
             if (promoError) clear();
           }}
-          placeholder="Promo code"
+          placeholder="Enter code"
           disabled={isLoading}
-          className="flex-1 border-0 border-b border-gray-300 bg-transparent px-0 py-2 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-purple-primary)] disabled:opacity-60"
+          autoFocus
+          className="flex-1 px-3.5 py-2.5 rounded-xl border border-border-light bg-surface text-sm font-body text-ink placeholder:text-muted/70 focus:outline-none focus:ring-2 focus:ring-purple-primary/25 uppercase disabled:opacity-60"
           onKeyDown={(event) => {
             if (event.key === "Enter") {
               event.preventDefault();
@@ -260,15 +254,10 @@ function PromoCodeSection({
             }
           }}
         />
-        <button
-          onClick={handleApply}
-          disabled={isLoading || !code.trim()}
-          className="rounded-xl bg-gradient-to-r from-purple-primary to-pink-vivid px-5 py-3 text-sm font-ui font-semibold text-white disabled:opacity-60"
-        >
-          {isLoading ? "Applying..." : "Apply"}
-        </button>
+        <Button onClick={handleApply} disabled={isLoading || !code.trim()} loading={isLoading} loadingText="Applying…">Apply</Button>
       </div>
       {promoError && <p className="text-xs text-red-600">{promoError}</p>}
+      <button type="button" onClick={() => { setOpen(false); setCode(""); clear(); }} className="text-xs font-ui text-muted hover:text-ink">Cancel</button>
     </div>
   );
 }
@@ -326,6 +315,7 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
   const [noteError, setNoteError] = useState<string | null>(null);
   const [noteSaveError, setNoteSaveError] = useState<string | null>(null);
   const [noteSaved, setNoteSaved] = useState(false);
+  const [noteOpen, setNoteOpen] = useState(false);
   const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
   const requiresSecurityCheck = Boolean(turnstileSiteKey);
 
@@ -691,8 +681,6 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
     (!shippingAddressComplete || !shippingPhoneComplete);
   const shippingReady =
     !isPhysicalProduct || (shippingAddressComplete && shippingPhoneComplete);
-  const paymentReady = !requiresShippingDetails;
-  const paymentStepLabel = isPhysicalProduct ? "Step 3" : "Step 2";
   const noteHasChanges =
     buyerNote.trim() !== String(order.buyer_note || "").trim();
   const shippingHasChanges = isPhysicalProduct
@@ -700,126 +688,109 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
         JSON.stringify(normalizeShippingAddress(order.shipping_address)) ||
       buyerPhone.trim() !== String(order.buyer_phone || "").trim()
     : false;
-  const checkoutIntro = isPhysicalProduct
-    ? "Review your promo, confirm delivery details, and pay securely."
-    : "Apply promo and pay securely. Digital delivery is instant after payment.";
-  const deliveryLabel = isPhysicalProduct
-    ? "Physical delivery"
-    : "Digital delivery";
   const productImage =
     order.product?.media?.find(
       (item: { is_primary: boolean }) => item.is_primary
     )?.media_url || order.product?.media?.[0]?.media_url;
   const currency = order.currency || "USD";
 
+  const isCommission = order.listing_type === "service";
+  const sellerName = order.product?.seller?.display_name || order.product?.seller?.username || "the creator";
+  const firstName = sellerName.split(" ")[0];
+  const pricing = order.pricing;
+  const terms = typeof order.product?.commission_listing?.terms === "string" && order.product.commission_listing.terms.trim() ? order.product.commission_listing.terms : null;
+  const orderMeta = isCommission
+    ? [pricing?.variant_name ? `${pricing.variant_name} package` : "Commission", pricing?.delivery_days ? `${pricing.delivery_days}-day delivery` : null, pricing?.revisions != null ? `${pricing.revisions} revision${pricing.revisions === 1 ? "" : "s"}` : null].filter(Boolean).join(" · ")
+    : isPhysicalProduct ? `Physical product${order.quantity > 1 ? ` × ${order.quantity}` : ""} · ships to you` : `Digital product${order.quantity > 1 ? ` × ${order.quantity}` : ""} · files ready after payment`;
+  const showPayArea = !requiresShippingDetails;
+  const inputClass = "w-full px-3.5 py-2.5 rounded-xl border bg-surface text-sm font-body text-ink placeholder:text-muted/70 focus:outline-none focus:ring-2 focus:ring-purple-primary/25 transition-shadow";
+
+  const moneyCard = (
+    <section className="rounded-2xl border border-border-light bg-surface p-4">
+      <div className="flex items-center justify-between gap-3 mb-3">
+        <p className="text-sm font-ui font-semibold text-ink">Summary</p>
+        <span className="text-2xs font-ui text-muted tabular-nums">{order.order_number}</span>
+      </div>
+      <div className="space-y-2 text-sm font-body">
+        <div className="flex justify-between gap-4"><span className="text-muted">{isCommission ? (pricing?.variant_name ? `${pricing.variant_name} package` : "Commission") : order.quantity > 1 ? `Product × ${order.quantity}` : "Product"}</span><span className="text-ink tabular-nums">{formatCurrency(subtotal, currency)}</span></div>
+        {shippingCost > 0 && <div className="flex justify-between gap-4"><span className="text-muted">Shipping</span><span className="text-ink tabular-nums">{formatCurrency(shippingCost, currency)}</span></div>}
+        {effectiveDiscount > 0 && <div className="flex justify-between gap-4"><span className="text-muted">Discount</span><span className="text-ink tabular-nums">−{formatCurrency(effectiveDiscount, currency)}</span></div>}
+        {buyerFee > 0 && <div className="flex justify-between gap-4 text-muted/80"><span>Processing fee</span><span className="tabular-nums">{formatCurrency(buyerFee, currency)}</span></div>}
+        <div className="flex justify-between gap-4 pt-2 border-t border-border-light font-ui font-semibold text-ink"><span>Total</span><span className="tabular-nums text-base">{formatCurrency(totalDue, currency)}</span></div>
+        {chargeInfo?.converted && !zeroTotal && (
+          <p className="text-2xs font-body text-muted">Charged as {formatCurrency(chargeInfo.amountCents / 100, chargeInfo.currency)} at 1 {currency.toUpperCase()} = {chargeInfo.rate.toFixed(4)} {chargeInfo.currency.toUpperCase()}.</p>
+        )}
+        {isCommission ? (
+          <p className="text-2xs font-body text-muted">Held by Pinkquill until you approve the work. {firstName} is paid 7 days after approval.</p>
+        ) : !isPhysicalProduct ? (
+          <p className="text-2xs font-body text-muted">Your files unlock the moment payment lands.</p>
+        ) : null}
+      </div>
+    </section>
+  );
+
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[linear-gradient(170deg,#fff7fc_0%,#ffffff_42%,#fff8ef_100%)]">
-      <div className="pointer-events-none absolute -top-28 -left-16 h-72 w-72 rounded-full bg-pink-vivid/10 blur-3xl" />
-      <div className="pointer-events-none absolute top-28 -right-24 h-80 w-80 rounded-full bg-purple-primary/10 blur-3xl" />
-      <div className="pointer-events-none absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-orange-warm/10 blur-3xl" />
+    <div className="min-h-screen bg-canvas pb-16">
+      <div className="mx-auto max-w-5xl px-4 sm:px-6 pt-4 sm:pt-6">
+        <nav className="flex items-center gap-1.5 text-xs font-ui text-muted" aria-label="Breadcrumb">
+          <Link href="/orders" className="hover:text-accent transition-colors">Orders</Link>
+          <span aria-hidden="true">›</span>
+          <Link href={`/orders/${order.id}`} className="hover:text-accent transition-colors tabular-nums">{order.order_number}</Link>
+          <span aria-hidden="true">›</span>
+          <span className="text-ink font-medium">Checkout</span>
+        </nav>
+        <h1 className="font-display text-xl sm:text-2xl font-semibold text-ink mt-3">Checkout</h1>
 
-      <div className="relative mx-auto max-w-6xl px-4 py-8 sm:py-10">
-        {/* Header */}
-        <header className="mb-6 sm:mb-8 rounded-3xl border border-border-light bg-surface/80 backdrop-blur px-5 py-5 sm:px-6">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-xs font-ui uppercase tracking-[0.16em] text-pink-vivid">
-                Checkout
-              </p>
-              <h1 className="mt-2 text-3xl sm:text-4xl font-display text-ink">
-                Complete Your Order
-              </h1>
-              <p className="mt-2 max-w-2xl text-sm font-body text-muted">
-                {checkoutIntro}
-              </p>
-              <p className="mt-2 inline-flex rounded-full border border-border-light bg-surface px-3 py-1 text-[11px] font-ui uppercase tracking-[0.12em] text-muted">
-                {deliveryLabel}
-              </p>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <span className="rounded-full border border-pink-vivid/25 bg-pink-vivid/10 px-3 py-1 text-[11px] font-ui uppercase tracking-[0.12em] text-pink-vivid">
-                1 Promo
-              </span>
-              {isPhysicalProduct && (
-                <span
-                  className={`rounded-full border px-3 py-1 text-[11px] font-ui uppercase tracking-[0.12em] ${
-                    shippingReady
-                      ? "border-green-300 bg-green-50 text-green-700"
-                      : "border-amber-300 bg-amber-50 text-amber-700"
-                  }`}
-                >
-                  2 Shipping
-                </span>
-              )}
-              <span
-                className={`rounded-full border px-3 py-1 text-[11px] font-ui uppercase tracking-[0.12em] ${
-                  paymentReady
-                    ? "border-purple-primary/25 bg-purple-primary/10 text-purple-primary"
-                    : "border-border-strong bg-skeleton/60 text-muted"
-                }`}
-              >
-                {isPhysicalProduct ? "3 Payment" : "2 Payment"}
-              </span>
-            </div>
-          </div>
-        </header>
-
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.05fr)_380px]">
-          {/* Main section */}
-          <section className="rounded-3xl border border-border-light bg-surface/90 backdrop-blur p-5 sm:p-6 shadow-[0_20px_60px_rgba(0,0,0,0.05)] space-y-6">
-            {/* Promo Code */}
-            <div className="rounded-2xl border border-border-light bg-[linear-gradient(130deg,rgba(255,255,255,0.97),rgba(255,246,252,0.95),rgba(255,251,246,0.95))] p-4 sm:p-5">
-              <p className="text-xs font-ui uppercase tracking-[0.14em] text-muted">
-                Step 1
-              </p>
-              <h2 className="mt-1 text-lg font-display text-ink">
-                Promo Code
-              </h2>
-              <p className="text-sm font-body text-muted mt-1">
-                If you have a code, apply it before payment.
-              </p>
-              <div className="mt-4">
-                <PromoCodeSection
-                  orderId={order.id}
-                  orderAmount={originalAmount}
-                  listingType={order.listing_type}
-                  currency={currency}
-                  onApplied={(discount, final, buyerFee) => {
-                    setPromoOverrides((prev) => ({
-                      ...prev,
-                      [order.id]: { amount: final, discount, buyerFee },
-                    }));
-                    setActionError(null);
-                    // Pricing changes invalidate the existing checkout session.
-                    if (!requiresShippingDetails) {
-                      if (requiresSecurityCheck) {
-                        resetPaymentGate();
-                      } else {
-                        setClientSecret(null);
-                        createCheckout(order.id);
-                      }
-                    }
-                  }}
-                />
+        <div className="mt-5 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-6">
+          <div className="space-y-3">
+            {/* What you're paying for */}
+            <section className="rounded-2xl border border-border-light bg-surface p-4 flex gap-4">
+              <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-gradient-to-br from-purple-50 to-pink-50 shrink-0">
+                {productImage && <Image src={productImage as string} alt="" fill className="object-cover" sizes="80px" />}
               </div>
-            </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-ui font-semibold text-ink truncate">{order.product?.title || "Order"}</p>
+                <p className="text-xs font-body text-muted mt-0.5">{orderMeta}</p>
+                <p className="text-xs font-body text-muted mt-0.5">by {sellerName}</p>
+                {isCommission && order.due_date && (
+                  <p className="text-xs font-ui text-ink mt-2">Due <span className="font-semibold">{shortDate(order.due_date)}</span> · the clock starts when you pay</p>
+                )}
+              </div>
+            </section>
 
-            {/* Note to Seller */}
-            <div className="rounded-2xl border border-border-light bg-[linear-gradient(135deg,rgba(255,255,255,0.97),rgba(255,252,246,0.95),rgba(255,248,252,0.95))] p-4 sm:p-5">
-              <h2 className="text-lg font-display text-ink">
-                Note to Seller
-              </h2>
-              <p className="text-sm font-body text-muted mt-1">
-                Optional — add a message for the seller about your order.
-              </p>
-              <div className="mt-3">
-                <label
-                  htmlFor="buyer-note"
-                  className="text-xs font-ui uppercase tracking-[0.12em] text-muted"
-                >
-                  Message
-                </label>
+            {/* Promo */}
+            <PromoCodeSection
+              orderId={order.id}
+              orderAmount={originalAmount}
+              listingType={order.listing_type}
+              currency={currency}
+              onApplied={(discount, final, buyerFeeValue) => {
+                setPromoOverrides((prev) => ({
+                  ...prev,
+                  [order.id]: { amount: final, discount, buyerFee: buyerFeeValue },
+                }));
+                setActionError(null);
+                // Pricing changes invalidate the existing checkout session.
+                if (!requiresShippingDetails) {
+                  if (requiresSecurityCheck) {
+                    resetPaymentGate();
+                  } else {
+                    setClientSecret(null);
+                    createCheckout(order.id);
+                  }
+                }
+              }}
+            />
+
+            {/* Note to the seller */}
+            {!noteOpen && !order.buyer_note ? (
+              <button type="button" onClick={() => setNoteOpen(true)} className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-2xl border border-border-light bg-surface text-left hover:border-border-strong transition-colors">
+                <span className="text-sm font-ui text-ink">Add a note for {firstName}</span>
+                <span className="text-xs font-ui font-semibold text-purple-primary">Add</span>
+              </button>
+            ) : (
+              <section className="rounded-2xl border border-border-light bg-surface p-4">
+                <label htmlFor="buyer-note" className="block text-sm font-ui font-semibold text-ink mb-1.5">Note for {firstName} <span className="font-normal text-muted text-xs">optional</span></label>
                 <textarea
                   id="buyer-note"
                   value={buyerNote}
@@ -828,562 +799,188 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
                     setBuyerNote(val);
                     setNoteSaved(false);
                     setNoteSaveError(null);
-                    if (val.length > 500) {
-                      setNoteError(
-                        "Note must be 500 characters or less."
-                      );
-                    } else {
-                      setNoteError(null);
-                    }
+                    setNoteError(val.length > 500 ? "Keep the note under 500 characters." : null);
                   }}
-                  placeholder="Any special requests, details, or instructions..."
+                  placeholder="Anything they should know before starting."
                   maxLength={500}
                   rows={3}
                   aria-invalid={!!noteError}
-                  className={`mt-2 w-full border-0 border-b bg-transparent px-0 py-2 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-purple-primary)] resize-none ${
-                    noteError ? "border-red-400" : "border-gray-300"
-                  }`}
+                  className={`${inputClass} ${noteError ? "border-red-300" : "border-border-light"}`}
                 />
-                <div className="mt-2 flex items-center justify-between">
-                  <p
-                    className={`text-xs font-body ${
-                      buyerNote.length > 500
-                        ? "text-red-500"
-                        : "text-muted"
-                    }`}
-                  >
-                    {buyerNote.length}/500
+                <div className="mt-2 flex items-center justify-between gap-3">
+                  <p className={`text-xs font-body ${buyerNote.length > 500 ? "text-red-600" : "text-muted"}`}>
+                    {noteSaved ? "Saved" : noteHasChanges ? "Unsaved" : ""}{noteSaved || noteHasChanges ? " · " : ""}{buyerNote.length}/500
                   </p>
-                  <button
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={updatingDraft || buyerNote.length > 500 || !noteHasChanges}
+                    loading={updatingDraft}
+                    loadingText="Saving…"
                     onClick={async () => {
-                      if (
-                        buyerNote.length > 500 ||
-                        !order ||
-                        !noteHasChanges
-                      )
-                        return;
+                      if (buyerNote.length > 500 || !order || !noteHasChanges) return;
                       setNoteSaveError(null);
-                      const success = await updateDraft({
-                        order_id: order.id,
-                        buyer_note: buyerNote.trim(),
-                      });
+                      const success = await updateDraft({ order_id: order.id, buyer_note: buyerNote.trim() });
                       if (success) {
-                        setOrder((prev) =>
-                          prev
-                            ? {
-                                ...prev,
-                                buyer_note: buyerNote.trim() || null,
-                              }
-                            : prev
-                        );
+                        setOrder((prev) => (prev ? { ...prev, buyer_note: buyerNote.trim() || null } : prev));
                         setNoteSaved(true);
                         return;
                       }
-                      setNoteSaveError(
-                        "Unable to save your note right now."
-                      );
+                      setNoteSaveError("Unable to save your note right now.");
                     }}
-                    disabled={
-                      updatingDraft ||
-                      buyerNote.length > 500 ||
-                      !noteHasChanges
-                    }
-                    className="rounded-lg border border-border-strong px-3 py-1.5 text-xs font-ui font-semibold text-muted hover:text-ink hover:border-border-strong disabled:opacity-50"
                   >
-                    {updatingDraft ? "Saving..." : "Save Note"}
-                  </button>
+                    Save note
+                  </Button>
                 </div>
-                {noteHasChanges && !noteSaved && (
-                  <p className="text-xs text-amber-700 mt-1">
-                    You have unsaved note changes.
-                  </p>
-                )}
-                {noteError && (
-                  <p className="text-xs text-red-600 mt-1">{noteError}</p>
-                )}
-                {noteSaveError && (
-                  <p className="text-xs text-red-600 mt-1">
-                    {noteSaveError}
-                  </p>
-                )}
-                {noteSaved && (
-                  <p className="text-xs text-green-700 mt-1">Note saved.</p>
-                )}
-              </div>
-            </div>
+                {noteError && <p className="text-xs text-red-600 mt-1">{noteError}</p>}
+                {noteSaveError && <p className="text-xs text-red-600 mt-1">{noteSaveError}</p>}
+              </section>
+            )}
 
-            {/* Shipping Details (physical products only) */}
+            {/* Shipping (physical products only) */}
             {isPhysicalProduct && (
-              <div className="rounded-2xl border border-border-light bg-[linear-gradient(145deg,rgba(255,255,255,0.98),rgba(245,250,255,0.94))] p-4 sm:p-5">
-                <p className="text-xs font-ui uppercase tracking-[0.14em] text-muted">
-                  Step 2
-                </p>
-                <h2 className="mt-1 text-lg font-display text-ink">
-                  Shipping Details
-                </h2>
-                <p className="mt-1 text-sm font-body text-muted">
-                  Where should this piece be delivered?
-                </p>
-                <p className="mt-3 text-xs font-body text-muted">
-                  Fields marked * are required before payment.
-                </p>
-
-                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {(
-                    [
-                      {
-                        id: "name",
-                        label: "Full name *",
-                        autoComplete: "name",
-                        placeholder: "Full name",
-                        required: true,
-                      },
-                      {
-                        id: "line1",
-                        label: "Address line 1 *",
-                        autoComplete: "address-line1",
-                        placeholder: "Street address",
-                        required: true,
-                      },
-                      {
-                        id: "line2",
-                        label: "Address line 2",
-                        autoComplete: "address-line2",
-                        placeholder: "Apartment, suite, etc. (optional)",
-                        required: false,
-                      },
-                      {
-                        id: "city",
-                        label: "City *",
-                        autoComplete: "address-level2",
-                        placeholder: "City",
-                        required: true,
-                      },
-                      {
-                        id: "state",
-                        label: "State / Region",
-                        autoComplete: "address-level1",
-                        placeholder: "State / Region (optional)",
-                        required: false,
-                      },
-                      {
-                        id: "postal_code",
-                        label: "Postal code",
-                        autoComplete: "postal-code",
-                        placeholder: "Postal code (optional)",
-                        required: false,
-                      },
-                      {
-                        id: "country",
-                        label: "Country *",
-                        autoComplete: "country-name",
-                        placeholder: "Country",
-                        required: true,
-                      },
-                    ] as const
-                  ).map((field) => (
-                    <div key={field.id} className="space-y-1">
-                      <label
-                        htmlFor={`shipping-${field.id}`}
-                        className="text-xs font-ui uppercase tracking-[0.12em] text-muted"
-                      >
-                        {field.label}
-                      </label>
-                      <input
-                        id={`shipping-${field.id}`}
-                        type="text"
-                        autoComplete={field.autoComplete}
-                        value={
-                          (shippingDraft as Record<string, string>)[
-                            field.id
-                          ] || ""
-                        }
-                        onChange={(event) =>
-                          handleShippingFieldChange(
-                            field.id as keyof ShippingAddress,
-                            event.target.value
-                          )
-                        }
-                        placeholder={field.placeholder}
-                        aria-invalid={
-                          field.required
-                            ? !!(
-                                shippingFieldErrors as Record<string, string>
-                              )[field.id]
-                            : undefined
-                        }
-                        className={`w-full border-0 border-b bg-transparent px-0 py-2 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-purple-primary)] ${
-                          field.required &&
-                          (shippingFieldErrors as Record<string, string>)[
-                            field.id
-                          ]
-                            ? "border-red-400"
-                            : "border-gray-300"
-                        }`}
-                      />
-                      {field.required &&
-                        (shippingFieldErrors as Record<string, string>)[
-                          field.id
-                        ] && (
-                          <p className="text-xs text-red-600">
-                            {
-                              (
-                                shippingFieldErrors as Record<string, string>
-                              )[field.id]
-                            }
-                          </p>
-                        )}
-                    </div>
-                  ))}
-
-                  <div className="space-y-1">
-                    <label
-                      htmlFor="shipping-phone"
-                      className="text-xs font-ui uppercase tracking-[0.12em] text-muted"
-                    >
-                      Phone number *
-                    </label>
+              <section className="rounded-2xl border border-border-light bg-surface p-4">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <p className="text-sm font-ui font-semibold text-ink">Ships to</p>
+                  <span className={`text-2xs font-ui font-semibold rounded-full border px-2 py-0.5 ${shippingReady ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-700 border-amber-200"}`}>
+                    {shippingReady ? "Saved" : "Needed before payment"}
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {([
+                    { id: "name", label: "Full name", autoComplete: "name", required: true, wide: false },
+                    { id: "line1", label: "Address", autoComplete: "address-line1", required: true, wide: true },
+                    { id: "line2", label: "Apartment, suite", autoComplete: "address-line2", required: false, wide: true },
+                    { id: "city", label: "City", autoComplete: "address-level2", required: true, wide: false },
+                    { id: "state", label: "State / region", autoComplete: "address-level1", required: false, wide: false },
+                    { id: "postal_code", label: "Postal code", autoComplete: "postal-code", required: false, wide: false },
+                    { id: "country", label: "Country", autoComplete: "country-name", required: true, wide: false },
+                  ] as const).map((field) => {
+                    const fieldError = field.required ? (shippingFieldErrors as Record<string, string>)[field.id] : undefined;
+                    return (
+                      <div key={field.id} className={field.wide ? "sm:col-span-2" : ""}>
+                        <label htmlFor={`shipping-${field.id}`} className="block text-xs font-ui font-semibold text-ink mb-1">
+                          {field.label}{field.required && <span className="text-pink-vivid"> *</span>}
+                        </label>
+                        <input
+                          id={`shipping-${field.id}`}
+                          type="text"
+                          autoComplete={field.autoComplete}
+                          value={(shippingDraft as Record<string, string>)[field.id] || ""}
+                          onChange={(event) => handleShippingFieldChange(field.id as keyof ShippingAddress, event.target.value)}
+                          aria-invalid={field.required ? !!fieldError : undefined}
+                          className={`${inputClass} ${fieldError ? "border-red-300" : "border-border-light"}`}
+                        />
+                        {fieldError && <p className="text-xs text-red-600 mt-1">{fieldError}</p>}
+                      </div>
+                    );
+                  })}
+                  <div>
+                    <label htmlFor="shipping-phone" className="block text-xs font-ui font-semibold text-ink mb-1">Phone<span className="text-pink-vivid"> *</span></label>
                     <input
                       id="shipping-phone"
                       type="tel"
                       autoComplete="tel"
                       value={buyerPhone}
-                      onChange={(event) =>
-                        handlePhoneChange(event.target.value)
-                      }
-                      placeholder="Phone number"
+                      onChange={(event) => handlePhoneChange(event.target.value)}
                       aria-invalid={!!shippingFieldErrors.buyer_phone}
-                      className={`w-full border-0 border-b bg-transparent px-0 py-2 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-purple-primary)] ${
-                        shippingFieldErrors.buyer_phone
-                          ? "border-red-400"
-                          : "border-gray-300"
-                      }`}
+                      className={`${inputClass} ${shippingFieldErrors.buyer_phone ? "border-red-300" : "border-border-light"}`}
                     />
-                    {shippingFieldErrors.buyer_phone && (
-                      <p className="text-xs text-red-600">
-                        {shippingFieldErrors.buyer_phone}
-                      </p>
-                    )}
+                    {shippingFieldErrors.buyer_phone && <p className="text-xs text-red-600 mt-1">{shippingFieldErrors.buyer_phone}</p>}
                   </div>
                 </div>
-
                 <div className="mt-4 flex flex-wrap items-center gap-3">
-                  <button
-                    onClick={handleSaveShippingDetails}
-                    disabled={updatingDraft || !shippingHasChanges}
-                    className="rounded-xl bg-gradient-to-r from-purple-primary to-pink-vivid px-5 py-3 text-sm font-ui font-semibold text-white disabled:opacity-60"
-                  >
-                    {updatingDraft
-                      ? "Saving..."
-                      : order.shipping_address
-                        ? "Update Shipping Details"
-                        : "Save Shipping Details"}
-                  </button>
-                  {!shippingHasChanges && (
-                    <span className="text-xs font-body text-muted">
-                      No unsaved shipping changes.
-                    </span>
-                  )}
+                  <Button onClick={handleSaveShippingDetails} disabled={updatingDraft || !shippingHasChanges} loading={updatingDraft} loadingText="Saving…">
+                    {order.shipping_address ? "Update shipping details" : "Save shipping details"}
+                  </Button>
+                  {shippingSavedNotice && <span className="text-xs font-body text-emerald-700">{shippingSavedNotice}</span>}
+                  {shippingError && <span className="text-xs font-body text-red-600">{shippingError}</span>}
                 </div>
-
-                {requiresShippingDetails && (
-                  <p className="mt-3 text-xs font-body text-amber-700">
-                    Save your shipping details to unlock payment.
-                  </p>
-                )}
-                {shippingSavedNotice && (
-                  <p className="mt-3 text-xs font-body text-green-700">
-                    {shippingSavedNotice}
-                  </p>
-                )}
-                {shippingError && (
-                  <p className="mt-3 text-xs font-body text-red-600">
-                    {shippingError}
-                  </p>
-                )}
-              </div>
+              </section>
             )}
 
-            {/* Payment Section */}
-            <div className="rounded-2xl border border-border-light bg-[linear-gradient(160deg,rgba(255,255,255,0.98),rgba(249,248,255,0.95))] p-4 sm:p-5">
-              <p className="text-xs font-ui uppercase tracking-[0.14em] text-muted">
-                {paymentStepLabel}
-              </p>
-              <h2 className="mt-1 text-lg font-display text-ink">Payment</h2>
+            {/* Money card on phones sits above the payment form */}
+            <div className="lg:hidden">{moneyCard}</div>
 
-              {!isPhysicalProduct && (
-                <div className="mt-4 rounded-xl border border-sky-200 bg-sky-50 p-4">
-                  <p className="text-sm font-ui font-semibold text-sky-900">
-                    Digital delivery enabled
-                  </p>
-                  <p className="mt-1 text-xs font-body text-sky-800">
-                    No shipping details are required. Your files will be
-                    available after payment confirmation.
-                  </p>
+            {/* Payment */}
+            {!showPayArea ? (
+              <section className="rounded-2xl border border-border-light bg-subtle p-4">
+                <p className="text-sm font-ui font-semibold text-ink">Payment</p>
+                <p className="text-xs font-body text-muted mt-1">Save your shipping details to continue. The card form appears here.</p>
+              </section>
+            ) : (
+              <section className="rounded-2xl border border-border-light bg-surface p-4">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <p className="text-sm font-ui font-semibold text-ink">{zeroTotal ? "Nothing to pay" : `Pay ${formatCurrency(totalDue, currency)}`}</p>
+                  {!zeroTotal && <span className="text-2xs font-ui text-muted">Secure · Stripe</span>}
                 </div>
-              )}
 
-              {requiresShippingDetails && (
-                <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
-                  <p className="text-sm font-ui font-semibold text-amber-900">
-                    Shipping details required
-                  </p>
-                  <p className="mt-1 text-xs font-body text-amber-800">
-                    Save your shipping details above to continue with
-                    payment.
-                  </p>
-                </div>
-              )}
-
-              {!requiresShippingDetails &&
-                requiresSecurityCheck &&
-                !paymentUnlocked &&
-                !checkoutLoading && (
-                  <div className="mt-4 space-y-4 rounded-xl border border-purple-primary/15 bg-surface/80 p-4">
-                    <div>
-                      <p className="text-sm font-ui font-semibold text-ink">
-                        Quick security check
-                      </p>
-                      <p className="mt-1 text-xs font-body text-muted">
-                        Complete this verification once to unlock payment.
-                      </p>
-                    </div>
+                {requiresSecurityCheck && !paymentUnlocked && !checkoutLoading && (
+                  <div className="space-y-3 rounded-xl border border-border-light bg-subtle p-4">
+                    <p className="text-sm font-body text-muted">A quick security check unlocks the card form.</p>
                     <TurnstileCaptcha
                       siteKey={turnstileSiteKey!}
                       action="checkout_create"
                       resetKey={turnstileResetKey}
                       onTokenChange={setTurnstileToken}
                     />
+                    <Button onClick={handleUnlockPayment} disabled={!turnstileToken}>Continue to payment</Button>
+                  </div>
+                )}
+
+                {checkoutLoading && (
+                  <div className="flex items-center justify-center rounded-xl border border-border-light bg-subtle py-10">
+                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-border-strong border-t-[var(--color-purple-primary)]" />
+                  </div>
+                )}
+
+                {checkoutError && (
+                  <div className="rounded-xl border border-red-200 bg-red-50/60 p-4">
+                    <p className="text-sm font-body text-red-700">{checkoutError}</p>
                     <button
-                      onClick={handleUnlockPayment}
-                      disabled={!turnstileToken}
-                      className="rounded-xl bg-gradient-to-r from-purple-primary to-pink-vivid px-5 py-3 text-sm font-ui font-semibold text-white disabled:opacity-60"
+                      type="button"
+                      onClick={() => {
+                        setActionError(null);
+                        createCheckout(order.id);
+                      }}
+                      className="mt-2 text-sm font-ui font-semibold text-red-700 underline"
                     >
-                      Continue to Payment
+                      Try again
                     </button>
                   </div>
                 )}
+                {actionError && <p className="text-sm text-red-600">{actionError}</p>}
 
-              {/* Loading */}
-              {checkoutLoading && !requiresShippingDetails && (
-                <div className="mt-4 flex items-center justify-center rounded-xl border border-border-light bg-surface/80 py-10">
-                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-border-strong border-t-[var(--color-purple-primary)]" />
-                </div>
-              )}
-
-              {/* Error */}
-              {checkoutError && !requiresShippingDetails && (
-                <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4">
-                  <p className="text-sm font-body text-red-700">
-                    {checkoutError}
-                  </p>
-                  <button
-                    onClick={() => {
-                      setActionError(null);
-                      createCheckout(order.id);
-                    }}
-                    className="mt-2 text-sm font-ui font-semibold text-red-700 underline"
-                  >
-                    Try again
-                  </button>
-                </div>
-              )}
-
-              {actionError && !requiresShippingDetails && (
-                <p className="mt-4 text-sm text-red-600">{actionError}</p>
-              )}
-
-              {/* Stripe Embedded Checkout */}
-              {!requiresShippingDetails &&
-                (!requiresSecurityCheck || paymentUnlocked) &&
-                checkoutMode === "stripe" &&
-                clientSecret &&
-                !checkoutLoading &&
-                !checkoutError &&
-                !zeroTotal && (
-                  <div className="mt-4">
-                    <EmbeddedCheckoutProvider
-                      stripe={getStripe()}
-                      options={{ clientSecret }}
-                    >
-                      <EmbeddedCheckout />
-                    </EmbeddedCheckoutProvider>
-                  </div>
+                {(!requiresSecurityCheck || paymentUnlocked) && checkoutMode === "stripe" && clientSecret && !checkoutLoading && !checkoutError && !zeroTotal && (
+                  <EmbeddedCheckoutProvider stripe={getStripe()} options={{ clientSecret }}>
+                    <EmbeddedCheckout />
+                  </EmbeddedCheckoutProvider>
                 )}
 
-              {/* Placeholder / Free order confirmation */}
-              {!requiresShippingDetails &&
-                (!requiresSecurityCheck || paymentUnlocked) &&
-                (checkoutMode === "placeholder" || zeroTotal) &&
-                !checkoutLoading &&
-                !checkoutError && (
-                  <div className="mt-4 space-y-4">
+                {(!requiresSecurityCheck || paymentUnlocked) && (checkoutMode === "placeholder" || zeroTotal) && !checkoutLoading && !checkoutError && (
+                  <div className="space-y-3">
                     {zeroTotal ? (
-                      <div className="rounded-xl border border-green-200 bg-green-50 p-4">
-                        <p className="text-sm font-ui font-semibold text-green-800">
-                          {effectiveDiscount > 0
-                            ? "Promo applied. Your total is now $0.00."
-                            : "No payment required for this order."}
-                        </p>
-                        <p className="mt-1 text-xs font-body text-green-700">
-                          Complete the order and continue normally.
-                        </p>
-                      </div>
+                      <p className="text-sm font-body text-muted">{effectiveDiscount > 0 ? "Your promo covered the total. Confirm to start the order." : "No payment is needed for this order. Confirm to start it."}</p>
                     ) : (
-                      <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-                        <p className="text-sm font-ui font-semibold text-amber-900">
-                          Test mode
-                        </p>
-                        <p className="mt-1 text-xs font-body text-amber-800">
-                          Payments are running in test mode. No real charges
-                          will be made.
-                        </p>
-                      </div>
+                      <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-3 text-xs font-body text-amber-800">Payments are running in test mode. No real charge is made.</div>
                     )}
-
-                    <button
-                      onClick={handleConfirmFree}
-                      disabled={confirmingFree}
-                      className="w-full rounded-xl bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm px-6 py-3 text-sm font-ui font-semibold text-white disabled:opacity-60"
-                    >
-                      {confirmingFree
-                        ? "Confirming..."
-                        : zeroTotal
-                          ? "Complete Order"
-                          : "Confirm Payment"}
-                    </button>
+                    <Button fullWidth onClick={handleConfirmFree} disabled={confirmingFree} loading={confirmingFree} loadingText="Confirming…">
+                      {zeroTotal ? "Confirm order" : "Confirm payment"}
+                    </Button>
                   </div>
                 )}
-            </div>
-          </section>
 
-          {/* Order Summary Sidebar */}
-          <aside className="rounded-3xl border border-border-light bg-[linear-gradient(165deg,rgba(255,255,255,0.98),rgba(254,249,255,0.97))] p-5 sm:p-6 xl:sticky xl:top-8 h-fit shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-display text-ink">
-                Order Summary
-              </h2>
-              <span className="rounded-full border border-border-light bg-surface px-2.5 py-1 text-[10px] font-ui uppercase tracking-[0.14em] text-muted">
-                {order.order_number}
-              </span>
-            </div>
-
-            <div className="mt-4 flex gap-3">
-              {productImage && (
-                <img
-                  src={productImage as string}
-                  alt={
-                    order.product?.title
-                      ? `${order.product.title} preview`
-                      : "Product preview"
-                  }
-                  className="h-16 w-16 rounded-xl object-cover flex-shrink-0"
-                />
-              )}
-              <div className="min-w-0">
-                <p className="text-sm font-ui font-semibold text-ink truncate">
-                  {order.product?.title || "Order"}
-                </p>
-                <p className="mt-0.5 text-xs font-body text-muted">
-                  {order.listing_type === "service"
-                    ? "Commission"
-                    : "Product"}
-                </p>
-                {order.product?.seller && (
-                  <p className="mt-0.5 text-xs font-body text-muted">
-                    by @
-                    {
-                      (order.product.seller as { username: string })
-                        .username
-                    }
-                  </p>
+                {isCommission && terms && !zeroTotal && (
+                  <details className="mt-3 text-2xs font-body text-muted">
+                    <summary className="cursor-pointer">By paying you agree to {firstName}&apos;s terms. <span className="text-purple-primary font-ui">Read terms</span></summary>
+                    <p className="mt-2 whitespace-pre-line max-h-40 overflow-y-auto text-ink/80">{terms}</p>
+                  </details>
                 )}
-                <p className="mt-0.5 text-xs font-body text-muted">
-                  {deliveryLabel}
-                </p>
-              </div>
-            </div>
-
-            {isPhysicalProduct && (
-              <div
-                className={`mt-4 rounded-xl border px-3 py-2 text-xs font-body ${
-                  shippingReady
-                    ? "border-green-200 bg-green-50 text-green-800"
-                    : "border-amber-200 bg-amber-50 text-amber-800"
-                }`}
-              >
-                {shippingReady
-                  ? "Shipping details are complete."
-                  : "Shipping address and phone are required before payment."}
-              </div>
+              </section>
             )}
+          </div>
 
-            <div className="mt-5 rounded-2xl border border-border-light bg-surface/90 p-4 space-y-2 text-sm font-body">
-              <div className="flex justify-between">
-                <span className="text-muted">Subtotal</span>
-                <span className="text-ink">
-                  {formatCurrency(subtotal, currency)}
-                </span>
-              </div>
-
-              {shippingCost > 0 && (
-                <div className="flex justify-between">
-                  <span className="text-muted">Shipping</span>
-                  <span className="text-ink">
-                    {formatCurrency(shippingCost, currency)}
-                  </span>
-                </div>
-              )}
-
-              {effectiveDiscount > 0 && (
-                <div className="flex justify-between text-green-600">
-                  <span>Discount</span>
-                  <span>
-                    -{formatCurrency(effectiveDiscount, currency)}
-                  </span>
-                </div>
-              )}
-
-              {buyerFee > 0 && (
-                <div className="flex justify-between text-xs text-muted">
-                  <span>Processing fee</span>
-                  <span>{formatCurrency(buyerFee, currency)}</span>
-                </div>
-              )}
-
-              <div className="border-t border-border-light pt-2 flex justify-between text-base font-ui font-semibold text-ink">
-                <span>Total</span>
-                <span>{formatCurrency(totalDue, currency)}</span>
-              </div>
-
-              {chargeInfo?.converted && (
-                <p className="text-xs font-body text-muted pt-1">
-                  Your card will be charged {formatCurrency(chargeInfo.amountCents / 100, chargeInfo.currency)} ({chargeInfo.currency.toUpperCase()}, at 1 {currency.toUpperCase()} = {chargeInfo.rate.toFixed(4)} {chargeInfo.currency.toUpperCase()}). Your bank may apply its own conversion.
-                </p>
-              )}
-            </div>
-
-            {zeroTotal && effectiveDiscount > 0 && (
-              <div className="mt-4 rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-xs font-body text-green-800">
-                Your promo covered the full total. Complete order to
-                continue.
-              </div>
-            )}
-
-            {!zeroTotal && (
-              <p className="mt-4 rounded-xl border border-border-light bg-subtle p-3 text-xs font-body text-muted">
-                Secure checkout powered by Stripe. Your payment details are
-                never stored on our servers.
-              </p>
-            )}
-
-            {order.listing_type === "service" && (
-              <p className="mt-4 rounded-xl border border-border-light bg-subtle p-3 text-xs font-body text-muted">
-                Commission payments are held securely and released to the
-                seller after you approve delivery.
-              </p>
-            )}
-          </aside>
+          <aside className="hidden lg:block"><div className="sticky top-6">{moneyCard}</div></aside>
         </div>
       </div>
     </div>

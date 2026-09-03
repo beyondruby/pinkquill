@@ -17,7 +17,8 @@ Read `02-plan.md` for the phase definitions and `01-findings.md` for the root ca
 | 3a — Order page | **done, committed on main** (no migration; UI only) | 2026-09-03 |
 | 3c — Listing detail & request flow | **done, committed on main** (no migration; UI only) | 2026-09-03 |
 | 3b — Studio commissions section | **done, committed on main** (no migration; UI only) | 2026-09-03 |
-| 2b, 2d–2f, 3d–3f, 4 | not started | |
+| 3d — Checkout | **done, committed on main** (no migration; presentation only, money paths untouched) | 2026-09-03 |
+| 2b, 2d–2f, 3e, 3f, 4 | not started | |
 
 Open decisions (plan §2): D7 email provider. **D6** = buyer cancels free while the seller hasn't started (`paid`) or when the order is 3+ days overdue; after work starts a buyer cancellation is a refund request the seller decides; sellers/admins may cancel any active order (full refund); partial refunds come out of the seller's share only; nothing can be cancelled or refunded self-service after the payout was sent (dispute instead). **D8** = `platform_admins` table (`profiles.role` is a free-text bio field); `hadi` is the first admin. **D2 = 7 days** after completion (setting `release_window_hours = 168`). **D4 = Supabase pg_cron + pg_net** (GitHub workflow deleted). **Currency:** USD listings, charged in the platform's settlement currency (CAD today) at a cached ECB rate + 1.5 % buffer; switch to USD settlement later by changing `platform_settings.settlement_currency` once a USD bank account exists. **D3 = (b)** seller pays 5 % platform fee, buyer pays a visible processing fee of 3 % + $0.30 (implemented in 1b; rates live in `platform_settings`). Answered: **D1** = platform Stripe account is **Canada, default currency CAD**, Standard account, `transfers` capability active, Connect enabled (verified via API + dashboard 2026-09-02; business is Canadian, owner currently in Saudi Arabia, sellers/buyers intended worldwide in any currency — 1c must use Connect cross-border payouts with the `recipient` service agreement for non-CA sellers and decide the settlement-currency model); **D5** = yes (test orders deleted in 1a).
 
@@ -460,4 +461,34 @@ The **request sheet** (`RequestSheet`, `Sheet size="tall"`) is one flow for the 
 - Seller settings still carry store name, tagline, skills and services that nothing public renders; 3e/3f decide whether to surface them (e.g. the tagline as the header card's subtitle once `seller_profiles` has a public read of non-sensitive columns) or drop them.
 - `CommissionReviewsPanel` keeps its uppercase heading style; the studio profile's other tabs are untouched.
 
-**Next:** 3d (checkout) per the plan's order, or 2b (quotes & extras). Needs your go. The seller-side check with a second account in Stripe test mode is still outstanding (3a, 3c).
+**Next (at the time):** 3d. Superseded by the entry below.
+
+---
+
+## Phase 3d — Checkout (2026-09-03)
+
+**Closes:** RC-C2 item 1 (checkout described a commission as a digital download; no package, delivery days, revisions or due date in the summary) and the checkout share of RC-C4 (glass-gradient panels that rendered as white boxes in dark mode, hand-rolled buttons; now `Button`, tokens only, full-background state boxes).
+
+**Mockup** (approved before build): https://claude.ai/code/artifact/2695c506-3aa6-4ea5-8b76-041ac0024ca1. **Bag decision:** kept as is (its commission items already open the request sheet since 3c); renaming is 4a.
+
+**Money paths untouched.** `POST /api/checkout`, `/api/checkout/confirm`, `/api/checkout/status`, the promo RPC hooks, `lib/providers/stripe-provider.ts` and the webhook are unchanged, and so are the page's own session logic (`createCheckout`, the in-flight ref and `(order, amount, buyer_fee)` key, `resetPaymentGate`, the Turnstile gate, `handleConfirmFree`, the auto-create effect and the "pricing changes invalidate the session" promo callback). Verified by diff: the hooks/handlers block of `CheckoutPage.tsx` is byte-identical apart from one new `noteOpen` state; only `PromoCodeSection`'s JSX, the order query's joins and the page's render changed.
+
+**Design.** `/checkout/[orderId]`: breadcrumb Orders › order number › Checkout; then, in one column, an **order card** that knows what it sells (cover, title, "Basic package · 7-day delivery · 1 revision", creator, **Due Sep 10 · the clock starts when you pay** for commissions; "Physical product · ships to you" / "Digital product · files ready after payment" for products), a folded **promo row** ("Have a promo code?" → input; applied → green row with Remove), a folded **note row** ("Add a note for Poet" → textarea with Save), the **shipping form** for physical products (same required fields, same save-to-unlock rule, "Needed before payment" / "Saved" pill), and the **payment card** ("Pay $5.48 · Secure · Stripe") holding, in one slot, the security check, the loading and error states, the embedded Stripe form, or the free-order confirm; for commissions with creator-written terms a "By paying you agree to Poet's terms · Read terms" line (the checkbox was collected in the request sheet). The **money card** — sticky on desktop, above the payment card on phones — uses the order page's rows: Package · Shipping · Discount · Processing fee · Total, the CAD charge line from the session response, and "Held by Pinkquill until you approve the work. Poet is paid 7 days after approval."
+
+`/checkout/[orderId]/complete` keeps the database-only poll (never Stripe) and on **paid** reads the order row (a select) to show what was bought — cover, title, package · due date or ship-to city, **Total paid** — with "View your order" and a 5-second auto-continue; the heading is "Paid · Poet is on it" for commissions. **Card declined** shows the bank's message with Pay later / Try again; **Checkout expired** offers a new checkout; **Still processing** sends you to the order page.
+
+**Code**
+- `components/checkout/CheckoutPage.tsx` (1,391 → ~990 lines): order query joins `pricing:product_pricing!orders_pricing_id_fkey (…, delivery_days, revisions)` and `product.commission_listing:commission_listings (terms)`; `PromoCodeSection` folded; render rewritten; `Button` primitive; no FontAwesome, no `<img>`.
+- `app/(feed)/checkout/[orderId]/complete/page.tsx` rewritten (poll unchanged; receipt card; `Button`).
+- `e2e/commissions-journey.spec.ts`: the confirmation assertion accepts the new heading.
+
+**Verified**
+- `npx tsc --noEmit` clean; ESLint 0 errors / 0 warnings on the two files; `npx vitest run` 159 pass; `npm run build` succeeds.
+- Browser (local dev server, Stripe **test** keys, signed in as the buyer): request sheet → "Pay $5.48" → `/checkout/<id>` shows the order card with package facts and Due Sep 10, the promo and note folds (opened: promo input + Apply, note textarea + Save note), the money card (Basic package $5.00 · Processing fee $0.48 · Total $5.48 · "Charged as CA$7.75 at 1 USD = 1.3925 CAD" · the hold note) and the embedded Stripe test form for CA$7.75 — one session created, as before. `/checkout/<id>/complete` shows "Confirming your payment". No console errors. The test order and its dependents were deleted; production is back to zero orders / payments / ledger rows, `slots_used = 0`. One open test-mode Checkout Session expires on its own.
+- **Not exercised:** a completed payment through the new pages (no paid orders in production per the session rule — the paid / declined / expired branches keep the exact status handling that 1b verified live), the physical-product shipping form and the free-order confirm (no such orders), the Turnstile gate (no site key locally), the phone layout (mockup only).
+
+**Deferred**
+- Extras (2b) will need a row in the order card and the money card.
+- The checkout page still loads the order with its own query rather than `useOrder`; 4a consolidates loaders.
+
+**Next:** 3e (seller studio) or 3f (listing wizard) per the plan, or 2b (quotes & extras). Needs your go. The seller-side check with a second account in Stripe test mode (3a, 3c) would also exercise the new confirmation page end to end.

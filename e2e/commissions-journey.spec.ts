@@ -123,7 +123,7 @@ test.describe("Commissions money journey", () => {
     // The completion page never trusts the redirect: it polls the order until the
     // webhook has recorded the payment.
     await expect(page).toHaveURL(new RegExp(`/checkout/${orderId}/complete`), { timeout: 60_000 });
-    await expect(page.getByText("Payment confirmed")).toBeVisible({ timeout: 90_000 });
+    await expect(page.getByRole("heading", { name: /^Paid|Payment confirmed/ })).toBeVisible({ timeout: 90_000 });
 
     await page.goto(`/orders/${orderId}`);
     await expect(page.getByText("Total paid")).toBeVisible({ timeout: 20_000 });
