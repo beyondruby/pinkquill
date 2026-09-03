@@ -206,10 +206,13 @@ export default function OrderActions({ order, onUpdate }: OrderActionsProps) {
   }
 
   // ─── Standard Actions ───────────────────────────────────────────
+  // Commission deliveries and revision requests are handled by DeliverySection
+  // (Phase 2c: versioned deliveries with files, revision notes). This card only
+  // keeps "Start Work" for commissions and the product-order actions.
   const hasMainActions = !!(
-    (isSeller && order.listing_type === "service" && ["paid", "revision_requested", "in_progress"].includes(order.status)) ||
+    (isSeller && order.listing_type === "service" && ["paid", "revision_requested"].includes(order.status)) ||
     (isSeller && order.listing_type === "product" && order.status === "paid") ||
-    (isBuyer && ["submitted", "delivered"].includes(order.status))
+    (isBuyer && order.listing_type === "product" && order.status === "delivered")
   );
 
   // Don't render if there are no actions to show (server-decided)
@@ -234,15 +237,6 @@ export default function OrderActions({ order, onUpdate }: OrderActionsProps) {
               disabled={updating}
               label={order.status === "revision_requested" ? "Start Revision" : "Start Work"}
             />
-          )}
-
-          {order.listing_type === "service" && order.status === "in_progress" && (
-            <div className="space-y-3">
-              <textarea rows={3} value={deliveryNote} onChange={(e) => setDeliveryNote(e.target.value)}
-                placeholder="Add delivery summary, file links, and notes..."
-                className="w-full px-3.5 py-2.5 rounded-xl border border-border-light text-sm font-body focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-200 transition-shadow" />
-              <PrimaryButton onClick={() => handleAction("submitted", { deliveryNote })} disabled={updating} label="Submit Delivery" />
-            </div>
           )}
 
           {order.listing_type === "product" && !order.shipping_address && order.status === "paid" && (
@@ -272,20 +266,7 @@ export default function OrderActions({ order, onUpdate }: OrderActionsProps) {
       {/* ─── Buyer Main Actions ───────────────────────────────── */}
       {isBuyer && (
         <>
-          {order.status === "submitted" && (
-            <div className="flex flex-wrap gap-2.5">
-              <PrimaryButton onClick={() => handleAction("completed")} disabled={updating} label="Accept Delivery" />
-              {(order.max_revisions == null || order.revision_count < order.max_revisions) && (
-                <SecondaryButton
-                  onClick={() => handleAction("revision_requested")}
-                  disabled={updating}
-                  label={`Request Revision${order.max_revisions ? ` (${order.revision_count}/${order.max_revisions})` : ""}`}
-                />
-              )}
-            </div>
-          )}
-
-          {order.status === "delivered" && (
+          {order.listing_type === "product" && order.status === "delivered" && (
             <PrimaryButton onClick={() => handleAction("completed")} disabled={updating} label="Confirm Receipt" />
           )}
         </>

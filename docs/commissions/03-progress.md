@@ -12,6 +12,7 @@ Read `02-plan.md` for the phase definitions and `01-findings.md` for the root ca
 | 1c — Payout release, ledger, cron, settlement currency | **done, applied to production** | 2026-09-02 |
 | 1d — Refunds, cancellations, disputes, chargebacks | **done, applied to production** | 2026-09-02 |
 | 2a — Availability & slots | **done, applied to production** | 2026-09-03 |
+| 2c — Intake, references, revisions, deliveries | **done, applied to production** | 2026-09-03 |
 | 1e — Test harness + go-live checklist | **done, applied to production** (go-live checklist below; live keys NOT yet configured) | 2026-09-02 |
 | 2–4 | not started | |
 
@@ -257,7 +258,7 @@ Open decisions (plan §2): D7 email provider. **D6** = buyer cancels free while 
 - `lib/__tests__/fx.test.ts` — quote maths: no-conversion, the C$7.75 live case, buffer never negative across rates/amounts, free order, invalid rate.
 - `lib/__tests__/refunds-server.test.ts` — refund execution: nothing approved; idempotent Stripe refund; reversal **before** refund when the seller was paid; reversal failure → `needs_review`, buyer NOT refunded, alert raised; partial refund reverses only what is left; missing PaymentIntent → review; transient Stripe error → retry, no alert.
 - `app/api/stripe/webhooks/__tests__/route.test.ts` — real Stripe signature verification (`generateTestHeaderString`): bad signature → 400 before any DB call; duplicate claim → 200 no processing; paid session → `record_payment_succeeded` with amount/currency/fee; unpaid session ignored; amount mismatch → idempotent Stripe refund + `record_payment_refund` + alert; declined payment recorded; handler throw → event `failed` + 500 (Stripe retries) + alert; chargeback → `record_chargeback` + payout reversal `reversal_chargeback_<dispute>`.
-- `lib/__tests__/money-selftest.test.ts` — **database contract test**, opt-in: `RUN_DB_SELFTEST=1 npx vitest run lib/__tests__/money-selftest.test.ts` (reads the service key from `.env.local`). Calls `run_money_selftest()` and asserts every scenario token. Ran green against production on 2026-09-02 (2.0 s); production still has zero orders / ledger rows / refunds / payouts / disputes / alerts afterwards.
+- `lib/__tests__/money-selftest.test.ts` — **database contract test**, opt-in: `RUN_DB_SELFTEST=1 npx vitest run lib/__tests__/db-selftests.test.ts` (reads the service key from `.env.local`). Calls `run_money_selftest()` and asserts every scenario token. Ran green against production on 2026-09-02 (2.0 s); production still has zero orders / ledger rows / refunds / payouts / disputes / alerts afterwards.
 - `e2e/commissions-journey.spec.ts` rewritten for the current UI: publish $5 service → hire → `/checkout/<id>` shows Processing fee $0.48 and Total $5.48 → 4242 card inside the embedded Checkout iframe → `/checkout/<id>/complete` waits for the webhook ("Payment confirmed") → order page "Total paid" → seller Start Work / Submit Delivery → buyer Accept Delivery → completed, no cancel offered. Skipped unless `E2E_SELLER_EMAIL/PASSWORD` + `E2E_BUYER_EMAIL/PASSWORD` are set; it needs the app running against Stripe test keys with `stripe listen` forwarding. **Not run in this session** (no E2E accounts exist yet) — the same path was exercised by hand in 1b–1d.
 
 **Not done from the plan line:** Sentry. The project has no Sentry DSN and adding a vendor is a decision for you; `ops_alerts` + `/api/admin/health` cover the same need without a third party. Add Sentry later by calling it inside `reportOpsAlert()` — one place.
@@ -321,10 +322,43 @@ Do these in order. Everything before step 6 is reversible.
 - `CommissionDetailView`: availability box above the CTA (slots open / waitlist / not available with the reason, estimated delivery = lead + package days, clock start, custom-quote note); button becomes "Join the Waitlist" or "Not taking orders"; the hire modal shows the creator's terms and a computed delivery estimate instead of a buyer-chosen timeline; a refused order refreshes availability.
 - `components/commissions/AvailabilityPill.tsx`: shared pill (Open · 2 of 5 slots open · Waitlist · Closed · Opens Sep 12 · Not taking orders) used on the marketplace commission card and the studio commission card.
 - `OrderView`: "#2 of 4 in queue · 3 slots" pill for service orders before work starts.
-- `lib/__tests__/listing-selftest.test.ts` (opt-in, `RUN_DB_SELFTEST=1`).
+- `lib/__tests__/db-selftests.test.ts` (the three DB suites in one sequential file; opt-in, `RUN_DB_SELFTEST=1`).
 
 **Verified:** `npx tsc` clean; ESLint 0 errors (pre-existing warnings only); 161 tests pass incl. both DB self-tests; `npm run build` succeeds.
 
 **Not in this phase (by design):** custom quotes are a flag only (2b builds the quote flow); terms are shown, not versioned/acknowledged per order (2c/3c); no email when a slot opens (2d); the studio header card with the availability pill is 3b.
 
-**Next:** Phase 2c (intake, references, revisions, deliveries) per the recommended order, or 2b if you prefer quotes first. Needs your go.
+**Next (at the time):** Phase 2c. Superseded by the entry below.
+
+---
+
+## Phase 2c — Intake, references, revisions, deliveries (2026-09-03)
+
+**Closes:** the data half of the silent-failure root cause (RC-B1 / RC-C1 at the data level). A delivery, a revision request and a buyer's brief are now rows with files attached and a state of their own, instead of a status flip plus a chat message. The seller "Submit Delivery" that could fail from `paid` (the RPC only accepted `in_progress`) is gone: delivering auto-starts the order.
+
+**Migration** `supabase/migrations/20260903_commissions_phase2c_intake_deliveries.sql` — applied as `commissions_phase2c_intake_deliveries`.
+- `listing_intake_fields`: typed questions per service (short_text | long_text | number | url | select | multi_select | file), help text, options, required flag, position. Public read, seller write under RLS. Backfilled from `service_metadata.requirements` (kept as plain labels for old readers).
+- `order_intake_answers`: the buyer's answers snapshotted per order (label + type copied, so later edits to the listing don't rewrite history). `create_marketplace_order` now **refuses a request that skips a required question** and records the answers; the legacy `{notes}` shape still works and becomes an "Extra notes" answer. `orders.requirements` is no longer written.
+- `order_attachments`: every file on an order — `reference` (buyer), `revision` (buyer), `delivery` (seller) — as a bare path in the private `order-files` bucket. The database refuses any path outside `orders/<order_id>/`, caps 25 files per call and 100 MB per file; references cap at 20 per order.
+- `order_revisions`: numbered requests with a note and files; `open → addressed` (by the next delivery) | `withdrawn`.
+- `order_deliveries`: versioned (v1, v2 …) with note, files, `is_final`, the revision it addresses, and `submitted → revision_requested → accepted | superseded`. Acceptance (buyer or auto-complete cron) marks the open delivery accepted.
+- RPCs (authenticated): `submit_order_delivery(order, note, files, is_final)` (seller; from paid / in_progress / revision_requested; needs a note or a file), `request_order_revision(order, note, files)` (buyer; from submitted; enforces `max_revisions`), `add_order_references(order, files)` (buyer; any open status), `get_order_workroom(order)` (participants + admins: answers, references, revisions, deliveries with attachments in one read). Every write also posts the existing system message with attachments, so the Messages tab and notifications keep working unchanged.
+- `update_order_as_seller('submitted')` and `update_order_as_buyer('revision_requested')` delegate to the new RPCs, so nothing that still calls them breaks. `orders.delivery_note` / `delivery_assets` are no longer written (reads kept; dropping columns is 4c).
+- `run_workroom_selftest()` (service role, rolled back): required-question refusal → answers snapshotted → bad path refused / good reference stored → empty delivery refused → v1 auto-starts the order → revision 1 marks the delivery → v2 addresses it and supersedes v1 → revision 2 refused at the cap → acceptance → one workroom read. Green on production; listing and money self-tests still green; zero orders left behind.
+
+**Code**
+- `lib/types/store.ts`: `ListingIntakeField`, `IntakeFieldDraft`, `IntakeAnswerInput`, `OrderIntakeAnswer`, `OrderAttachment`, `OrderFileInput`, `OrderRevision`, `OrderDelivery`, `OrderWorkroom`; `Product.intake_fields`; wizard `intakeFields`.
+- `lib/hooks/useOrderWorkroom.ts` (new): `uploadOrderFiles(orderId, kind, files)` (uploads to `orders/<id>/<kind>/<uuid>.<ext>`), `useOrderWorkroom`, `useSubmitDelivery`, `useRequestRevision`, `useAddReferences`.
+- `lib/hooks/useCommissions.ts`: create/update sync `listing_intake_fields` from the wizard (update in place by id, delete removed, insert new). `useProducts`: product reads join `intake_fields`.
+- `CreateCommissionWizard` step 3: "What you'll need from them" is now a question builder (type chips, required, help text, options for pick-lists, reorder, remove); review shows the count and how many are required.
+- `CommissionDetailView` hire modal: the creator's questions render by type (text, paragraph, number, link, pick one, pick many; file-type questions point at the reference picker), required ones are checked client-side too, a reference-file picker (up to 20) uploads right after the order is created.
+- `DeliverySection` rewritten around the workroom: delivery history newest-first with version, Final tag, status pill, "addresses revision N", note and a signed-URL file grid; the open revision the seller must address sits on top; seller form with files + "This is the final delivery"; buyer Accept / Request Revision (note required, files optional, revisions-left counter). Exports `AttachmentGrid`.
+- `OrderView`: Commission Brief card shows the intake answers and the reference files, with "+ Add files" for the buyer while the order is open; passes the workroom to `DeliverySection`.
+- `OrderActions`: the duplicate Submit Delivery textarea and buyer Accept/Revision buttons for commissions are removed — one place does it now (Start Work / Start Revision stay).
+- `lib/__tests__/db-selftests.test.ts` gains the workroom suite (sequential on purpose — the three suites deadlock when vitest runs them in parallel workers).
+
+**Verified:** `npx tsc` clean; ESLint 0 errors (pre-existing warnings only); vitest incl. the three DB self-tests green; `npm run build` succeeds; hire modal renders the backfilled question in the local app.
+
+**Deferred:** withdrawing a revision request, per-file delete, and a rich revision timeline are 3a; terms acknowledgement per order is 3c; email on delivery / revision is 2d.
+
+**Next:** 3a (order page) is the recommended next step now that the data exists; 2b (quotes & extras) is the alternative. Needs your go.

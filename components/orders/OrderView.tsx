@@ -10,6 +10,8 @@ import { useOrder, useUpdateOrderDraft } from "@/lib/hooks/useOrders";
 import { useOrderReviews } from "@/lib/hooks/useReviews";
 import { useOrderDispute } from "@/lib/hooks/useDisputes";
 import { useOrderQueuePosition } from "@/lib/hooks/useCommissions";
+import { useAddReferences, useOrderWorkroom } from "@/lib/hooks/useOrderWorkroom";
+import { AttachmentGrid } from "./DeliverySection";
 import { useConfirmDelivery } from "@/lib/hooks/useShipping";
 import ReviewForm from "@/components/reviews/ReviewForm";
 import ReviewCard from "@/components/reviews/ReviewCard";
@@ -86,6 +88,9 @@ export default function OrderView({ orderId }: OrderViewProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { order, loading, error, refetch } = useOrder(orderId);
+  // Phase 2c: intake answers, references, revisions, deliveries
+  const { workroom, refetch: refetchWorkroom } = useOrderWorkroom(order?.id, order?.listing_type === "service");
+  const { addReferences, loading: addingReferences, error: addReferencesError } = useAddReferences();
   // Phase 2a: where this request sits in the creator's queue (before work starts)
   const queue = useOrderQueuePosition(
     order?.id,
@@ -404,7 +409,7 @@ export default function OrderView({ orderId }: OrderViewProps) {
               {isCommission && isCommissionDeliveryState && (
                 <Card>
                   <CardHeader title="Delivery" />
-                  <DeliverySection order={order} isSeller={!isBuyer} onUpdate={refetch} />
+                  <DeliverySection order={order} isSeller={!isBuyer} workroom={workroom} onUpdate={refetch} onWorkroomChange={refetchWorkroom} />
                 </Card>
               )}
 
@@ -438,12 +443,28 @@ export default function OrderView({ orderId }: OrderViewProps) {
                 <ConfirmDeliveryCard orderId={order.id} onConfirm={refetch} />
               )}
 
-              {/* Commission Brief */}
-              {isCommission && order.brief && (order.status !== "pending_payment" || !isBuyer) && (
+              {/* Commission Brief + intake answers + reference files (Phase 2c) */}
+              {isCommission && (order.brief || (workroom && (workroom.intake_answers.length > 0 || workroom.references.length > 0))) && (order.status !== "pending_payment" || !isBuyer) && (
                 <Card>
                   <CardHeader title="Commission Brief" />
-                  <p className="font-body text-sm text-ink/90 whitespace-pre-wrap leading-relaxed">{order.brief}</p>
-                  {order.requirements && Object.keys(order.requirements).length > 0 && (
+                  {order.brief && (
+                    <p className="font-body text-sm text-ink/90 whitespace-pre-wrap leading-relaxed">{order.brief}</p>
+                  )}
+                  {workroom && workroom.intake_answers.length > 0 && (
+                    <div className="mt-4 p-3.5 rounded-xl bg-subtle border border-border-light space-y-3">
+                      {workroom.intake_answers.map((answer) => (
+                        <div key={answer.id}>
+                          <p className="text-[11px] font-ui uppercase tracking-wider text-muted mb-0.5">{answer.label}</p>
+                          <p className="text-sm font-body text-ink/85 whitespace-pre-wrap">
+                            {answer.value_text
+                              ?? (Array.isArray(answer.value_json) ? (answer.value_json as unknown[]).map(String).join(", ") : answer.value_json != null ? String(answer.value_json) : "—")}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {/* Legacy orders keep showing their old requirements map */}
+                  {(!workroom || workroom.intake_answers.length === 0) && order.requirements && Object.keys(order.requirements).length > 0 && (
                     <div className="mt-4 p-3.5 rounded-xl bg-subtle border border-border-light">
                       <p className="text-[11px] font-ui uppercase tracking-wider text-muted mb-2.5">Requirements</p>
                       <div className="space-y-1.5">
@@ -454,6 +475,33 @@ export default function OrderView({ orderId }: OrderViewProps) {
                           </div>
                         ))}
                       </div>
+                    </div>
+                  )}
+                  {workroom && (workroom.references.length > 0 || (isBuyer && !["completed", "cancelled", "refunded", "declined", "expired", "resolved"].includes(order.status))) && (
+                    <div className="mt-4">
+                      <div className="flex items-center justify-between gap-3 mb-2.5">
+                        <p className="text-[11px] font-ui uppercase tracking-wider text-muted">Reference files ({workroom.references.length})</p>
+                        {isBuyer && !["completed", "cancelled", "refunded", "declined", "expired", "resolved"].includes(order.status) && workroom.references.length < 20 && (
+                          <label className="text-xs font-ui font-semibold text-purple-primary cursor-pointer hover:underline">
+                            {addingReferences ? "Uploading…" : "+ Add files"}
+                            <input
+                              type="file"
+                              multiple
+                              className="hidden"
+                              disabled={addingReferences}
+                              onChange={async (event) => {
+                                const files = Array.from(event.target.files ?? []);
+                                event.target.value = "";
+                                if (files.length === 0) return;
+                                const result = await addReferences(order.id, files);
+                                if (result) await refetchWorkroom();
+                              }}
+                            />
+                          </label>
+                        )}
+                      </div>
+                      {addReferencesError && <p className="text-xs font-body text-red-500 mb-2">{addReferencesError}</p>}
+                      <AttachmentGrid orderId={order.id} attachments={workroom.references} />
                     </div>
                   )}
                 </Card>

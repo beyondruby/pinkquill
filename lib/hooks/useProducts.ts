@@ -75,6 +75,7 @@ export function useSellerProducts(
           media:product_media (*),
           pricing:product_pricing (*),
           commission_listing:commission_listings (*),
+          intake_fields:listing_intake_fields (*),
           shipping:product_shipping (*),
           keywords:product_keywords (keyword)
         `)
@@ -176,6 +177,7 @@ export function useProduct(productId?: string): UseProductReturn {
           media:product_media (*),
           pricing:product_pricing (*),
           commission_listing:commission_listings (*),
+          intake_fields:listing_intake_fields (*),
           shipping:product_shipping (*),
           files:product_files (*),
           keywords:product_keywords (keyword)

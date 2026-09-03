@@ -264,6 +264,116 @@ export interface CommissionAvailabilityInfo {
 }
 
 // ============================================================================
+// INTAKE, ATTACHMENTS, REVISIONS, DELIVERIES (Phase 2c)
+// ============================================================================
+
+export type IntakeFieldType = 'short_text' | 'long_text' | 'number' | 'url' | 'select' | 'multi_select' | 'file';
+
+/** A question the creator asks before work starts (`listing_intake_fields`). */
+export interface ListingIntakeField {
+  id: string;
+  product_id: string;
+  seller_id: string;
+  position: number;
+  label: string;
+  help_text: string | null;
+  field_type: IntakeFieldType;
+  options: string[];
+  required: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Wizard draft of an intake field (id only when it already exists). */
+export interface IntakeFieldDraft {
+  id?: string;
+  key: string;
+  label: string;
+  help_text: string;
+  field_type: IntakeFieldType;
+  options: string[];
+  required: boolean;
+}
+
+/** Answer sent with a hire request: `requirements.answers[]`. */
+export interface IntakeAnswerInput {
+  field_id: string;
+  value: string | string[];
+}
+
+export interface OrderIntakeAnswer {
+  id: string;
+  order_id: string;
+  field_id: string | null;
+  position: number;
+  label: string;
+  field_type: IntakeFieldType;
+  value_text: string | null;
+  value_json: unknown;
+  created_at: string;
+}
+
+export type OrderAttachmentKind = 'reference' | 'revision' | 'delivery';
+
+export interface OrderAttachment {
+  id: string;
+  order_id: string;
+  uploader_id: string;
+  kind: OrderAttachmentKind;
+  /** Bare path in the private order-files bucket; resolve via useOrderFileUrls. */
+  storage_path: string;
+  file_name: string;
+  mime_type: string | null;
+  size_bytes: number;
+  delivery_id: string | null;
+  revision_id: string | null;
+  created_at: string;
+}
+
+/** File descriptor passed to the delivery / revision / reference RPCs. */
+export interface OrderFileInput {
+  path: string;
+  name: string;
+  type: string;
+  size: number;
+}
+
+export interface OrderRevision {
+  id: string;
+  order_id: string;
+  number: number;
+  requested_by: string;
+  note: string | null;
+  status: 'open' | 'addressed' | 'withdrawn';
+  requested_at: string;
+  addressed_at: string | null;
+  addressed_by_delivery_id: string | null;
+  attachments: OrderAttachment[];
+}
+
+export interface OrderDelivery {
+  id: string;
+  order_id: string;
+  version: number;
+  seller_id: string;
+  note: string | null;
+  is_final: boolean;
+  revision_id: string | null;
+  status: 'submitted' | 'revision_requested' | 'accepted' | 'superseded';
+  delivered_at: string;
+  accepted_at: string | null;
+  attachments: OrderAttachment[];
+}
+
+/** Result of `get_order_workroom(order_id)`. */
+export interface OrderWorkroom {
+  intake_answers: OrderIntakeAnswer[];
+  references: OrderAttachment[];
+  revisions: OrderRevision[];
+  deliveries: OrderDelivery[];
+}
+
+// ============================================================================
 // MAIN PRODUCT INTERFACE
 // ============================================================================
 
@@ -294,6 +404,8 @@ export interface Product {
   keywords?: string[];
   /** Availability/slots settings for services (joined from commission_listings). */
   commission_listing?: CommissionListing | null;
+  /** Intake questions for services (joined from listing_intake_fields). */
+  intake_fields?: ListingIntakeField[];
 
   // Computed fields
   primary_image_url?: string;
@@ -508,7 +620,8 @@ export interface CreateOrderData {
   // (create_marketplace_order) from the product/pricing rows. The client
   // never sends money figures.
   brief?: string;
-  requirements?: Record<string, string | string[]>;
+  /** `{ answers: IntakeAnswerInput[], notes?: string }` — validated server-side. */
+  requirements?: { answers?: IntakeAnswerInput[]; notes?: string } | Record<string, string | string[]>;
   due_date?: string;
   quantity?: number;
   shipping_address?: ShippingAddress;
@@ -860,6 +973,8 @@ export interface CommissionWizardState {
   requirements: string[];
   faqs: ServiceFaqItem[];
   keywords: string[];
+  /** Phase 2c — intake questions (replaces the free-text requirements list) */
+  intakeFields: IntakeFieldDraft[];
   /** Phase 2a — availability & slots */
   availability: CommissionAvailability;
   /** ISO date (yyyy-mm-dd) when availability === 'scheduled' */
@@ -924,6 +1039,7 @@ export const initialCommissionWizardState: CommissionWizardState = {
   requirements: [],
   faqs: [],
   keywords: [],
+  intakeFields: [],
   availability: "open",
   opensAt: "",
   slotsTotal: null,

@@ -7,6 +7,8 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { useDeleteProduct, useProduct } from "@/lib/hooks/useProducts";
 import { useCreateOrder } from "@/lib/hooks/useOrders";
 import { useCommissionAvailability } from "@/lib/hooks/useCommissions";
+import { useAddReferences } from "@/lib/hooks/useOrderWorkroom";
+import type { IntakeAnswerInput, ListingIntakeField } from "@/lib/types/store";
 import { useStudioCart } from "@/lib/hooks/useStudioQueue";
 import { COMMISSION_CATEGORIES, getCommissionSubcategoryLabel } from "@/lib/commissions/categories";
 import ProductGallery from "@/components/store/ProductDetail/ProductGallery";
@@ -28,6 +30,15 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
   const { createOrder, creating: hiring, error: hireError } = useCreateOrder();
   const { addItem, hasItem } = useStudioCart();
   const { availability, refetch: refetchAvailability } = useCommissionAvailability(product?.id);
+  const { addReferences } = useAddReferences();
+  const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
+  const [referenceFiles, setReferenceFiles] = useState<File[]>([]);
+
+  const intakeFields = useMemo<ListingIntakeField[]>(() => {
+    const fields = product?.intake_fields;
+    if (!Array.isArray(fields)) return [];
+    return [...fields].sort((a, b) => a.position - b.position);
+  }, [product]);
 
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -150,6 +161,19 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
       setLocalError("Add a project brief so the creator can start quickly.");
       return;
     }
+    for (const field of intakeFields) {
+      if (!field.required || field.field_type === "file") continue;
+      const value = answers[field.id];
+      const empty = value === undefined || (typeof value === "string" ? value.trim().length === 0 : value.length === 0);
+      if (empty) {
+        setLocalError(`Please answer "${field.label}".`);
+        return;
+      }
+    }
+    const intakeAnswers: IntakeAnswerInput[] = intakeFields
+      .filter((field) => field.field_type !== "file")
+      .map((field) => ({ field_id: field.id, value: answers[field.id] ?? "" }))
+      .filter((answer) => (typeof answer.value === "string" ? answer.value.trim().length > 0 : answer.value.length > 0));
 
     // The due date is the seller's: lead time + package delivery days,
     // re-based by the database when the clock actually starts.
@@ -158,6 +182,7 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
       pricing_id: selectedPackage.id,
       brief,
       requirements: {
+        answers: intakeAnswers,
         notes: requirementsText,
       },
     });
@@ -165,6 +190,12 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
     if (!order) {
       // e.g. the last slot went to someone else while the form was open
       void refetchAvailability();
+    }
+
+    if (order && referenceFiles.length > 0) {
+      // References are files, so they can only be attached once the order exists.
+      const result = await addReferences(order.id, referenceFiles);
+      if (!result) showToast.error("Your request was sent, but some reference files could not be uploaded. You can add them from the order page.");
     }
 
     if (order) {
@@ -643,6 +674,38 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
                 </div>
               </div>
 
+              {intakeFields.length > 0 && (
+                <div className="space-y-3">
+                  <p className="text-xs font-ui uppercase tracking-[0.14em] text-muted">The creator asks</p>
+                  {intakeFields.map((field) => (
+                    <IntakeQuestion
+                      key={field.id}
+                      field={field}
+                      value={answers[field.id]}
+                      onChange={(value) => setAnswers((prev) => ({ ...prev, [field.id]: value }))}
+                    />
+                  ))}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-ui font-semibold text-ink mb-2">
+                  Reference files <span className="font-normal text-muted">(optional, up to 20)</span>
+                </label>
+                <label className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl border border-dashed border-border-strong cursor-pointer hover:border-pink-vivid/50 transition-colors">
+                  <span className="text-sm font-body text-muted">
+                    {referenceFiles.length > 0 ? `${referenceFiles.length} file${referenceFiles.length === 1 ? "" : "s"} selected` : "Sketches, mood boards, examples of what you like"}
+                  </span>
+                  <span className="text-xs font-ui font-semibold text-purple-primary">Choose files</span>
+                  <input
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={(event) => setReferenceFiles(Array.from(event.target.files ?? []).slice(0, 20))}
+                  />
+                </label>
+              </div>
+
               {availability?.terms && (
                 <div className="rounded-xl border border-border-light bg-subtle/60 px-4 py-3">
                   <p className="text-xs font-ui uppercase tracking-[0.14em] text-muted">Creator&apos;s terms</p>
@@ -689,5 +752,85 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
         loading={deleting}
       />
     </>
+  );
+}
+
+function IntakeQuestion({
+  field,
+  value,
+  onChange,
+}: {
+  field: ListingIntakeField;
+  value: string | string[] | undefined;
+  onChange: (value: string | string[]) => void;
+}) {
+  const inputClass = "w-full px-4 py-3 rounded-xl border border-border-light focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 text-sm font-body";
+  const label = (
+    <label className="block text-sm font-ui font-semibold text-ink mb-1.5">
+      {field.label}
+      {field.required && <span className="text-pink-vivid"> *</span>}
+      {field.help_text && <span className="block text-xs font-body font-normal text-muted mt-0.5">{field.help_text}</span>}
+    </label>
+  );
+  if (field.field_type === "file") {
+    return (
+      <div>
+        {label}
+        <p className="text-xs font-body text-muted">Attach this under reference files below.</p>
+      </div>
+    );
+  }
+  if (field.field_type === "select") {
+    return (
+      <div>
+        {label}
+        <select value={typeof value === "string" ? value : ""} onChange={(event) => onChange(event.target.value)} className={inputClass}>
+          <option value="">Choose…</option>
+          {field.options.map((option) => <option key={option} value={option}>{option}</option>)}
+        </select>
+      </div>
+    );
+  }
+  if (field.field_type === "multi_select") {
+    const selected = Array.isArray(value) ? value : [];
+    return (
+      <div>
+        {label}
+        <div className="flex flex-wrap gap-2">
+          {field.options.map((option) => {
+            const active = selected.includes(option);
+            return (
+              <button
+                key={option}
+                type="button"
+                onClick={() => onChange(active ? selected.filter((o) => o !== option) : [...selected, option])}
+                className={`px-3 py-1.5 rounded-full text-sm font-ui border transition-colors ${active ? "border-purple-primary bg-purple-50 text-purple-primary" : "border-border-light text-ink hover:border-border-strong"}`}
+              >
+                {option}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+  if (field.field_type === "long_text") {
+    return (
+      <div>
+        {label}
+        <textarea rows={3} value={typeof value === "string" ? value : ""} onChange={(event) => onChange(event.target.value)} className={inputClass} />
+      </div>
+    );
+  }
+  return (
+    <div>
+      {label}
+      <input
+        type={field.field_type === "number" ? "number" : field.field_type === "url" ? "url" : "text"}
+        value={typeof value === "string" ? value : ""}
+        onChange={(event) => onChange(event.target.value)}
+        className={inputClass}
+      />
+    </div>
   );
 }

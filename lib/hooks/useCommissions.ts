@@ -7,6 +7,7 @@ import type {
   CommissionAvailabilityInfo,
   CommissionPackageFormState,
   CommissionWizardState,
+  IntakeFieldDraft,
   Product,
 } from "../types/store";
 import { useSellerProducts } from "./useProducts";
@@ -45,6 +46,57 @@ function listingRowFromState(state: CommissionWizardState, productId: string, se
     terms: state.terms.trim() ? state.terms.trim().slice(0, 5000) : null,
     accepts_custom_quotes: Boolean(state.acceptsCustomQuotes),
   };
+}
+
+/** Clean wizard intake drafts → rows for listing_intake_fields. */
+function intakeRowsFromState(fields: IntakeFieldDraft[], productId: string, sellerId: string) {
+  return fields
+    .map((field, index) => ({
+      id: field.id,
+      product_id: productId,
+      seller_id: sellerId,
+      position: index,
+      label: field.label.trim().slice(0, 200),
+      help_text: field.help_text.trim() ? field.help_text.trim().slice(0, 500) : null,
+      field_type: field.field_type,
+      options: ["select", "multi_select"].includes(field.field_type)
+        ? field.options.map((o) => o.trim()).filter(Boolean).slice(0, 20)
+        : [],
+      required: Boolean(field.required),
+    }))
+    .filter((row) => row.label.length > 0);
+}
+
+/**
+ * Replace a listing's intake questions with the wizard state: existing ids
+ * are updated in place (answers on past orders keep pointing at them),
+ * removed ones are deleted, new ones inserted.
+ */
+async function syncIntakeFields(fields: IntakeFieldDraft[], productId: string, sellerId: string) {
+  const rows = intakeRowsFromState(fields, productId, sellerId);
+  const { data: existing, error: existingError } = await supabase
+    .from("listing_intake_fields")
+    .select("id")
+    .eq("product_id", productId);
+  if (existingError) throw existingError;
+  const keep = new Set(rows.map((r) => r.id).filter((id): id is string => Boolean(id)));
+  const toDelete = (existing || []).map((r) => r.id as string).filter((id) => !keep.has(id));
+  if (toDelete.length > 0) {
+    const { error } = await supabase.from("listing_intake_fields").delete().in("id", toDelete);
+    if (error) throw error;
+  }
+  for (const row of rows) {
+    if (row.id) {
+      const { id, ...rest } = row;
+      const { error } = await supabase.from("listing_intake_fields").update({ ...rest, updated_at: new Date().toISOString() }).eq("id", id);
+      if (error) throw error;
+    } else {
+      const { id: _unused, ...rest } = row;
+      void _unused;
+      const { error } = await supabase.from("listing_intake_fields").insert(rest);
+      if (error) throw error;
+    }
+  }
 }
 
 interface UseCreateCommissionReturn {
@@ -108,7 +160,8 @@ export function useCreateCommission(): UseCreateCommissionReturn {
           attributes: {},
           service_metadata: {
             headline: state.headline,
-            requirements: state.requirements,
+            // kept as plain labels for older readers; the typed questions live in listing_intake_fields
+            requirements: state.intakeFields.map((f) => f.label.trim()).filter(Boolean),
             faqs: state.faqs,
           },
           status: "active",
@@ -124,6 +177,7 @@ export function useCreateCommission(): UseCreateCommissionReturn {
           .upsert(listingRowFromState(state, product.id, user.id), { onConflict: "product_id" });
         if (listingError) throw listingError;
       }
+      await syncIntakeFields(state.intakeFields, product.id, user.id);
 
       const uploadableMedia = state.mediaPreviews.filter((preview) => preview.file instanceof File);
       if (uploadableMedia.length > 0) {
@@ -284,8 +338,8 @@ export function useUpdateCommission(): UseUpdateCommissionReturn {
           ? (existingProduct.service_metadata as Record<string, unknown>)
           : {};
 
-      const normalizedRequirements = state.requirements
-        .map((item) => item.trim())
+      const normalizedRequirements = state.intakeFields
+        .map((field) => field.label.trim())
         .filter((item) => item.length > 0);
 
       const normalizedFaqs = state.faqs
@@ -330,6 +384,7 @@ export function useUpdateCommission(): UseUpdateCommissionReturn {
           .upsert(listingRowFromState(state, productId, user.id), { onConflict: "product_id" });
         if (listingError) throw listingError;
       }
+      await syncIntakeFields(state.intakeFields, productId, user.id);
 
       const { error: deleteKeywordsError } = await supabase
         .from("product_keywords")

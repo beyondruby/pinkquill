@@ -7,6 +7,7 @@ import { useCreateCommission, useUpdateCommission } from "@/lib/hooks/useCommiss
 import {
   type CommissionPackageFormState,
   type CommissionWizardState,
+  type IntakeFieldDraft,
   type Product,
   initialCommissionWizardState,
 } from "@/lib/types/store";
@@ -159,6 +160,24 @@ function mapProductToCommissionState(product: Product): CommissionWizardState {
     requirements,
     faqs,
     keywords: Array.isArray(product.keywords) ? product.keywords : [],
+    intakeFields: (product.intake_fields && product.intake_fields.length > 0
+      ? [...product.intake_fields].sort((a, b) => a.position - b.position).map((f) => ({
+          id: f.id,
+          key: f.id,
+          label: f.label,
+          help_text: f.help_text ?? "",
+          field_type: f.field_type,
+          options: Array.isArray(f.options) ? f.options : [],
+          required: f.required,
+        }))
+      : requirements.map((label) => ({
+          key: crypto.randomUUID(),
+          label,
+          help_text: "",
+          field_type: "long_text" as const,
+          options: [],
+          required: false,
+        }))),
     availability: product.commission_listing?.availability ?? "open",
     opensAt: product.commission_listing?.opens_at ? product.commission_listing.opens_at.slice(0, 10) : "",
     slotsTotal: product.commission_listing?.slots_total ?? null,
@@ -756,13 +775,12 @@ export default function CreateCommissionWizard({
 
                     <SectionCard
                       title="What you'll need from them"
-                      description="What should someone share with you before you start creating?"
+                      description="Questions buyers answer before they can send a request. Mark the must-haves as required."
                       tone="neutral"
                     >
-                      <StringListEditor
-                        values={state.requirements}
-                        placeholder="e.g., Reference photos, color preferences, style inspiration"
-                        onChange={(values) => updateState({ requirements: values })}
+                      <IntakeFieldsEditor
+                        fields={state.intakeFields}
+                        onChange={(intakeFields) => updateState({ intakeFields })}
                       />
                     </SectionCard>
 
@@ -817,7 +835,7 @@ export default function CreateCommissionWizard({
                         <ReviewItem label="Starting price" value={priceFrom ? `$${priceFrom}` : "Not set"} />
                         <ReviewItem label="Media" value={`${state.mediaPreviews.length} files`} />
                         <ReviewItem label="Packages" value={`${state.packages.length} tier(s)`} />
-                        <ReviewItem label="Requirements" value={`${state.requirements.length} question(s)`} />
+                        <ReviewItem label="Intake questions" value={`${state.intakeFields.length} question(s), ${state.intakeFields.filter((f) => f.required).length} required`} />
                         <ReviewItem label="FAQs" value={`${state.faqs.length} item(s)`} />
                         <ReviewItem label="Availability" value={describeAvailabilityState(state)} />
                         <ReviewItem label="Turnaround" value={`${state.leadTimeDays > 0 ? `${state.leadTimeDays}-day lead time, ` : ""}starts at ${state.turnaroundStarts === "acceptance" ? "acceptance" : "payment"}`} />
@@ -1176,6 +1194,130 @@ function FaqEditor({
 
       <button type="button" onClick={addItem} className="text-xs font-ui font-semibold text-purple-primary hover:text-pink-vivid">
         + Add FAQ
+      </button>
+    </div>
+  );
+}
+
+const INTAKE_TYPES: Array<{ value: IntakeFieldDraft["field_type"]; label: string }> = [
+  { value: "long_text", label: "Paragraph" },
+  { value: "short_text", label: "Short answer" },
+  { value: "select", label: "Pick one" },
+  { value: "multi_select", label: "Pick many" },
+  { value: "number", label: "Number" },
+  { value: "url", label: "Link" },
+  { value: "file", label: "File upload" },
+];
+
+function IntakeFieldsEditor({
+  fields,
+  onChange,
+}: {
+  fields: IntakeFieldDraft[];
+  onChange: (fields: IntakeFieldDraft[]) => void;
+}) {
+  const inputClass = "w-full px-3 py-2 rounded-lg border border-border-light bg-surface text-sm font-body text-ink focus:outline-none focus:ring-2 focus:ring-pink-vivid/20";
+  const update = (key: string, patch: Partial<IntakeFieldDraft>) =>
+    onChange(fields.map((f) => (f.key === key ? { ...f, ...patch } : f)));
+  const remove = (key: string) => onChange(fields.filter((f) => f.key !== key));
+  const move = (index: number, dir: -1 | 1) => {
+    const next = [...fields];
+    const target = index + dir;
+    if (target < 0 || target >= next.length) return;
+    [next[index], next[target]] = [next[target], next[index]];
+    onChange(next);
+  };
+  const add = () =>
+    onChange([
+      ...fields,
+      { key: crypto.randomUUID(), label: "", help_text: "", field_type: "long_text", options: [], required: false },
+    ]);
+
+  return (
+    <div className="space-y-3">
+      {fields.length === 0 && (
+        <p className="text-sm font-body text-muted">No questions yet. Buyers will only write a brief.</p>
+      )}
+      {fields.map((field, index) => {
+        const hasOptions = field.field_type === "select" || field.field_type === "multi_select";
+        return (
+          <div key={field.key} className="rounded-xl border border-border-light bg-surface p-3.5 space-y-2.5">
+            <div className="flex items-start gap-2">
+              <span className="mt-2 text-xs font-ui text-muted w-5 shrink-0">{index + 1}.</span>
+              <input
+                value={field.label}
+                maxLength={200}
+                placeholder="e.g., What is this piece for?"
+                onChange={(event) => update(field.key, { label: event.target.value })}
+                className={inputClass}
+              />
+              <div className="flex items-center gap-1 shrink-0">
+                <button type="button" onClick={() => move(index, -1)} disabled={index === 0} aria-label="Move up"
+                  className="w-8 h-8 rounded-lg text-muted hover:bg-subtle disabled:opacity-30">↑</button>
+                <button type="button" onClick={() => move(index, 1)} disabled={index === fields.length - 1} aria-label="Move down"
+                  className="w-8 h-8 rounded-lg text-muted hover:bg-subtle disabled:opacity-30">↓</button>
+                <button type="button" onClick={() => remove(field.key)} aria-label="Remove question"
+                  className="w-8 h-8 rounded-lg text-muted hover:bg-red-50 hover:text-red-500">×</button>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2.5 pl-7">
+              <div className="flex flex-wrap gap-1.5">
+                {INTAKE_TYPES.map((type) => {
+                  const active = field.field_type === type.value;
+                  return (
+                    <button
+                      key={type.value}
+                      type="button"
+                      onClick={() => update(field.key, { field_type: type.value })}
+                      className={`px-2.5 py-1 rounded-full text-xs font-ui border transition-colors ${
+                        active ? "border-purple-primary bg-purple-50 text-purple-primary" : "border-border-light text-muted hover:border-border-strong"
+                      }`}
+                    >
+                      {type.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <label className="flex items-center gap-2 text-xs font-ui text-ink whitespace-nowrap">
+                <input
+                  type="checkbox"
+                  checked={field.required}
+                  onChange={(event) => update(field.key, { required: event.target.checked })}
+                  className="accent-[var(--color-purple-primary)]"
+                />
+                Required
+              </label>
+            </div>
+            <div className="pl-7 space-y-2">
+              <input
+                value={field.help_text}
+                maxLength={500}
+                placeholder="Help text (optional)"
+                onChange={(event) => update(field.key, { help_text: event.target.value })}
+                className={`${inputClass} text-xs`}
+              />
+              {hasOptions && (
+                <input
+                  value={field.options.join(", ")}
+                  placeholder="Options, separated by commas"
+                  onChange={(event) => update(field.key, { options: event.target.value.split(",").map((o) => o.trimStart()) })}
+                  onBlur={(event) => update(field.key, { options: event.target.value.split(",").map((o) => o.trim()).filter(Boolean) })}
+                  className={`${inputClass} text-xs`}
+                />
+              )}
+            </div>
+          </div>
+        );
+      })}
+      <button
+        type="button"
+        onClick={add}
+        className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-ui font-semibold text-purple-primary bg-purple-50 hover:bg-purple-100 transition-colors"
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+        </svg>
+        Add a question
       </button>
     </div>
   );
