@@ -135,7 +135,7 @@ function ListingCard({
             }}
             className="flex-1 text-center py-1.5 text-xs font-ui font-medium text-ink border border-border-light rounded-lg hover:bg-subtle transition-colors"
           >
-            Edit
+            {product.status === "draft" ? "Continue editing" : "Edit"}
           </button>
           <ActionMenu
             buttonClassName="px-2.5 py-1.5 text-xs font-ui text-muted border border-border-light rounded-lg hover:bg-subtle transition-colors disabled:opacity-50 flex items-center justify-center"
@@ -152,7 +152,8 @@ function ListingCard({
                 label: "Activate",
                 onSelect: () => void handleStatusChange("active"),
                 tone: "success",
-                hidden: product.status !== "paused" && product.status !== "draft" && product.status !== "archived",
+                // A draft commission is published from the wizard, where the publish checks run.
+                hidden: (product.status !== "paused" && product.status !== "draft" && product.status !== "archived") || (product.status === "draft" && product.listing_type === "service"),
               },
               {
                 label: product.status === "archived" ? "Restore" : "Archive",

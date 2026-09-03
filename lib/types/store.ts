@@ -979,6 +979,9 @@ export interface CommissionWizardState {
   requirements: string[];
   faqs: ServiceFaqItem[];
   keywords: string[];
+  /** Phase 3f — "Includes" / "Not included" lists shown on the listing */
+  includes: string[];
+  excludes: string[];
   /** Phase 2c — intake questions (replaces the free-text requirements list) */
   intakeFields: IntakeFieldDraft[];
   /** Phase 2a — availability & slots */
@@ -1045,6 +1048,8 @@ export const initialCommissionWizardState: CommissionWizardState = {
   requirements: [],
   faqs: [],
   keywords: [],
+  includes: [],
+  excludes: [],
   intakeFields: [],
   availability: "open",
   opensAt: "",

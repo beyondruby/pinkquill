@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useCreateCommission, useUpdateCommission } from "@/lib/hooks/useCommissions";
+import { useCreateCommission, useUpdateCommission, type SaveCommissionOptions } from "@/lib/hooks/useCommissions";
 import {
   type CommissionPackageFormState,
   type CommissionWizardState,
@@ -11,41 +13,26 @@ import {
   type Product,
   initialCommissionWizardState,
 } from "@/lib/types/store";
-import {
-  COMMISSION_CATEGORIES,
-  getAllCommissionCategories,
-} from "@/lib/commissions/categories";
+import { COMMISSION_CATEGORIES, getAllCommissionCategories, getCommissionSubcategoryLabel } from "@/lib/commissions/categories";
+import { formatCurrency } from "@/lib/utils/currency";
+import { showToast } from "@/lib/utils/toast";
+import Button from "@/components/ui/Button";
 import Loading from "@/components/ui/Loading";
 
+/**
+ * The commission listing wizard (Phase 3f). Six short steps, a draft you can
+ * leave and come back to, packages with names you choose, the question
+ * builder, terms, availability, and a preview of the listing before publishing.
+ */
+
 const MAX_MEDIA = 10;
-const ACCEPTED_MEDIA_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-  "video/mp4",
-  "video/quicktime",
-];
+const ACCEPTED_MEDIA_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif", "video/mp4", "video/quicktime"];
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
+const MAX_VIDEO_SIZE = 200 * 1024 * 1024;
+const MIN_PACKAGE_PRICE = 5;
 
-// Mirror the marketplace product limits. The product-images bucket caps
-// images at 10 MB server-side; videos are larger but we still want a
-// client-side ceiling so users get fast feedback before the upload.
-const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10 MB
-const MAX_VIDEO_SIZE = 200 * 1024 * 1024; // 200 MB
-
-const STEP_LABELS = [
-  "Your Craft",
-  "Packages & Pricing",
-  "Portfolio & Details",
-  "Review & Publish",
-];
-
-const STEP_TITLES: Record<number, { prefix: string; highlight1: string; highlight2: string }> = {
-  1: { prefix: "Tell us about", highlight1: "your", highlight2: "creative gift" },
-  2: { prefix: "Shape", highlight1: "offerings", highlight2: "people will love" },
-  3: { prefix: "Show", highlight1: "your best", highlight2: "work" },
-  4: { prefix: "Review and", highlight1: "share", highlight2: "with the world" },
-};
+const STEPS = ["Basics", "Packages", "Portfolio", "Details", "Availability", "Preview"] as const;
+type StepIndex = 1 | 2 | 3 | 4 | 5 | 6;
 
 const PACKAGE_PRESETS: Array<{ tier: CommissionPackageFormState["tier"]; name: string }> = [
   { tier: "basic", name: "Basic" },
@@ -53,35 +40,7 @@ const PACKAGE_PRESETS: Array<{ tier: CommissionPackageFormState["tier"]; name: s
   { tier: "premium", name: "Premium" },
 ];
 
-const TIER_STYLES: Record<
-  CommissionPackageFormState["tier"],
-  {
-    badge: string;
-    card: string;
-    chip: string;
-  }
-> = {
-  basic: {
-    badge: "from-slate-500 to-slate-700",
-    card: "from-slate-100/80 via-surface to-slate-50/90",
-    chip: "bg-slate-100 text-slate-700",
-  },
-  standard: {
-    badge: "from-purple-primary to-pink-vivid",
-    card: "from-purple-primary/10 via-surface to-pink-vivid/10",
-    chip: "bg-purple-100 text-purple-primary",
-  },
-  premium: {
-    badge: "from-orange-warm to-pink-vivid",
-    card: "from-orange-warm/10 via-surface to-pink-vivid/10",
-    chip: "bg-orange-100 text-orange-700",
-  },
-  custom: {
-    badge: "from-blue-500 to-indigo-600",
-    card: "from-blue-500/10 via-surface to-indigo-500/10",
-    chip: "bg-blue-100 text-blue-700",
-  },
-};
+const INPUT = "w-full px-3.5 py-2.5 rounded-xl border border-border-light bg-surface text-sm font-body text-ink placeholder:text-muted/70 focus:outline-none focus:ring-2 focus:ring-purple-primary/25 focus:border-purple-primary/40 transition-shadow";
 
 function isVideoMedia(preview: { file?: File | null; mediaType?: string; url: string }): boolean {
   if (preview.mediaType) return preview.mediaType === "video";
@@ -89,37 +48,25 @@ function isVideoMedia(preview: { file?: File | null; mediaType?: string; url: st
   return /\.(mp4|mov|m4v|webm)(\?.*)?$/i.test(preview.url);
 }
 
-function mapProductToCommissionState(product: Product): CommissionWizardState {
-  const serviceMetadata =
-    product.service_metadata && typeof product.service_metadata === "object"
-      ? product.service_metadata
-      : {};
+function strings(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((v): v is string => typeof v === "string" && v.trim().length > 0) : [];
+}
 
-  const requirements = Array.isArray(serviceMetadata.requirements)
-    ? serviceMetadata.requirements.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
-    : [];
-
-  const faqs = Array.isArray(serviceMetadata.faqs)
-    ? serviceMetadata.faqs
-      .filter((item): item is { question: string; answer: string } => {
-        if (!item || typeof item !== "object") return false;
-        const candidate = item as { question?: unknown; answer?: unknown };
-        return typeof candidate.question === "string" && typeof candidate.answer === "string";
-      })
+export function mapProductToCommissionState(product: Product): CommissionWizardState {
+  const meta = product.service_metadata && typeof product.service_metadata === "object" ? product.service_metadata : {};
+  const requirements = strings(meta.requirements);
+  const faqs = Array.isArray(meta.faqs)
+    ? meta.faqs
+      .filter((item): item is { question: string; answer: string } => !!item && typeof item === "object" && typeof (item as { question?: unknown }).question === "string" && typeof (item as { answer?: unknown }).answer === "string")
       .map((faq) => ({ question: faq.question, answer: faq.answer }))
     : [];
-
   const packages = (product.pricing || [])
     .filter((pricing) => pricing.pricing_type === "service_package")
     .sort((a, b) => Number(a.price || 0) - Number(b.price || 0))
     .map((pricing, index) => {
-      const packageMeta =
-        pricing.reproduction_options
-        && typeof pricing.reproduction_options === "object"
-        && !Array.isArray(pricing.reproduction_options)
-          ? pricing.reproduction_options as { description?: unknown }
-          : {};
-
+      const packageMeta = pricing.reproduction_options && typeof pricing.reproduction_options === "object" && !Array.isArray(pricing.reproduction_options)
+        ? (pricing.reproduction_options as { description?: unknown })
+        : {};
       return {
         id: pricing.id,
         pricing_id: pricing.id,
@@ -129,55 +76,32 @@ function mapProductToCommissionState(product: Product): CommissionWizardState {
         price: Number(pricing.price || 0),
         deliveryDays: pricing.delivery_days || 7,
         revisions: pricing.revisions || 0,
-        features: Array.isArray(pricing.package_features)
-          ? pricing.package_features.filter((feature): feature is string => typeof feature === "string" && feature.trim().length > 0)
-          : [],
+        features: strings(pricing.package_features),
       } satisfies CommissionPackageFormState;
     });
-
   const mediaPreviews = [...(product.media || [])]
     .sort((a, b) => a.position - b.position)
-    .map((media) => ({
-      id: media.id,
-      file: null,
-      url: media.media_url,
-      isPrimary: Boolean(media.is_primary),
-      mediaType: media.media_type,
-    }));
-
-  if (mediaPreviews.length > 0 && !mediaPreviews.some((media) => media.isPrimary)) {
-    mediaPreviews[0].isPrimary = true;
-  }
+    .map((media) => ({ id: media.id, file: null, url: media.media_url, isPrimary: Boolean(media.is_primary), mediaType: media.media_type }));
+  if (mediaPreviews.length > 0 && !mediaPreviews.some((m) => m.isPrimary)) mediaPreviews[0].isPrimary = true;
 
   return {
     category: product.category || null,
     subcategory: product.subcategory || null,
     title: product.title || "",
-    headline: typeof serviceMetadata.headline === "string" ? serviceMetadata.headline : "",
+    headline: typeof meta.headline === "string" ? meta.headline : "",
     description: product.description || "",
     mediaPreviews,
     packages: packages.length > 0 ? packages : initialCommissionWizardState.packages,
     requirements,
     faqs,
     keywords: Array.isArray(product.keywords) ? product.keywords : [],
-    intakeFields: (product.intake_fields && product.intake_fields.length > 0
+    includes: strings(meta.includes),
+    excludes: strings(meta.excludes),
+    intakeFields: product.intake_fields && product.intake_fields.length > 0
       ? [...product.intake_fields].sort((a, b) => a.position - b.position).map((f) => ({
-          id: f.id,
-          key: f.id,
-          label: f.label,
-          help_text: f.help_text ?? "",
-          field_type: f.field_type,
-          options: Array.isArray(f.options) ? f.options : [],
-          required: f.required,
+          id: f.id, key: f.id, label: f.label, help_text: f.help_text ?? "", field_type: f.field_type, options: Array.isArray(f.options) ? f.options : [], required: f.required,
         }))
-      : requirements.map((label) => ({
-          key: crypto.randomUUID(),
-          label,
-          help_text: "",
-          field_type: "long_text" as const,
-          options: [],
-          required: false,
-        }))),
+      : requirements.map((label) => ({ key: crypto.randomUUID(), label, help_text: "", field_type: "long_text" as const, options: [], required: false })),
     availability: product.commission_listing?.availability ?? "open",
     opensAt: product.commission_listing?.opens_at ? product.commission_listing.opens_at.slice(0, 10) : "",
     slotsTotal: product.commission_listing?.slots_total ?? null,
@@ -188,1037 +112,136 @@ function mapProductToCommissionState(product: Product): CommissionWizardState {
   };
 }
 
-interface CreateCommissionWizardProps {
-  mode?: "create" | "edit";
-  productId?: string;
-  initialProduct?: Product | null;
-}
+// ─── small pieces ───────────────────────────────────────────────────
 
-export default function CreateCommissionWizard({
-  mode = "create",
-  productId,
-  initialProduct = null,
-}: CreateCommissionWizardProps = {}) {
-  const router = useRouter();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const mediaUrlsRef = useRef<string[]>([]);
-  const { user, profile } = useAuth();
-  const { createCommission, creating: creatingCommission, error: createError } = useCreateCommission();
-  const { updateCommission, updating: updatingCommission, error: updateError } = useUpdateCommission();
-
-  const isEditMode = mode === "edit";
-  const [step, setStep] = useState(1);
-  const [error, setError] = useState<string | null>(null);
-  const [state, setState] = useState<CommissionWizardState>(() => (
-    mode === "edit" && initialProduct
-      ? mapProductToCommissionState(initialProduct)
-      : initialCommissionWizardState
-  ));
-  const submitting = isEditMode ? updatingCommission : creatingCommission;
-  const submitError = isEditMode ? updateError : createError;
-
-  const categories = useMemo(() => getAllCommissionCategories(), []);
-  const selectedCategory = state.category ? COMMISSION_CATEGORIES[state.category] : null;
-  const progressPercent = step === 1 ? 25 : step === 2 ? 50 : step === 3 ? 75 : 100;
-  const stepTitle = STEP_TITLES[step] || STEP_TITLES[1];
-
-  useEffect(() => {
-    mediaUrlsRef.current = state.mediaPreviews
-      .filter((item) => item.file instanceof File)
-      .map((item) => item.url);
-  }, [state.mediaPreviews]);
-
-  useEffect(() => {
-    return () => {
-      mediaUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
-    };
-  }, []);
-
-  const updateState = useCallback((updates: Partial<CommissionWizardState>) => {
-    setState((prev) => ({ ...prev, ...updates }));
-    setError(null);
-  }, []);
-
-  const updatePackage = useCallback((id: string, updates: Partial<CommissionPackageFormState>) => {
-    setState((prev) => ({
-      ...prev,
-      packages: prev.packages.map((pkg) =>
-        pkg.id === id ? { ...pkg, ...updates } : pkg
-      ),
-    }));
-    setError(null);
-  }, []);
-
-  const addPackage = useCallback(() => {
-    if (state.packages.length >= 3) return;
-
-    const usedTiers = new Set(state.packages.map((pkg) => pkg.tier));
-    const nextPreset =
-      PACKAGE_PRESETS.find((preset) => !usedTiers.has(preset.tier))
-      ?? PACKAGE_PRESETS[state.packages.length]
-      ?? PACKAGE_PRESETS[0];
-
-    const nextPackage: CommissionPackageFormState = {
-      // Unique id so React keys don't collide if two packages happen to
-      // share a tier (e.g., custom tiers added in the future).
-      id: typeof crypto !== "undefined" && "randomUUID" in crypto
-        ? crypto.randomUUID()
-        : `${nextPreset.tier}-${Date.now()}`,
-      tier: nextPreset.tier,
-      name: nextPreset.name,
-      description: "",
-      price: null,
-      deliveryDays: 7,
-      revisions: 1,
-      features: [],
-    };
-
-    updateState({ packages: [...state.packages, nextPackage] });
-  }, [state.packages, updateState]);
-
-  const removePackage = useCallback((id: string) => {
-    if (state.packages.length <= 1) return;
-    updateState({ packages: state.packages.filter((pkg) => pkg.id !== id) });
-  }, [state.packages, updateState]);
-
-  const handleMediaUpload = useCallback((files: FileList | null) => {
-    if (!files) return;
-
-    const currentCount = state.mediaPreviews.length;
-    const accepted: CommissionWizardState["mediaPreviews"] = [];
-    setError(null);
-
-    for (const file of Array.from(files)) {
-      if (!ACCEPTED_MEDIA_TYPES.includes(file.type)) {
-        setError("Use JPG, PNG, WEBP, GIF, or MP4/MOV media only.");
-        continue;
-      }
-
-      const isVideo = file.type.startsWith("video/");
-      const sizeLimit = isVideo ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE;
-      if (file.size > sizeLimit) {
-        const limitMb = Math.round(sizeLimit / (1024 * 1024));
-        setError(
-          isVideo
-            ? `Videos must be under ${limitMb} MB.`
-            : `Images must be under ${limitMb} MB.`
-        );
-        continue;
-      }
-
-      if (currentCount + accepted.length >= MAX_MEDIA) {
-        setError(`Maximum ${MAX_MEDIA} media files allowed.`);
-        break;
-      }
-
-      accepted.push({
-        file,
-        url: URL.createObjectURL(file),
-        isPrimary: currentCount === 0 && accepted.length === 0,
-        mediaType: isVideo ? "video" : "image",
-      });
-    }
-
-    if (accepted.length > 0) {
-      updateState({ mediaPreviews: [...state.mediaPreviews, ...accepted] });
-    }
-  }, [state.mediaPreviews, updateState]);
-
-  const setPrimaryMedia = useCallback((index: number) => {
-    updateState({
-      mediaPreviews: state.mediaPreviews.map((item, idx) => ({
-        ...item,
-        isPrimary: idx === index,
-      })),
-    });
-  }, [state.mediaPreviews, updateState]);
-
-  const removeMedia = useCallback((index: number) => {
-    const item = state.mediaPreviews[index];
-    if (item?.file) URL.revokeObjectURL(item.url);
-
-    const nextMedia = state.mediaPreviews.filter((_, idx) => idx !== index);
-    if (nextMedia.length > 0 && !nextMedia.some((media) => media.isPrimary)) {
-      nextMedia[0].isPrimary = true;
-    }
-    updateState({ mediaPreviews: nextMedia });
-  }, [state.mediaPreviews, updateState]);
-
-  const validateStep = useCallback((targetStep: number): boolean => {
-    if (targetStep === 1) {
-      if (!state.category) {
-        setError("Select a commission category.");
-        return false;
-      }
-      if (!state.title.trim()) {
-        setError("Add a service title.");
-        return false;
-      }
-      if (!state.description.trim()) {
-        setError("Describe your service clearly before continuing.");
-        return false;
-      }
-    }
-
-    if (targetStep === 2) {
-      if (state.packages.length === 0) {
-        setError("Add at least one package.");
-        return false;
-      }
-
-      // Every listed package must be fully filled out. Silently dropping
-      // incomplete rows on publish surprised users and produced listings
-      // missing a tier they thought they had configured.
-      for (let i = 0; i < state.packages.length; i += 1) {
-        const pkg = state.packages[i];
-        const label = pkg.name.trim() || `Package ${i + 1}`;
-        if (!pkg.name.trim()) {
-          setError(`Give package ${i + 1} a name, or remove it.`);
-          return false;
-        }
-        if (pkg.price === null || !Number.isFinite(pkg.price)) {
-          setError(`Set a price for "${label}", or remove it.`);
-          return false;
-        }
-        if (pkg.price < 5) {
-          setError(`"${label}" must be priced at $5 or more.`);
-          return false;
-        }
-        if (!pkg.description.trim()) {
-          setError(`Describe what "${label}" includes, or remove it.`);
-          return false;
-        }
-        if (!Number.isFinite(pkg.deliveryDays) || pkg.deliveryDays < 1) {
-          setError(`Set a delivery time of at least 1 day for "${label}".`);
-          return false;
-        }
-        if (!Number.isFinite(pkg.revisions) || pkg.revisions < 0) {
-          setError(`Set a revision count of 0 or more for "${label}".`);
-          return false;
-        }
-      }
-    }
-
-    if (targetStep === 2 && state.availability === "scheduled" && !state.opensAt) {
-      setError("Pick the date this commission opens.");
-      return false;
-    }
-
-    if (targetStep === 3) {
-      if (state.mediaPreviews.length === 0) {
-        setError("Upload at least one portfolio image or video.");
-        return false;
-      }
-    }
-
-    return true;
-  }, [state]);
-
-  const scrollToTop = useCallback(() => {
-    if (typeof window === "undefined") return;
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, []);
-
-  const goNext = () => {
-    if (!validateStep(step)) {
-      scrollToTop();
-      return;
-    }
-    setStep((prev) => Math.min(4, prev + 1));
-    scrollToTop();
-  };
-
-  const goBack = () => {
-    setStep((prev) => Math.max(1, prev - 1));
-    scrollToTop();
-  };
-
-  const publishService = useCallback(async () => {
-    if (!user || !profile) {
-      setError(`Please sign in to ${isEditMode ? "edit" : "publish"} your service.`);
-      scrollToTop();
-      return;
-    }
-
-    for (let idx = 1; idx <= 3; idx += 1) {
-      if (!validateStep(idx)) {
-        setStep(idx);
-        scrollToTop();
-        return;
-      }
-    }
-
-    if (isEditMode) {
-      const targetProductId = productId || initialProduct?.id;
-      if (!targetProductId) {
-        setError("Missing commission id for edit.");
-        scrollToTop();
-        return;
-      }
-      const success = await updateCommission(targetProductId, state);
-      if (success) {
-        router.push(`/studio/${profile.username}?tab=commissions`);
-      } else {
-        scrollToTop();
-      }
-      return;
-    }
-
-    const created = await createCommission(state);
-    if (created) {
-      router.push(`/studio/${profile.username}?tab=commissions`);
-    } else {
-      scrollToTop();
-    }
-  }, [createCommission, initialProduct?.id, isEditMode, productId, profile, router, scrollToTop, state, updateCommission, user, validateStep]);
-
-  const priceFrom = useMemo(() => {
-    const values = state.packages
-      .map((pkg) => pkg.price)
-      .filter((value): value is number => typeof value === "number" && value > 0);
-    return values.length > 0 ? Math.min(...values) : null;
-  }, [state.packages]);
-
-  if (isEditMode && !initialProduct) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50/60 via-surface to-pink-50/50 flex items-center justify-center px-6">
-        <Loading text="Pulling up your commission" />
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50/60 via-surface to-pink-50/50 flex items-center justify-center px-6">
-        <div className="max-w-lg text-center">
-          <div className="w-24 h-24 mx-auto mb-6 rounded-[28px] bg-gradient-to-br from-purple-primary/20 to-pink-vivid/25 border border-white shadow-lg flex items-center justify-center">
-            <svg className="w-10 h-10 text-purple-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-          </div>
-          <h1 className="font-display text-3xl text-ink mb-3">Sign in to share your creative gifts</h1>
-          <p className="font-body text-muted">
-            Open commissions, set your own terms, and let people who love your work hire you directly.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
+function Card({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
   return (
-    <div className="min-h-screen bg-surface">
-      <div className="max-w-4xl mx-auto px-6 py-12">
-        <p className="text-center text-sm font-ui text-muted uppercase tracking-wider mb-4">
-          STEP {step}
-        </p>
-
-        <h1 className="text-center text-3xl md:text-4xl font-display font-bold text-ink mb-8">
-          {stepTitle.prefix}{" "}
-          <span className="bg-gradient-to-r from-orange-warm to-pink-vivid bg-clip-text text-transparent">
-            {stepTitle.highlight1}
-          </span>{" "}
-          <span className="bg-gradient-to-r from-pink-vivid to-purple-primary bg-clip-text text-transparent">
-            {stepTitle.highlight2}
-          </span>
-        </h1>
-
-        <div className="mb-12">
-          <StepRail currentStep={step} />
-          <div className="h-1.5 bg-skeleton rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm transition-all duration-500"
-              style={{ width: `${progressPercent}%` }}
-            />
-          </div>
-        </div>
-
-        {(error || submitError) && (
-          <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-xl text-center">
-            <p className="text-sm text-red-600 font-body">{error || submitError}</p>
-          </div>
-        )}
-
-        <div className="mb-12">
-                {step === 1 && (
-                  <div className="space-y-6">
-                    <SectionCard
-                      title="Category"
-                      description="What kind of creative work do you do best?"
-                      tone="rose"
-                    >
-                      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-                        {categories.map((category) => {
-                          const selected = state.category === category.id;
-
-                          return (
-                            <button
-                              key={category.id}
-                              type="button"
-                              onClick={() => updateState({ category: category.id, subcategory: null })}
-                              className={`group text-left rounded-2xl p-4 border transition-all duration-300 ${
-                                selected
-                                  ? "border-transparent shadow-md shadow-pink-vivid/20"
-                                  : "border-border-light bg-surface hover:border-pink-300 hover:shadow-sm"
-                              }`}
-                              style={{
-                                backgroundImage: selected
-                                  ? "linear-gradient(white, white), linear-gradient(to right, #8e44ad, #ff007f, #ff9f43)"
-                                  : undefined,
-                                backgroundOrigin: "border-box",
-                                backgroundClip: selected ? "padding-box, border-box" : undefined,
-                              }}
-                            >
-                              <div className="flex items-start gap-3">
-                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                                  selected
-                                    ? "bg-gradient-to-br from-purple-primary/20 to-pink-vivid/20 text-pink-vivid"
-                                    : "bg-skeleton text-gray-500 group-hover:text-pink-vivid group-hover:bg-pink-50"
-                                }`}>
-                                  <CategoryGlyph categoryId={category.id} />
-                                </div>
-                                <div>
-                                  <p className="font-ui font-semibold text-ink">{category.name}</p>
-                                  <p className="text-xs font-body text-muted mt-1">{category.description}</p>
-                                </div>
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </SectionCard>
-
-                    {selectedCategory && (
-                      <SectionCard
-                        title="Specialization"
-                        description="Where does your talent shine the most?"
-                        tone="purple"
-                      >
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {selectedCategory.subcategories.map((subcategory) => {
-                            const selected = state.subcategory === subcategory.value;
-                            return (
-                              <button
-                                key={subcategory.value}
-                                type="button"
-                                onClick={() => updateState({ subcategory: subcategory.value })}
-                                className={`text-left rounded-xl p-3.5 border transition-all ${
-                                  selected
-                                    ? "border-purple-300 bg-purple-50/70 shadow-sm"
-                                    : "border-border-light bg-surface hover:border-accent/40"
-                                }`}
-                              >
-                                <p className="font-ui text-sm font-semibold text-ink">{subcategory.label}</p>
-                                <p className="text-xs font-body text-muted mt-1">{subcategory.description}</p>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </SectionCard>
-                    )}
-
-                    <SectionCard
-                      title="About your service"
-                      description="Help people understand what makes your creative work special."
-                      tone="neutral"
-                    >
-                      <div className="space-y-4">
-                        <div className="space-y-1.5">
-                          <div className="flex items-center justify-between gap-3">
-                            <FieldLabel text="Service title" required />
-                            <span className="text-xs font-ui text-muted">{state.title.trim().length}/80</span>
-                          </div>
-                          <input
-                            maxLength={80}
-                            value={state.title}
-                            onChange={(event) => updateState({ title: event.target.value })}
-                            placeholder="e.g., Custom watercolor portrait of your pet, family, or loved one"
-                            className="w-full px-4 py-3 rounded-xl border border-border-light bg-surface focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid transition-colors"
-                          />
-                        </div>
-
-                        <div className="space-y-1.5">
-                          <div className="flex items-center justify-between gap-3">
-                            <FieldLabel text="Short headline" />
-                            <span className="text-xs font-ui text-muted">{state.headline.trim().length}/100</span>
-                          </div>
-                          <input
-                            maxLength={100}
-                            value={state.headline}
-                            onChange={(event) => updateState({ headline: event.target.value })}
-                            placeholder="e.g., Handcrafted with love, delivered in high-res with full rights"
-                            className="w-full px-4 py-3 rounded-xl border border-border-light bg-surface focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid transition-colors"
-                          />
-                        </div>
-
-                        <div className="space-y-1.5">
-                          <div className="flex items-center justify-between gap-3">
-                            <FieldLabel text="Service description" required />
-                            <span className="text-xs font-ui text-muted">{state.description.trim().length}/1200</span>
-                          </div>
-                          <textarea
-                            rows={6}
-                            maxLength={1200}
-                            value={state.description}
-                            onChange={(event) => updateState({ description: event.target.value })}
-                            placeholder="Share your creative process, what inspires your work, and what makes it uniquely yours."
-                            className="w-full px-4 py-3 rounded-xl border border-border-light bg-surface focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid resize-y"
-                          />
-                        </div>
-                      </div>
-                    </SectionCard>
-                  </div>
-                )}
-
-                {step === 2 && (
-                  <div className="space-y-6">
-                    <SectionCard
-                      title="Your creative packages"
-                      description="Give people clear options to commission your work — from a simple piece to something truly custom."
-                      tone="purple"
-                    >
-                      <div className="space-y-4">
-                        {state.packages.map((pkg, index) => (
-                          <PackageEditor
-                            key={pkg.id}
-                            index={index}
-                            pkg={pkg}
-                            canRemove={state.packages.length > 1}
-                            onRemove={() => removePackage(pkg.id)}
-                            onChange={(updates) => updatePackage(pkg.id, updates)}
-                          />
-                        ))}
-
-                        {state.packages.length < 3 && (
-                          <button
-                            type="button"
-                            onClick={addPackage}
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-ui font-semibold text-purple-primary bg-purple-50 hover:bg-purple-100 transition-colors"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                            </svg>
-                            Add another package
-                          </button>
-                        )}
-                      </div>
-                    </SectionCard>
-
-                    <SectionCard
-                      title="Availability & slots"
-                      description="Control how many commissions you take at once and when the clock starts."
-                      tone="neutral"
-                    >
-                      <AvailabilityEditor state={state} onChange={updateState} />
-                    </SectionCard>
-                  </div>
-                )}
-
-                {step === 3 && (
-                  <div className="space-y-6">
-                    <SectionCard
-                      title="Portfolio"
-                      description="Show off your finest work — the pieces that make people stop scrolling."
-                      tone="rose"
-                    >
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept={ACCEPTED_MEDIA_TYPES.join(",")}
-                        multiple
-                        onChange={(event) => handleMediaUpload(event.target.files)}
-                        className="hidden"
-                      />
-
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="relative w-full rounded-2xl border border-dashed border-pink-vivid/35 bg-gradient-to-br from-pink-50/70 via-surface to-orange-50/70 px-6 py-10 text-center hover:border-pink-vivid transition-colors"
-                      >
-                        <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-surface shadow-sm border border-pink-vivid/15 flex items-center justify-center">
-                          <svg className="w-8 h-8 text-pink-vivid" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 4v16m8-8H4" />
-                          </svg>
-                        </div>
-                        <p className="font-ui font-semibold text-ink">Upload your best work</p>
-                        <p className="text-xs font-body text-muted mt-1">{state.mediaPreviews.length} / {MAX_MEDIA} added</p>
-                        <p className="text-xs font-body text-muted/80 mt-1">JPG, PNG, WEBP, GIF, MP4, MOV</p>
-                      </button>
-
-                      {state.mediaPreviews.length > 0 && (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                          {state.mediaPreviews.map((media, index) => (
-                            <div key={media.id || media.url} className="relative rounded-xl overflow-hidden border border-border-light group bg-surface">
-                              {isVideoMedia(media) ? (
-                                <video
-                                  src={media.url}
-                                  className="w-full aspect-square object-cover"
-                                  muted
-                                  playsInline
-                                />
-                              ) : (
-                                <img src={media.url} alt={`Portfolio ${index + 1}`} className="w-full aspect-square object-cover" />
-                              )}
-
-                              <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/70 to-transparent text-xs text-white flex items-center justify-between">
-                                <button type="button" className="underline underline-offset-2" onClick={() => setPrimaryMedia(index)}>
-                                  {media.isPrimary ? "Primary" : "Set primary"}
-                                </button>
-                                <button type="button" className="underline underline-offset-2" onClick={() => removeMedia(index)}>
-                                  Remove
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </SectionCard>
-
-                    <SectionCard
-                      title="What you'll need from them"
-                      description="Questions buyers answer before they can send a request. Mark the must-haves as required."
-                      tone="neutral"
-                    >
-                      <IntakeFieldsEditor
-                        fields={state.intakeFields}
-                        onChange={(intakeFields) => updateState({ intakeFields })}
-                      />
-                    </SectionCard>
-
-                    <SectionCard
-                      title="FAQs"
-                      description="Answer the questions people are most likely to ask about your work."
-                      tone="neutral"
-                    >
-                      <FaqEditor
-                        values={state.faqs}
-                        onChange={(faqs) => updateState({ faqs })}
-                      />
-                    </SectionCard>
-
-                    <SectionCard
-                      title="Tags"
-                      description="Help people discover your work with a few keywords."
-                      tone="neutral"
-                    >
-                      <StringListEditor
-                        values={state.keywords}
-                        placeholder="e.g., watercolor, portrait, fantasy art, pet illustration"
-                        onChange={(values) => updateState({ keywords: values })}
-                      />
-                    </SectionCard>
-                  </div>
-                )}
-
-                {step === 4 && (
-                  <div className="space-y-6">
-                    <SectionCard
-                      title="Your listing preview"
-                      description="This is how your commission will look to the world."
-                      tone="neutral"
-                    >
-                      <ListingPreviewCard
-                        state={state}
-                        selectedCategory={selectedCategory?.name || "Choose category"}
-                        priceFrom={priceFrom}
-                      />
-                    </SectionCard>
-
-                    <SectionCard
-                      title="Almost there"
-                      description="A quick look at everything before your commission goes live."
-                      tone="purple"
-                    >
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <ReviewItem label="Category" value={selectedCategory?.name || "Not set"} />
-                        <ReviewItem label="Specialization" value={state.subcategory || "Not set"} />
-                        <ReviewItem label="Title" value={state.title || "Not set"} />
-                        <ReviewItem label="Starting price" value={priceFrom ? `$${priceFrom}` : "Not set"} />
-                        <ReviewItem label="Media" value={`${state.mediaPreviews.length} files`} />
-                        <ReviewItem label="Packages" value={`${state.packages.length} tier(s)`} />
-                        <ReviewItem label="Intake questions" value={`${state.intakeFields.length} question(s), ${state.intakeFields.filter((f) => f.required).length} required`} />
-                        <ReviewItem label="FAQs" value={`${state.faqs.length} item(s)`} />
-                        <ReviewItem label="Availability" value={describeAvailabilityState(state)} />
-                        <ReviewItem label="Turnaround" value={`${state.leadTimeDays > 0 ? `${state.leadTimeDays}-day lead time, ` : ""}starts at ${state.turnaroundStarts === "acceptance" ? "acceptance" : "payment"}`} />
-                      </div>
-                    </SectionCard>
-
-                    <SectionCard
-                      title="Your packages"
-                      description="How your creative offerings will appear side by side."
-                      tone="rose"
-                    >
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        {state.packages.map((pkg) => {
-                          const style = TIER_STYLES[pkg.tier];
-                          return (
-                            <div key={pkg.id} className={`rounded-2xl p-4 border border-border-light bg-gradient-to-br ${style.card}`}>
-                              <span className={`inline-flex px-2.5 py-1 rounded-full text-[11px] font-ui font-semibold uppercase tracking-wider text-white bg-gradient-to-r ${style.badge}`}>
-                                {pkg.name || pkg.tier}
-                              </span>
-                              <p className="font-display text-2xl text-ink mt-3">${pkg.price ?? 0}</p>
-                              <p className="text-xs font-body text-muted mt-1 line-clamp-3">{pkg.description || "Describe what this package includes."}</p>
-                              <div className="mt-3 flex flex-wrap gap-2">
-                                <span className={`text-[11px] font-ui font-semibold px-2 py-1 rounded-full ${style.chip}`}>
-                                  {pkg.deliveryDays} day{pkg.deliveryDays === 1 ? "" : "s"}
-                                </span>
-                                <span className={`text-[11px] font-ui font-semibold px-2 py-1 rounded-full ${style.chip}`}>
-                                  {pkg.revisions} revision{pkg.revisions === 1 ? "" : "s"}
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </SectionCard>
-
-                    <div className="rounded-2xl border border-purple-primary/15 bg-gradient-to-r from-purple-primary/5 via-pink-vivid/5 to-orange-warm/5 p-5">
-                      <p className="text-sm font-body text-ink">
-                        Your commission is a window into your creative world. People who find you here already love what you do — clear packages and beautiful portfolio pieces help them say yes.
-                      </p>
-                    </div>
-                  </div>
-                )}
-        </div>
-
-        <div className="flex items-center justify-between gap-3">
-              <button
-                type="button"
-                onClick={goBack}
-                disabled={step === 1 || submitting}
-                className="inline-flex items-center gap-2 px-5 py-3 rounded-full text-sm font-ui font-semibold text-ink bg-surface border border-border-light hover:bg-subtle transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-                Back
-              </button>
-
-              {step < 4 ? (
-                <button
-                  type="button"
-                  onClick={goNext}
-                  disabled={submitting}
-                  className="inline-flex items-center gap-2 px-7 py-3 rounded-full text-sm font-ui font-semibold text-white bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm hover:shadow-lg hover:shadow-pink-vivid/20 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  Continue
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={publishService}
-                  disabled={submitting}
-                  className="inline-flex items-center gap-2 px-7 py-3 rounded-full text-sm font-ui font-semibold text-white bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm hover:shadow-lg hover:shadow-pink-vivid/20 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {submitting
-                    ? (isEditMode ? "Saving..." : "Publishing...")
-                    : (isEditMode ? "Save Changes" : "Publish Service")}
-                  {!submitting && (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  )}
-                </button>
-              )}
-        </div>
-      </div>
-    </div>
+    <section className="rounded-2xl border border-border-light bg-surface p-4 sm:p-5">
+      <h2 className="font-display text-base font-semibold text-ink">{title}</h2>
+      {description && <p className="text-sm font-body text-muted mt-0.5">{description}</p>}
+      <div className="mt-4">{children}</div>
+    </section>
   );
 }
 
-function StepRail({ currentStep }: { currentStep: number }) {
+function Label({ text, required = false, right, htmlFor }: { text: string; required?: boolean; right?: ReactNode; htmlFor?: string }) {
   return (
-    <div className="flex items-center justify-center gap-6 md:gap-8 mb-4 flex-wrap">
-      {STEP_LABELS.map((label, index) => {
-        const step = index + 1;
-        const isCompleted = currentStep > step;
-        const isCurrent = currentStep === step;
-        const isActive = currentStep >= step;
-
-        return (
-          <div key={label} className="flex items-center gap-2">
-            <div
-              className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold ${
-                isActive
-                  ? "bg-gradient-to-r from-orange-warm to-pink-vivid text-white"
-                  : "bg-skeleton text-gray-500"
-              }`}
-            >
-              {isCompleted ? "✓" : step}
-            </div>
-            <span className={`text-sm font-ui ${isCurrent || isCompleted ? "text-ink font-medium" : "text-muted"}`}>
-              {label}
-            </span>
-          </div>
-        );
-      })}
-      </div>
-  );
-}
-
-function SectionCard({
-  title,
-  description,
-  children,
-  tone = "neutral",
-}: {
-  title: string;
-  description: string;
-  children: ReactNode;
-  tone?: "neutral" | "purple" | "rose";
-}) {
-  const toneClasses = {
-    neutral: "border-border-light bg-surface",
-    purple: "border-purple-primary/15 bg-gradient-to-br from-purple-primary/[0.06] via-surface to-purple-primary/[0.04]",
-    rose: "border-pink-vivid/15 bg-gradient-to-br from-pink-vivid/[0.08] via-surface to-orange-warm/[0.06]",
-  } as const;
-
-  return (
-    <div className={`rounded-2xl border p-5 sm:p-6 ${toneClasses[tone]}`}>
-      <h3 className="font-display text-2xl text-ink">{title}</h3>
-      <p className="text-sm font-body text-muted mt-1 mb-5">{description}</p>
-      {children}
-    </div>
-  );
-}
-
-function FieldLabel({ text, required = false }: { text: string; required?: boolean }) {
-  return (
-    <label className="block text-sm font-ui font-semibold text-ink">
-      {text}
-      {required && <span className="text-pink-vivid"> *</span>}
+    <label htmlFor={htmlFor} className="flex items-center justify-between gap-3 text-xs font-ui font-semibold text-ink mb-1">
+      <span>{text}{required && <span className="text-pink-vivid"> *</span>}</span>
+      {right && <span className="font-normal text-muted">{right}</span>}
     </label>
   );
 }
 
-function PackageEditor({
-  index,
-  pkg,
-  canRemove,
-  onRemove,
-  onChange,
-}: {
-  index: number;
-  pkg: CommissionPackageFormState;
-  canRemove: boolean;
-  onRemove: () => void;
-  onChange: (updates: Partial<CommissionPackageFormState>) => void;
-}) {
-  const style = TIER_STYLES[pkg.tier];
+function Help({ children }: { children: ReactNode }) {
+  return <p className="text-2xs font-body text-muted mt-1">{children}</p>;
+}
 
+function ChipChoice<T extends string>({ options, value, onChange }: { options: Array<{ value: T; label: string }>; value: T | null; onChange: (v: T) => void }) {
   return (
-    <div className={`rounded-2xl border border-border-light p-4 bg-gradient-to-br ${style.card} space-y-4`}>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span className={`inline-flex px-2.5 py-1 rounded-full text-[11px] font-ui font-semibold uppercase tracking-wider text-white bg-gradient-to-r ${style.badge}`}>
-            {pkg.tier}
-          </span>
-          <p className="font-ui font-semibold text-ink">Package {index + 1}</p>
-        </div>
-        {canRemove && (
-          <button type="button" onClick={onRemove} className="text-xs font-ui text-red-500 hover:text-red-600">
-            Remove
+    <div className="flex flex-wrap gap-2">
+      {options.map((o) => {
+        const active = o.value === value;
+        return (
+          <button key={o.value} type="button" aria-pressed={active} onClick={() => onChange(o.value)}
+            className={`px-3 py-1.5 rounded-full text-xs font-ui border transition-colors ${active ? "border-purple-primary bg-purple-50 text-purple-primary font-semibold" : "border-border-light text-ink hover:border-border-strong"}`}>
+            {o.label}
           </button>
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="space-y-1.5">
-          <FieldLabel text="Package name" required />
-          <input
-            value={pkg.name}
-            onChange={(event) => onChange({ name: event.target.value })}
-            placeholder="Package name"
-            className="w-full px-3 py-2.5 rounded-lg border border-border-light bg-surface focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid"
-          />
-        </div>
-        <div className="space-y-1.5">
-          <FieldLabel text="Price" required />
-          <input
-            type="number"
-            min={5}
-            step={1}
-            value={pkg.price ?? ""}
-            onChange={(event) => onChange({ price: event.target.value ? Number(event.target.value) : null })}
-            placeholder="Price (USD)"
-            className="w-full px-3 py-2.5 rounded-lg border border-border-light bg-surface focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid"
-          />
-        </div>
-      </div>
-
-      <div className="space-y-1.5">
-        <FieldLabel text="What's included" required />
-        <textarea
-          rows={3}
-          value={pkg.description}
-          onChange={(event) => onChange({ description: event.target.value })}
-          placeholder="Describe what the person will receive and the creative process involved."
-          className="w-full px-3 py-2.5 rounded-lg border border-border-light bg-surface focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid resize-y"
-        />
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="space-y-1.5">
-          <FieldLabel text="Delivery (days)" required />
-          <input
-            type="number"
-            min={1}
-            value={pkg.deliveryDays}
-            onChange={(event) => onChange({ deliveryDays: Math.max(1, Number(event.target.value || 1)) })}
-            placeholder="Delivery days"
-            className="w-full px-3 py-2.5 rounded-lg border border-border-light bg-surface focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid"
-          />
-        </div>
-        <div className="space-y-1.5">
-          <FieldLabel text="Revisions" required />
-          <input
-            type="number"
-            min={0}
-            value={pkg.revisions}
-            onChange={(event) => onChange({ revisions: Math.max(0, Number(event.target.value || 0)) })}
-            placeholder="Revisions"
-            className="w-full px-3 py-2.5 rounded-lg border border-border-light bg-surface focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid"
-          />
-        </div>
-      </div>
-
-      <div className="pt-1">
-        <FieldLabel text="Highlights" />
-        <StringListEditor
-          values={pkg.features}
-          placeholder="e.g., High-res file, commercial license, 2 concepts"
-          onChange={(features) => onChange({ features })}
-          compact
-        />
-      </div>
+        );
+      })}
     </div>
   );
 }
 
-function StringListEditor({
-  values,
-  placeholder,
-  onChange,
-  compact = false,
-}: {
-  values: string[];
-  placeholder: string;
-  onChange: (values: string[]) => void;
-  compact?: boolean;
-}) {
-  const updateValue = (index: number, value: string) => {
-    const next = [...values];
-    next[index] = value;
-    onChange(next);
-  };
-
-  const removeValue = (index: number) => {
-    onChange(values.filter((_, idx) => idx !== index));
-  };
-
-  const addValue = () => {
-    onChange([...values, ""]);
-  };
-
+function StepRail({ current, furthest, onJump }: { current: StepIndex; furthest: number; onJump: (s: StepIndex) => void }) {
   return (
-    <div className="space-y-2 mt-2">
+    <ol className="flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none]" aria-label="Steps">
+      {STEPS.map((label, i) => {
+        const n = (i + 1) as StepIndex;
+        const done = n < current;
+        const reachable = n <= furthest;
+        return (
+          <li key={label} className={`flex items-center gap-2 ${i < STEPS.length - 1 ? "sm:flex-1" : ""} shrink-0`}>
+            <button type="button" onClick={() => reachable && onJump(n)} disabled={!reachable} aria-current={n === current ? "step" : undefined} className="flex items-center gap-2 disabled:cursor-default">
+              <span className={`w-6 h-6 rounded-full text-2xs font-ui font-semibold inline-flex items-center justify-center shrink-0 ${done ? "bg-emerald-500 text-white" : n === current ? "bg-purple-primary text-white" : "bg-subtle text-muted"}`}>{done ? "✓" : n}</span>
+              <span className={`text-xs font-ui whitespace-nowrap ${n === current ? "text-ink font-semibold" : "text-muted"}`}>{label}</span>
+            </button>
+            {i < STEPS.length - 1 && <span className={`hidden sm:block h-px flex-1 ${done ? "bg-emerald-400" : "bg-skeleton"}`} />}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+// ─── editors ────────────────────────────────────────────────────────
+
+function LineList({ values, placeholder, onChange, addLabel = "Add line" }: { values: string[]; placeholder: string; onChange: (v: string[]) => void; addLabel?: string }) {
+  return (
+    <div className="space-y-2">
       {values.map((value, index) => (
-        // Keying by index keeps the input mounted as the user types.
-        // Items here are only ever appended or removed (never reordered),
-        // so the index→item mapping is stable enough.
+        // Items are only appended or removed, never reordered, so the index key is stable enough.
         <div key={index} className="flex items-center gap-2">
-          <input
-            value={value}
-            onChange={(event) => updateValue(index, event.target.value)}
-            placeholder={placeholder}
-            className={`flex-1 rounded-lg border border-border-light bg-surface focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid ${
-              compact ? "px-3 py-2 text-sm" : "px-3 py-2.5"
-            }`}
-          />
-          <button type="button" onClick={() => removeValue(index)} className="text-xs font-ui text-red-500 hover:text-red-600">
-            Remove
-          </button>
+          <input value={value} placeholder={placeholder} onChange={(e) => onChange(values.map((v, i) => (i === index ? e.target.value : v)))} className={INPUT} />
+          <button type="button" onClick={() => onChange(values.filter((_, i) => i !== index))} aria-label="Remove" className="w-8 h-8 rounded-full text-muted hover:text-red-600 hover:bg-red-50 shrink-0">×</button>
         </div>
       ))}
-
-      <button type="button" onClick={addValue} className="text-xs font-ui font-semibold text-purple-primary hover:text-pink-vivid">
-        + Add line
-      </button>
+      <button type="button" onClick={() => onChange([...values, ""])} className="text-xs font-ui font-semibold text-purple-primary hover:underline">+ {addLabel}</button>
     </div>
   );
 }
 
-function FaqEditor({
-  values,
-  onChange,
-}: {
-  values: Array<{ question: string; answer: string }>;
-  onChange: (values: Array<{ question: string; answer: string }>) => void;
-}) {
-  const updateItem = (index: number, updates: { question?: string; answer?: string }) => {
-    onChange(values.map((item, idx) => (idx === index ? { ...item, ...updates } : item)));
-  };
-
-  const removeItem = (index: number) => {
-    onChange(values.filter((_, idx) => idx !== index));
-  };
-
-  const addItem = () => {
-    onChange([...values, { question: "", answer: "" }]);
-  };
-
+function PackageEditor({ index, pkg, canRemove, onRemove, onChange }: { index: number; pkg: CommissionPackageFormState; canRemove: boolean; onRemove: () => void; onChange: (u: Partial<CommissionPackageFormState>) => void }) {
   return (
-    <div className="space-y-3">
-      {values.map((item, index) => (
-        <div key={index} className="rounded-xl border border-border-light bg-surface p-3 space-y-2">
-          <input
-            value={item.question}
-            onChange={(event) => updateItem(index, { question: event.target.value })}
-            placeholder="Question"
-            className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid"
-          />
-          <textarea
-            rows={2}
-            value={item.answer}
-            onChange={(event) => updateItem(index, { answer: event.target.value })}
-            placeholder="Answer"
-            className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid resize-y"
-          />
-          <button type="button" onClick={() => removeItem(index)} className="text-xs font-ui text-red-500 hover:text-red-600">
-            Remove FAQ
-          </button>
+    <div className="rounded-2xl border border-border-light bg-surface p-4 space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <span className="px-2 py-0.5 rounded-full bg-subtle text-2xs font-ui uppercase tracking-wider text-muted">Tier {index + 1}</span>
+        {canRemove && <button type="button" onClick={onRemove} className="text-xs font-ui text-muted hover:text-red-600">Remove</button>}
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <Label text="Name" required htmlFor={`pkg-name-${pkg.id}`} />
+          <input id={`pkg-name-${pkg.id}`} value={pkg.name} maxLength={40} onChange={(e) => onChange({ name: e.target.value })} placeholder="Sketch, Standard, Full scene…" className={INPUT} />
+          <Help>Buyers see this name; any wording works.</Help>
         </div>
-      ))}
-
-      <button type="button" onClick={addItem} className="text-xs font-ui font-semibold text-purple-primary hover:text-pink-vivid">
-        + Add FAQ
-      </button>
+        <div>
+          <Label text="Price (USD)" required htmlFor={`pkg-price-${pkg.id}`} />
+          <input id={`pkg-price-${pkg.id}`} type="number" min={MIN_PACKAGE_PRICE} step={1} inputMode="decimal" value={pkg.price ?? ""} onChange={(e) => onChange({ price: e.target.value ? Number(e.target.value) : null })} className={`${INPUT} tabular-nums`} />
+          <Help>At least {formatCurrency(MIN_PACKAGE_PRICE)}. Pinkquill keeps 5%; you receive the rest.</Help>
+        </div>
+        <div>
+          <Label text="Delivery days" required htmlFor={`pkg-days-${pkg.id}`} />
+          <input id={`pkg-days-${pkg.id}`} type="number" min={1} value={pkg.deliveryDays} onChange={(e) => onChange({ deliveryDays: Math.max(1, Number(e.target.value || 1)) })} className={`${INPUT} tabular-nums`} />
+        </div>
+        <div>
+          <Label text="Revisions" required htmlFor={`pkg-rev-${pkg.id}`} />
+          <input id={`pkg-rev-${pkg.id}`} type="number" min={0} value={pkg.revisions} onChange={(e) => onChange({ revisions: Math.max(0, Number(e.target.value || 0)) })} className={`${INPUT} tabular-nums`} />
+        </div>
+        <div className="sm:col-span-2">
+          <Label text="What the buyer gets" required htmlFor={`pkg-desc-${pkg.id}`} />
+          <textarea id={`pkg-desc-${pkg.id}`} rows={2} value={pkg.description} onChange={(e) => onChange({ description: e.target.value })} placeholder="Half body, full render, loose background." className={INPUT} />
+        </div>
+        <div className="sm:col-span-2">
+          <Label text="Highlights" right="short lines shown on the package card" />
+          <LineList values={pkg.features} placeholder="e.g. 3000 × 4000 px PNG" onChange={(features) => onChange({ features })} addLabel="Add highlight" />
+        </div>
+      </div>
     </div>
   );
 }
 
 const INTAKE_TYPES: Array<{ value: IntakeFieldDraft["field_type"]; label: string }> = [
+  { value: "short_text", label: "Short text" },
   { value: "long_text", label: "Paragraph" },
-  { value: "short_text", label: "Short answer" },
-  { value: "select", label: "Pick one" },
-  { value: "multi_select", label: "Pick many" },
   { value: "number", label: "Number" },
   { value: "url", label: "Link" },
-  { value: "file", label: "File upload" },
+  { value: "select", label: "Pick one" },
+  { value: "multi_select", label: "Pick many" },
+  { value: "file", label: "File" },
 ];
 
-function IntakeFieldsEditor({
-  fields,
-  onChange,
-}: {
-  fields: IntakeFieldDraft[];
-  onChange: (fields: IntakeFieldDraft[]) => void;
-}) {
-  const inputClass = "w-full px-3 py-2 rounded-lg border border-border-light bg-surface text-sm font-body text-ink focus:outline-none focus:ring-2 focus:ring-pink-vivid/20";
-  const update = (key: string, patch: Partial<IntakeFieldDraft>) =>
-    onChange(fields.map((f) => (f.key === key ? { ...f, ...patch } : f)));
+function IntakeFieldsEditor({ fields, onChange }: { fields: IntakeFieldDraft[]; onChange: (fields: IntakeFieldDraft[]) => void }) {
+  const update = (key: string, patch: Partial<IntakeFieldDraft>) => onChange(fields.map((f) => (f.key === key ? { ...f, ...patch } : f)));
   const remove = (key: string) => onChange(fields.filter((f) => f.key !== key));
   const move = (index: number, dir: -1 | 1) => {
     const next = [...fields];
@@ -1227,383 +250,511 @@ function IntakeFieldsEditor({
     [next[index], next[target]] = [next[target], next[index]];
     onChange(next);
   };
-  const add = () =>
-    onChange([
-      ...fields,
-      { key: crypto.randomUUID(), label: "", help_text: "", field_type: "long_text", options: [], required: false },
-    ]);
+  const add = (field_type: IntakeFieldDraft["field_type"]) =>
+    onChange([...fields, { key: crypto.randomUUID(), label: "", help_text: "", field_type, options: [], required: false }]);
 
   return (
     <div className="space-y-3">
-      {fields.length === 0 && (
-        <p className="text-sm font-body text-muted">No questions yet. Buyers will only write a brief.</p>
-      )}
+      {fields.length === 0 && <p className="text-sm font-body text-muted">No questions yet. Buyers will only write a brief.</p>}
       {fields.map((field, index) => {
         const hasOptions = field.field_type === "select" || field.field_type === "multi_select";
         return (
-          <div key={field.key} className="rounded-xl border border-border-light bg-surface p-3.5 space-y-2.5">
+          <div key={field.key} className="rounded-xl border border-border-light bg-surface p-3 space-y-2.5">
             <div className="flex items-start gap-2">
-              <span className="mt-2 text-xs font-ui text-muted w-5 shrink-0">{index + 1}.</span>
-              <input
-                value={field.label}
-                maxLength={200}
-                placeholder="e.g., What is this piece for?"
-                onChange={(event) => update(field.key, { label: event.target.value })}
-                className={inputClass}
-              />
+              <span className="mt-2.5 text-xs font-ui text-muted w-5 shrink-0 tabular-nums">{index + 1}.</span>
+              <input value={field.label} maxLength={200} placeholder="e.g. What is this piece for?" onChange={(e) => update(field.key, { label: e.target.value })} className={INPUT} />
               <div className="flex items-center gap-1 shrink-0">
-                <button type="button" onClick={() => move(index, -1)} disabled={index === 0} aria-label="Move up"
-                  className="w-8 h-8 rounded-lg text-muted hover:bg-subtle disabled:opacity-30">↑</button>
-                <button type="button" onClick={() => move(index, 1)} disabled={index === fields.length - 1} aria-label="Move down"
-                  className="w-8 h-8 rounded-lg text-muted hover:bg-subtle disabled:opacity-30">↓</button>
-                <button type="button" onClick={() => remove(field.key)} aria-label="Remove question"
-                  className="w-8 h-8 rounded-lg text-muted hover:bg-red-50 hover:text-red-500">×</button>
+                <button type="button" onClick={() => move(index, -1)} disabled={index === 0} aria-label="Move up" className="w-8 h-8 rounded-lg text-muted hover:bg-subtle disabled:opacity-30">↑</button>
+                <button type="button" onClick={() => move(index, 1)} disabled={index === fields.length - 1} aria-label="Move down" className="w-8 h-8 rounded-lg text-muted hover:bg-subtle disabled:opacity-30">↓</button>
+                <button type="button" onClick={() => remove(field.key)} aria-label="Remove question" className="w-8 h-8 rounded-lg text-muted hover:bg-red-50 hover:text-red-600">×</button>
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2.5 pl-7">
-              <div className="flex flex-wrap gap-1.5">
-                {INTAKE_TYPES.map((type) => {
-                  const active = field.field_type === type.value;
-                  return (
-                    <button
-                      key={type.value}
-                      type="button"
-                      onClick={() => update(field.key, { field_type: type.value })}
-                      className={`px-2.5 py-1 rounded-full text-xs font-ui border transition-colors ${
-                        active ? "border-purple-primary bg-purple-50 text-purple-primary" : "border-border-light text-muted hover:border-border-strong"
-                      }`}
-                    >
-                      {type.label}
-                    </button>
-                  );
-                })}
-              </div>
-              <label className="flex items-center gap-2 text-xs font-ui text-ink whitespace-nowrap">
-                <input
-                  type="checkbox"
-                  checked={field.required}
-                  onChange={(event) => update(field.key, { required: event.target.checked })}
-                  className="accent-[var(--color-purple-primary)]"
-                />
+            <div className="flex flex-wrap items-center gap-2 pl-7">
+              <ChipChoice options={INTAKE_TYPES} value={field.field_type} onChange={(field_type) => update(field.key, { field_type })} />
+              <label className="ml-auto flex items-center gap-2 text-xs font-ui text-ink whitespace-nowrap">
+                <input type="checkbox" checked={field.required} onChange={(e) => update(field.key, { required: e.target.checked })} className="accent-[var(--color-purple-primary)]" />
                 Required
               </label>
             </div>
             <div className="pl-7 space-y-2">
-              <input
-                value={field.help_text}
-                maxLength={500}
-                placeholder="Help text (optional)"
-                onChange={(event) => update(field.key, { help_text: event.target.value })}
-                className={`${inputClass} text-xs`}
-              />
+              <input value={field.help_text} maxLength={500} placeholder="Help text (optional)" onChange={(e) => update(field.key, { help_text: e.target.value })} className={`${INPUT} text-xs`} />
               {hasOptions && (
-                <input
-                  value={field.options.join(", ")}
-                  placeholder="Options, separated by commas"
-                  onChange={(event) => update(field.key, { options: event.target.value.split(",").map((o) => o.trimStart()) })}
-                  onBlur={(event) => update(field.key, { options: event.target.value.split(",").map((o) => o.trim()).filter(Boolean) })}
-                  className={`${inputClass} text-xs`}
-                />
+                <input value={field.options.join(", ")} placeholder="Options, separated by commas" onChange={(e) => update(field.key, { options: e.target.value.split(",").map((o) => o.trimStart()) })} onBlur={(e) => update(field.key, { options: e.target.value.split(",").map((o) => o.trim()).filter(Boolean) })} className={`${INPUT} text-xs`} />
               )}
             </div>
           </div>
         );
       })}
-      <button
-        type="button"
-        onClick={add}
-        className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-ui font-semibold text-purple-primary bg-purple-50 hover:bg-purple-100 transition-colors"
-      >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-        </svg>
-        Add a question
-      </button>
+      <div className="flex flex-wrap gap-2">
+        {INTAKE_TYPES.map((t) => (
+          <button key={t.value} type="button" onClick={() => add(t.value)} className="px-3 py-1.5 rounded-full border border-border-light text-xs font-ui text-ink hover:border-border-strong transition-colors">+ {t.label}</button>
+        ))}
+      </div>
     </div>
   );
 }
 
-function describeAvailabilityState(state: CommissionWizardState): string {
-  const slots = state.slotsTotal === null ? "unlimited slots" : `${state.slotsTotal} slot${state.slotsTotal === 1 ? "" : "s"}`;
-  switch (state.availability) {
-    case "closed": return "Closed";
-    case "waitlist": return `Waitlist (${slots})`;
-    case "scheduled": return state.opensAt ? `Opens ${state.opensAt} (${slots})` : "Scheduled — pick a date";
-    default: return `Open (${slots})`;
-  }
+function FaqEditor({ values, onChange }: { values: Array<{ question: string; answer: string }>; onChange: (v: Array<{ question: string; answer: string }>) => void }) {
+  return (
+    <div className="space-y-3">
+      {values.map((item, index) => (
+        <div key={index} className="rounded-xl border border-border-light bg-surface p-3 space-y-2">
+          <input value={item.question} placeholder="Question" onChange={(e) => onChange(values.map((v, i) => (i === index ? { ...v, question: e.target.value } : v)))} className={INPUT} />
+          <textarea rows={2} value={item.answer} placeholder="Answer" onChange={(e) => onChange(values.map((v, i) => (i === index ? { ...v, answer: e.target.value } : v)))} className={INPUT} />
+          <button type="button" onClick={() => onChange(values.filter((_, i) => i !== index))} className="text-xs font-ui text-muted hover:text-red-600">Remove</button>
+        </div>
+      ))}
+      <Button variant="secondary" size="sm" onClick={() => onChange([...values, { question: "", answer: "" }])}>Add a question</Button>
+    </div>
+  );
+}
+
+function TagList({ values, onChange, placeholder }: { values: string[]; onChange: (v: string[]) => void; placeholder: string }) {
+  const [draft, setDraft] = useState("");
+  const commit = () => {
+    const tag = draft.trim().toLowerCase().replace(/^#/, "");
+    if (!tag) return;
+    if (!values.includes(tag)) onChange([...values, tag]);
+    setDraft("");
+  };
+  return (
+    <div className="rounded-xl border border-border-light bg-surface px-2 py-1.5 flex flex-wrap gap-1.5 items-center focus-within:ring-2 focus-within:ring-purple-primary/25">
+      {values.map((t) => (
+        <span key={t} className="px-2.5 py-1 rounded-full bg-subtle text-xs font-ui text-ink inline-flex items-center gap-1">{t}<button type="button" aria-label={`Remove ${t}`} onClick={() => onChange(values.filter((v) => v !== t))} className="text-muted hover:text-red-600">×</button></span>
+      ))}
+      <input value={draft} placeholder={values.length ? "Add…" : placeholder} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === ",") { e.preventDefault(); commit(); } }} onBlur={commit} className="flex-1 min-w-[8rem] px-1.5 py-1 text-sm font-body text-ink placeholder:text-muted/70 bg-transparent focus:outline-none" />
+    </div>
+  );
 }
 
 const AVAILABILITY_OPTIONS: Array<{ value: CommissionWizardState["availability"]; label: string; hint: string }> = [
-  { value: "open", label: "Open", hint: "Buyers can order right away while slots are free." },
-  { value: "waitlist", label: "Waitlist", hint: "Requests come in, but you approve each one before payment." },
+  { value: "open", label: "Open", hint: "Buyers can request while slots are free." },
+  { value: "waitlist", label: "Waitlist", hint: "Requests come in; you approve each one before payment." },
   { value: "scheduled", label: "Opens on a date", hint: "Closed until the date you pick, then open." },
-  { value: "closed", label: "Closed", hint: "Listing stays visible, nobody can order." },
+  { value: "closed", label: "Closed", hint: "Listing stays visible; nobody can request." },
 ];
 
-function AvailabilityEditor({
-  state,
-  onChange,
-}: {
-  state: CommissionWizardState;
-  onChange: (updates: Partial<CommissionWizardState>) => void;
-}) {
+function AvailabilityEditor({ state, onChange }: { state: CommissionWizardState; onChange: (u: Partial<CommissionWizardState>) => void }) {
   const unlimited = state.slotsTotal === null;
-  const inputClass = "w-full px-4 py-2.5 rounded-xl border border-border-light bg-surface text-sm font-body text-ink focus:outline-none focus:ring-2 focus:ring-pink-vivid/20";
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-        {AVAILABILITY_OPTIONS.map((option) => {
-          const active = state.availability === option.value;
+        {AVAILABILITY_OPTIONS.map((o) => {
+          const active = state.availability === o.value;
           return (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => onChange({ availability: option.value })}
-              className={`text-left rounded-xl border px-4 py-3 transition-colors ${
-                active ? "border-purple-primary bg-purple-50" : "border-border-light bg-surface hover:border-border-strong"
-              }`}
-            >
-              <p className={`text-sm font-ui font-semibold ${active ? "text-purple-primary" : "text-ink"}`}>{option.label}</p>
-              <p className="text-xs font-body text-muted mt-0.5">{option.hint}</p>
+            <button key={o.value} type="button" aria-pressed={active} onClick={() => onChange({ availability: o.value })} className={`text-left rounded-xl border px-4 py-3 transition-colors ${active ? "border-purple-primary bg-purple-50" : "border-border-light bg-surface hover:border-border-strong"}`}>
+              <p className={`text-sm font-ui font-semibold ${active ? "text-purple-primary" : "text-ink"}`}>{o.label}</p>
+              <p className="text-xs font-body text-muted mt-0.5">{o.hint}</p>
             </button>
           );
         })}
       </div>
-
       {state.availability === "scheduled" && (
         <div>
-          <FieldLabel text="Opens on" required />
-          <input
-            type="date"
-            value={state.opensAt}
-            min={new Date().toISOString().slice(0, 10)}
-            onChange={(event) => onChange({ opensAt: event.target.value })}
-            className={inputClass}
-          />
+          <Label text="Opens on" required htmlFor="opens-at" />
+          <input id="opens-at" type="date" value={state.opensAt} min={new Date().toISOString().slice(0, 10)} onChange={(e) => onChange({ opensAt: e.target.value })} className={INPUT} />
         </div>
       )}
-
       {state.availability !== "closed" && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <FieldLabel text="Slots at a time" />
-            <div className="flex items-center gap-3">
-              <input
-                type="number"
-                min={1}
-                max={500}
-                disabled={unlimited}
-                value={unlimited ? "" : state.slotsTotal ?? ""}
-                placeholder={unlimited ? "Unlimited" : "e.g. 3"}
-                onChange={(event) => {
-                  const value = Number(event.target.value);
-                  onChange({ slotsTotal: Number.isFinite(value) && value > 0 ? Math.min(500, Math.round(value)) : null });
-                }}
-                className={`${inputClass} disabled:opacity-60`}
-              />
-              <label className="flex items-center gap-2 text-xs font-ui text-muted whitespace-nowrap">
-                <input
-                  type="checkbox"
-                  checked={unlimited}
-                  onChange={(event) => onChange({ slotsTotal: event.target.checked ? null : 3 })}
-                  className="accent-[var(--color-purple-primary)]"
-                />
-                Unlimited
-              </label>
-            </div>
-            <p className="text-xs font-body text-muted mt-1">Active orders count against this. New requests are refused when it&apos;s full.</p>
+            <Label text="Slots at once" htmlFor="slots" right={<label className="flex items-center gap-1.5 text-2xs font-ui text-muted"><input type="checkbox" checked={unlimited} onChange={(e) => onChange({ slotsTotal: e.target.checked ? null : 3 })} className="accent-[var(--color-purple-primary)]" />Unlimited</label>} />
+            <input id="slots" type="number" min={1} max={500} disabled={unlimited} value={unlimited ? "" : state.slotsTotal ?? ""} placeholder={unlimited ? "Unlimited" : "e.g. 3"} onChange={(e) => { const v = Number(e.target.value); onChange({ slotsTotal: Number.isFinite(v) && v > 0 ? Math.min(500, Math.round(v)) : null }); }} className={`${INPUT} tabular-nums disabled:opacity-60`} />
+            <Help>Active orders count against this. The request that would go over is refused.</Help>
           </div>
           <div>
-            <FieldLabel text="Lead time (days)" />
-            <input
-              type="number"
-              min={0}
-              max={365}
-              value={state.leadTimeDays}
-              onChange={(event) => onChange({ leadTimeDays: Math.max(0, Math.min(365, Math.round(Number(event.target.value) || 0))) })}
-              className={inputClass}
-            />
-            <p className="text-xs font-body text-muted mt-1">Added before the package delivery time when a due date is set.</p>
+            <Label text="Lead time (days)" htmlFor="lead" />
+            <input id="lead" type="number" min={0} max={365} value={state.leadTimeDays} onChange={(e) => onChange({ leadTimeDays: Math.max(0, Math.min(365, Math.round(Number(e.target.value) || 0))) })} className={`${INPUT} tabular-nums`} />
+            <Help>Added before the package days when the due date is set.</Help>
           </div>
         </div>
       )}
-
       <div>
-        <FieldLabel text="Delivery clock starts" />
-        <div className="flex flex-wrap gap-2">
-          {([
-            { value: "payment", label: "When the buyer pays" },
-            { value: "acceptance", label: "When I accept the request" },
-          ] as const).map((option) => {
-            const active = state.turnaroundStarts === option.value;
-            return (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => onChange({ turnaroundStarts: option.value })}
-                className={`px-3.5 py-2 rounded-full text-sm font-ui border transition-colors ${
-                  active ? "border-purple-primary bg-purple-50 text-purple-primary" : "border-border-light text-ink hover:border-border-strong"
-                }`}
-              >
-                {option.label}
-              </button>
-            );
-          })}
-        </div>
+        <Label text="Clock starts" />
+        <ChipChoice options={[{ value: "payment", label: "When the buyer pays" }, { value: "acceptance", label: "When I accept the request" }]} value={state.turnaroundStarts} onChange={(turnaroundStarts) => onChange({ turnaroundStarts })} />
       </div>
-
-      <div>
-        <div className="flex items-center justify-between">
-          <FieldLabel text="Terms (optional)" />
-          <span className="text-xs font-ui text-muted">{state.terms.length}/5000</span>
-        </div>
-        <textarea
-          rows={4}
-          maxLength={5000}
-          value={state.terms}
-          onChange={(event) => onChange({ terms: event.target.value })}
-          placeholder="Usage rights, what counts as a revision, cancellation and kill fee, anything buyers agree to before ordering."
-          className={`${inputClass} resize-y`}
-        />
-      </div>
-
-      <label className="flex items-start gap-3 cursor-pointer">
-        <input
-          type="checkbox"
-          checked={state.acceptsCustomQuotes}
-          onChange={(event) => onChange({ acceptsCustomQuotes: event.target.checked })}
-          className="mt-1 accent-[var(--color-purple-primary)]"
-        />
+      <label className="flex items-start justify-between gap-4 py-2 cursor-pointer">
         <span>
-          <span className="block text-sm font-ui font-semibold text-ink">Open to custom quotes</span>
-          <span className="block text-xs font-body text-muted">Shown on your listing so buyers know they can ask for something outside these packages.</span>
+          <span className="block text-sm font-ui font-medium text-ink">Open to custom requests</span>
+          <span className="block text-xs font-body text-muted mt-0.5">Buyers can describe something outside your packages in the brief.</span>
         </span>
+        <input type="checkbox" role="switch" checked={state.acceptsCustomQuotes} onChange={(e) => onChange({ acceptsCustomQuotes: e.target.checked })} className="mt-1 w-4 h-4 accent-[var(--color-purple-primary)]" />
       </label>
     </div>
   );
 }
 
-function ReviewItem({ label, value }: { label: string; value: string }) {
+// ─── preview ────────────────────────────────────────────────────────
+
+function ListingPreview({ state }: { state: CommissionWizardState }) {
+  const cover = state.mediaPreviews.find((m) => m.isPrimary) ?? state.mediaPreviews[0];
+  const others = state.mediaPreviews.filter((m) => m !== cover).slice(0, 2);
+  const packages = [...state.packages].filter((p) => p.price != null).sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
+  const [sel, setSel] = useState(0);
+  const pkg = packages[Math.min(sel, Math.max(packages.length - 1, 0))];
+  const category = state.category ? [COMMISSION_CATEGORIES[state.category]?.name || state.category, state.subcategory ? getCommissionSubcategoryLabel(state.category, state.subcategory) : null].filter(Boolean).join(" · ") : "";
+  const days = (pkg?.deliveryDays ?? 0) + state.leadTimeDays;
+  const slotsLine = state.availability === "closed" ? "Closed" : state.availability === "waitlist" ? "Waitlist" : state.availability === "scheduled" ? `Opens ${state.opensAt || "…"}` : state.slotsTotal ? `${state.slotsTotal} of ${state.slotsTotal} slots open` : "Open";
+  const tile = (m: CommissionWizardState["mediaPreviews"][number] | undefined, cls: string) => (
+    <div className={`relative rounded-2xl overflow-hidden bg-gradient-to-br from-purple-50 to-pink-50 ${cls}`}>
+      {m && (isVideoMedia(m) ? <video src={m.url} muted playsInline className="absolute inset-0 w-full h-full object-cover" /> : <Image src={m.url} alt="" fill unoptimized className="object-cover" sizes="600px" />)}
+    </div>
+  );
   return (
-    <div className="rounded-xl border border-border-light bg-surface px-3 py-3">
-      <p className="text-[11px] font-ui uppercase tracking-wider text-muted">{label}</p>
-      <p className="text-sm font-ui font-semibold text-ink mt-1">{value}</p>
+    <div className="rounded-2xl border border-border-light bg-surface p-4 sm:p-5 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_260px] gap-6">
+      <div>
+        <div className="grid grid-cols-4 grid-rows-2 gap-2 aspect-[16/9]">
+          {tile(cover, "col-span-3 row-span-2")}
+          {tile(others[0], "")}
+          {tile(others[1], "")}
+        </div>
+        <p className="text-2xs font-ui uppercase tracking-[0.12em] text-muted mt-4">{category}</p>
+        <h3 className="font-display text-xl font-semibold text-ink mt-1">{state.title || "Untitled listing"}</h3>
+        {state.headline && <p className="text-sm font-body text-muted mt-1">{state.headline}</p>}
+        <div className="mt-4 space-y-2 text-sm font-body text-ink/90">
+          {state.description && <p className="whitespace-pre-line line-clamp-4">{state.description}</p>}
+          <p><span className="font-ui font-semibold">How it works</span> · Send your request · Pay · {pkg?.deliveryDays ?? 0} days from {state.turnaroundStarts} · 3-day review · paid 7 days after approval</p>
+          {state.intakeFields.length > 0 && <p><span className="font-ui font-semibold">You&apos;ll be asked</span> · {state.intakeFields.map((f) => `${f.label || "…"}${f.required ? "*" : ""}`).join(" · ")}</p>}
+          {state.includes.filter(Boolean).length > 0 && <p><span className="font-ui font-semibold">Includes</span> · {state.includes.filter(Boolean).join(" · ")}</p>}
+          {state.excludes.filter(Boolean).length > 0 && <p><span className="font-ui font-semibold">Not included</span> · {state.excludes.filter(Boolean).join(" · ")}</p>}
+          {state.terms.trim() && <p><span className="font-ui font-semibold">Terms</span> · <span className="line-clamp-2">{state.terms}</span></p>}
+        </div>
+      </div>
+      <aside>
+        <div className="space-y-2">
+          {packages.length === 0 && <p className="text-sm font-body text-muted">No priced packages yet.</p>}
+          {packages.map((p, i) => (
+            <button key={p.id} type="button" onClick={() => setSel(i)} className={`w-full text-left rounded-2xl border p-3 ${i === sel ? "border-purple-primary bg-purple-50/60" : "border-border-light"}`}>
+              <div className="flex justify-between gap-3"><span className="text-sm font-ui font-semibold text-ink">{p.name || "Package"}</span><span className="font-display font-semibold text-ink tabular-nums">{formatCurrency(p.price ?? 0)}</span></div>
+              <p className="text-2xs font-body text-muted">{p.deliveryDays}-day delivery · {p.revisions} revision{p.revisions === 1 ? "" : "s"}</p>
+            </button>
+          ))}
+        </div>
+        <p className="mt-3 text-xs font-body text-muted">{slotsLine}{pkg ? ` · about ${days} days from ${state.turnaroundStarts}` : ""}</p>
+        <div className="mt-3"><Button fullWidth disabled>Request{pkg ? ` · ${formatCurrency(pkg.price ?? 0)}` : ""}</Button></div>
+      </aside>
     </div>
   );
 }
 
-function ListingPreviewCard({
-  state,
-  selectedCategory,
-  priceFrom,
-}: {
-  state: CommissionWizardState;
-  selectedCategory: string;
-  priceFrom: number | null;
-}) {
-  const primaryMedia = state.mediaPreviews.find((item) => item.isPrimary) ?? state.mediaPreviews[0];
+// ─── wizard ─────────────────────────────────────────────────────────
+
+interface CreateCommissionWizardProps {
+  mode?: "create" | "edit";
+  productId?: string;
+  initialProduct?: Product | null;
+}
+
+export default function CreateCommissionWizard({ mode = "create", productId, initialProduct = null }: CreateCommissionWizardProps = {}) {
+  const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const mediaUrlsRef = useRef<string[]>([]);
+  const { user, loading: authLoading } = useAuth();
+  const { createCommission, creating, error: createError } = useCreateCommission();
+  const { updateCommission, updating, error: updateError } = useUpdateCommission();
+
+  const isEdit = mode === "edit";
+  const [savedId, setSavedId] = useState<string | null>(productId ?? initialProduct?.id ?? null);
+  const [savedStatus, setSavedStatus] = useState<string | null>(initialProduct?.status ?? null);
+  const [step, setStep] = useState<StepIndex>(1);
+  const [furthest, setFurthest] = useState<number>(isEdit ? 6 : 1);
+  const [error, setError] = useState<string | null>(null);
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [state, setState] = useState<CommissionWizardState>(() => (isEdit && initialProduct ? mapProductToCommissionState(initialProduct) : initialCommissionWizardState));
+
+  const busy = creating || updating || savingDraft;
+  const submitError = createError || updateError;
+  const categories = useMemo(() => getAllCommissionCategories(), []);
+  const selectedCategory = state.category ? COMMISSION_CATEGORIES[state.category] : null;
+
+  useEffect(() => {
+    mediaUrlsRef.current = state.mediaPreviews.filter((m) => m.file instanceof File).map((m) => m.url);
+  }, [state.mediaPreviews]);
+  useEffect(() => () => { mediaUrlsRef.current.forEach((url) => URL.revokeObjectURL(url)); }, []);
+
+  const update = useCallback((patch: Partial<CommissionWizardState>) => { setState((prev) => ({ ...prev, ...patch })); setError(null); }, []);
+  const updatePackage = useCallback((id: string, patch: Partial<CommissionPackageFormState>) => {
+    setState((prev) => ({ ...prev, packages: prev.packages.map((p) => (p.id === id ? { ...p, ...patch } : p)) }));
+    setError(null);
+  }, []);
+  const addPackage = () => {
+    if (state.packages.length >= 3) return;
+    const used = new Set(state.packages.map((p) => p.tier));
+    const preset = PACKAGE_PRESETS.find((p) => !used.has(p.tier)) ?? { tier: "custom" as const, name: "" };
+    update({ packages: [...state.packages, { id: crypto.randomUUID(), tier: preset.tier, name: preset.name, description: "", price: null, deliveryDays: 7, revisions: 1, features: [] }] });
+  };
+  const removePackage = (id: string) => { if (state.packages.length > 1) update({ packages: state.packages.filter((p) => p.id !== id) }); };
+
+  const handleMediaUpload = (files: FileList | null) => {
+    if (!files) return;
+    const current = state.mediaPreviews.length;
+    const accepted: CommissionWizardState["mediaPreviews"] = [];
+    setError(null);
+    for (const file of Array.from(files)) {
+      if (!ACCEPTED_MEDIA_TYPES.includes(file.type)) { setError("Use JPG, PNG, WEBP, GIF, or MP4/MOV files."); continue; }
+      const isVideo = file.type.startsWith("video/");
+      const limit = isVideo ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE;
+      if (file.size > limit) { setError(`${isVideo ? "Videos" : "Images"} must be under ${Math.round(limit / 1048576)} MB.`); continue; }
+      if (current + accepted.length >= MAX_MEDIA) { setError(`Up to ${MAX_MEDIA} files.`); break; }
+      accepted.push({ file, url: URL.createObjectURL(file), isPrimary: current === 0 && accepted.length === 0, mediaType: isVideo ? "video" : "image" });
+    }
+    if (accepted.length) update({ mediaPreviews: [...state.mediaPreviews, ...accepted] });
+  };
+  const setCover = (index: number) => update({ mediaPreviews: state.mediaPreviews.map((m, i) => ({ ...m, isPrimary: i === index })) });
+  const removeMedia = (index: number) => {
+    const item = state.mediaPreviews[index];
+    if (item?.file) URL.revokeObjectURL(item.url);
+    const next = state.mediaPreviews.filter((_, i) => i !== index);
+    if (next.length && !next.some((m) => m.isPrimary)) next[0].isPrimary = true;
+    update({ mediaPreviews: next });
+  };
+
+  /** The publish checks, per step. Returns the first problem or null. */
+  const problemFor = useCallback((target: number): string | null => {
+    if (target === 1) {
+      if (!state.category) return "Pick a category.";
+      if (!state.title.trim()) return "Give the listing a title.";
+      if (!state.description.trim()) return "Describe the commission.";
+    }
+    if (target === 2) {
+      if (state.packages.length === 0) return "Add at least one package.";
+      for (let i = 0; i < state.packages.length; i += 1) {
+        const p = state.packages[i];
+        const label = p.name.trim() || `Package ${i + 1}`;
+        if (!p.name.trim()) return `Name package ${i + 1}, or remove it.`;
+        if (p.price === null || !Number.isFinite(p.price)) return `Set a price for "${label}", or remove it.`;
+        if (p.price < MIN_PACKAGE_PRICE) return `"${label}" must be ${formatCurrency(MIN_PACKAGE_PRICE)} or more.`;
+        if (!p.description.trim()) return `Say what "${label}" includes, or remove it.`;
+        if (!Number.isFinite(p.deliveryDays) || p.deliveryDays < 1) return `"${label}" needs a delivery time of at least 1 day.`;
+      }
+    }
+    if (target === 3 && state.mediaPreviews.length === 0) return "Add at least one image or video.";
+    if (target === 5 && state.availability === "scheduled" && !state.opensAt) return "Pick the date this commission opens.";
+    return null;
+  }, [state]);
+
+  const scrollTop = () => { if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" }); };
+  const goNext = () => {
+    const problem = problemFor(step);
+    if (problem) { setError(problem); scrollTop(); return; }
+    const next = Math.min(6, step + 1) as StepIndex;
+    setStep(next);
+    setFurthest((f) => Math.max(f, next));
+    scrollTop();
+  };
+  const goBack = () => { setStep((s) => Math.max(1, s - 1) as StepIndex); scrollTop(); };
+  const jump = (target: StepIndex) => { setStep(target); scrollTop(); };
+
+  const canSaveDraft = Boolean(state.category && state.title.trim()) && (savedStatus === null || savedStatus === "draft");
+
+  /** Save what exists as a draft: no publish checks, packages without a price are skipped. */
+  const saveDraft = async () => {
+    if (!canSaveDraft) { setError("Pick a category and give the listing a title to save a draft."); scrollTop(); return; }
+    setSavingDraft(true);
+    setError(null);
+    try {
+      if (savedId) {
+        const ok = await updateCommission(savedId, state, { status: "draft" });
+        if (ok) showToast.success("Draft saved");
+        else scrollTop();
+      } else {
+        const created = await createCommission(state, { status: "draft" });
+        if (created) {
+          setSavedId(created.id);
+          setSavedStatus("draft");
+          showToast.success("Draft saved", "Find it under Listings whenever you want to continue.");
+          // Continue editing the saved row so later saves update instead of duplicating.
+          window.history.replaceState(null, "", `/sell/edit/${created.id}`);
+        } else scrollTop();
+      }
+    } finally {
+      setSavingDraft(false);
+    }
+  };
+
+  const publish = async () => {
+    if (!user) { setError("Sign in to publish."); scrollTop(); return; }
+    for (let i = 1; i <= 5; i += 1) {
+      const problem = problemFor(i);
+      if (problem) { setError(problem); setStep(i as StepIndex); scrollTop(); return; }
+    }
+    const options: SaveCommissionOptions = { status: "active" };
+    if (savedId) {
+      const ok = await updateCommission(savedId, state, savedStatus === "active" ? {} : options);
+      if (!ok) { scrollTop(); return; }
+      showToast.success(savedStatus === "active" ? "Changes saved" : "Published — your listing is live");
+      router.push(`/commissions/${savedId}`);
+      return;
+    }
+    const created = await createCommission(state, options);
+    if (!created) { scrollTop(); return; }
+    showToast.success("Published — your listing is live");
+    router.push(`/commissions/${created.id}`);
+  };
+
+  if (isEdit && !initialProduct) {
+    return <div className="min-h-[60vh] flex items-center justify-center px-6"><Loading text="Opening your listing" /></div>;
+  }
+
+  if (!authLoading && !user) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center px-6">
+        <div className="max-w-md text-center">
+          <h1 className="font-display text-2xl font-semibold text-ink">Sign in to open commissions</h1>
+          <p className="text-sm font-body text-muted mt-2">Set your packages, questions and availability, and let people who love your work request it directly.</p>
+          <div className="mt-5 flex justify-center gap-2">
+            <Link href={`/login?redirect=${encodeURIComponent("/sell/service")}`}><Button>Sign in</Button></Link>
+            <Link href={`/signup?redirect=${encodeURIComponent("/sell/service")}`}><Button variant="secondary">Create an account</Button></Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const isLive = savedStatus === "active";
+  const eyebrow = isEdit ? (isLive ? "Edit listing" : "Draft") : savedId ? "Draft" : "New commission";
+  const priceFrom = state.packages.map((p) => p.price).filter((p): p is number => typeof p === "number" && p > 0).sort((a, b) => a - b)[0];
 
   return (
-    <div className="rounded-2xl border border-border-light bg-surface/90 backdrop-blur-sm shadow-sm overflow-hidden">
-      <div className="px-4 py-3 border-b border-border-light bg-gradient-to-r from-purple-primary/10 via-pink-vivid/10 to-orange-warm/10">
-        <p className="text-[11px] font-ui font-semibold uppercase tracking-wider text-muted">Listing preview</p>
-      </div>
+    <div className="min-h-screen bg-canvas pb-28 md:pb-12">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-2xs font-ui uppercase tracking-[0.12em] text-muted">{eyebrow}</p>
+            <h1 className="font-display text-xl sm:text-2xl font-semibold text-ink">{STEPS[step - 1]}</h1>
+          </div>
+          <span className="text-xs font-ui text-muted">Step {step} of {STEPS.length}</span>
+        </div>
+        <div className="mt-4"><StepRail current={step} furthest={furthest} onJump={jump} /></div>
 
-      <div className="p-4 space-y-3">
-        <div className="rounded-xl overflow-hidden border border-border-light bg-gradient-to-br from-orange-50 to-pink-50">
-          {primaryMedia ? (
-            isVideoMedia(primaryMedia) ? (
-              <video src={primaryMedia.url} className="w-full aspect-[4/3] object-cover" muted playsInline />
-            ) : (
-              <img src={primaryMedia.url} alt="Service preview" className="w-full aspect-[4/3] object-cover" />
-            )
-          ) : (
-            <div className="aspect-[4/3] flex items-center justify-center text-xs font-ui text-muted px-4 text-center">
-              Add your portfolio to see the cover here
-            </div>
+        {(error || submitError) && (
+          <div className="mt-4 rounded-xl border border-red-200 bg-red-50/60 px-4 py-3 text-sm font-body text-red-700" role="alert">{error || submitError}</div>
+        )}
+
+        <div className="mt-5 space-y-4">
+          {step === 1 && (
+            <Card title="Basics" description="What you make and how you describe it.">
+              <div className="space-y-4">
+                <div>
+                  <Label text="Category" required />
+                  <ChipChoice options={categories.map((c) => ({ value: c.id, label: c.name }))} value={state.category} onChange={(category) => update({ category, subcategory: null })} />
+                </div>
+                {selectedCategory && (
+                  <div>
+                    <Label text="Specialization" />
+                    <ChipChoice options={selectedCategory.subcategories.map((s) => ({ value: s.value, label: s.label }))} value={state.subcategory} onChange={(subcategory) => update({ subcategory })} />
+                  </div>
+                )}
+                <div>
+                  <Label text="Title" required htmlFor="title" right={`${state.title.trim().length}/80`} />
+                  <input id="title" maxLength={80} value={state.title} onChange={(e) => update({ title: e.target.value })} placeholder="Character illustration, full colour" className={INPUT} />
+                </div>
+                <div>
+                  <Label text="Headline" htmlFor="headline" right={`${state.headline.trim().length}/100`} />
+                  <input id="headline" maxLength={100} value={state.headline} onChange={(e) => update({ headline: e.target.value })} placeholder="One line under the title on cards and the listing." className={INPUT} />
+                </div>
+                <div>
+                  <Label text="Description" required htmlFor="description" right={`${state.description.trim().length}/1200`} />
+                  <textarea id="description" rows={6} maxLength={1200} value={state.description} onChange={(e) => update({ description: e.target.value })} placeholder="How you work, what you love making, what a buyer can expect." className={INPUT} />
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {step === 2 && (
+            <Card title="Packages" description="Up to three. Name them however you like.">
+              <div className="space-y-3">
+                {state.packages.map((pkg, index) => (
+                  <PackageEditor key={pkg.id} index={index} pkg={pkg} canRemove={state.packages.length > 1} onRemove={() => removePackage(pkg.id)} onChange={(patch) => updatePackage(pkg.id, patch)} />
+                ))}
+                {state.packages.length < 3 && (
+                  <div className="flex items-center gap-3">
+                    <Button variant="secondary" size="sm" onClick={addPackage}>Add a package</Button>
+                    <span className="text-xs font-body text-muted">{3 - state.packages.length} more possible</span>
+                  </div>
+                )}
+              </div>
+            </Card>
+          )}
+
+          {step === 3 && (
+            <Card title="Portfolio" description={`Up to ${MAX_MEDIA} images or videos. The cover is what people see first.`}>
+              <input ref={fileInputRef} type="file" accept={ACCEPTED_MEDIA_TYPES.join(",")} multiple onChange={(e) => { handleMediaUpload(e.target.files); e.target.value = ""; }} className="sr-only" />
+              <button type="button" onClick={() => fileInputRef.current?.click()} className="w-full rounded-2xl border border-dashed border-border-strong bg-subtle p-8 text-center hover:border-purple-primary/40 transition-colors">
+                <p className="text-sm font-ui font-medium text-ink">Drop files or tap to choose</p>
+                <p className="text-2xs font-body text-muted mt-0.5">JPG, PNG, WEBP, GIF up to 10 MB · MP4, MOV up to 200 MB · {state.mediaPreviews.length}/{MAX_MEDIA}</p>
+              </button>
+              {state.mediaPreviews.length > 0 && (
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mt-4">
+                  {state.mediaPreviews.map((media, index) => (
+                    <div key={media.id || media.url} className="relative rounded-xl overflow-hidden bg-subtle aspect-square">
+                      {isVideoMedia(media) ? <video src={media.url} muted playsInline className="absolute inset-0 w-full h-full object-cover" /> : <Image src={media.url} alt="" fill unoptimized className="object-cover" sizes="200px" />}
+                      <button type="button" onClick={() => setCover(index)} className={`absolute left-2 top-2 px-2 py-0.5 rounded-full text-2xs font-ui ${media.isPrimary ? "bg-surface text-ink font-semibold" : "bg-surface/80 text-muted hover:text-ink"}`}>{media.isPrimary ? "Cover" : "Set cover"}</button>
+                      <button type="button" onClick={() => removeMedia(index)} aria-label="Remove" className="absolute right-2 top-2 w-6 h-6 rounded-full bg-surface/90 text-ink text-xs inline-flex items-center justify-center hover:bg-surface">×</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          )}
+
+          {step === 4 && (
+            <>
+              <Card title="Questions for the buyer" description="Asked in the request sheet, before they pay. Answers land on the order page.">
+                <IntakeFieldsEditor fields={state.intakeFields} onChange={(intakeFields) => update({ intakeFields })} />
+              </Card>
+              <Card title="Includes and not included">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div><Label text="Includes" /><LineList values={state.includes} placeholder="e.g. A sketch for approval first" onChange={(includes) => update({ includes })} /></div>
+                  <div><Label text="Not included" /><LineList values={state.excludes} placeholder="e.g. Commercial use" onChange={(excludes) => update({ excludes })} /></div>
+                </div>
+              </Card>
+              <Card title="Terms" description="Shown on your listing. Buyers agree to them when they send a request.">
+                <Label text="" right={`${state.terms.length}/5000`} />
+                <textarea rows={5} maxLength={5000} value={state.terms} onChange={(e) => update({ terms: e.target.value })} placeholder="Usage rights, what counts as a revision, cancellation, anything buyers agree to before ordering." className={INPUT} />
+              </Card>
+              <Card title="FAQ">
+                <FaqEditor values={state.faqs} onChange={(faqs) => update({ faqs })} />
+              </Card>
+              <Card title="Tags" description="A few words that help people find this.">
+                <TagList values={state.keywords} onChange={(keywords) => update({ keywords })} placeholder="character, portrait, painterly" />
+              </Card>
+            </>
+          )}
+
+          {step === 5 && (
+            <Card title="Availability" description="The database enforces this: the request that would break it is refused.">
+              <AvailabilityEditor state={state} onChange={update} />
+            </Card>
+          )}
+
+          {step === 6 && (
+            <>
+              <div className="rounded-2xl border border-border-light bg-subtle px-4 py-3 text-sm font-body text-muted">
+                {isLive ? "This is your listing as buyers see it. Save changes to update it." : "This is your listing page as buyers will see it. Nothing is live until you publish."}
+                {priceFrom != null ? ` From ${formatCurrency(priceFrom)}.` : ""}
+              </div>
+              <ListingPreview state={state} />
+            </>
           )}
         </div>
 
-        <div>
-          <p className="text-[11px] font-ui uppercase tracking-wider text-muted">{selectedCategory}</p>
-          <h3 className="font-ui font-semibold text-sm text-ink mt-1 line-clamp-2">
-            {state.title || "Your service title will appear here"}
-          </h3>
-          <p className="text-xs font-body text-muted mt-1 line-clamp-2">
-            {state.headline || "A short line that captures what makes your work special."}
-          </p>
+        {/* Footer: inline on desktop, docked above the bottom nav on phones */}
+        <div className="hidden md:flex items-center justify-between gap-2 mt-6">
+          <Button variant="secondary" onClick={goBack} disabled={step === 1 || busy}>Back</Button>
+          <div className="flex gap-2">
+            {!isLive && <Button variant="ghost" onClick={saveDraft} disabled={busy || !canSaveDraft} loading={savingDraft} loadingText="Saving…">Save draft</Button>}
+            {step < 6 ? <Button onClick={goNext} disabled={busy}>Continue</Button> : <Button onClick={publish} loading={creating || updating} loadingText={isLive ? "Saving…" : "Publishing…"} disabled={busy}>{isLive ? "Save changes" : "Publish"}</Button>}
+          </div>
         </div>
-
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-body text-muted">Starting at</span>
-          <span className="text-lg font-display text-ink">{priceFrom ? `$${priceFrom}` : "--"}</span>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          <span className="inline-flex px-2 py-1 rounded-full bg-skeleton text-[11px] font-ui text-gray-700">
-            {state.packages.length} tier{state.packages.length === 1 ? "" : "s"}
-          </span>
-          <span className="inline-flex px-2 py-1 rounded-full bg-skeleton text-[11px] font-ui text-gray-700">
-            {state.mediaPreviews.length} media
-          </span>
+        <div className="md:hidden fixed inset-x-0 bottom-16 z-(--z-sticky) bg-surface/95 backdrop-blur-xl border-t border-border-light px-4 pt-3 pb-3 flex items-center gap-2">
+          <Button variant="secondary" size="sm" onClick={goBack} disabled={step === 1 || busy}>Back</Button>
+          <div className="ml-auto flex gap-2">
+            {!isLive && <Button variant="ghost" size="sm" onClick={saveDraft} disabled={busy || !canSaveDraft} loading={savingDraft} loadingText="Saving…">Save draft</Button>}
+            {step < 6 ? <Button size="sm" onClick={goNext} disabled={busy}>Continue</Button> : <Button size="sm" onClick={publish} loading={creating || updating} loadingText={isLive ? "Saving…" : "Publishing…"} disabled={busy}>{isLive ? "Save changes" : "Publish"}</Button>}
+          </div>
         </div>
       </div>
     </div>
-  );
-}
-
-function CategoryGlyph({ categoryId }: { categoryId: string }) {
-  if (categoryId === "design") {
-    return (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 4l8 4-8 4-8-4 8-4zm0 8v8m8-8v8M4 12v8" />
-      </svg>
-    );
-  }
-
-  if (categoryId === "illustration") {
-    return (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M7 7h.01M7 3h10a2 2 0 012 2v14l-5-3-5 3-5-3V5a2 2 0 012-2z" />
-      </svg>
-    );
-  }
-
-  if (categoryId === "writing") {
-    return (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4 12.5-12.5z" />
-      </svg>
-    );
-  }
-
-  if (categoryId === "video") {
-    return (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14m-10 5h8a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-      </svg>
-    );
-  }
-
-  if (categoryId === "audio_music") {
-    return (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 19V6l12-2v13M9 19a2 2 0 11-4 0 2 2 0 014 0zm12-2a2 2 0 11-4 0 2 2 0 014 0z" />
-      </svg>
-    );
-  }
-
-  if (categoryId === "crafts") {
-    return (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-      </svg>
-    );
-  }
-
-  return (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 4v16m8-8H4" />
-    </svg>
   );
 }

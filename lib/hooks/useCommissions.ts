@@ -26,7 +26,8 @@ function extractErrorMessage(err: unknown): string {
 }
 
 /** Availability & slots settings (Phase 2a) → `commission_listings` row. */
-function listingRowFromState(state: CommissionWizardState, productId: string, sellerId: string) {
+/** The seller-editable columns of commission_listings (the trigger owns product_id / seller_id / slots_used). */
+function listingSettingsFromState(state: CommissionWizardState) {
   const scheduled = state.availability === "scheduled";
   const opensAt = scheduled && state.opensAt ? new Date(`${state.opensAt}T00:00:00`) : null;
   if (scheduled && (!opensAt || Number.isNaN(opensAt.getTime()))) {
@@ -36,8 +37,6 @@ function listingRowFromState(state: CommissionWizardState, productId: string, se
     ? null
     : Math.min(500, Math.max(1, Math.round(Number(state.slotsTotal))));
   return {
-    product_id: productId,
-    seller_id: sellerId,
     availability: state.availability,
     opens_at: opensAt ? opensAt.toISOString() : null,
     slots_total: slots,
@@ -99,8 +98,13 @@ async function syncIntakeFields(fields: IntakeFieldDraft[], productId: string, s
   }
 }
 
+export interface SaveCommissionOptions {
+  /** `draft` saves what exists without the publish checks; `active` publishes. */
+  status?: "draft" | "active";
+}
+
 interface UseCreateCommissionReturn {
-  createCommission: (state: CommissionWizardState) => Promise<Product | null>;
+  createCommission: (state: CommissionWizardState, options?: SaveCommissionOptions) => Promise<Product | null>;
   creating: boolean;
   error: string | null;
 }
@@ -109,9 +113,10 @@ export function useCreateCommission(): UseCreateCommissionReturn {
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const createCommission = useCallback(async (state: CommissionWizardState): Promise<Product | null> => {
+  const createCommission = useCallback(async (state: CommissionWizardState, options: SaveCommissionOptions = {}): Promise<Product | null> => {
     setCreating(true);
     setError(null);
+    const status = options.status ?? "active";
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -120,12 +125,14 @@ export function useCreateCommission(): UseCreateCommissionReturn {
       if (!state.category) {
         throw new Error("Please select a category");
       }
+      if (!state.title.trim()) throw new Error("Give the listing a title");
 
+      // Drafts keep whatever is filled in; packages without a price are not written yet.
       const validPackages = state.packages.filter(
         (pkg): pkg is CommissionPackageFormState & { price: number } =>
-          pkg.price !== null && pkg.price > 0
+          pkg.price !== null && pkg.price > 0 && pkg.name.trim().length > 0
       );
-      if (validPackages.length === 0) {
+      if (validPackages.length === 0 && status === "active") {
         throw new Error("Add at least one package with a price");
       }
 
@@ -162,9 +169,11 @@ export function useCreateCommission(): UseCreateCommissionReturn {
             headline: state.headline,
             // kept as plain labels for older readers; the typed questions live in listing_intake_fields
             requirements: state.intakeFields.map((f) => f.label.trim()).filter(Boolean),
-            faqs: state.faqs,
+            faqs: state.faqs.filter((f) => f.question.trim() && f.answer.trim()),
+            includes: state.includes.map((v) => v.trim()).filter(Boolean),
+            excludes: state.excludes.map((v) => v.trim()).filter(Boolean),
           },
-          status: "active",
+          status,
         })
         .select()
         .single();
@@ -172,9 +181,12 @@ export function useCreateCommission(): UseCreateCommissionReturn {
       if (productError) throw productError;
 
       {
+        // The products trigger creates the commission_listings row; clients may only UPDATE
+        // the settings columns (an upsert would also try to set product_id/seller_id).
         const { error: listingError } = await supabase
           .from("commission_listings")
-          .upsert(listingRowFromState(state, product.id, user.id), { onConflict: "product_id" });
+          .update(listingSettingsFromState(state))
+          .eq("product_id", product.id);
         if (listingError) throw listingError;
       }
       await syncIntakeFields(state.intakeFields, product.id, user.id);
@@ -211,7 +223,7 @@ export function useCreateCommission(): UseCreateCommissionReturn {
         if (mediaError) throw mediaError;
       }
 
-      const { error: pricingError } = await supabase
+      const { error: pricingError } = validPackages.length === 0 ? { error: null } : await supabase
         .from("product_pricing")
         .insert(
           validPackages.map((pkg) => ({
@@ -268,7 +280,7 @@ export function useCreateCommission(): UseCreateCommissionReturn {
 }
 
 interface UseUpdateCommissionReturn {
-  updateCommission: (productId: string, state: CommissionWizardState) => Promise<boolean>;
+  updateCommission: (productId: string, state: CommissionWizardState, options?: SaveCommissionOptions) => Promise<boolean>;
   updating: boolean;
   error: string | null;
 }
@@ -292,9 +304,10 @@ export function useUpdateCommission(): UseUpdateCommissionReturn {
   const [updating, setUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const updateCommission = useCallback(async (productId: string, state: CommissionWizardState): Promise<boolean> => {
+  const updateCommission = useCallback(async (productId: string, state: CommissionWizardState, options: SaveCommissionOptions = {}): Promise<boolean> => {
     setUpdating(true);
     setError(null);
+    const publishing = options.status === "active";
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -302,7 +315,7 @@ export function useUpdateCommission(): UseUpdateCommissionReturn {
 
       if (!state.category) throw new Error("Select a commission category");
       if (!state.title.trim()) throw new Error("Service title is required");
-      if (!state.description.trim()) throw new Error("Service description is required");
+      if (publishing && !state.description.trim()) throw new Error("Service description is required");
 
       const normalizedPackages = state.packages
         .map((pkg) => ({
@@ -316,7 +329,7 @@ export function useUpdateCommission(): UseUpdateCommissionReturn {
         }))
         .filter((pkg) => pkg.price !== null && pkg.price > 0 && pkg.name.length > 0);
 
-      if (normalizedPackages.length === 0) {
+      if (normalizedPackages.length === 0 && options.status !== "draft") {
         throw new Error("Add at least one package with price and title");
       }
 
@@ -371,7 +384,10 @@ export function useUpdateCommission(): UseUpdateCommissionReturn {
             headline: state.headline.trim() || null,
             requirements: normalizedRequirements,
             faqs: normalizedFaqs,
+            includes: state.includes.map((v) => v.trim()).filter(Boolean),
+            excludes: state.excludes.map((v) => v.trim()).filter(Boolean),
           },
+          ...(options.status ? { status: options.status } : {}),
           updated_at: new Date().toISOString(),
         })
         .eq("id", productId)
@@ -381,7 +397,8 @@ export function useUpdateCommission(): UseUpdateCommissionReturn {
       {
         const { error: listingError } = await supabase
           .from("commission_listings")
-          .upsert(listingRowFromState(state, productId, user.id), { onConflict: "product_id" });
+          .update(listingSettingsFromState(state))
+          .eq("product_id", productId);
         if (listingError) throw listingError;
       }
       await syncIntakeFields(state.intakeFields, productId, user.id);

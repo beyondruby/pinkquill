@@ -19,7 +19,8 @@ Read `02-plan.md` for the phase definitions and `01-findings.md` for the root ca
 | 3b — Studio commissions section | **done, committed on main** (no migration; UI only) | 2026-09-03 |
 | 3d — Checkout | **done, committed on main** (no migration; presentation only, money paths untouched) | 2026-09-03 |
 | 3e — Seller studio | **done, committed on main** (no migration; reads only) | 2026-09-03 |
-| 2b, 2d–2f, 3f, 4 | not started | |
+| 3f — Listing wizard | **done, committed on main** (no migration) | 2026-09-03 |
+| 2b, 2d–2f, 4 | not started | |
 
 Open decisions (plan §2): D7 email provider. **D6** = buyer cancels free while the seller hasn't started (`paid`) or when the order is 3+ days overdue; after work starts a buyer cancellation is a refund request the seller decides; sellers/admins may cancel any active order (full refund); partial refunds come out of the seller's share only; nothing can be cancelled or refunded self-service after the payout was sent (dispute instead). **D8** = `platform_admins` table (`profiles.role` is a free-text bio field); `hadi` is the first admin. **D2 = 7 days** after completion (setting `release_window_hours = 168`). **D4 = Supabase pg_cron + pg_net** (GitHub workflow deleted). **Currency:** USD listings, charged in the platform's settlement currency (CAD today) at a cached ECB rate + 1.5 % buffer; switch to USD settlement later by changing `platform_settings.settlement_currency` once a USD bank account exists. **D3 = (b)** seller pays 5 % platform fee, buyer pays a visible processing fee of 3 % + $0.30 (implemented in 1b; rates live in `platform_settings`). Answered: **D1** = platform Stripe account is **Canada, default currency CAD**, Standard account, `transfers` capability active, Connect enabled (verified via API + dashboard 2026-09-02; business is Canadian, owner currently in Saudi Arabia, sellers/buyers intended worldwide in any currency — 1c must use Connect cross-border payouts with the `recipient` service agreement for non-CA sellers and decide the settlement-currency model); **D5** = yes (test orders deleted in 1a).
 
@@ -527,4 +528,34 @@ The **request sheet** (`RequestSheet`, `Sheet size="tall"`) is one flow for the 
 - Customers and Listings keep their layouts (they only gained the phone strip); the setup wizard keeps its four steps (fields now match settings).
 - `useSellerOrders` still selects `count: "exact"` for paging; 4b trims it.
 
-**Next:** 3f (listing wizard) — the last Phase 3 screen — or 2b (quotes & extras). Needs your go.
+**Next (at the time):** 3f. Superseded by the entry below.
+
+---
+
+## Phase 3f — Listing wizard (2026-09-03)
+
+**Closes:** the wizard share of RC-C4 (hand-rolled buttons, gradient headlines and glowing cards; now `Button`, plain cards, tokens only) and RC-C2 item 8's second half (the sign-in wall had no sign-in control). Phase 3 is complete.
+
+**Mockup** (approved before build): https://claude.ai/code/artifact/774e5d7e-1bfd-493a-bf10-20572474b609.
+
+**No migration.** Drafts use the existing `products.status = 'draft'` (only the owner can read them; `useHasCommissions`, the studio tab, the marketplace and the request path all filter on `active`). The listing-settings row is created by the 2a trigger.
+
+**Bug found and fixed on the way — the wizard could not create a listing since 2a.** Both hooks wrote `commission_listings` with an upsert; the 2a trigger already creates the row on product insert, so the upsert became `INSERT … ON CONFLICT DO UPDATE` over every supplied column, and the column-level `UPDATE` grant excludes `product_id` / `seller_id` → "permission denied for table commission_listings" after the product row was inserted (leaving an orphan). The hooks now `update()` only the settings columns (`listingSettingsFromState`). 2a's browser check exercised the hire modal, not the wizard's create path; the one live listing predates 2a.
+
+**Design.** Six short steps with a step rail you can jump along once a step is valid: **Basics** (category and specialization as chips, title, headline, description), **Packages** (up to three tiers with a name you type, price ≥ $5, delivery days, revisions, what the buyer gets, highlights), **Portfolio** (up to 10 images/videos, cover picker), **Details** (question builder with type chips and required toggle, includes / not included, **terms**, FAQ, tags), **Availability** (open · waitlist · opens on a date · closed, slots or unlimited, lead time, clock start, custom requests), **Preview** (the listing as buyers see it: gallery, category label, packages panel, availability line, how-it-works, questions, terms). **Save draft** is available from step 1 once category and title exist; the first save creates the draft and switches the URL to `/sell/edit/<id>` so later saves update it; packages without a price are not written yet. **Publish** runs the full check across steps 1–5, jumps to the first problem, sets `active`, toasts "Published — your listing is live" and opens `/commissions/<id>`. Editing a live listing shows "Save changes" and no Save draft. Signed-out visitors get Sign in / Create an account buttons that return to `/sell/service`. On phones the footer docks above the bottom nav.
+
+**Code**
+- `components/commissions/CreateCommission/CreateCommissionWizard.tsx` rewritten (1,609 → 760 lines): `StepRail`, `ChipChoice`, `LineList`, `TagList`, `PackageEditor`, `IntakeFieldsEditor`, `FaqEditor`, `AvailabilityEditor`, `ListingPreview`; `mapProductToCommissionState` exported.
+- `lib/types/store.ts`: `CommissionWizardState.includes` / `excludes` (+ initial state). `lib/hooks/useCommissions.ts`: `SaveCommissionOptions { status }` on `createCommission` / `updateCommission` (draft-aware validation, status written; `includes` / `excludes` saved into `service_metadata`); the listing-settings fix above.
+- `components/seller/SellerListingsGrid.tsx`: drafts read "Continue editing"; "Activate" is hidden for draft commissions (publishing goes through the wizard's checks).
+
+**Verified**
+- `npx tsc --noEmit` clean; ESLint 0 errors / 0 warnings on the wizard, hooks and grid; `npx vitest run` 159 pass; `npm run build` succeeds.
+- Browser (local dev server, signed in as `hadi`): `/sell/service` → category + title + description → **Save draft** → toast, URL becomes `/sell/edit/<id>` → Continue → package "Sketch" $35 → Save draft again → toast; the database shows the draft product, one `basic` pricing row at 35 and the listing-settings row; reloading `/sell/edit/<id>` restores title and package with the eyebrow "Draft" and a Publish button; the rail jumps to Preview, which renders the listing with the package panel and "Request · $35.00". `/seller/listings` shows the card with the Draft pill and "Continue editing". No console errors. The draft and its rows were deleted afterwards; production still has one active service listing.
+- **Not exercised:** publishing (it would create a visible listing on production), media upload from the wizard (unchanged upload code), editing the live listing, the phone footer (mockup only).
+
+**Deferred**
+- Extras / custom quotes as data (2b); a creator-written process list (the listing page already renders `service_metadata.process` when present).
+- The product (non-commission) wizard keeps its old look; 4a's consolidation pass is the place for it.
+
+**Next:** Phase 3 is done. Remaining: 2b (quotes & extras), 2d (timelines & email; D7 pending), 2e (receipts/analytics), 2f (admin), then Phase 4 (4a consolidation, 4b load & realtime, 4c dead objects & tests). Recommended: 2b, then 2d. Needs your go. Still outstanding: the seller-side run with a second account in Stripe test mode, and go-live steps 2, 6 and 7.
