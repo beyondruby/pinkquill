@@ -1,6 +1,6 @@
 // @vitest-environment node
 /**
- * Database contract tests (Phases 1e, 2a, 2c, 2d, 2e). Each calls a SECURITY DEFINER
+ * Database contract tests (Phases 1e, 2a, 2c, 2d, 2e, 2f). Each calls a SECURITY DEFINER
  * self-test RPC that drives the real RPCs against the real schema and always
  * rolls back. They live in ONE file on purpose: vitest runs files in parallel
  * workers, and the suites lock the same product / listing rows, which
@@ -161,5 +161,26 @@ describe.skipIf(!enabled)("seller analytics (read-only shape)", () => {
     expect(a.revenue_by_week.length).toBeLessThanOrEqual(14);
     expect(typeof a.totals.paid_orders).toBe("number");
     expect(a.conversion).toHaveProperty("rate");
+  });
+});
+
+describe.skipIf(!enabled)("admin self-test (retry, cancel, settings, search, audit)", () => {
+  it("re-queues failed payouts and refunds, validates settings, searches, audits, then rolls back", async () => {
+    const supabase = createClient(url!, key!, { auth: { persistSession: false } });
+    const { data, error } = await supabase.rpc("run_admin_selftest");
+    expect(error).toBeNull();
+    const result = data as { ok: boolean; rolled_back: boolean; result?: string; error?: string };
+    expect(result.error).toBeUndefined();
+    expect(result.ok).toBe(true);
+    expect(result.rolled_back).toBe(true);
+    const out = result.result ?? "";
+    // (a) only admins; a failed payout goes back to pending with attempts reset; a pending one cannot be retried
+    expect(out).toContain("a.nonadmin=refused retry=pending payout=pending/0 twice=refused");
+    // (b) needs_review → approved on retry; cancelling an unexecuted full refund restores the order
+    expect(out).toContain("b.review=needs_review retry=approved/0 cancel=cancelled order=paid");
+    // (c) settings validation
+    expect(out).toContain("c.bad_rate=refused unknown=refused set=updated/72");
+    // (d) search + audit trail
+    expect(out).toContain("d.by_number=1 by_seller_status=true audit=4");
   });
 });

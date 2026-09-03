@@ -24,11 +24,13 @@ export async function GET(request: Request) {
   const gate = await requireAdmin(request);
   if ("error" in gate) return gate.error;
 
-  const { data, error } = await supabaseAdmin
+  const scope = new URL(request.url).searchParams.get("scope") ?? "open";
+  let query = supabaseAdmin
     .from("disputes")
-    .select("id, order_id, kind, reason, description, status, stripe_status, evidence, evidence_due_by, amount_cents, currency, previous_status, created_at, initiated_by, orders(order_number, status, payment_status, buyer_id, seller_id, listing_type, amount, currency)")
-    .in("status", ["open", "under_review", "escalated"])
-    .order("created_at", { ascending: true });
+    .select("id, order_id, kind, reason, description, status, stripe_status, evidence, evidence_due_by, amount_cents, currency, previous_status, resolution, resolution_notes, resolved_at, created_at, initiated_by, orders(order_number, status, payment_status, buyer_id, seller_id, listing_type, amount, currency, product:products (title), buyer:profiles!orders_buyer_id_fkey (username, display_name), seller:profiles!orders_seller_id_fkey (username, display_name))")
+    .order("created_at", { ascending: scope === "open" });
+  query = scope === "all" ? query.limit(100) : query.in("status", ["open", "under_review", "escalated"]);
+  const { data, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ disputes: data ?? [] });
 }
