@@ -3,7 +3,7 @@
 import type { Order, OrderEvent } from "@/lib/types/store";
 import { formatCurrency } from "@/lib/utils/currency";
 import { getOrderStatusMeta } from "@/lib/utils/orderStatus";
-import { orderTotalForBuyer, personName, shortDateTime } from "./orderFormat";
+import { orderTotalForBuyer, personName, shortDate, shortDateTime } from "./orderFormat";
 
 interface OrderActivityProps {
   order: Order;
@@ -47,8 +47,14 @@ function describe(e: OrderEvent, order: Order, isBuyer: boolean): string | null 
       return isBuyer ? "A payment didn't match the order total and was refunded" : "A payment didn't match the order total and was refunded automatically";
     case "transfer_failed":
       return isBuyer ? null : "Payout attempt failed · Pinkquill is looking into it";
-    case "system":
+    case "system": {
+      const action = str(m.action) ?? "";
+      const when = str(m.new_due_date) ? shortDate(str(m.new_due_date)) : null;
+      if (action === "extension_requested") return `${actor} asked for ${typeof m.days === "number" ? `${m.days} more day${m.days === 1 ? "" : "s"}` : "more time"}${when ? ` · ${when}` : ""}`;
+      if (action === "extension_accepted") return `${actor} agreed to a new due date${when ? ` · ${when}` : ""}`;
+      if (action === "extension_declined") return `${actor} kept the original due date`;
       return str(m.message) ?? str(m.note) ?? "Order updated";
+    }
     case "status_change":
     default: {
       if (!to) return str(m.message) ?? null;

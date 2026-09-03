@@ -153,6 +153,14 @@ export default function OrderProgress({ order, actions, isBuyer, openRevision, c
       {notice && (
         <div className={`rounded-xl border px-3.5 py-3 text-sm font-body text-ink mb-4 ${TONE_CLASSES[meta.tone].box}`}>{notice}</div>
       )}
+      {actions?.extension && !dimmed && (
+        <div className={`rounded-xl border px-3.5 py-3 text-sm font-body text-ink mb-4 ${TONE_CLASSES.amber.box}`}>
+          <span className="font-ui font-semibold">{actions.extension.mine ? "You asked" : `${personName(isBuyer ? order.seller : order.buyer, isBuyer ? "The creator" : "The buyer")} asked`} to move the due date</span>
+          {" "}{actions.extension.old_due_date ? `from ${shortDate(actions.extension.old_due_date)} ` : ""}to {shortDate(actions.extension.new_due_date)}
+          {actions.extension.reason ? <> · &ldquo;{actions.extension.reason}&rdquo;</> : null}
+          {actions.extension.mine ? <span className="text-muted"> · waiting for an answer</span> : null}
+        </div>
+      )}
       {order.status === "revision_requested" && openRevision && (
         <div className={`rounded-xl border px-3.5 py-3 text-sm font-body text-ink mb-4 ${TONE_CLASSES.orange.box}`}>
           <span className="font-ui font-semibold">Revision {openRevision.number}{order.max_revisions ? ` of ${order.max_revisions}` : ""}</span>

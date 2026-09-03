@@ -240,6 +240,8 @@ export interface Profile {
   is_private: boolean;
   theme_preference: string | null;
   notification_preferences: Record<string, boolean> | null;
+  /** Per-category email switches (Phase 2d); `orders: false` mutes order emails. */
+  email_preferences?: Record<string, boolean> | null;
   created_at: string;
   works_count: number;
   followers_count: number | null;
@@ -339,7 +341,33 @@ export type NotificationType =
   | "order_disputed"
   | "dispute_resolved"
   | "refund_requested"
-  | "order_refunded";
+  | "refund_declined"
+  | "refund_approved"
+  | "order_refunded"
+  | "order_cancel_requested"
+  | "order_expired"
+  | "order_payment_failed"
+  | "order_transfer_failed"
+  | "chargeback_opened"
+  | "chargeback_closed"
+  | "order_due_soon"
+  | "order_due"
+  | "order_late"
+  | "extension_requested"
+  | "extension_accepted"
+  | "extension_declined";
+
+/** Snapshot taken when an order notification is created (Phase 2d). */
+export interface OrderNotificationMeta {
+  order_number?: string | null;
+  title?: string | null;
+  listing_type?: string | null;
+  status?: string | null;
+  amount?: number | null;
+  currency?: string | null;
+  due_date?: string | null;
+  role?: "buyer" | "seller";
+}
 
 export interface Notification {
   id: string;
@@ -353,6 +381,7 @@ export interface Notification {
   content: string | null;
   read: boolean;
   created_at: string;
+  metadata?: OrderNotificationMeta | null;
   actor: {
     username: string;
     display_name: string | null;

@@ -10,6 +10,7 @@ import { getOrderKind } from "@/lib/utils/orderStatus";
 import type { OrderActions } from "@/lib/hooks/useDisputes";
 import { useApproveRefund, useDeclineRefund } from "@/lib/hooks/useDisputes";
 import { useAcceptOrder, useUpdateOrderStatus } from "@/lib/hooks/useOrders";
+import { useRespondExtension, useWithdrawExtension } from "@/lib/hooks/useTimeline";
 import { showToast } from "@/lib/utils/toast";
 import OrderSheets, { type SheetKind } from "./OrderSheets";
 import { countdown, orderTotalForBuyer, personName, relativeDays, shortDate, shortDateTime } from "./orderFormat";
@@ -35,6 +36,13 @@ function hintFor(order: Order, actions: OrderActions | null, isBuyer: boolean, w
   const kind = getOrderKind(order);
   const due = order.due_date ? shortDate(order.due_date) : null;
   const late = order.due_date ? relativeDays(order.due_date) : null;
+  const ext = actions?.extension;
+  if (ext && ["paid", "in_progress", "revision_requested"].includes(order.status)) {
+    const days = Math.max(1, Math.round((new Date(ext.new_due_date).getTime() - new Date(ext.old_due_date ?? ext.requested_at).getTime()) / 86_400_000));
+    return isBuyer
+      ? `${other} asked for ${days} more day${days === 1 ? "" : "s"} · due ${shortDate(ext.new_due_date)} if you accept`
+      : `Waiting for ${other} to answer your request for ${days} more day${days === 1 ? "" : "s"}`;
+  }
   switch (order.status) {
     case "pending_acceptance":
       return isBuyer
@@ -96,6 +104,8 @@ export default function OrderActionBar({ order, actions, isBuyer, workroom, hasR
   const { updateStatus, updating } = useUpdateOrderStatus();
   const { approveRefund, loading: approving } = useApproveRefund();
   const { declineRefund, loading: decliningRefund } = useDeclineRefund();
+  const { respondExtension, loading: responding } = useRespondExtension();
+  const { withdrawExtension, loading: withdrawing } = useWithdrawExtension();
   const kind = getOrderKind(order);
   const hint = hintFor(order, actions, isBuyer, workroom);
 
@@ -108,7 +118,7 @@ export default function OrderActionBar({ order, actions, isBuyer, workroom, hasR
   const primary: Btn[] = [];
   const secondary: Btn[] = [];
   const overflow: ActionMenuItem[] = [];
-  const busy = accepting || updating || approving || decliningRefund;
+  const busy = accepting || updating || approving || decliningRefund || Boolean(responding) || withdrawing;
 
   if (actions) {
     if (actions.can_accept) primary.push({ label: "Accept request", loading: accepting, disabled: busy, onClick: () => run(() => acceptOrder(order.id), "Request accepted — waiting for payment") });
@@ -122,6 +132,12 @@ export default function OrderActionBar({ order, actions, isBuyer, workroom, hasR
       if (kind === "digital") primary.push({ label: "Download files", onClick: onDownloadFiles });
       primary.push({ label: kind === "commission" ? "Approve delivery" : "Confirm receipt", loading: updating, disabled: busy, variant: kind === "digital" ? "secondary" : "primary", onClick: () => run(() => updateStatus(order.id, "completed"), kind === "commission" ? "Delivery approved — thank you" : "Order complete — thank you") });
     }
+    if (actions.can_respond_extension && actions.extension) {
+      const ext = actions.extension;
+      primary.push({ label: `Accept new date · ${shortDate(ext.new_due_date)}`, loading: responding === "accept", disabled: busy, onClick: () => run(() => respondExtension(ext.id, true), `New due date agreed: ${shortDate(ext.new_due_date)}`) });
+      secondary.push({ label: "Keep original date", loading: responding === "decline", disabled: busy, onClick: () => run(() => respondExtension(ext.id, false), "Kept the original due date") });
+    }
+    if (actions.can_request_extension && order.due_date) secondary.push({ label: "Ask for more time", disabled: busy, onClick: () => setSheet("extension") });
     if (actions.can_request_revision) secondary.push({ label: `Request revision${actions.revisions_left != null ? ` · ${actions.revisions_left} left` : ""}`, disabled: busy, onClick: () => setSheet("revision") });
     if (actions.can_decide_refund) {
       primary.push({ label: `Approve ${actions.refund?.listing_amount_cents != null ? formatCurrency(actions.refund.listing_amount_cents / 100) + " " : ""}refund`, loading: approving, disabled: busy, onClick: () => run(() => approveRefund(order.id), "Refund approved") });
@@ -134,6 +150,7 @@ export default function OrderActionBar({ order, actions, isBuyer, workroom, hasR
       const label = actions.cancel_mode === "request" ? "Ask to cancel" : actions.cancel_mode === "refund" ? "Cancel and refund" : "Cancel order";
       overflow.push({ label, tone: "danger", onSelect: () => setSheet("cancel") });
     }
+    if (actions.extension?.mine) overflow.push({ label: "Withdraw time request", onSelect: () => run(() => withdrawExtension(actions.extension!.id), "Request withdrawn") });
     if (actions.can_request_refund) overflow.push({ label: "Request a refund", tone: "warning", onSelect: () => setSheet("refund") });
     if (actions.can_issue_refund && order.status !== "refund_requested") overflow.push({ label: "Issue a refund", tone: "warning", onSelect: () => setSheet("refund") });
     if (actions.can_open_dispute) overflow.push({ label: "Open a dispute", tone: "danger", onSelect: () => setSheet("dispute") });

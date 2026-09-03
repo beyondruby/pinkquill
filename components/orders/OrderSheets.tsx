@@ -11,10 +11,11 @@ import { useCancelOrder, useCreateDispute, useIssueRefund, useRequestRefund, use
 import { useDeclineOrder, useUpdateOrderDraft } from "@/lib/hooks/useOrders";
 import { uploadOrderFiles, useRequestRevision, useSubmitDelivery } from "@/lib/hooks/useOrderWorkroom";
 import { useAddTracking } from "@/lib/hooks/useShipping";
+import { useRequestExtension } from "@/lib/hooks/useTimeline";
 import { formatBytes } from "./AttachmentGrid";
-import { orderTotalForBuyer, personName } from "./orderFormat";
+import { orderTotalForBuyer, personName, shortDate } from "./orderFormat";
 
-export type SheetKind = "deliver" | "revision" | "cancel" | "refund" | "dispute" | "evidence" | "tracking" | "decline" | "brief";
+export type SheetKind = "deliver" | "revision" | "cancel" | "refund" | "dispute" | "evidence" | "tracking" | "decline" | "brief" | "extension";
 
 interface SheetContext {
   order: Order;
@@ -43,6 +44,7 @@ export default function OrderSheets(props: OrderSheetsProps) {
     case "tracking": return <TrackingSheet {...ctx} />;
     case "decline": return <DeclineSheet {...ctx} />;
     case "brief": return <BriefSheet {...ctx} />;
+    case "extension": return <ExtensionSheet {...ctx} />;
     default: return null;
   }
 }
@@ -383,6 +385,57 @@ function BriefSheet({ order, onClose, onDone }: SheetContext) {
     >
       <Field label="Brief">
         <textarea rows={6} value={brief} onChange={(e) => setBrief(e.target.value)} className={INPUT} />
+      </Field>
+      <ErrorLine text={error} />
+    </Sheet>
+  );
+}
+
+const DAY = 86_400_000;
+const EXTENSION_CHIPS = [2, 3, 5, 7, 14];
+
+/** Seller asks for more time (2d). The buyer accepts or declines; the due date only moves on accept. */
+function ExtensionSheet({ order, onClose, onDone }: SheetContext) {
+  const { requestExtension, loading, error } = useRequestExtension();
+  // Extensions count from the current due date; an order with none counts from now.
+  const [base] = useState(() => Math.max(order.due_date ? new Date(order.due_date).getTime() : 0, Date.now()));
+  const [days, setDays] = useState<number>(3);
+  const [reason, setReason] = useState("");
+  const newDue = new Date(base + days * DAY);
+  const minDate = new Date(base + DAY).toISOString().slice(0, 10);
+  const maxDate = new Date(base + 90 * DAY).toISOString().slice(0, 10);
+  const setFromDate = (value: string) => {
+    if (!value) return;
+    const picked = new Date(`${value}T${new Date(base).toISOString().slice(11, 19)}Z`).getTime();
+    const d = Math.round((picked - base) / DAY);
+    if (d >= 1 && d <= 90) setDays(d);
+  };
+  const submit = async () => {
+    const r = await requestExtension(order.id, newDue.toISOString(), reason);
+    if (r) onDone(`Asked for ${r.days} more day${r.days === 1 ? "" : "s"}`);
+  };
+  return (
+    <Sheet isOpen onClose={onClose} busy={loading} title="Ask for more time" subtitle={`${personName(order.buyer, "The buyer")} sees the new date and your note, and can accept or decline. The due date only moves if they accept.`}
+      footer={<><Button variant="secondary" onClick={onClose} disabled={loading}>Cancel</Button><Button onClick={submit} loading={loading} loadingText="Sending…">Send request</Button></>}
+    >
+      <Field label="How much longer?">
+        <div className="flex flex-wrap gap-2">
+          {EXTENSION_CHIPS.map((n) => (
+            <button key={n} type="button" onClick={() => setDays(n)} aria-pressed={days === n}
+              className={`px-3.5 py-2 rounded-full border text-sm font-ui font-medium transition-colors ${days === n ? "bg-purple-primary/10 border-purple-primary/40 text-purple-800" : "bg-surface border-border-light text-ink hover:border-border-strong"}`}>
+              +{n} day{n === 1 ? "" : "s"}
+            </button>
+          ))}
+        </div>
+        <div className="mt-2.5 flex items-center gap-3 flex-wrap">
+          <input type="date" value={newDue.toISOString().slice(0, 10)} min={minDate} max={maxDate} onChange={(e) => setFromDate(e.target.value)} className={`${INPUT} sm:w-48`} aria-label="New due date" />
+          <p className="text-sm font-body text-muted">
+            {order.due_date ? `Due ${shortDate(order.due_date)} → ` : "New due date "}<span className="font-ui font-semibold text-ink">{shortDate(newDue.toISOString())}</span> · +{days} day{days === 1 ? "" : "s"}
+          </p>
+        </div>
+      </Field>
+      <Field label="Why" hint="optional · the buyer sees it">
+        <textarea rows={3} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="The linework took longer than planned — I want to get the colours right." className={INPUT} />
       </Field>
       <ErrorLine text={error} />
     </Sheet>

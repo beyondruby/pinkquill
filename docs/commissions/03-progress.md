@@ -20,7 +20,9 @@ Read `02-plan.md` for the phase definitions and `01-findings.md` for the root ca
 | 3d — Checkout | **done, committed on main** (no migration; presentation only, money paths untouched) | 2026-09-03 |
 | 3e — Seller studio | **done, committed on main** (no migration; reads only) | 2026-09-03 |
 | 3f — Listing wizard | **done, committed on main** (no migration) | 2026-09-03 |
-| 2b, 2d–2f, 4 | not started | |
+| 2d — Timelines & notifications | **done, committed on main**; migration `commissions_phase2d_timelines_email` applied to prod | 2026-09-03 |
+| 2b — Quotes & extras | **on hold** (user decision, 2026-09-03): needs a call on the frozen checkout route's amount validation | |
+| 2e, 2f, 4 | not started | |
 
 Open decisions (plan §2): D7 email provider. **D6** = buyer cancels free while the seller hasn't started (`paid`) or when the order is 3+ days overdue; after work starts a buyer cancellation is a refund request the seller decides; sellers/admins may cancel any active order (full refund); partial refunds come out of the seller's share only; nothing can be cancelled or refunded self-service after the payout was sent (dispute instead). **D8** = `platform_admins` table (`profiles.role` is a free-text bio field); `hadi` is the first admin. **D2 = 7 days** after completion (setting `release_window_hours = 168`). **D4 = Supabase pg_cron + pg_net** (GitHub workflow deleted). **Currency:** USD listings, charged in the platform's settlement currency (CAD today) at a cached ECB rate + 1.5 % buffer; switch to USD settlement later by changing `platform_settings.settlement_currency` once a USD bank account exists. **D3 = (b)** seller pays 5 % platform fee, buyer pays a visible processing fee of 3 % + $0.30 (implemented in 1b; rates live in `platform_settings`). Answered: **D1** = platform Stripe account is **Canada, default currency CAD**, Standard account, `transfers` capability active, Connect enabled (verified via API + dashboard 2026-09-02; business is Canadian, owner currently in Saudi Arabia, sellers/buyers intended worldwide in any currency — 1c must use Connect cross-border payouts with the `recipient` service agreement for non-CA sellers and decide the settlement-currency model); **D5** = yes (test orders deleted in 1a).
 
@@ -558,4 +560,56 @@ The **request sheet** (`RequestSheet`, `Sheet size="tall"`) is one flow for the 
 - Extras / custom quotes as data (2b); a creator-written process list (the listing page already renders `service_metadata.process` when present).
 - The product (non-commission) wizard keeps its old look; 4a's consolidation pass is the place for it.
 
-**Next:** Phase 3 is done. Remaining: 2b (quotes & extras), 2d (timelines & email; D7 pending), 2e (receipts/analytics), 2f (admin), then Phase 4 (4a consolidation, 4b load & realtime, 4c dead objects & tests). Recommended: 2b, then 2d. Needs your go. Still outstanding: the seller-side run with a second account in Stripe test mode, and go-live steps 2, 6 and 7.
+**Next (at the time):** 2b, then 2d. 2b was analysed on 2026-09-03 and put on hold (see the 2d entry); 2d follows below.
+
+---
+
+## Phase 2b — Quotes & extras (analysed 2026-09-03, ON HOLD)
+
+Extras and custom quotes change an order's amount after it is created. The frozen checkout route (`app/api/checkout/*`) validates `order.amount + discount − shipping == pricing.price × quantity` against the pricing row, so any order carrying extras or a quoted amount would be refused at payment. Three ways forward were presented (validate against a server-computed expected amount stored on the order; a separate `order_extras` total the route adds to its expectation; or a quote-only pricing row per order). The user chose to keep 2b on hold. Nothing was written.
+
+---
+
+## Phase 2d — Timelines & notifications (2026-09-03)
+
+**Closes:** the 2d line of the plan — due-date engine (reminders at −24 h, at the due date and at +48 h, the D6 late-cancel right spelled out to both sides), extension requests, in-app notifications that carry order number + listing + the recipient's own amount, one email template system per D7, and per-user preferences honoured for both channels.
+
+**No mockup** (Phase-2 rules: wires into the existing screens). Nothing in the money paths changed; `run_cron_job` was re-created only to add the reminder call to the hourly branch (the payout-worker branch is byte-identical).
+
+**Migration** `supabase/migrations/20260903_commissions_phase2d_timelines_email.sql` (applied to prod as `commissions_phase2d_timelines_email`):
+- `notifications.metadata JSONB` + `emailed_at`; `profiles.email_preferences JSONB`; six new notification types (`order_due_soon`, `order_due`, `order_late`, `extension_requested`, `extension_accepted`, `extension_declined`) added to the CHECK by the 1a/1d rebuild pattern.
+- `create_order_notification` now snapshots `{order_number, title, listing_type, status, currency, due_date, amount, role}` — `amount` is `seller_amount` for the seller and `total_amount` for the buyer, so the panel and the email show each side its own figure.
+- `order_extensions` (one pending per order, participants SELECT only) with `request_order_extension(order, new_due_date, reason)` (seller, active commission, after the current due date, ≤ 90 days, writes a system message + event + notifies the buyer), `respond_order_extension(id, accept, note)` (buyer or admin; accept moves `orders.due_date` and clears the reminder ladder), `withdraw_order_extension(id)`.
+- `order_reminders (order_id, kind)` + `send_due_date_reminders()` — `due_24h` → seller; `due_now` → both; `late_48h` → both, telling the buyer they can cancel for a full refund from the third day and the seller that the buyer can. Each rung fires once; an accepted extension restarts the ladder. Wired into `run_cron_job('hourly')`.
+- `get_order_actions` gains `can_request_extension`, `can_respond_extension` and `extension {id, old_due_date, new_due_date, reason, requested_at, mine}`.
+- Email hook: `AFTER INSERT ON notifications` → `queue_notification_email()` posts `{notification_id}` to `app_base_url || '/api/notifications/email'` through pg_net with the vault `cron_secret` (same mechanism as the payout worker). Best-effort: any failure is swallowed so the in-app notification never fails; skipped inside self-tests (`pinkquill.selftest` GUC).
+- `run_timeline_selftest()` — service-role, always rolls back; covers metadata, the reminder ladder (1 + 2 + 2 notifications, never twice), buyer-cannot-ask, one-pending, accept moves the date and resets reminders, double-answer refused, decline keeps the date, withdraw. Added to `lib/__tests__/db-selftests.test.ts`.
+
+**D7 — Resend, behind an interface.** `lib/email/send.ts` is the only provider-aware code: Resend's HTTP API via `fetch` (no SDK), `EMAIL_FROM` for the sender, inert while `RESEND_API_KEY` is unset (it logs the subject in development and reports `skipped`, and the route leaves `emailed_at` null so the row can be sent once a key exists). `lib/email/templates.ts` is one layout (brand purple button, white card on the same `#f8f7fc` ground as the auth emails, PinkQuill wordmark) with a copy table per type — subject, heading and button text, role-aware where it matters ("Two days past due" vs "Your order is two days late") — plus the notification's own sentence, a facts table (order, listing, You receive / Total, due) and one "Open order" style button. Plain-text part mirrors it. The old `email-templates/*.html` are Supabase auth templates and stay as they are.
+
+**Route** `app/api/notifications/email/route.ts`: cron-secret bearer (401 otherwise); loads the notification, skips when not order-linked, already emailed, no copy for the type, or the recipient set `email_preferences.orders = false`; recipient address from `auth.admin.getUserById`; claims the row (`emailed_at` stamped where null) before sending, clears it and raises an `ops_alerts` warning on failure.
+
+**UI**
+- Order page: seller gets **Ask for more time** (secondary button while the commission is paid / in progress / in revision) → sheet with +2/+3/+5/+7/+14 chips, a date input (day after the current due date … +90 days), the "Due Sep 8 → Sep 13 · +5 days" line and an optional reason; while a request is pending the seller sees "You asked to move the due date …" over the rail, the hint "Waiting for … to answer", and **Withdraw time request** in the overflow. Buyer sees the same box with the seller's name and reason, the hint "… asked for 5 more days · due Sep 13 if you accept", and **Accept new date · Sep 13** / **Keep original date**. Activity tab reads "poet asked for 5 more days · Sep 13" / "You agreed to a new due date · Sep 13" / "… kept the original due date".
+- Notification panel: every order-linked notification opens `/orders/<id>`; a facts line "PQ-… · $5.48 · Listing title" under the headline; copy for the six new types plus the eight order types the DB already allowed but the panel fell through on (`refund_declined`, `refund_approved`, `order_cancel_requested`, `order_expired`, `order_payment_failed`, `order_transfer_failed`, `chargeback_opened`, `chargeback_closed`). The `Orders & commissions` category now lists all of them, so muting it hides them.
+- Settings → Notifications: a new **Email me about orders** switch (writes `profiles.email_preferences.orders`).
+
+**Code:** `lib/hooks/useTimeline.ts` (`useRequestExtension`, `useRespondExtension`, `useWithdrawExtension`); `OrderActions` in `lib/hooks/useDisputes.ts`; `OrderSheets.tsx` `ExtensionSheet`; `OrderActionBar.tsx`, `OrderProgress.tsx`, `OrderActivity.tsx`; `NotificationPanel.tsx`; `NotificationPreferences.tsx` (shared `Toggle`); `lib/types/index.ts` (`NotificationType`, `OrderNotificationMeta`, `Profile.email_preferences`); `lib/utils/notificationCategories.ts`; `.env.local.example` (`RESEND_API_KEY`, `EMAIL_FROM`); `lib/__tests__/email-templates.test.ts`.
+
+**Verified**
+- `npx tsc --noEmit` clean; ESLint 0 errors on every changed file; `npx vitest run` 163 pass (4 new template tests); `RUN_DB_SELFTEST=1 …` all four self-tests pass (money, listing, workroom, timeline); `npm run build` succeeds.
+- Browser (local dev server, signed in as `hadi`, with a temporary in-progress test order against poet's listing, due in 5 days; the seller side was checked by swapping the order's buyer/seller ids in the database and back): seller → Ask for more time → +5 days + reason → "Asked for 5 more days" toast, amber box "You asked to move the due date from Sep 8 to Sep 13 · “…” · waiting for an answer", overflow "Withdraw time request"; buyer → same box with "poet asked …", panel entry "poet asked for more time · PQ-20260903-1162 · Customer editing & sensitivity reading · The creator asked for 5 more days", **Accept new date · Sep 13** → toast, Due fact becomes "Sep 13 · in 10 days", Activity shows both lines; Settings → Email me about orders off → DB `{"orders": false}` → the route answers `{"skipped":"muted"}` for that user's notification; on again. Route with the cron secret and no provider key → `{"skipped":"no_provider"}` and `emailed_at` stays null; wrong secret → 401. No console errors. The test order and its rows were deleted afterwards (production: 1 order, the real `PQ-20260903-1148`; 0 extensions; 0 reminders).
+- Reminders were exercised in the self-test only (they need orders past their due date).
+- **Not exercised:** a real send (no `RESEND_API_KEY` anywhere yet), the phone layout of the sheet.
+
+**Go-live additions**
+1. Set `RESEND_API_KEY` and `EMAIL_FROM` (a verified sender domain in Resend) in the production host env; until then the trigger's posts return `{"skipped":"no_provider"}` and nothing is lost except the timing — the rows keep `emailed_at = null`.
+2. Deploy before relying on the trigger: it already posts to `https://www.pinkquill.com/api/notifications/email` for every order notification (a 404 until this commit is deployed; harmless, pg_net just logs it).
+3. The hourly cron now also runs reminders; nothing to configure.
+
+**Deferred**
+- Batching / digesting `order_message` emails (one email per message today).
+- A resend-on-failure sweep (a failed send raises an ops alert and leaves `emailed_at` null; nothing retries it automatically).
+- Phone layouts (mockup rules do not apply to Phase 2; the sheet uses the same `Sheet` primitive as 3a).
+
+**Next:** 2e (receipts/analytics), 2f (admin), or Phase 4 (4a consolidation, 4b load & realtime, 4c dead objects & tests); 2b stays on hold until the checkout-validation decision. Needs your go. Still outstanding: the seller-side run with a second account in Stripe test mode, go-live steps 2, 6 and 7, and the two email env vars above.

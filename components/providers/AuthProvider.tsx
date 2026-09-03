@@ -44,6 +44,7 @@ interface Profile {
   is_private: boolean;
   theme_preference: string | null;
   notification_preferences: Record<string, boolean> | null;
+  email_preferences?: Record<string, boolean> | null;
 }
 
 /**

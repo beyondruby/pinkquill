@@ -284,6 +284,8 @@ export interface OrderActions {
   is_late: boolean;
   can_accept: boolean; can_decline: boolean; can_start: boolean; can_deliver: boolean; can_ship: boolean; can_mark_delivered: boolean;
   can_pay: boolean; can_accept_delivery: boolean; can_request_revision: boolean; revisions_left: number | null;
+  can_request_extension: boolean; can_respond_extension: boolean;
+  extension: { id: string; old_due_date: string | null; new_due_date: string; reason: string | null; requested_at: string; mine: boolean } | null;
   can_cancel: boolean; cancel_mode: "free" | "refund" | "request" | null;
   can_request_refund: boolean; can_issue_refund: boolean; can_decide_refund: boolean;
   can_open_dispute: boolean; can_add_evidence: boolean;

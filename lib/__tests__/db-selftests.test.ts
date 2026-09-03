@@ -1,9 +1,9 @@
 // @vitest-environment node
 /**
- * Database contract tests (Phases 1e, 2a, 2c). Each calls a SECURITY DEFINER
+ * Database contract tests (Phases 1e, 2a, 2c, 2d). Each calls a SECURITY DEFINER
  * self-test RPC that drives the real RPCs against the real schema and always
  * rolls back. They live in ONE file on purpose: vitest runs files in parallel
- * workers, and the three suites lock the same product / listing rows, which
+ * workers, and the suites lock the same product / listing rows, which
  * deadlocks when they overlap. Tests inside a file run sequentially.
  *
  * Opt-in because they need the service-role key and network:
@@ -123,3 +123,25 @@ describe.skipIf(!enabled)("workroom self-test (intake, references, revisions, de
   });
 });
 
+
+describe.skipIf(!enabled)("timeline self-test (reminders, extensions)", () => {
+  it("fires each reminder once, moves the due date only on accept, then rolls back", async () => {
+    const supabase = createClient(url!, key!, { auth: { persistSession: false } });
+    const { data, error } = await supabase.rpc("run_timeline_selftest");
+    expect(error).toBeNull();
+    const result = data as { ok: boolean; rolled_back: boolean; result?: string; error?: string };
+    expect(result.error).toBeUndefined();
+    expect(result.ok).toBe(true);
+    expect(result.rolled_back).toBe(true);
+
+    const out = result.result ?? "";
+    // (a) notifications snapshot the recipient's role, money figure and listing title
+    expect(out).toContain("a.role=seller has_amount=true has_title=true");
+    // (b) -24 h → seller only; due → both; +48 h → both; each rung fires once (1 + 2 + 2 = 5)
+    expect(out).toContain("b.soon=1/0 due=1 late=1/0 reminder_notifs=5");
+    // (c) only the seller asks; one pending at a time; buyer accepts → date moves, ladder resets
+    expect(out).toContain("c.buyer_ask=refused ask=pending/3 second=refused seller_can_ask=false pending=true buyer_can_respond=true accepted=accepted moved=true reminders_reset=true twice=refused");
+    // (d) decline keeps the date; withdraw closes the request; 5 extension notifications in total
+    expect(out).toContain("d.declined=declined kept=true withdrawn=withdrawn ext_notifs=5");
+  });
+});

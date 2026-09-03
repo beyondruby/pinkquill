@@ -15,6 +15,7 @@ import FollowRequestCard from "./FollowRequestCard";
 import { CommentIcon } from "@/components/ui/Icons";
 import { getTimeAgoCompact } from "@/lib/utils/time";
 import { getMutedNotificationTypes } from "@/lib/utils/notificationCategories";
+import { formatCurrency } from "@/lib/utils/currency";
 
 interface NotificationPanelProps {
   isOpen: boolean;
@@ -724,7 +725,27 @@ function getNotificationIcon(type: string) {
     case 'refund_requested':
       return icons.refundRequested;
     case 'order_refunded':
+    case 'refund_approved':
       return icons.orderRefunded;
+    case 'refund_declined':
+    case 'order_expired':
+    case 'order_payment_failed':
+    case 'order_cancel_requested':
+    case 'chargeback_closed':
+      return icons.orderCancelled;
+    case 'order_transfer_failed':
+    case 'chargeback_opened':
+      return icons.orderDisputed;
+    case 'order_due_soon':
+    case 'order_due':
+    case 'order_late':
+      return icons.warning;
+    case 'extension_requested':
+      return icons.revisionRequested;
+    case 'extension_accepted':
+      return icons.approved;
+    case 'extension_declined':
+      return icons.orderCancelled;
     default:
       return icons.warning;
   }
@@ -818,6 +839,34 @@ function getNotificationMessage(notification: Notification): { actor: string; ac
       return { actor: actorName, action: 'requested a refund on your order' };
     case 'order_refunded':
       return { actor: 'Your order', action: 'has been refunded' };
+    case 'refund_declined':
+      return { actor: actorName, action: 'declined the refund request' };
+    case 'refund_approved':
+      return { actor: 'Your refund', action: 'was approved and is on its way' };
+    case 'order_cancel_requested':
+      return { actor: actorName, action: 'asked to cancel the order' };
+    case 'order_expired':
+      return { actor: 'Checkout', action: 'expired before payment' };
+    case 'order_payment_failed':
+      return { actor: 'Your payment', action: "didn't go through" };
+    case 'order_transfer_failed':
+      return { actor: 'A payout', action: 'needs your attention' };
+    case 'chargeback_opened':
+      return { actor: "The buyer's bank", action: 'opened a chargeback' };
+    case 'chargeback_closed':
+      return { actor: 'The chargeback', action: 'was closed' };
+    case 'order_due_soon':
+      return { actor: 'Due tomorrow', action: 'less than a day left on this commission' };
+    case 'order_due':
+      return { actor: 'Due today', action: notification.metadata?.role === 'seller' ? "this commission is due and hasn't been delivered" : "your order was due and hasn't been delivered yet" };
+    case 'order_late':
+      return { actor: 'Running late', action: 'two days past the due date' };
+    case 'extension_requested':
+      return { actor: actorName, action: 'asked for more time' };
+    case 'extension_accepted':
+      return { actor: actorName, action: 'agreed to a new due date' };
+    case 'extension_declined':
+      return { actor: actorName, action: 'kept the original due date' };
     default:
       return { actor: actorName, action: 'interacted with you' };
   }
@@ -840,27 +889,8 @@ function NotificationItem({
     notification.type === "community_banned";
 
   const getNotificationLink = (): string => {
-    // Order-related notifications link to the order page
-    if (notification.order_id && (
-      notification.type === 'order_pending_acceptance' ||
-      notification.type === 'order_accepted' ||
-      notification.type === 'order_declined' ||
-      notification.type === 'order_placed' ||
-      notification.type === 'order_paid' ||
-      notification.type === 'order_started' ||
-      notification.type === 'order_delivered' ||
-      notification.type === 'order_completed' ||
-      notification.type === 'revision_requested' ||
-      notification.type === 'order_cancelled' ||
-      notification.type === 'review_received' ||
-      notification.type === 'order_message' ||
-      notification.type === 'order_disputed' ||
-      notification.type === 'dispute_resolved' ||
-      notification.type === 'refund_requested' ||
-      notification.type === 'order_refunded'
-    )) {
-      return `/orders/${notification.order_id}`;
-    }
+    // Every order-linked notification opens the order page
+    if (notification.order_id) return `/orders/${notification.order_id}`;
     if (notification.type === 'follow' ||
         notification.type === 'follow_request' ||
         notification.type === 'follow_request_accepted') {
@@ -961,6 +991,13 @@ function NotificationItem({
               : 'text-muted/80'
           }`}>
             {notification.content}
+          </p>
+        )}
+
+        {/* Order facts (2d): number · listing · the recipient's own amount */}
+        {notification.order_id && notification.metadata && (notification.metadata.order_number || notification.metadata.title) && (
+          <p className="font-ui text-[0.72rem] text-muted mt-1 truncate tabular-nums">
+            {[notification.metadata.order_number, notification.metadata.amount != null ? formatCurrency(Number(notification.metadata.amount), notification.metadata.currency ?? undefined) : null, notification.metadata.title].filter(Boolean).join(' · ')}
           </p>
         )}
 
