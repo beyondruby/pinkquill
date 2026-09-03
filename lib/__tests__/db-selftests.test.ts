@@ -1,6 +1,6 @@
 // @vitest-environment node
 /**
- * Database contract tests (Phases 1e, 2a, 2c, 2d, 2e, 2f). Each calls a SECURITY DEFINER
+ * Database contract tests (Phases 1e, 2a, 2c, 2d, 2e, 2f, 4b). Each calls a SECURITY DEFINER
  * self-test RPC that drives the real RPCs against the real schema and always
  * rolls back. They live in ONE file on purpose: vitest runs files in parallel
  * workers, and the suites lock the same product / listing rows, which
@@ -182,5 +182,29 @@ describe.skipIf(!enabled)("admin self-test (retry, cancel, settings, search, aud
     expect(out).toContain("c.bad_rate=refused unknown=refused set=updated/72");
     // (d) search + audit trail
     expect(out).toContain("d.by_number=1 by_seller_status=true audit=4");
+  });
+});
+
+describe.skipIf(!enabled)("listing save self-test (one transaction for the wizard)", () => {
+  it("creates a draft, publishes with packages and questions, retires a package in use, refuses others, then rolls back", async () => {
+    const supabase = createClient(url!, key!, { auth: { persistSession: false } });
+    const { data, error } = await supabase.rpc("run_listing_save_selftest");
+    expect(error).toBeNull();
+    const result = data as { ok: boolean; rolled_back: boolean; result?: string; error?: string };
+    expect(result.error).toBeUndefined();
+    expect(result.ok).toBe(true);
+    expect(result.rolled_back).toBe(true);
+    const out = result.result ?? "";
+    // (a) category required; a draft with no packages keeps its keywords (deduplicated) and settings
+    expect(out).toContain("a.nocat=refused draft=draft keywords=2 lead=2");
+    // (b) publishing without a package is refused
+    expect(out).toContain("b.nopkg=refused");
+    // (c) publish: two packages, the existing question kept by id, one media row made primary, slots saved
+    expect(out).toContain("c.published=active packages=2 q_kept=true questions=2 primary=1 slots=2");
+    // (d) a package an order references is disabled, not deleted; the other is updated in place
+    expect(out).toContain("d.sketch=disabled colour=50");
+    // (e) another user cannot edit; (f) the customers aggregate reads the pending order
+    expect(out).toContain("e.other=refused");
+    expect(out).toContain("f.customers>=1=true stats=true");
   });
 });

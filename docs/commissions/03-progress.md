@@ -24,8 +24,9 @@ Read `02-plan.md` for the phase definitions and `01-findings.md` for the root ca
 | 2e — Money visibility | **done, committed on main**; migration `commissions_phase2e_money_visibility` applied to prod | 2026-09-03 |
 | 2f — Operations | **done, committed on main**; migration `commissions_phase2f_operations` applied to prod | 2026-09-03 |
 | 4a — Consolidation | **done, committed on main** (no migration) | 2026-09-03 |
+| 4b — Load & realtime | **done, committed on main**; migration `commissions_phase4b_load_realtime` applied to prod | 2026-09-03 |
 | 2b — Quotes & extras | **on hold** (user decision, 2026-09-03): needs a call on the frozen checkout route's amount validation | |
-| 4b, 4c | not started | |
+| 4c | not started | |
 
 Open decisions (plan §2): D7 email provider. **D6** = buyer cancels free while the seller hasn't started (`paid`) or when the order is 3+ days overdue; after work starts a buyer cancellation is a refund request the seller decides; sellers/admins may cancel any active order (full refund); partial refunds come out of the seller's share only; nothing can be cancelled or refunded self-service after the payout was sent (dispute instead). **D8** = `platform_admins` table (`profiles.role` is a free-text bio field); `hadi` is the first admin. **D2 = 7 days** after completion (setting `release_window_hours = 168`). **D4 = Supabase pg_cron + pg_net** (GitHub workflow deleted). **Currency:** USD listings, charged in the platform's settlement currency (CAD today) at a cached ECB rate + 1.5 % buffer; switch to USD settlement later by changing `platform_settings.settlement_currency` once a USD bank account exists. **D3 = (b)** seller pays 5 % platform fee, buyer pays a visible processing fee of 3 % + $0.30 (implemented in 1b; rates live in `platform_settings`). Answered: **D1** = platform Stripe account is **Canada, default currency CAD**, Standard account, `transfers` capability active, Connect enabled (verified via API + dashboard 2026-09-02; business is Canadian, owner currently in Saudi Arabia, sellers/buyers intended worldwide in any currency — 1c must use Connect cross-border payouts with the `recipient` service agreement for non-CA sellers and decide the settlement-currency model); **D5** = yes (test orders deleted in 1a).
 
@@ -710,4 +711,32 @@ Extras and custom quotes change an order's amount after it is created. The froze
 
 **Deferred to 4b / 4c:** `count: "exact"` on lists (kept for `hasMore`), the lean per-screen selects, the realtime subscriptions, and the dead RPCs (`get_seller_order_stats` has no caller now).
 
-**Next:** 4b (load & realtime), then 4c (dead objects & tests). 2b stays on hold until the checkout-validation decision. Needs your go. Still outstanding: the seller-side run with a second account in Stripe test mode, go-live steps 2, 6 and 7, and the two email env vars from 2d.
+**Next (at the time):** 4b. Done below.
+
+---
+
+## Phase 4b — Load & realtime (2026-09-03)
+
+**Closes:** the 4b line of the plan. Fewer bytes per screen, one realtime channel per user, and the listing wizard's writes in one transaction.
+
+**Migration** `supabase/migrations/20260903_commissions_phase4b_load_realtime.sql` (applied to prod as `commissions_phase4b_load_realtime`):
+- **Broadcast triggers.** `notify_order_change` (AFTER INSERT OR UPDATE on `orders`; skips updates that change nothing a screen shows) and `notify_order_message` (AFTER INSERT on `order_messages`) send `order_change` / `order_message` events through `realtime.send` to `user-events:<buyer>` and `user-events:<seller>` — the same private channel the May 2026 egress fix introduced for DMs, notifications and follows. Both wrap the send so realtime can never fail an order write.
+- **`get_seller_customers(p_seller_id)`** — the CRM aggregate (per buyer: order counts by state, spent, average, latest phone and address, their orders newest first; plus the four stats) in one query, owner-or-admin only. The old hook pulled every order row with its buyer and product into the browser and grouped there.
+- **`save_commission_listing(p_product_id | null, p_payload)`** — the wizard's create and update as one transaction: product (slug via the existing `generate_product_slug`), listing settings, intake questions (existing ids updated in place so past answers keep pointing at them), keywords replaced, media rows matched by id or url with exactly one primary, packages matched by pricing id then tier or name, orphan packages deleted or — when an order references them — disabled. Same validation as before (category, title, description on publish, at least one priced package on publish, scheduled needs a date), owner-only.
+- **`run_listing_save_selftest()`** (rolled back): category required; draft with deduplicated keywords and settings; publish refused without a package; publish with two packages, the question kept by id, media primary, slots; a package in use is disabled and the other updated in place; another user refused; the customers aggregate reads the pending order. It caught one bug before anything shipped (`package_features` is jsonb, not text[]). Added to `lib/__tests__/db-selftests.test.ts` (seven DB tests now).
+
+**Client**
+- `UserEventsProvider` gains `order_change` and `order_message` payload types and handlers on the existing channel. `useOrder`, `usePendingAcceptanceOrders` and `useOrderMessages` listen through `useUserEvent` and the three `postgres_changes` channels are gone; `useOrderMessages` fetches just the new row (with its sender) and appends once. `OrderPage` refreshes actions, workroom and events on an `order_change` for its order, so the other side's action shows up without a reload.
+- `ORDER_LIST_SELECT` for lists (title, slug, type, cover media, the package row, both people) replaces the full `ORDER_SELECT` (every media row, keyword and pricing row) in `useOrderList` and `usePendingAcceptanceOrders`; the order page and post-write reads keep the full select.
+- `useOrderList` fetches one row past the page instead of `count: "exact"`; `useHasCommissions` selects one row instead of a head count.
+- `useSellerCustomers` calls the RPC; `useCreateCommission` / `useUpdateCommission` upload any new files to storage first (storage has no transaction to join), then send one payload to `save_commission_listing`. ~330 lines of sequenced writes in `lib/hooks/useCommissions.ts` are gone.
+
+**Verified**
+- `npx tsc --noEmit` clean; ESLint 0 errors on every changed file; `npx vitest run` 172 pass; `RUN_DB_SELFTEST=1 …` seven DB tests pass; `npm run build` succeeds.
+- Browser (local dev server, signed in as `hadi`, with a temporary paid test order against poet's listing): with the order page open on the Messages tab, a message inserted in SQL as poet appeared in the thread within a second, and a status change to In progress moved the rail, the chip and the hint — no reload either time. The listing wizard saved a draft through the RPC (URL became `/sell/edit/<id>`, the database row had category, specialization, slug and the listing settings) and saved again through the update path. The test order, its message and the draft were deleted afterwards.
+- **Note:** production holds three orders now — the real `PQ-20260903-1148` (cancelled) plus `PQ-20260903-1208` (awaiting payment) and `PQ-20260903-1209` (completed), both hadi → poet, created 12:37–12:38 UTC by a user, not by this session. Left as is. (One DB self-test run failed while a temporary order occupied poet's only slot; it passed once the order was gone.)
+- **Not exercised:** publishing a listing through the new RPC from the UI (would create a live listing), media uploads through the wizard, the pending-requests broadcast on the seller dashboard.
+
+**Deferred to 4c:** dropping `get_seller_order_stats` (no caller since 4a) and the other dead objects; unit tests for the hooks.
+
+**Next:** 4c (dead objects & tests). 2b stays on hold until the checkout-validation decision. Needs your go. Still outstanding: the seller-side run with a second account in Stripe test mode, go-live steps 2, 6 and 7, and the two email env vars from 2d.

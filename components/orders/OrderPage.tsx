@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useOrder, useOrderEvents } from "@/lib/hooks/useOrders";
+import { useUserEvent } from "@/components/providers/UserEventsProvider";
 import { useOrderReviews } from "@/lib/hooks/useReviews";
 import { useOrderActions } from "@/lib/hooks/useDisputes";
 import { useOrderQueuePosition } from "@/lib/hooks/useCommissions";
@@ -72,6 +73,11 @@ export default function OrderPage({ orderId }: { orderId: string }) {
     void refetchWorkroom();
     void refetchEvents();
   }, [refetch, refetchActions, refetchWorkroom, refetchEvents]);
+
+  // The other side acted (or a cron did): useOrder re-reads the order itself; the rest follows here.
+  useUserEvent("order_change", (payload) => {
+    if (order?.id && payload.order_id === order.id) { void refetchActions(); void refetchWorkroom(); void refetchEvents(); }
+  });
 
   const setTab = (tab: OrderTab) => {
     const params = new URLSearchParams(searchParams.toString());

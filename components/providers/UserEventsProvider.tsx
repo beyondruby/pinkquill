@@ -16,7 +16,9 @@ import { useAuth } from "@/components/providers/AuthProvider";
 export type UserEventType =
   | "dm_unread_change"
   | "notification_change"
-  | "follow_change";
+  | "follow_change"
+  | "order_change"
+  | "order_message";
 
 export interface DmUnreadChangePayload {
   op: "INSERT" | "UPDATE" | "DELETE";
@@ -50,10 +52,33 @@ export interface FollowChangePayload {
   status?: "pending" | "accepted";
 }
 
+/** An order the user is party to changed (Phase 4b; DB trigger on `orders`). */
+export interface OrderChangePayload {
+  op: "INSERT" | "UPDATE";
+  order_id: string;
+  status: string;
+  payment_status: string;
+  buyer_id: string;
+  seller_id: string;
+  updated_at: string;
+}
+
+/** A message landed on one of the user's order threads (Phase 4b; DB trigger on `order_messages`). */
+export interface OrderMessagePayload {
+  op: "INSERT";
+  order_id: string;
+  message_id: string;
+  sender_id: string;
+  message_type: string | null;
+  created_at: string;
+}
+
 export type UserEventPayloadMap = {
   dm_unread_change: DmUnreadChangePayload;
   notification_change: NotificationChangePayload;
   follow_change: FollowChangePayload;
+  order_change: OrderChangePayload;
+  order_message: OrderMessagePayload;
 };
 
 type Handler<T extends UserEventType> = (payload: UserEventPayloadMap[T]) => void;
@@ -68,6 +93,8 @@ const EVENT_TYPES: UserEventType[] = [
   "dm_unread_change",
   "notification_change",
   "follow_change",
+  "order_change",
+  "order_message",
 ];
 
 export function UserEventsProvider({ children }: { children: ReactNode }) {
@@ -144,6 +171,12 @@ export function UserEventsProvider({ children }: { children: ReactNode }) {
       })
       .on("broadcast", { event: "follow_change" }, ({ payload }) => {
         emit("follow_change", payload as FollowChangePayload);
+      })
+      .on("broadcast", { event: "order_change" }, ({ payload }) => {
+        emit("order_change", payload as OrderChangePayload);
+      })
+      .on("broadcast", { event: "order_message" }, ({ payload }) => {
+        emit("order_message", payload as OrderMessagePayload);
       })
       .subscribe((status) => {
         if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {

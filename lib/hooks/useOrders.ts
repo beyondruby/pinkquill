@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../supabase";
+import { useUserEvent } from "@/components/providers/UserEventsProvider";
 import { apiFetch } from "../api-client";
 import type {
   BuyerOrderStats,
@@ -41,6 +42,22 @@ const ORDER_SELECT = `
   seller:profiles!orders_seller_id_fkey (
     id, username, display_name, avatar_url, is_verified
   )
+`;
+
+/**
+ * What a list row needs (Phase 4b): title, cover and type of the listing,
+ * the package name, both people. The full ORDER_SELECT (media, keywords,
+ * every pricing row) stays for the order page and post-write reads.
+ */
+const ORDER_LIST_SELECT = `
+  *,
+  product:products (
+    id, title, slug, listing_type, delivery_type, status,
+    media:product_media ( media_url, is_primary, position )
+  ),
+  pricing:product_pricing!orders_pricing_id_fkey ( id, variant_name, package_tier, delivery_days, revisions, price ),
+  buyer:profiles!orders_buyer_id_fkey ( id, username, display_name, avatar_url, is_verified ),
+  seller:profiles!orders_seller_id_fkey ( id, username, display_name, avatar_url, is_verified )
 `;
 
 function transformOrder(raw: Record<string, unknown>): Order {
@@ -250,27 +267,16 @@ export function useOrder(orderId?: string): UseOrderReturn {
     }
   }, [orderId]);
 
-  // Real-time subscription for order updates
   useEffect(() => {
     mountedRef.current = true;
     fetchOrder();
-
-    if (!orderId) return;
-
-    const channel = supabase
-      .channel(`order-${orderId}`)
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${orderId}` },
-        () => { fetchOrder(); }
-      )
-      .subscribe();
-
-    return () => {
-      mountedRef.current = false;
-      supabase.removeChannel(channel);
-    };
+    return () => { mountedRef.current = false; };
   }, [orderId, fetchOrder]);
+
+  // Changes arrive on the user's one broadcast channel (DB trigger on orders); no per-order subscription.
+  useUserEvent("order_change", (payload) => {
+    if (orderId && payload.order_id === orderId) void fetchOrder();
+  });
 
   return { order, loading, error, refetch: fetchOrder };
 }
@@ -335,7 +341,7 @@ export function useOrderList({ role, userId, filters, pageSize = 20 }: UseOrderL
 
       let query = supabase
         .from("orders")
-        .select(ORDER_SELECT, { count: "exact" })
+        .select(ORDER_LIST_SELECT)
         .eq(role === "buyer" ? "buyer_id" : "seller_id", userId);
       query = sort === "due"
         ? query.order("due_date", { ascending: true, nullsFirst: false }).order("created_at", { ascending: false })
@@ -362,17 +368,19 @@ export function useOrderList({ role, userId, filters, pageSize = 20 }: UseOrderL
         query = query.or(clauses.join(","));
       }
 
+      // One extra row tells us whether another page exists; no count query.
       const start = page * pageSize;
-      const { data, count, error: queryError } = await query.range(start, start + pageSize - 1);
+      const { data, error: queryError } = await query.range(start, start + pageSize);
 
       if (queryError) throw queryError;
       // A newer fetch (filter change) superseded this one: drop the result.
       if (requestIdRef.current !== requestId) return;
 
-      const transformed = (data || []).map(transformOrder);
+      const rows = data || [];
+      const transformed = rows.slice(0, pageSize).map(transformOrder);
       setOrders((prev) => (append ? [...prev, ...transformed] : transformed));
       pageRef.current = page;
-      setHasMore(start + pageSize < (count ?? 0));
+      setHasMore(rows.length > pageSize);
     } catch (err: unknown) {
       if (requestIdRef.current !== requestId) return;
       const message = err instanceof Error ? err.message : String(err);
@@ -602,7 +610,7 @@ export function usePendingAcceptanceOrders(userId?: string): UsePendingAcceptanc
 
       const { data, error: queryError } = await supabase
         .from("orders")
-        .select(ORDER_SELECT)
+        .select(ORDER_LIST_SELECT)
         .eq("seller_id", userId)
         .eq("status", "pending_acceptance")
         .order("created_at", { ascending: true });
@@ -621,29 +629,13 @@ export function usePendingAcceptanceOrders(userId?: string): UsePendingAcceptanc
   useEffect(() => {
     mountedRef.current = true;
     fetchOrders();
-
-    if (!userId) return;
-
-    // Real-time: listen for new pending_acceptance orders
-    const channel = supabase
-      .channel(`pending-orders-${userId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "orders",
-          filter: `seller_id=eq.${userId}`,
-        },
-        () => { fetchOrders(); }
-      )
-      .subscribe();
-
-    return () => {
-      mountedRef.current = false;
-      supabase.removeChannel(channel);
-    };
+    return () => { mountedRef.current = false; };
   }, [userId, fetchOrders]);
+
+  // New requests and answered ones arrive on the user's broadcast channel.
+  useUserEvent("order_change", (payload) => {
+    if (userId && payload.seller_id === userId) void fetchOrders();
+  });
 
   return { orders, loading, count: orders.length, refetch: fetchOrders };
 }
@@ -703,45 +695,26 @@ export function useOrderMessages(orderId?: string): UseOrderMessagesReturn {
   useEffect(() => {
     mountedRef.current = true;
     fetchMessages();
-
-    if (!orderId) return;
-
-    // Subscribe to new messages
-    const channel = supabase
-      .channel(`order-messages-${orderId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "order_messages",
-          filter: `order_id=eq.${orderId}`,
-        },
-        async (payload) => {
-          // Fetch the full message with sender
-          const { data } = await supabase
-            .from("order_messages")
-            .select(`
-              *,
-              sender:profiles!order_messages_sender_id_fkey (
-                id, username, display_name, avatar_url, is_verified
-              )
-            `)
-            .eq("id", payload.new.id)
-            .single();
-
-          if (data && mountedRef.current) {
-            setMessages((prev) => [...prev, data as OrderMessage]);
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      mountedRef.current = false;
-      supabase.removeChannel(channel);
-    };
+    return () => { mountedRef.current = false; };
   }, [orderId, fetchMessages]);
+
+  // A new message on this thread: fetch just that row (with its sender) and append once.
+  useUserEvent("order_message", async (payload) => {
+    if (!orderId || payload.order_id !== orderId) return;
+    const { data } = await supabase
+      .from("order_messages")
+      .select(`
+        *,
+        sender:profiles!order_messages_sender_id_fkey (
+          id, username, display_name, avatar_url, is_verified
+        )
+      `)
+      .eq("id", payload.message_id)
+      .single();
+    if (data && mountedRef.current) {
+      setMessages((prev) => (prev.some((m) => m.id === data.id) ? prev : [...prev, data as OrderMessage]));
+    }
+  });
 
   return { messages, loading, error, refetch: fetchMessages };
 }
