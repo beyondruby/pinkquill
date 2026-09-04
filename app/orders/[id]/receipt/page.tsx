@@ -6,7 +6,7 @@ interface Props {
 }
 
 export const metadata: Metadata = {
-  title: "Invoice | Quill",
+  title: "Invoice | PinkQuill",
   description: "The tax invoice for this order, with a PDF to download.",
 };
 

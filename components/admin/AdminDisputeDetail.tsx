@@ -114,7 +114,7 @@ export default function AdminDisputeDetail({ disputeId }: { disputeId: string })
               <div className="divide-y divide-border-light">
                 {pack.evidenceItems.map((e, i) => (
                   <div key={i} className="p-4">
-                    <p className="text-2xs font-ui uppercase tracking-[0.12em] text-muted">{e.role} · {dt(e.at)}</p>
+                    <p className="text-xs font-ui text-muted">{e.role} · {dt(e.at)}</p>
                     {e.text && <p className="text-sm font-body text-ink whitespace-pre-wrap mt-1">{e.text}</p>}
                     {e.attachments.length > 0 && <div className="flex flex-wrap gap-3 mt-2">{e.attachments.map((a) => <FileLink key={a.path} path={a.path} name={a.name} />)}</div>}
                   </div>
@@ -128,7 +128,7 @@ export default function AdminDisputeDetail({ disputeId }: { disputeId: string })
               <div className="divide-y divide-border-light max-h-[420px] overflow-y-auto">
                 {pack.messages.map((m, i) => (
                   <div key={i} className={`px-4 py-2.5 text-sm ${m.role === "system" ? "font-body text-muted italic" : "font-body text-ink"}`}>
-                    <span className="text-2xs font-ui uppercase tracking-[0.12em] text-muted mr-2">{m.role} · {dt(m.at)}</span>{m.text}
+                    <span className="text-xs font-ui text-muted mr-2">{m.role} · {dt(m.at)}</span>{m.text}
                   </div>
                 ))}
               </div>
@@ -175,14 +175,14 @@ export default function AdminDisputeDetail({ disputeId }: { disputeId: string })
           <div className="p-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
             {EVIDENCE_TEXT_FIELDS.map((f) => (
               <label key={f} className={["customer_communication", "uncategorized_text", "product_description", "access_activity_log"].includes(f) ? "lg:col-span-2" : ""}>
-                <span className="block text-2xs font-ui uppercase tracking-[0.12em] text-muted mb-1">{TEXT_LABELS[f] ?? f}</span>
+                <span className="block text-xs font-ui text-muted mb-1">{TEXT_LABELS[f] ?? f}</span>
                 {["customer_name", "customer_email_address", "service_date"].includes(f)
                   ? <input value={text[f] ?? ""} onChange={(e) => setText((t) => ({ ...t, [f]: e.target.value }))} className={INPUT} />
                   : <textarea rows={f === "customer_communication" ? 8 : 4} value={text[f] ?? ""} onChange={(e) => setText((t) => ({ ...t, [f]: e.target.value }))} className={`${INPUT} font-mono text-xs`} />}
               </label>
             ))}
             <div className="lg:col-span-2">
-              <span className="block text-2xs font-ui uppercase tracking-[0.12em] text-muted mb-1">Files · one per Stripe field, 5 MB each</span>
+              <span className="block text-xs font-ui text-muted mb-1">Files · one per Stripe field, 5 MB each</span>
               {attachments.length === 0 ? <p className="text-sm font-body text-muted">No files were attached as evidence. Sellers and buyers add them from the order page.</p> : (
                 <div className="space-y-2">
                   {attachments.map((a) => (

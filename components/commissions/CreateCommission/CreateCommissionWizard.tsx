@@ -195,7 +195,7 @@ function PackageEditor({ index, pkg, canRemove, onRemove, onChange }: { index: n
   return (
     <div className="rounded-2xl border border-border-light bg-surface p-4 space-y-3">
       <div className="flex items-center justify-between gap-3">
-        <span className="px-2 py-0.5 rounded-full bg-subtle text-2xs font-ui uppercase tracking-wider text-muted">Tier {index + 1}</span>
+        <span className="px-2 py-0.5 rounded-full bg-subtle text-xs font-ui text-muted">Tier {index + 1}</span>
         {canRemove && <button type="button" onClick={onRemove} className="text-xs font-ui text-muted hover:text-red-600">Remove</button>}
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -408,7 +408,7 @@ function ListingPreview({ state }: { state: CommissionWizardState }) {
           {tile(others[0], "")}
           {tile(others[1], "")}
         </div>
-        <p className="text-2xs font-ui uppercase tracking-[0.12em] text-muted mt-4">{category}</p>
+        <p className="text-xs font-ui text-muted mt-4">{category}</p>
         <h3 className="font-display text-xl font-semibold text-ink mt-1">{state.title || "Untitled listing"}</h3>
         {state.headline && <p className="text-sm font-body text-muted mt-1">{state.headline}</p>}
         <div className="mt-4 space-y-2 text-sm font-body text-ink/90">
@@ -620,7 +620,7 @@ export default function CreateCommissionWizard({ mode = "create", productId, ini
       <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-2xs font-ui uppercase tracking-[0.12em] text-muted">{eyebrow}</p>
+            <p className="text-xs font-ui text-muted">{eyebrow}</p>
             <h1 className="font-display text-xl sm:text-2xl font-semibold text-ink">{STEPS[step - 1]}</h1>
           </div>
           <span className="text-xs font-ui text-muted">Step {step} of {STEPS.length}</span>

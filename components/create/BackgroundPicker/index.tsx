@@ -337,7 +337,7 @@ export default function BackgroundPicker({ value, onChange, onClose }: Backgroun
                   className="w-12 h-12 rounded-lg cursor-pointer border-0"
                 />
                 <div className="flex-1">
-                  <label className="font-ui text-xs text-muted uppercase tracking-wide">Custom Color</label>
+                  <label className="font-ui text-xs text-muted">Custom Color</label>
                   <input
                     type="text"
                     value={customColor}
@@ -464,7 +464,7 @@ export default function BackgroundPicker({ value, onChange, onClose }: Backgroun
                   {/* Opacity Slider */}
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <label className="font-ui text-xs text-muted uppercase tracking-wide">Opacity</label>
+                      <label className="font-ui text-xs text-muted">Opacity</label>
                       <span className="font-ui text-sm text-ink">{Math.round(imageOpacity * 100)}%</span>
                     </div>
                     <input
@@ -481,7 +481,7 @@ export default function BackgroundPicker({ value, onChange, onClose }: Backgroun
                   {/* Blur Slider */}
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <label className="font-ui text-xs text-muted uppercase tracking-wide">Blur</label>
+                      <label className="font-ui text-xs text-muted">Blur</label>
                       <span className="font-ui text-sm text-ink">{imageBlur}px</span>
                     </div>
                     <input

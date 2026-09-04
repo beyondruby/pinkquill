@@ -118,19 +118,17 @@ export default function OrderProgress({ order, actions, isBuyer, openRevision, c
         const date = !compact && (done || active) ? STEP_DATES[step]?.(order) : null;
         return (
           <div key={step} className={`flex items-center min-w-0 ${i < steps.length - 1 ? "flex-1" : ""}`}>
-            <div className={`flex flex-col items-center gap-1 min-w-0 ${compact ? "w-10" : "w-14 sm:w-20"}`}>
+            <div className={`flex flex-col items-center gap-1 min-w-0 ${compact ? "w-14" : "w-[4.5rem] sm:w-24"}`}>
               {done ? (
                 <span className="w-5 h-5 rounded-full bg-emerald-500 text-white inline-flex items-center justify-center">
                   <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
                 </span>
               ) : active ? (
-                <span className="w-5 h-5 rounded-full bg-purple-primary ring-4 ring-purple-primary/15 inline-flex items-center justify-center">
-                  <span className="w-1.5 h-1.5 rounded-full bg-surface" />
-                </span>
+                <span className="w-5 h-5 rounded-full bg-purple-primary ring-4 ring-purple-primary/15 inline-flex" />
               ) : (
                 <span className="w-5 h-5 rounded-full border-2 border-skeleton bg-surface inline-flex" />
               )}
-              <span className={`${compact ? "text-3xs" : "text-3xs sm:text-xs"} font-ui leading-tight text-center ${active ? "text-purple-700 font-semibold" : done ? "text-ink font-medium" : "text-muted"}`}>
+              <span className={`${compact ? "text-3xs" : "text-3xs sm:text-xs"} font-ui leading-tight text-center [overflow-wrap:normal] ${active ? "text-purple-700 font-semibold" : done ? "text-ink font-medium" : "text-muted"}`}>
                 {step}
               </span>
               {!compact && (
@@ -172,7 +170,7 @@ export default function OrderProgress({ order, actions, isBuyer, openRevision, c
         <div className="mt-4 pt-4 border-t border-border-light grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-3">
           {facts.map((f) => (
             <div key={f.label} className="min-w-0">
-              <p className="font-ui text-2xs uppercase tracking-[0.12em] text-muted">{f.label}</p>
+              <p className="font-ui text-xs text-muted">{f.label}</p>
               <p className={`text-sm font-ui font-medium mt-0.5 truncate ${f.tone === "amber" ? "text-amber-700" : "text-ink"}`}>{f.value}</p>
             </div>
           ))}

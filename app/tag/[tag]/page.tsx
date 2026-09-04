@@ -166,7 +166,7 @@ export default function TagPage() {
         {/* Related Tags */}
         {filteredRelatedTags.length > 0 && (
           <div className="mb-6">
-            <h2 className="font-ui text-xs font-medium text-muted uppercase tracking-wider mb-3">
+            <h2 className="font-ui text-xs font-medium text-muted mb-3">
               Related Tags
             </h2>
             <div className="flex flex-wrap gap-2">

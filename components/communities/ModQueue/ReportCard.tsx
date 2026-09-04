@@ -131,14 +131,14 @@ export default function ReportCard({
       <div className="p-4">
         {/* Reason */}
         <div className="mb-3">
-          <span className="text-xs text-muted uppercase tracking-wide">Reason</span>
+          <span className="text-xs text-muted">Reason</span>
           <p className="text-ink font-medium mt-1">{report.reason}</p>
         </div>
 
         {/* Additional details */}
         {report.details && (
           <div className="mb-3">
-            <span className="text-xs text-muted uppercase tracking-wide">Details</span>
+            <span className="text-xs text-muted">Details</span>
             <p className="text-ink text-sm mt-1">{report.details}</p>
           </div>
         )}
@@ -146,7 +146,7 @@ export default function ReportCard({
         {/* Reported content preview */}
         {report.reported_post && (
           <div className="mt-4 p-3 bg-subtle rounded-lg">
-            <span className="text-xs text-muted uppercase tracking-wide">Reported Content</span>
+            <span className="text-xs text-muted">Reported Content</span>
             <div className="mt-2">
               {report.reported_post.title && (
                 <p className="font-medium text-ink text-sm mb-1">{report.reported_post.title}</p>
@@ -171,7 +171,7 @@ export default function ReportCard({
         {/* Resolution info if resolved */}
         {report.status === "resolved" && report.resolver && (
           <div className="mt-4 p-3 bg-emerald-50 rounded-lg">
-            <span className="text-xs text-emerald-700 uppercase tracking-wide">Resolved</span>
+            <span className="text-xs text-emerald-700">Resolved</span>
             <p className="text-sm text-emerald-800 mt-1">
               {report.resolution_action?.replace(/_/g, " ")} by {report.resolver.display_name || report.resolver.username}
               {report.resolved_at && ` • ${formatTimeAgo(report.resolved_at)}`}
@@ -206,7 +206,7 @@ export default function ReportCard({
             <div className="space-y-3">
               {/* Action Selection */}
               <div>
-                <label className="text-xs text-muted uppercase tracking-wide block mb-2">
+                <label className="text-xs text-muted block mb-2">
                   Select Action
                 </label>
                 <div className="grid grid-cols-2 gap-2">
@@ -237,7 +237,7 @@ export default function ReportCard({
 
               {/* Notes */}
               <div>
-                <label className="text-xs text-muted uppercase tracking-wide block mb-2">
+                <label className="text-xs text-muted block mb-2">
                   Notes (optional)
                 </label>
                 <textarea

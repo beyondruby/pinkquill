@@ -107,7 +107,7 @@ function PendingCollaborationsPageContent() {
             <article key={post.id} className="rounded-2xl border border-border-light bg-surface p-5">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="font-ui text-[0.75rem] uppercase tracking-wide text-muted mb-1">{post.type}</p>
+                  <p className="font-ui text-[0.75rem] text-muted mb-1">{post.type}</p>
                   <h2 className="font-display text-[1.2rem] text-ink mb-2">{post.title}</h2>
                   <p className="font-body text-[0.85rem] text-muted">
                     Created {new Date(post.createdAt).toLocaleDateString()}

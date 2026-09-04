@@ -309,7 +309,7 @@ function CommunitySelectorRail({
   return (
     <aside className="hidden lg:block w-72 flex-shrink-0">
       <div className="sticky top-20 space-y-1">
-        <p className="font-ui text-xs font-medium uppercase tracking-wide text-muted px-3 mb-2">
+        <p className="font-ui text-xs font-medium text-muted px-3 mb-2">
           Your communities
         </p>
         {communities.map((community) => {

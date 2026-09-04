@@ -625,7 +625,7 @@ export default function CommunityInboxView() {
                       </div>
                       <div className="mt-1 flex items-center gap-1.5">
                         <span
-                          className={`px-1.5 py-0.5 rounded text-[10px] font-ui uppercase ${getRoleBadgeClass(
+                          className={`px-1.5 py-0.5 rounded text-xs font-ui ${getRoleBadgeClass(
                             membership.role
                           )}`}
                         >
@@ -633,7 +633,7 @@ export default function CommunityInboxView() {
                         </span>
                         {membership.status !== "active" && (
                           <span
-                            className={`px-1.5 py-0.5 rounded text-[10px] font-ui uppercase ${getStatusBadgeClass(
+                            className={`px-1.5 py-0.5 rounded text-xs font-ui ${getStatusBadgeClass(
                               membership.status
                             )}`}
                           >
@@ -654,7 +654,7 @@ export default function CommunityInboxView() {
       {selectedMembership && (
         <aside className="hidden md:flex w-[280px] border-r border-border-light bg-surface flex-col">
           <div className="px-4 py-3 border-b border-border-light">
-            <p className="font-ui text-[11px] uppercase tracking-wider text-muted font-medium">Channels</p>
+            <p className="font-ui text-xs text-muted font-medium">Channels</p>
           </div>
 
           <button
@@ -719,7 +719,7 @@ export default function CommunityInboxView() {
           {isStaff && (
             <>
               <div className="px-4 py-3 border-b border-border-light">
-                <label className="block font-ui text-[11px] uppercase tracking-wider text-muted font-medium mb-2">
+                <label className="block font-ui text-xs text-muted font-medium mb-2">
                   Find a member
                 </label>
                 <input
@@ -734,7 +734,7 @@ export default function CommunityInboxView() {
                 {/* Active member threads — sorted by most recent message */}
                 {threads.length > 0 && !memberSearchQuery.trim() && (
                   <div>
-                    <p className="px-4 py-2 font-ui text-[11px] uppercase tracking-wider text-muted font-medium">
+                    <p className="px-4 py-2 font-ui text-xs text-muted font-medium">
                       Active threads
                     </p>
                     {threads
@@ -825,7 +825,7 @@ export default function CommunityInboxView() {
                           </div>
                           {member.status !== "active" && (
                             <span
-                              className={`px-1.5 py-0.5 rounded text-[10px] font-ui uppercase ${getStatusBadgeClass(
+                              className={`px-1.5 py-0.5 rounded text-xs font-ui ${getStatusBadgeClass(
                                 member.status
                               )}`}
                             >
@@ -1184,7 +1184,7 @@ export default function CommunityInboxView() {
                   {isCommunityThreadSelected && welcomeMessage && (
                     <div className="flex justify-center mb-3">
                       <div className="max-w-[80%] px-4 py-2.5 rounded-2xl bg-surface border-2 border-purple-300">
-                        <p className="font-ui text-[10px] uppercase tracking-wider font-semibold text-purple-primary mb-1">
+                        <p className="font-ui text-xs font-semibold text-purple-primary mb-1">
                           Welcome
                         </p>
                         <p className="font-body text-sm text-ink leading-relaxed whitespace-pre-wrap break-words">
@@ -1221,7 +1221,7 @@ export default function CommunityInboxView() {
                                 <svg className="w-3 h-3 text-amber-600" fill="currentColor" viewBox="0 0 24 24">
                                   <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
                                 </svg>
-                                <p className="font-ui text-[10px] uppercase tracking-wider text-amber-700 font-medium">
+                                <p className="font-ui text-xs text-amber-700 font-medium">
                                   {getSystemLabel(message.message_type)}
                                 </p>
                               </div>
@@ -1267,7 +1267,7 @@ export default function CommunityInboxView() {
                                   ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white rounded-br-md"
                                   : "bg-subtle text-ink rounded-bl-md"
                               }`}>
-                                <p className={`font-ui text-[10px] uppercase tracking-wider font-semibold mb-1 ${
+                                <p className={`font-ui text-xs font-semibold mb-1 ${
                                   isOwn ? "text-white/80" : "text-pink-vivid"
                                 }`}>
                                   Announcement
@@ -1314,7 +1314,7 @@ export default function CommunityInboxView() {
                                   {senderName}
                                 </p>
                                 {(senderRole === "admin" || senderRole === "moderator") && (
-                                  <span className={`px-1.5 py-0 rounded-full text-[9px] uppercase font-ui ${getRoleBadgeClass(senderRole)}`}>
+                                  <span className={`px-1.5 py-0 rounded-full text-xs font-ui ${getRoleBadgeClass(senderRole)}`}>
                                     {senderRole === "admin" ? "Admin" : "Mod"}
                                   </span>
                                 )}
@@ -1329,7 +1329,7 @@ export default function CommunityInboxView() {
                             >
                               {message.message_type === "appeal" && (
                                 <span
-                                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] uppercase tracking-wide font-ui mb-1.5 ${
+                                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-ui mb-1.5 ${
                                     isOwn ? "bg-surface/20 text-white" : "bg-purple-primary/10 text-purple-primary"
                                   }`}
                                 >
@@ -1368,7 +1368,7 @@ export default function CommunityInboxView() {
                   <>
                     {staffMessageMode === "announcement" && canToggleAnnouncement ? (
                       <div className="mb-2 flex items-center justify-center gap-2">
-                        <span className="font-ui text-[10px] tracking-[0.2em] uppercase text-pink-vivid font-semibold">
+                        <span className="font-ui text-xs text-pink-vivid font-semibold">
                           Announcement mode
                         </span>
                         <button

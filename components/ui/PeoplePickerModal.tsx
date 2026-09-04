@@ -287,7 +287,7 @@ export default function PeoplePickerModal({
                   {/* Role editor (for collaborators mode) */}
                   {mode === "collaborators" && editingRoleFor === user.id && (
                     <div className="ml-8 flex flex-col gap-2 p-3 bg-subtle rounded-xl border border-gray-100 animate-fadeIn">
-                      <label className="text-xs font-medium text-muted-text font-ui uppercase tracking-wide">
+                      <label className="text-xs font-medium text-muted-text font-ui">
                         Role (optional)
                       </label>
                       <div className="flex flex-wrap gap-1.5">

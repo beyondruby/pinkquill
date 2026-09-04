@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   if (!community) {
     return {
-      title: "Community Not Found | Quill",
+      title: "Community Not Found | PinkQuill",
       description: "This community may have been removed or doesn't exist.",
     };
   }
@@ -27,10 +27,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const description = community.description?.slice(0, 160) || `Join the ${community.name} community on Quill.`;
 
   return {
-    title: `${community.name} | Quill`,
+    title: `${community.name} | PinkQuill`,
     description,
     openGraph: {
-      title: `${community.name} | Quill`,
+      title: `${community.name} | PinkQuill`,
       description,
     },
   };

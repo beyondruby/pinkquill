@@ -387,10 +387,8 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 }
 .pq-form-readtime {
   font-family: var(--font-ui);
-  font-size: 0.66rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
   color: var(--color-muted);
   margin-bottom: 0.7rem;
 }
@@ -425,10 +423,8 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   gap: 0.35rem 0.85rem;
   margin-bottom: 0.85rem;
   font-family: var(--font-ui);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
   color: var(--color-muted);
 }
 .pq-journal-strip > span { display: inline-flex; align-items: center; gap: 0.35rem; }
@@ -444,10 +440,8 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   gap: 0.75rem;
   margin: 0 0 0.55rem 0.25rem;
   font-family: var(--font-ui);
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
   color: var(--color-muted);
 }
 .pq-stream-day::after { content: ""; flex: 1; height: 1px; background: var(--color-border-light); }
@@ -674,10 +668,8 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 .pq-tile-date,
 .pq-tile-readtime {
   font-family: var(--font-ui);
-  font-size: 0.66rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
   color: var(--color-muted);
 }
 .pq-tile-serif {
@@ -1322,10 +1314,8 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 
 .collab-chips-label {
   font-family: var(--font-ui);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
   color: var(--muted-text);
 }
 
@@ -1563,11 +1553,9 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 
 .poem-title {
   font-family: var(--font-ui);
-  font-size: 0.7rem;
-  letter-spacing: 0.15em;
+  font-size: 0.75rem;
   color: var(--primary-purple);
   margin-bottom: 1.5rem;
-  text-transform: uppercase;
   font-weight: 500;
 }
 .poem-body {
@@ -1587,9 +1575,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 }
 .journal-date {
   font-family: var(--font-ui);
-  font-size: 0.7rem;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
+  font-size: 0.75rem;
   color: var(--primary-purple);
   margin-bottom: 1rem;
   display: flex;
@@ -1718,8 +1704,6 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 .audio-title {
   font-family: var(--font-ui);
   font-size: 0.85rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
   color: var(--muted-text);
   margin-bottom: 4px;
 }
@@ -2352,8 +2336,6 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   font-family: var(--font-ui);
   font-size: 0.8rem;
   font-weight: 500;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
   color: var(--muted-text);
 }
 .modal-close-btn {
@@ -3136,10 +3118,8 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 .share-embed-preview-label {
   display: block;
   font-family: var(--font-ui);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 500;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
   color: var(--muted-text);
   margin-bottom: 0.75rem;
 }
@@ -4109,10 +4089,8 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 
 .journals-date-label {
   font-family: var(--font-ui);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
   color: var(--primary-purple);
   padding-bottom: 0.5rem;
   border-bottom: 1px solid color-mix(in srgb, var(--color-purple-primary) 10%, transparent);
@@ -4485,10 +4463,8 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 
 .studio-relay-type {
   font-family: var(--font-ui);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
   background: linear-gradient(135deg, var(--primary-purple) 0%, var(--vivid-pink) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -4803,10 +4779,8 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 
 .studio-stat-label {
   font-family: var(--font-ui);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 500;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
   color: var(--muted-text);
   margin-top: 0.35rem;
 }
@@ -4825,10 +4799,8 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 
 .studio-bio-title {
   font-family: var(--font-ui);
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
   color: var(--primary-purple);
   margin-bottom: 1rem;
   opacity: 0.8;
@@ -5079,10 +5051,8 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   gap: 0.35rem;
   padding: 0.35rem 0.75rem;
   font-family: var(--font-ui);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
   border-radius: 20px;
 }
 
@@ -7156,9 +7126,8 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   padding: 2px 6px;
   background: var(--vivid-pink);
   border-radius: 4px;
-  font-size: 10px;
+  font-size: 0.75rem;
   font-weight: 700;
-  text-transform: uppercase;
 }
 
 .take-sound-disc {
@@ -7929,9 +7898,8 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   background: var(--vivid-pink);
   color: var(--color-on-accent);
   border-radius: 4px;
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   font-weight: 700;
-  text-transform: uppercase;
 }
 
 .sound-picker-select {

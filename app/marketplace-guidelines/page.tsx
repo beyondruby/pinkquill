@@ -73,7 +73,7 @@ export default function MarketplaceGuidelinesPage() {
       {/* Hero */}
       <section className="pt-32 pb-16 px-6">
         <div className="max-w-[680px] mx-auto text-center lg:ml-[280px] xl:mx-auto">
-          <p className="font-ui text-[0.7rem] tracking-[0.2em] uppercase text-muted mb-6">
+          <p className="font-ui text-xs text-muted mb-6">
             Marketplace
           </p>
           <h1 className="font-display text-5xl md:text-6xl font-normal mb-6 leading-[1.1]">
@@ -98,7 +98,7 @@ export default function MarketplaceGuidelinesPage() {
         {/* Sidebar Navigation */}
         <aside className="hidden lg:block w-[200px] flex-shrink-0">
           <nav className="sticky top-24">
-            <p className="font-ui text-[0.6rem] tracking-[0.2em] uppercase text-muted/60 mb-4">
+            <p className="font-ui text-xs text-muted/60 mb-4">
               On this page
             </p>
             <ul className="space-y-1">
@@ -142,7 +142,7 @@ export default function MarketplaceGuidelinesPage() {
 
             {/* Mobile Table of Contents */}
             <nav className="lg:hidden mb-20 py-8 border-y border-border-light">
-              <p className="font-ui text-[0.65rem] tracking-[0.2em] uppercase text-muted mb-6 text-center">
+              <p className="font-ui text-xs text-muted mb-6 text-center">
                 Contents
               </p>
               <div className="grid grid-cols-2 gap-x-8 gap-y-2 max-w-md mx-auto">

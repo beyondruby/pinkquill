@@ -179,7 +179,7 @@ export default function CreateCommunityPage() {
     <div className="max-w-xl mx-auto px-6 py-10">
       {/* Header */}
       <div className="mb-10">
-        <p className="font-ui text-[0.65rem] tracking-[0.2em] uppercase text-purple-primary mb-2">New Community</p>
+        <p className="font-ui text-xs text-purple-primary mb-2">New Community</p>
         <h1 className="font-display text-2xl text-ink">Create your space</h1>
       </div>
 

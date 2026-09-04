@@ -32,7 +32,7 @@ import { deleteOwnPost } from "@/lib/content-client";
 import { icons } from "@/components/ui/Icons";
 import PostTags from "@/components/feed/PostTags";
 import FlairBadge from "@/components/communities/FlairBadge";
-import { createSafeHtml } from "@/lib/utils/sanitize";
+import { createSafeHtml, stripHtmlPreserveLines } from "@/lib/utils/sanitize";
 import { AudioPlayer } from "@/components/feed/AudioPlayer";
 import { getTimeAgo } from "@/lib/utils/time";
 import { getBackgroundStyle, isDarkBackground } from "@/lib/utils/background";
@@ -853,9 +853,10 @@ function PostDetailModalComponent({
 
               {post.type === "poem" ? (
                 <div
-                  className={`font-body text-[1.05rem] md:text-[1.3rem] leading-loose italic text-center py-4 md:py-8 post-content ${textColorClass} ${dropCapEnabled ? 'drop-cap-enabled' : ''}`}
-                  dangerouslySetInnerHTML={createSafeHtml(post.content)}
-                />
+                  className={`font-body text-[1.05rem] md:text-[1.3rem] leading-loose italic text-center whitespace-pre-line py-4 md:py-8 post-content ${textColorClass} ${dropCapEnabled ? 'drop-cap-enabled' : ''}`}
+                >
+                  {stripHtmlPreserveLines(post.content)}
+                </div>
               ) : (
                 <div
                   className={`font-body text-[0.95rem] md:text-[1.1rem] post-content ${textColorClass} ${alignmentClass} ${lineSpacingClass} ${dropCapEnabled ? 'drop-cap-enabled' : ''}`}
@@ -1111,7 +1112,7 @@ function PostDetailModalComponent({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                   </svg>
                 </button>
-                <span className="font-ui text-[0.8rem] font-medium tracking-[0.12em] uppercase text-muted">
+                <span className="font-ui text-[0.8rem] font-medium text-muted">
                   Discussion
                 </span>
               </div>

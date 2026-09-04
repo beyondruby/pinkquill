@@ -69,7 +69,7 @@ function CommissionMarketplaceCard({ product }: { product: Product }) {
 
           <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2">
             <div className="flex flex-wrap gap-1.5">
-              <span className="px-2.5 py-1 bg-surface/90 text-pink-vivid text-[0.65rem] font-ui font-semibold uppercase tracking-wide rounded-full border border-pink-vivid/15">
+              <span className="px-2.5 py-1 bg-surface/90 text-pink-vivid text-xs font-ui font-semibold rounded-full border border-pink-vivid/15">
                 Commission
               </span>
               <AvailabilityPill listing={product.commission_listing} className="bg-surface/90" />
@@ -115,7 +115,7 @@ function CommissionMarketplaceCard({ product }: { product: Product }) {
             )}
           </div>
 
-          <p className="text-[11px] font-ui uppercase tracking-wider text-muted">
+          <p className="text-xs font-ui text-muted">
             {product.listing_type === "service"
               ? [COMMISSION_CATEGORIES[product.category]?.name || product.category, product.subcategory ? getCommissionSubcategoryLabel(product.category, product.subcategory) : null].filter(Boolean).join(" · ")
               : product.category}
@@ -222,11 +222,11 @@ function ProductMarketplaceCard({ product }: { product: Product }) {
 
           <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
             {isDigital ? (
-              <span className="px-2.5 py-1 rounded-full bg-purple-primary text-white text-[0.65rem] font-ui font-medium uppercase tracking-wide">
+              <span className="px-2.5 py-1 rounded-full bg-purple-primary text-white text-xs font-ui font-medium">
                 Digital
               </span>
             ) : (
-              <span className="px-2.5 py-1 rounded-full bg-surface/90 text-ink text-[0.65rem] font-ui font-medium uppercase tracking-wide">
+              <span className="px-2.5 py-1 rounded-full bg-surface/90 text-ink text-xs font-ui font-medium">
                 Physical
               </span>
             )}

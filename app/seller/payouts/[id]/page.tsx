@@ -6,7 +6,7 @@ interface Props {
 }
 
 export const metadata: Metadata = {
-  title: "Payout statement | Quill",
+  title: "Payout statement | PinkQuill",
   description: "The order, the fee line and the dates behind one payout.",
 };
 

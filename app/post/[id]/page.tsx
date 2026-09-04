@@ -9,7 +9,7 @@ import { useComments } from "@/lib/hooks/useComments";
 import { useToggleSave, useToggleRelay, useToggleReaction, useReactionCounts, useUserReaction, useBlock } from "@/lib/hooks/useInteractions";
 import { createNotification } from "@/lib/hooks/useNotifications";
 import type { ReactionType } from "@/lib/types";
-import { cleanHtmlForDisplay } from "@/lib/utils/sanitize";
+import { cleanHtmlForDisplay, stripHtmlPreserveLines } from "@/lib/utils/sanitize";
 import { deleteOwnPost } from "@/lib/content-client";
 import ShareModal from "@/components/ui/ShareModal";
 import ReportModal from "@/components/ui/ReportModal";
@@ -724,7 +724,7 @@ export default function PostPage() {
               <h1 className="font-display text-2xl text-ink mb-4">Post not found</h1>
               <p className="font-body text-muted mb-6">This post may have been removed or doesn&apos;t exist.</p>
               <Link href="/" className="inline-block px-6 py-3 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid font-ui text-white">
-                Back to Feed
+                Back to feed
               </Link>
             </div>
           </div>
@@ -1007,9 +1007,10 @@ export default function PostPage() {
 
                 {post.type === "poem" ? (
                   <div
-                    className={`font-body text-[1rem] md:text-[1.15rem] ${bodyColorClass} italic text-center py-3 md:py-4 post-content ${lineSpacingClass} ${dropCapEnabled ? "drop-cap-enabled" : ""}`}
-                    dangerouslySetInnerHTML={{ __html: cleanHtmlForDisplay(post.content) }}
-                  />
+                    className={`font-body text-[1rem] md:text-[1.15rem] ${bodyColorClass} italic text-center whitespace-pre-line py-3 md:py-4 post-content ${lineSpacingClass} ${dropCapEnabled ? "drop-cap-enabled" : ""}`}
+                  >
+                    {stripHtmlPreserveLines(post.content)}
+                  </div>
                 ) : (
                   <div
                     className={`font-body text-[0.95rem] md:text-[1.05rem] ${bodyColorClass} post-content ${textAlignmentClass} ${lineSpacingClass} ${dropCapEnabled ? "drop-cap-enabled" : ""}`}

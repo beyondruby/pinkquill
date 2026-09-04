@@ -1241,13 +1241,13 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 {profile.followers_count !== null && (
                 <div className="text-center">
                   <span className="font-display text-xl text-ink block">{formatCount(profile.followers_count)}</span>
-                  <span className="font-ui text-xs text-muted uppercase tracking-wider">Followers</span>
+                  <span className="font-ui text-xs text-muted">Followers</span>
                 </div>
                 )}
                 {profile.following_count !== null && (
                 <div className="text-center">
                   <span className="font-display text-xl text-ink block">{formatCount(profile.following_count)}</span>
-                  <span className="font-ui text-xs text-muted uppercase tracking-wider">Following</span>
+                  <span className="font-ui text-xs text-muted">Following</span>
                 </div>
                 )}
               </div>
@@ -1434,7 +1434,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 {/* Joined */}
                 <div className="flex items-center gap-2 text-ink/30">
                   <span className="text-accent/50">{icons.calendar}</span>
-                  <span className="font-ui text-xs tracking-wider uppercase">Joined {formatMonthYear(profile.created_at)}</span>
+                  <span className="font-ui text-xs">Joined {formatMonthYear(profile.created_at)}</span>
                 </div>
               </div>
 
@@ -1848,11 +1848,6 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                                     </button>
                                   )}
 
-                                  {/* Decorative pattern */}
-                                  <div className="absolute inset-0 opacity-[0.03]" style={{
-                                    backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%238e44ad' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
-                                  }} />
-
                                   {/* Large type icon */}
                                   <div className="text-purple-primary/20">
                                     {work.type === 'poem' && (
@@ -2132,7 +2127,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                           </p>
 
                           {plainContent.length >= 240 && (
-                            <p className="text-center mt-5 font-ui text-xs tracking-wider uppercase text-purple-primary/80 group-hover:text-accent transition-colors">
+                            <p className="text-center mt-5 font-ui text-xs text-purple-primary/80 group-hover:text-accent transition-colors">
                               Continue reading
                             </p>
                           )}
@@ -2854,7 +2849,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                       <h4 className="font-ui text-sm font-medium text-ink truncate">{community.name}</h4>
                       {/* Admin/Moderator Badge */}
                       {community.user_role === 'admin' && (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white text-[9px] font-ui font-semibold uppercase tracking-wide">
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white text-xs font-ui font-semibold">
                           <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
                           </svg>
@@ -2862,7 +2857,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                         </span>
                       )}
                       {community.user_role === 'moderator' && (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-[9px] font-ui font-semibold uppercase tracking-wide">
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-xs font-ui font-semibold">
                           <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/>
                           </svg>
@@ -2877,7 +2872,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                     )}
                     <div className="flex items-center gap-3 mt-1">
                       <span className="font-ui text-[10px] text-ink/40">
-                        {community.member_count || 0} members
+                        {community.member_count || 0} {community.member_count === 1 ? "member" : "members"}
                       </span>
                     </div>
                   </div>

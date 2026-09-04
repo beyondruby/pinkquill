@@ -1,7 +1,7 @@
 import EarningsOverview from "@/components/seller/EarningsOverview";
 
 export const metadata = {
-  title: "Earnings | Quill",
+  title: "Earnings | PinkQuill",
   description: "Track your earnings and transaction history.",
 };
 

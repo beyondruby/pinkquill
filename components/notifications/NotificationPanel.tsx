@@ -868,7 +868,7 @@ function getNotificationMessage(notification: Notification): { actor: string; ac
     case 'extension_declined':
       return { actor: actorName, action: 'kept the original due date' };
     default:
-      return { actor: actorName, action: 'interacted with you' };
+      return { actor: actorName, action: 'has an update for you' };
   }
 }
 

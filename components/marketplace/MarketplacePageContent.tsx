@@ -209,7 +209,7 @@ function DiscoveryStrip({
 
       <div className="relative flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
         <div>
-          <p className="text-xs font-ui font-semibold uppercase tracking-[0.18em] text-muted">
+          <p className="text-xs font-ui font-semibold text-muted">
             {isService ? "Commissions Marketplace" : "Products Marketplace"}
           </p>
           <h2 className="font-display text-2xl text-ink mt-1">

@@ -1281,7 +1281,7 @@ function PostCardComponent({
               </p>
 
               <div className="mb-5 ml-[56px]">
-                <label className="block font-ui text-xs uppercase tracking-wider font-medium text-muted mb-2">
+                <label className="block font-ui text-xs font-medium text-muted mb-2">
                   Reason <span className="text-muted/60 normal-case tracking-normal">(optional)</span>
                 </label>
                 <textarea

@@ -188,7 +188,7 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
         <div className="pb-6 border-b border-border-light">
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-3 max-w-4xl">
-              <div className="flex flex-wrap items-center gap-2 text-[11px] font-ui uppercase tracking-[0.15em] text-muted">
+              <div className="flex flex-wrap items-center gap-2 text-xs font-ui text-muted">
                 <span>Marketplace</span>
                 <span className="text-black/20">•</span>
                 <span>{product.category}</span>
@@ -246,7 +246,7 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
 
             {product.description && (
               <section className="pt-8 border-t border-border-light">
-                <h2 className="text-base font-ui uppercase tracking-[0.14em] text-muted">Artist Note</h2>
+                <h2 className="text-base font-ui font-semibold text-ink">Artist Note</h2>
                 <p className="mt-3 text-sm md:text-base font-body leading-relaxed text-ink/85 max-w-3xl">
                   {product.description}
                 </p>
@@ -255,7 +255,7 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
 
             {displayAttributes.length > 0 && (
               <section className="pt-8 border-t border-border-light">
-                <h2 className="text-base font-ui uppercase tracking-[0.14em] text-muted">Specifications</h2>
+                <h2 className="text-base font-ui font-semibold text-ink">Specifications</h2>
                 <dl className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
                   {displayAttributes.map((attr, index) => (
                     <div key={`${attr.label}-${index}`} className="flex items-baseline justify-between gap-3 border-b border-border-light pb-2">
@@ -271,7 +271,7 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
               <section className="pt-8 border-t border-border-light space-y-7">
                 {dimensions.length > 0 && (
                   <div>
-                    <h3 className="text-base font-ui uppercase tracking-[0.14em] text-muted">Dimensions</h3>
+                    <h3 className="text-base font-ui font-semibold text-ink">Dimensions</h3>
                     <dl className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
                       {dimensions.map((item) => (
                         <div key={item.label} className="flex items-baseline justify-between gap-3 border-b border-border-light pb-2">
@@ -287,7 +287,7 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
 
                 {product.delivery_type !== "digital" && (
                   <div>
-                    <h3 className="text-base font-ui uppercase tracking-[0.14em] text-muted">Shipping</h3>
+                    <h3 className="text-base font-ui font-semibold text-ink">Shipping</h3>
                     {product.shipping ? (
                       <dl className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
                         <div className="flex items-baseline justify-between gap-3 border-b border-border-light pb-2">
@@ -335,7 +335,7 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
 
                 {product.keywords && product.keywords.length > 0 && (
                   <div>
-                    <h3 className="text-base font-ui uppercase tracking-[0.14em] text-muted">Tags</h3>
+                    <h3 className="text-base font-ui font-semibold text-ink">Tags</h3>
                     <div className="mt-3 flex flex-wrap gap-2">
                       {product.keywords.map((keyword) => (
                         <span key={keyword} className="text-sm font-body text-muted">#{keyword}</span>
@@ -359,7 +359,7 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
             {activePricing ? (
               <div className="space-y-5">
                 <div>
-                  <p className="text-xs font-ui uppercase tracking-[0.14em] text-muted">
+                  <p className="text-xs font-ui text-muted">
                     {isPwyw ? "Name your price" : "Price"}
                   </p>
                   <p className="mt-1 text-4xl font-display text-ink">
@@ -376,7 +376,7 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
 
                 {product.pricing && product.pricing.length > 1 && (
                   <div>
-                    <p className="text-xs font-ui uppercase tracking-[0.14em] text-muted mb-2">Options</p>
+                    <p className="text-xs font-ui text-muted mb-2">Options</p>
                     <div className="divide-y divide-black/[0.08]">
                       {product.pricing.map((pricing) => {
                         const isActive = activePricing?.id === pricing.id;
@@ -414,7 +414,7 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
 
                 {isPwyw && (
                   <div className="space-y-1.5">
-                    <label className="text-xs font-ui uppercase tracking-[0.14em] text-muted">
+                    <label className="text-xs font-ui text-muted">
                       Your price
                     </label>
                     <div className="relative">

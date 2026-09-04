@@ -7,7 +7,7 @@ interface Props {
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: "Edit Listing | Quill",
+    title: "Edit Listing | PinkQuill",
     description: "Update your product or commission listing details.",
   };
 }

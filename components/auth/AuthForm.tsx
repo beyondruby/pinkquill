@@ -147,7 +147,7 @@ export default function AuthForm() {
                   {!isLogin && (
                     <div className="grid grid-cols-2 gap-4 animate-fadeIn">
                       <div className="space-y-1">
-                        <label htmlFor="auth-form-username" className="text-[0.65rem] uppercase tracking-wider font-bold text-muted ml-1">Username</label>
+                        <label htmlFor="auth-form-username"className="text-xs font-bold text-muted ml-1">Username</label>
                         <input
                           id="auth-form-username"
                           name="username"
@@ -161,7 +161,7 @@ export default function AuthForm() {
                         />
                       </div>
                       <div className="space-y-1">
-                        <label htmlFor="auth-form-display-name" className="text-[0.65rem] uppercase tracking-wider font-bold text-muted ml-1">Full Name</label>
+                        <label htmlFor="auth-form-display-name"className="text-xs font-bold text-muted ml-1">Full Name</label>
                         <input
                           id="auth-form-display-name"
                           name="name"
@@ -178,7 +178,7 @@ export default function AuthForm() {
                   )}
 
                   <div className="space-y-1">
-                    <label htmlFor="auth-form-identifier" className="text-[0.65rem] uppercase tracking-wider font-bold text-muted ml-1">
+                    <label htmlFor="auth-form-identifier"className="text-xs font-bold text-muted ml-1">
                       {isLogin ? "Email or Username" : "Email"}
                     </label>
                     <input
@@ -196,7 +196,7 @@ export default function AuthForm() {
                   </div>
 
                   <div className="relative space-y-1">
-                    <label htmlFor="auth-form-password" className="text-[0.65rem] uppercase tracking-wider font-bold text-muted ml-1">Password</label>
+                    <label htmlFor="auth-form-password"className="text-xs font-bold text-muted ml-1">Password</label>
                     <div className="relative">
                       <input
                         id="auth-form-password"
@@ -417,7 +417,7 @@ export default function AuthForm() {
 
                 <form onSubmit={actions.handleForgotPasswordSubmit} className="space-y-5">
                   <div className="space-y-1">
-                    <label htmlFor="auth-form-forgot-email" className="text-[0.65rem] uppercase tracking-wider font-bold text-muted ml-1">
+                    <label htmlFor="auth-form-forgot-email"className="text-xs font-bold text-muted ml-1">
                       Email
                     </label>
                     <input

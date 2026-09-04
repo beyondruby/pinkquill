@@ -10,10 +10,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const tagName = decodeURIComponent(tag);
 
   return {
-    title: `#${tagName} | Quill`,
+    title: `#${tagName} | PinkQuill`,
     description: `Explore posts tagged with #${tagName} on Quill.`,
     openGraph: {
-      title: `#${tagName} | Quill`,
+      title: `#${tagName} | PinkQuill`,
       description: `Explore posts tagged with #${tagName} on Quill.`,
     },
   };

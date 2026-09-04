@@ -20,10 +20,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const description = profile?.bio || `Check out ${displayName}'s studio on Quill.`;
 
   return {
-    title: `${displayName} | Quill`,
+    title: `${displayName} | PinkQuill`,
     description,
     openGraph: {
-      title: `${displayName} | Quill`,
+      title: `${displayName} | PinkQuill`,
       description,
     },
   };

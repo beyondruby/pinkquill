@@ -49,7 +49,7 @@ export function DocumentShell({ backHref, backLabel, eyebrow, loading, error, re
             <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M15 19l-7-7 7-7" /></svg>
             <span className="truncate">{backLabel}</span>
           </Link>
-          <span className="hidden sm:block font-ui text-2xs uppercase tracking-[0.14em] text-muted">{eyebrow}</span>
+          <span className="hidden sm:block font-ui text-xs text-muted">{eyebrow}</span>
           {downloadHref && !loading && !error ? (
             <a href={downloadHref} download={downloadName} className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white font-ui font-semibold text-sm px-4 py-2 hover:opacity-90 transition-opacity">Download PDF</a>
           ) : (
@@ -99,7 +99,7 @@ export function DocumentHeader({ title, number, right }: { title: string; number
 export function DocumentParty({ label, name, sub, extra }: { label: string; name: string; sub?: string | null; extra?: string | null }) {
   return (
     <div className="min-w-0">
-      <p className="font-ui text-2xs uppercase tracking-[0.12em] text-muted">{label}</p>
+      <p className="font-ui text-xs text-muted">{label}</p>
       <p className="font-ui text-sm font-semibold text-ink mt-1 truncate">{name}</p>
       {sub && <p className="text-sm font-body text-muted truncate">{sub}</p>}
       {extra && <p className="text-sm font-body text-muted truncate">{extra}</p>}
@@ -122,7 +122,7 @@ export function MoneyRow({ label, value, muted = false, strong = false, note }: 
 export function DocumentSection({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="mt-8">
-      <h2 className="font-ui text-2xs uppercase tracking-[0.12em] text-muted mb-3">{title}</h2>
+      <h2 className="font-ui text-xs text-muted mb-3">{title}</h2>
       {children}
     </section>
   );

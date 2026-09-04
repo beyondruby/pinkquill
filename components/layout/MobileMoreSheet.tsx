@@ -109,7 +109,7 @@ export default function MobileMoreSheet({ isOpen, onClose }: MobileMoreSheetProp
       ),
     },
     {
-      label: "Seller Dashboard",
+      label: "Seller Studio",
       href: "/seller/dashboard",
       icon: (
         <svg className={baseIconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -185,7 +185,7 @@ export default function MobileMoreSheet({ isOpen, onClose }: MobileMoreSheetProp
             return (
               <div key={item.href}>
                 {showSection && (
-                  <p className="px-5 pt-4 pb-1.5 font-ui text-[0.65rem] font-semibold uppercase tracking-wider text-muted">
+                  <p className="px-5 pt-4 pb-1.5 font-ui text-xs font-semibold text-muted">
                     {item.section}
                   </p>
                 )}

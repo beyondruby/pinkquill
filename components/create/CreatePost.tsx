@@ -3103,12 +3103,12 @@ export default function CreatePost() {
             {showTextColorMenu && (
               <div className="absolute top-full left-0 md:left-0 right-0 md:right-auto mt-2 w-[220px] bg-surface rounded-2xl shadow-2xl border border-border-light z-50 overflow-hidden">
                 <div className="px-3 py-2 bg-subtle border-b border-border-light">
-                  <span className="font-ui text-xs font-medium text-muted uppercase tracking-wide">Text Color</span>
+                  <span className="font-ui text-xs font-medium text-muted">Text Color</span>
                 </div>
                 <div className="p-3 max-h-[400px] overflow-y-auto">
                   {/* White & Light */}
                   <div className="mb-3">
-                    <span className="font-ui text-[10px] text-muted/60 uppercase tracking-wide">White & Light</span>
+                    <span className="font-ui text-xs text-muted/60">White & Light</span>
                     <div className="flex gap-2 mt-1.5">
                       {textColors.slice(0, 4).map((c) => (
                         <button
@@ -3123,7 +3123,7 @@ export default function CreatePost() {
                   </div>
                   {/* Grayscale */}
                   <div className="mb-3">
-                    <span className="font-ui text-[10px] text-muted/60 uppercase tracking-wide">Grayscale</span>
+                    <span className="font-ui text-xs text-muted/60">Grayscale</span>
                     <div className="flex gap-2 mt-1.5">
                       {textColors.slice(4, 8).map((c) => (
                         <button
@@ -3138,7 +3138,7 @@ export default function CreatePost() {
                   </div>
                   {/* Warm */}
                   <div className="mb-3">
-                    <span className="font-ui text-[10px] text-muted/60 uppercase tracking-wide">Warm</span>
+                    <span className="font-ui text-xs text-muted/60">Warm</span>
                     <div className="flex gap-2 mt-1.5">
                       {textColors.slice(8, 12).map((c) => (
                         <button
@@ -3153,7 +3153,7 @@ export default function CreatePost() {
                   </div>
                   {/* Nature */}
                   <div className="mb-3">
-                    <span className="font-ui text-[10px] text-muted/60 uppercase tracking-wide">Nature</span>
+                    <span className="font-ui text-xs text-muted/60">Nature</span>
                     <div className="flex gap-2 mt-1.5">
                       {textColors.slice(12, 16).map((c) => (
                         <button
@@ -3168,7 +3168,7 @@ export default function CreatePost() {
                   </div>
                   {/* Cool */}
                   <div className="mb-3">
-                    <span className="font-ui text-[10px] text-muted/60 uppercase tracking-wide">Cool</span>
+                    <span className="font-ui text-xs text-muted/60">Cool</span>
                     <div className="flex gap-2 mt-1.5">
                       {textColors.slice(16, 20).map((c) => (
                         <button
@@ -3183,7 +3183,7 @@ export default function CreatePost() {
                   </div>
                   {/* Vibrant */}
                   <div className="mb-3">
-                    <span className="font-ui text-[10px] text-muted/60 uppercase tracking-wide">Vibrant</span>
+                    <span className="font-ui text-xs text-muted/60">Vibrant</span>
                     <div className="flex gap-2 mt-1.5">
                       {textColors.slice(20, 24).map((c) => (
                         <button
@@ -3198,7 +3198,7 @@ export default function CreatePost() {
                   </div>
                   {/* Light Pastels */}
                   <div className="mb-3">
-                    <span className="font-ui text-[10px] text-muted/60 uppercase tracking-wide">Light</span>
+                    <span className="font-ui text-xs text-muted/60">Light</span>
                     <div className="flex gap-2 mt-1.5">
                       {textColors.slice(24, 28).map((c) => (
                         <button
@@ -3213,7 +3213,7 @@ export default function CreatePost() {
                   </div>
                   {/* Soft */}
                   <div>
-                    <span className="font-ui text-[10px] text-muted/60 uppercase tracking-wide">Soft</span>
+                    <span className="font-ui text-xs text-muted/60">Soft</span>
                     <div className="flex gap-2 mt-1.5">
                       {textColors.slice(28, 32).map((c) => (
                         <button
@@ -3249,7 +3249,7 @@ export default function CreatePost() {
             {showHighlightMenu && (
               <div className="absolute top-full left-0 md:left-0 right-0 md:right-auto mt-2 w-[220px] bg-surface rounded-2xl shadow-2xl border border-border-light z-50 overflow-hidden">
                 <div className="px-3 py-2 bg-subtle border-b border-border-light">
-                  <span className="font-ui text-xs font-medium text-muted uppercase tracking-wide">Highlight</span>
+                  <span className="font-ui text-xs font-medium text-muted">Highlight</span>
                 </div>
                 <div className="p-3">
                   {/* Remove highlight option */}
@@ -3262,7 +3262,7 @@ export default function CreatePost() {
                   </button>
                   {/* White & Light */}
                   <div className="mb-2">
-                    <span className="font-ui text-[10px] text-muted/60 uppercase tracking-wide">Light</span>
+                    <span className="font-ui text-xs text-muted/60">Light</span>
                     <div className="flex gap-2 mt-1.5">
                       {highlightColors.slice(1, 4).map((c) => (
                         <button
@@ -3277,7 +3277,7 @@ export default function CreatePost() {
                   </div>
                   {/* Warm highlights */}
                   <div className="mb-2">
-                    <span className="font-ui text-[10px] text-muted/60 uppercase tracking-wide">Warm</span>
+                    <span className="font-ui text-xs text-muted/60">Warm</span>
                     <div className="flex gap-2 mt-1.5">
                       {highlightColors.slice(4, 8).map((c) => (
                         <button
@@ -3292,7 +3292,7 @@ export default function CreatePost() {
                   </div>
                   {/* Cool highlights */}
                   <div className="mb-2">
-                    <span className="font-ui text-[10px] text-muted/60 uppercase tracking-wide">Cool</span>
+                    <span className="font-ui text-xs text-muted/60">Cool</span>
                     <div className="flex gap-2 mt-1.5">
                       {highlightColors.slice(8, 12).map((c) => (
                         <button
@@ -3307,7 +3307,7 @@ export default function CreatePost() {
                   </div>
                   {/* Purple/Pink */}
                   <div>
-                    <span className="font-ui text-[10px] text-muted/60 uppercase tracking-wide">Purple & Pink</span>
+                    <span className="font-ui text-xs text-muted/60">Purple & Pink</span>
                     <div className="flex gap-2 mt-1.5">
                       {highlightColors.slice(12, 16).map((c) => (
                         <button
@@ -3913,7 +3913,7 @@ export default function CreatePost() {
         {/* Extras (Step 2) — format-specific + shared fields */}
         {!isTakeMode && step === 2 && (
         <div className="mb-8 border-t border-border-light pt-6">
-          <p className="text-sm font-ui text-muted uppercase tracking-wider mb-4">Extras</p>
+          <p className="text-sm font-ui text-muted mb-4">Extras</p>
 
           {/* Soundtrack — optional for any non-Music post. The Music format
               owns its own Spotify control inline above, so hide it there. */}
@@ -4383,7 +4383,7 @@ export default function CreatePost() {
 
                 {showCommunityMenu && (
                   <div className="absolute bottom-full left-0 mb-2 w-56 max-h-64 overflow-y-auto bg-surface rounded-xl shadow-xl border border-border-light overflow-hidden z-10">
-                    <div className="px-3 py-2 text-[0.75rem] font-ui text-muted uppercase tracking-wide border-b border-border-light">
+                    <div className="px-3 py-2 text-[0.75rem] font-ui text-muted border-b border-border-light">
                       Post to community
                     </div>
                     <button

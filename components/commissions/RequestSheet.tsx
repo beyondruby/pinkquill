@@ -328,7 +328,7 @@ export default function RequestSheet({ product, initialPricingId, isOpen, onClos
           </div>
           {fields.length > 0 && (
             <div className="space-y-4">
-              <p className="font-ui text-2xs uppercase tracking-[0.12em] text-muted">{firstName} asks</p>
+              <p className="font-ui text-xs text-muted">{firstName} asks</p>
               {fields.map((f) => <IntakeQuestion key={f.id} field={f} value={answers[f.id]} onChange={(v) => setAnswers((prev) => ({ ...prev, [f.id]: v }))} />)}
             </div>
           )}
@@ -385,7 +385,7 @@ export default function RequestSheet({ product, initialPricingId, isOpen, onClos
             <p className="text-2xs font-body text-muted pt-1">Held by Pinkquill until you approve the work. Your card may be charged in its local currency at checkout.</p>
           </div>
           <div className="text-sm font-body text-ink/90">
-            <p className="font-ui text-2xs uppercase tracking-[0.12em] text-muted mb-1">Your brief</p>
+            <p className="font-ui text-xs text-muted mb-1">Your brief</p>
             <p className="line-clamp-3 whitespace-pre-wrap">{brief}</p>
             <p className="text-2xs text-muted mt-1">{fields.filter((f) => f.field_type !== "file" && answers[f.id] && String(answers[f.id]).length > 0).length} answer{fields.length === 1 ? "" : "s"} · {files.length} reference file{files.length === 1 ? "" : "s"}</p>
           </div>

@@ -103,7 +103,7 @@ function CustomerRow({ customer }: { customer: SellerCustomer }) {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* Contact */}
               <div>
-                <h4 className="text-[11px] font-ui font-semibold text-muted uppercase tracking-wider mb-2">Contact</h4>
+                <h4 className="text-xs font-ui font-semibold text-muted mb-2">Contact</h4>
                 <div className="space-y-1.5 text-sm font-body text-ink">
                   {customer.buyer_phone && (
                     <p className="flex items-center gap-2">
@@ -128,7 +128,7 @@ function CustomerRow({ customer }: { customer: SellerCustomer }) {
               {/* Address */}
               {customer.shipping_address && (
                 <div>
-                  <h4 className="text-[11px] font-ui font-semibold text-muted uppercase tracking-wider mb-2">Shipping Address</h4>
+                  <h4 className="text-xs font-ui font-semibold text-muted mb-2">Shipping Address</h4>
                   <div className="text-sm font-body text-ink flex items-start gap-2">
                     <svg className="w-3.5 h-3.5 text-muted mt-0.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                       <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
@@ -148,7 +148,7 @@ function CustomerRow({ customer }: { customer: SellerCustomer }) {
 
               {/* Stats */}
               <div>
-                <h4 className="text-[11px] font-ui font-semibold text-muted uppercase tracking-wider mb-2">Stats</h4>
+                <h4 className="text-xs font-ui font-semibold text-muted mb-2">Stats</h4>
                 <div className="text-sm font-body text-ink space-y-1">
                   <p>Avg. order: <span className="font-semibold">{formatCurrency(customer.avg_order_value)}</span></p>
                   <p>Completed: <span className="font-semibold">{customer.completed_orders}</span></p>
@@ -160,7 +160,7 @@ function CustomerRow({ customer }: { customer: SellerCustomer }) {
 
             {/* Orders */}
             <div>
-              <h4 className="text-[11px] font-ui font-semibold text-muted uppercase tracking-wider mb-2">Orders</h4>
+              <h4 className="text-xs font-ui font-semibold text-muted mb-2">Orders</h4>
               <div className="space-y-0.5">
                 {customer.orders.map((order) => {
                   const sc = getOrderStatusMeta(order.status);
@@ -244,7 +244,7 @@ export default function CustomersCRM() {
       {/* Customer table */}
       <div className="rounded-xl border border-border-light bg-surface overflow-hidden">
         {/* Header */}
-        <div className="hidden sm:flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-2.5 border-b border-border-light bg-subtle text-[11px] font-ui uppercase tracking-wider text-muted">
+        <div className="hidden sm:flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-2.5 border-b border-border-light bg-subtle text-xs font-ui text-muted">
           <div className="w-10" />
           <div className="flex-1">Customer</div>
           <div className="hidden sm:block w-16 text-center">Orders</div>

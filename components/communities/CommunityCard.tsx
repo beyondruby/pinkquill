@@ -76,7 +76,7 @@ export default function CommunityCard({ community, variant = 'default', rank }: 
           )}
 
           {/* Privacy Badge */}
-          <div className={`absolute top-3 right-3 px-2.5 py-1 rounded-full text-[0.65rem] font-ui font-semibold uppercase tracking-wide backdrop-blur-md ${
+          <div className={`absolute top-3 right-3 px-2.5 py-1 rounded-full text-xs font-ui font-semibold backdrop-blur-md ${
             community.privacy === 'private'
               ? 'bg-surface/90 text-purple-primary'
               : 'bg-surface/90 text-emerald-600'
@@ -164,7 +164,7 @@ export default function CommunityCard({ community, variant = 'default', rank }: 
                 </div>
 
                 {community.user_role && community.user_role !== 'member' && (
-                  <span className={`px-2.5 py-1 rounded-full text-[0.65rem] font-ui font-bold uppercase tracking-wide ${
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-ui font-bold ${
                     community.user_role === 'admin'
                       ? 'bg-gradient-to-r from-orange-warm/15 to-pink-vivid/10 text-orange-warm border border-orange-warm/20'
                       : 'bg-gradient-to-r from-purple-primary/15 to-pink-vivid/10 text-purple-primary border border-purple-primary/20'

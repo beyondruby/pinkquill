@@ -35,7 +35,7 @@ export function PostTypeChip({
   const s = SIZE[size];
   const typography =
     variant === "caps"
-      ? "font-ui font-semibold uppercase tracking-[0.16em]"
+      ? "font-ui font-medium"
       : "font-ui font-normal";
   return (
     <span

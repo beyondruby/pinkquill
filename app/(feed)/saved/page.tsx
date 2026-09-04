@@ -316,7 +316,7 @@ export default function SavedPage() {
           <div className="text-center py-20">
             <div className="w-32 h-32 mx-auto mb-8 relative">
               <div className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-primary/10 to-pink-vivid/10 blur-2xl" />
-              <div className="relative w-full h-full rounded-full bg-gradient-to-br from-purple-primary/5 to-pink-vivid/5 flex items-center justify-center border-2 border-dashed border-purple-primary/20">
+              <div className="relative w-full h-full rounded-full bg-gradient-to-br from-purple-primary/5 to-pink-vivid/5 flex items-center justify-center border border-purple-primary/10">
                 <svg className="w-14 h-14 text-purple-primary/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
                 </svg>

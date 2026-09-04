@@ -404,7 +404,7 @@ export default function TakeCommentsPanel({ isOpen, onClose, takeId }: TakeComme
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
-            <span className="font-ui text-base md:text-[0.8rem] font-semibold md:font-medium md:tracking-[0.12em] md:uppercase text-ink md:text-muted">
+            <span className="font-ui text-base md:text-[0.8rem] font-semibold md:font-medium text-ink md:text-muted">
               Comments
             </span>
             <span className="font-ui text-sm text-muted md:hidden">

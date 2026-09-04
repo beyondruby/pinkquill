@@ -235,7 +235,7 @@ export default function ModeratorPermissionsModal({
                         {option.label}
                       </p>
                       {isEnabled && (
-                        <span className={`px-2 py-0.5 rounded-full text-[0.65rem] font-semibold uppercase ${colors.bg} ${colors.text}`}>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${colors.bg} ${colors.text}`}>
                           Enabled
                         </span>
                       )}

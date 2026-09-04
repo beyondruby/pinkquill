@@ -314,7 +314,7 @@ export default function JournalMetadataPanel({
 
       {/* Location Input */}
       <div className="mb-4">
-        <label className="font-ui text-xs text-muted uppercase tracking-wide mb-1.5 block">
+        <label className="font-ui text-xs text-muted mb-1.5 block">
           Location
         </label>
         <div className="relative">
@@ -333,7 +333,7 @@ export default function JournalMetadataPanel({
 
       {/* Time of Day */}
       <div className="mb-4">
-        <label className="font-ui text-xs text-muted uppercase tracking-wide mb-1.5 block">
+        <label className="font-ui text-xs text-muted mb-1.5 block">
           Time of Day
         </label>
         <div className="grid grid-cols-4 gap-2">
@@ -356,7 +356,7 @@ export default function JournalMetadataPanel({
 
       {/* Weather */}
       <div className="mb-4">
-        <label className="font-ui text-xs text-muted uppercase tracking-wide mb-1.5 block">
+        <label className="font-ui text-xs text-muted mb-1.5 block">
           Weather
         </label>
         <div className="grid grid-cols-4 gap-2">
@@ -380,7 +380,7 @@ export default function JournalMetadataPanel({
 
       {/* Temperature */}
       <div className="mb-4">
-        <label className="font-ui text-xs text-muted uppercase tracking-wide mb-1.5 block">
+        <label className="font-ui text-xs text-muted mb-1.5 block">
           Temperature
         </label>
         <div className="flex gap-2">
@@ -407,7 +407,7 @@ export default function JournalMetadataPanel({
 
       {/* Mood */}
       <div>
-        <label className="font-ui text-xs text-muted uppercase tracking-wide mb-1.5 block">
+        <label className="font-ui text-xs text-muted mb-1.5 block">
           Mood
         </label>
         <div className="grid grid-cols-5 gap-2">

@@ -241,7 +241,7 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
           <ul className="space-y-1.5">
             {fields.map((f) => (
               <li key={f.id} className="text-sm font-body text-ink/85 flex items-center gap-2">
-                <span className="px-1.5 py-0.5 rounded bg-subtle text-3xs font-ui uppercase tracking-wider text-muted shrink-0">{QUESTION_KIND[f.field_type] ?? f.field_type}</span>
+                <span className="px-1.5 py-0.5 rounded bg-subtle text-xs font-ui text-muted shrink-0">{QUESTION_KIND[f.field_type] ?? f.field_type}</span>
                 <span>{f.label}{f.required && <span className="text-pink-vivid">*</span>}</span>
               </li>
             ))}
@@ -284,7 +284,7 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
             <div className="space-y-6">
               <ProductGallery media={product.media || []} title={product.title} variant="service" />
               <header>
-                <p className="text-2xs font-ui uppercase tracking-[0.12em] text-muted">{categoryLabel}</p>
+                <p className="text-xs font-ui text-muted">{categoryLabel}</p>
                 <h1 className="font-display text-2xl sm:text-3xl font-semibold text-ink leading-tight mt-1 [text-wrap:balance]">{product.title}</h1>
                 {headline && <p className="text-sm sm:text-base font-body text-muted mt-2">{headline}</p>}
                 <div className="mt-4">{creatorRow}</div>
@@ -292,7 +292,7 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
 
               {/* Packages on phones: a horizontal row */}
               <div className="lg:hidden">
-                <p className="font-ui text-2xs uppercase tracking-[0.12em] text-muted mb-2">Packages</p>
+                <p className="font-ui text-xs text-muted mb-2">Packages</p>
                 <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-1 -mx-4 px-4 [scrollbar-width:none]">
                   {packages.map((p) => (
                     <div key={p.id} className="snap-start shrink-0 w-[78%] sm:w-[48%]"><PackageCard pkg={p} selected={pkg?.id === p.id} onSelect={() => setPricingId(p.id)} compact /></div>
@@ -307,7 +307,7 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
             {/* Packages on desktop: a sticky panel */}
             <aside className="hidden lg:block">
               <div className="rounded-2xl border border-border-light bg-surface p-5 sticky top-6">
-                <p className="font-ui text-2xs uppercase tracking-[0.12em] text-muted mb-3">Choose a package</p>
+                <p className="font-ui text-xs text-muted mb-3">Choose a package</p>
                 <div className="space-y-2.5">
                   {packages.map((p) => <PackageCard key={p.id} pkg={p} selected={pkg?.id === p.id} onSelect={() => setPricingId(p.id)} />)}
                   {packages.length === 0 && <p className="text-sm font-body text-muted">No packages yet.</p>}

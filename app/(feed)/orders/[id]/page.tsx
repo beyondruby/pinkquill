@@ -9,7 +9,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   await params;
 
   return {
-    title: "Order | Quill",
+    title: "Order | PinkQuill",
     description: "Track your order, review deliveries, and message the other side.",
   };
 }

@@ -474,7 +474,7 @@ export function AudioPlayer({
         )}
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-ink">{title || "Sound"}</p>
-          <p className="mt-0.5 text-xs font-medium uppercase tracking-wide text-muted">
+          <p className="mt-0.5 text-xs font-medium text-muted">
             {isPlaying ? "Now playing" : "Tap to play"}
           </p>
         </div>

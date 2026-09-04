@@ -66,7 +66,7 @@ export default function SearchDropdown({
                   <svg className="w-3.5 h-3.5 text-purple-primary/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <span className="font-ui text-[0.7rem] uppercase tracking-wider text-muted font-semibold">
+                  <span className="font-ui text-xs text-muted font-semibold">
                     Recent
                   </span>
                 </div>
@@ -124,7 +124,7 @@ export default function SearchDropdown({
                     <svg className="w-3.5 h-3.5 text-purple-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
-                    <span className="font-ui text-[0.7rem] uppercase tracking-wider text-purple-primary font-semibold">
+                    <span className="font-ui text-xs text-purple-primary font-semibold">
                       People
                     </span>
                   </div>
@@ -156,7 +156,7 @@ export default function SearchDropdown({
                     <svg className="w-3.5 h-3.5 text-pink-vivid" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
-                    <span className="font-ui text-[0.7rem] uppercase tracking-wider text-pink-vivid font-semibold">
+                    <span className="font-ui text-xs text-pink-vivid font-semibold">
                       Communities
                     </span>
                   </div>
@@ -186,7 +186,7 @@ export default function SearchDropdown({
                 <div>
                   <div className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-orange-warm/[0.04] to-transparent border-b border-purple-primary/[0.06]">
                     <span className="text-orange-warm font-bold text-sm">#</span>
-                    <span className="font-ui text-[0.7rem] uppercase tracking-wider text-orange-warm font-semibold">
+                    <span className="font-ui text-xs text-orange-warm font-semibold">
                       Tags
                     </span>
                   </div>

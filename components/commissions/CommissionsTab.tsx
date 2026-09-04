@@ -220,7 +220,7 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
         <section className="rounded-2xl border border-border-light bg-surface p-5">
           <div className="flex items-start justify-between gap-3 flex-wrap">
             <div>
-              <p className="font-ui text-2xs uppercase tracking-[0.12em] text-muted">Commissions</p>
+              <p className="font-ui text-xs text-muted">Commissions</p>
               <p className="font-display text-lg font-semibold text-ink mt-0.5">{active.length === 1 ? "1 service" : `${active.length} services`}{!sellerAccepting ? " · paused" : ""}</p>
             </div>
             <span className={`inline-flex items-center px-2.5 py-1 rounded-full border text-2xs font-ui font-semibold ${PILL_TONE[pill.tone]}`}>{pill.label}</span>
@@ -228,7 +228,7 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
           {facts.length > 0 && (
             <dl className="mt-4 grid grid-cols-3 sm:grid-cols-5 gap-x-4 gap-y-3">
               {facts.map(([k, v]) => (
-                <div key={k} className="min-w-0"><dt className="font-ui text-2xs uppercase tracking-[0.12em] text-muted">{k}</dt><dd className="text-sm font-ui font-semibold text-ink mt-0.5 tabular-nums truncate">{v}</dd></div>
+                <div key={k} className="min-w-0"><dt className="font-ui text-xs text-muted">{k}</dt><dd className="text-sm font-ui font-semibold text-ink mt-0.5 tabular-nums truncate">{v}</dd></div>
               ))}
             </dl>
           )}
@@ -366,12 +366,12 @@ function CommissionCard({ commission, isOwnProfile, onRefetch, sellerAccepting }
           {cover && <Image src={cover} alt={commission.title} fill sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 400px" className="object-cover" />}
           <span className="absolute left-3 top-3">
             {inactive
-              ? <span className="inline-flex items-center px-2.5 py-1 rounded-full border text-[0.65rem] font-ui font-semibold uppercase tracking-wide bg-subtle text-muted border-border-light">{commission.status}</span>
+              ? <span className="inline-flex items-center px-2.5 py-1 rounded-full border text-xs font-ui font-semibold bg-subtle text-muted border-border-light">{commission.status}</span>
               : <AvailabilityPill listing={commission.commission_listing} sellerAccepting={sellerAccepting} />}
           </span>
         </div>
         <div className="p-4">
-          <p className="font-ui text-2xs uppercase tracking-[0.12em] text-muted truncate">{categoryLabel(commission)}</p>
+          <p className="font-ui text-xs text-muted truncate">{categoryLabel(commission)}</p>
           <h3 className="font-display text-base font-semibold text-ink leading-snug mt-1 line-clamp-2">{commission.title}</h3>
           {headline && <p className="text-sm font-body text-muted mt-1 line-clamp-2">{headline}</p>}
           <div className="mt-3 flex items-baseline justify-between gap-3">

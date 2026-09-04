@@ -256,8 +256,7 @@ export default function CommunityFeedPage() {
               href={`/community/${community.slug}/members`}
               className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface/80 border border-border-light font-ui text-xs text-ink/70"
             >
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              {community.member_count || 0} members
+              {community.member_count || 0} {community.member_count === 1 ? "member" : "members"}
             </Link>
             <Link
               href={`/community/${community.slug}/about`}
@@ -293,7 +292,7 @@ export default function CommunityFeedPage() {
                 <svg className="w-4 h-4 text-purple-primary" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5v6h2v-6h5v-2l-2-2z"/>
                 </svg>
-                <span className="font-ui text-xs font-semibold bg-gradient-to-r from-purple-primary to-pink-vivid bg-clip-text text-transparent uppercase tracking-wider">
+                <span className="font-ui text-xs font-semibold bg-gradient-to-r from-purple-primary to-pink-vivid bg-clip-text text-transparent">
                   Pinned
                 </span>
               </div>
@@ -392,7 +391,7 @@ export default function CommunityFeedPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <h3 className="font-ui text-sm font-bold text-ink uppercase tracking-wide">About</h3>
+                <h3 className="font-ui text-sm font-bold text-ink">About</h3>
               </div>
 
               {/* Members Count */}
@@ -400,12 +399,8 @@ export default function CommunityFeedPage() {
                 href={`/community/${community.slug}/members`}
                 className="flex items-center gap-2 mb-4 pb-4 border-b border-ink/5 group"
               >
-                <div className="relative">
-                  <div className="w-2 h-2 rounded-full bg-emerald-400" />
-                  <div className="absolute inset-0 w-2 h-2 rounded-full bg-emerald-400 animate-ping opacity-40" />
-                </div>
                 <span className="font-ui text-sm text-ink/70 group-hover:text-accent transition-colors">
-                  {community.member_count || 0} members
+                  {community.member_count || 0} {community.member_count === 1 ? "member" : "members"}
                 </span>
               </Link>
 

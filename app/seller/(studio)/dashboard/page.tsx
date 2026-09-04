@@ -1,7 +1,7 @@
 import SellerDashboard from "@/components/seller/SellerDashboard";
 
 export const metadata = {
-  title: "Seller Dashboard | Quill",
+  title: "Seller Studio | PinkQuill",
   description: "Manage your creative business on Quill.",
 };
 

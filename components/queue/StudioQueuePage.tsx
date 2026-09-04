@@ -87,7 +87,7 @@ function CartItemCard({
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <span
-                className={`inline-block px-2 py-0.5 rounded-md text-[10px] font-ui font-semibold uppercase tracking-wider mb-1 ${
+                className={`inline-block px-2 py-0.5 rounded-md text-xs font-ui font-semibold mb-1 ${
                   isService
                     ? "bg-purple-primary/8 text-purple-primary"
                     : "bg-emerald-500/8 text-emerald-600"

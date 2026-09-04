@@ -26,7 +26,7 @@ export default function ProductReviewsSection({ productId }: ProductReviewsSecti
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-2">
           <QuillIcon className="h-4 w-4" gradient />
-          <h2 className="text-base font-ui uppercase tracking-[0.14em] text-muted">Quill Reviews</h2>
+          <h2 className="text-base font-ui font-semibold text-ink">Quill Reviews</h2>
         </div>
 
         {!loading && !error && reviews.length > 0 && (

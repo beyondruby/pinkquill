@@ -148,7 +148,7 @@ export default function CommunityMembersSettingsPage() {
                       >
                         {member.profile?.display_name || member.profile?.username}
                       </Link>
-                      <span className="px-2 py-0.5 rounded text-[0.65rem] font-ui font-semibold uppercase bg-purple-primary/10 text-purple-primary">
+                      <span className="px-2 py-0.5 rounded text-xs font-ui font-semibold bg-purple-primary/10 text-purple-primary">
                         Moderator
                       </span>
                     </div>

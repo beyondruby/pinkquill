@@ -1,7 +1,7 @@
 import SellerOrdersTable from "@/components/seller/SellerOrdersTable";
 
 export const metadata = {
-  title: "Seller Orders | Quill",
+  title: "Seller Orders | PinkQuill",
   description: "Manage incoming orders from buyers.",
 };
 

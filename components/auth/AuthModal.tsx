@@ -158,7 +158,7 @@ export default function AuthModal() {
               {!isLogin && (
                 <div className="grid grid-cols-2 gap-3 animate-fadeIn">
                   <div>
-                    <label htmlFor="auth-modal-username" className="text-[0.6rem] uppercase tracking-wider font-bold text-muted ml-1">Username</label>
+                    <label htmlFor="auth-modal-username"className="text-xs font-bold text-muted ml-1">Username</label>
                     <input
                       id="auth-modal-username"
                       name="username"
@@ -172,7 +172,7 @@ export default function AuthModal() {
                     />
                   </div>
                   <div>
-                    <label htmlFor="auth-modal-display-name" className="text-[0.6rem] uppercase tracking-wider font-bold text-muted ml-1">Full Name</label>
+                    <label htmlFor="auth-modal-display-name"className="text-xs font-bold text-muted ml-1">Full Name</label>
                     <input
                       id="auth-modal-display-name"
                       name="name"
@@ -189,7 +189,7 @@ export default function AuthModal() {
               )}
 
               <div>
-                <label htmlFor="auth-modal-identifier" className="text-[0.6rem] uppercase tracking-wider font-bold text-muted ml-1">
+                <label htmlFor="auth-modal-identifier"className="text-xs font-bold text-muted ml-1">
                   {isLogin ? "Email or Username" : "Email"}
                 </label>
                 <input
@@ -207,7 +207,7 @@ export default function AuthModal() {
               </div>
 
               <div>
-                <label htmlFor="auth-modal-password" className="text-[0.6rem] uppercase tracking-wider font-bold text-muted ml-1">Password</label>
+                <label htmlFor="auth-modal-password"className="text-xs font-bold text-muted ml-1">Password</label>
                 <div className="relative">
                   <input
                     id="auth-modal-password"

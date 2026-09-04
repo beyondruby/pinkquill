@@ -273,7 +273,7 @@ export default function ActionMenu({
           <div key={`${item.label}-${index}`}>
             {item.dividerBefore && <div className="h-px bg-border-light mx-2 my-1" />}
             {showSectionLabel && (
-              <p className="px-3 pb-1 pt-2 font-ui text-[0.68rem] font-semibold uppercase tracking-wider text-muted">
+              <p className="px-3 pb-1 pt-2 font-ui text-xs font-semibold text-muted">
                 {item.sectionLabel}
               </p>
             )}

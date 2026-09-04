@@ -495,7 +495,7 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
                   <div className="max-h-80 overflow-y-auto p-4">
                     {/* Icons Section */}
                     <div className="mb-4">
-                      <p className="font-ui text-xs font-medium text-purple-primary uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                      <p className="font-ui text-xs font-medium text-purple-primary mb-2 flex items-center gap-1.5">
                         <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5L12 3z"/>
                         </svg>
@@ -528,7 +528,7 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
                     {/* Emoji Categories */}
                     {emojiCategories.map((category, categoryIndex) => (
                       <div key={category.name} className={categoryIndex > 0 ? "mt-4" : ""}>
-                        <p className="font-ui text-xs font-medium text-muted uppercase tracking-wide mb-2">
+                        <p className="font-ui text-xs font-medium text-muted mb-2">
                           {category.name}
                         </p>
                         <div className="grid grid-cols-8 gap-1">

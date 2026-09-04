@@ -348,7 +348,7 @@ export default function NewCollectionItemModal({
                     <div className="max-h-64 overflow-y-auto p-3">
                       {/* Icons */}
                       <div className="mb-3">
-                        <p className="font-ui text-xs font-medium text-purple-primary uppercase tracking-wide mb-2">Icons</p>
+                        <p className="font-ui text-xs font-medium text-purple-primary mb-2">Icons</p>
                         <div className="grid grid-cols-8 gap-1">
                           {itemIcons.map((icon) => (
                             <button
@@ -374,7 +374,7 @@ export default function NewCollectionItemModal({
                       {/* Emojis */}
                       {itemEmojiCategories.map((category) => (
                         <div key={category.name} className="mb-3 last:mb-0">
-                          <p className="font-ui text-xs font-medium text-muted uppercase tracking-wide mb-1.5">{category.name}</p>
+                          <p className="font-ui text-xs font-medium text-muted mb-1.5">{category.name}</p>
                           <div className="grid grid-cols-8 gap-1">
                             {category.emojis.map((option) => (
                               <button

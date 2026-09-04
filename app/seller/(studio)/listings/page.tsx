@@ -1,7 +1,7 @@
 import SellerListingsGrid from "@/components/seller/SellerListingsGrid";
 
 export const metadata = {
-  title: "My Listings | Quill",
+  title: "My Listings | PinkQuill",
   description: "Manage your products and commission services.",
 };
 

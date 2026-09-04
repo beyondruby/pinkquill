@@ -18,7 +18,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   if (!take) {
     return {
-      title: "Take Not Found | Quill",
+      title: "Take Not Found | PinkQuill",
       description: "This take may have been removed or doesn't exist.",
     };
   }
@@ -33,10 +33,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const description = take.caption?.slice(0, 160) || `A take by ${authorName} on Quill.`;
 
   return {
-    title: `Take by ${authorName} | Quill`,
+    title: `Take by ${authorName} | PinkQuill`,
     description,
     openGraph: {
-      title: `Take by ${authorName} | Quill`,
+      title: `Take by ${authorName} | PinkQuill`,
       description,
     },
   };

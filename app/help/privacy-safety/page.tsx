@@ -57,7 +57,7 @@ export default function PrivacySafetyHelpPage() {
         {/* Sidebar TOC */}
         <aside className="hidden xl:block w-48 flex-shrink-0">
           <nav className="sticky top-24">
-            <p className="font-ui text-[0.6rem] tracking-[0.2em] uppercase text-muted/60 mb-4">
+            <p className="font-ui text-xs text-muted/60 mb-4">
               On this page
             </p>
             <ul className="space-y-1">

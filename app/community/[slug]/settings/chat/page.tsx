@@ -125,7 +125,7 @@ export default function CommunityChatSettingsPage() {
                 Turn community chat on or off for the entire community.
               </p>
             </div>
-            <span className="font-ui text-xs font-semibold uppercase text-ink">
+            <span className="font-ui text-xs font-semibold text-ink">
               {communityChatEnabled ? "On" : "Off"}
             </span>
           </button>
@@ -152,7 +152,7 @@ export default function CommunityChatSettingsPage() {
                 Controls whether regular member messages are allowed in chat threads.
               </p>
             </div>
-            <span className="font-ui text-xs font-semibold uppercase text-ink">
+            <span className="font-ui text-xs font-semibold text-ink">
               {allowMemberMessages ? "On" : "Off"}
             </span>
           </button>
@@ -179,7 +179,7 @@ export default function CommunityChatSettingsPage() {
                 Enables direct moderation messages and appeals from members.
               </p>
             </div>
-            <span className="font-ui text-xs font-semibold uppercase text-ink">
+            <span className="font-ui text-xs font-semibold text-ink">
               {allowModmail ? "On" : "Off"}
             </span>
           </button>

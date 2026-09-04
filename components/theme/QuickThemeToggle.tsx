@@ -67,7 +67,7 @@ export function QuickThemeToggle() {
 
   return (
     <div className="px-1 py-1.5">
-      <p className="font-ui text-[0.68rem] font-semibold text-muted uppercase tracking-wider px-1.5 pb-1.5">
+      <p className="font-ui text-xs font-semibold text-muted px-1.5 pb-1.5">
         Appearance
       </p>
       <div

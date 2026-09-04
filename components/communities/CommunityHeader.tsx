@@ -183,13 +183,6 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
           {/* Role badge */}
           {community.is_member && (
             <div className="px-4 py-2 rounded-full bg-surface/20 backdrop-blur-sm border border-surface/20 flex items-center gap-2">
-              <div className={`w-1.5 h-1.5 rounded-full ${
-                community.user_role === 'admin'
-                  ? 'bg-orange-warm'
-                  : community.user_role === 'moderator'
-                  ? 'bg-surface'
-                  : 'bg-emerald-400'
-              }`} />
               <span className="font-ui text-xs font-semibold text-white capitalize">
                 {community.user_role || 'Member'}
               </span>

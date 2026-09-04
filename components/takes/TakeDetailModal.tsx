@@ -612,7 +612,7 @@ export default function TakeDetailModal({
             <div className="discussion-panel">
               {/* Comments Header */}
               <div className="p-5 border-b border-border-light bg-surface/60 flex justify-between items-center">
-                <span className="font-ui text-[0.8rem] font-medium tracking-[0.12em] uppercase text-muted">
+                <span className="font-ui text-[0.8rem] font-medium text-muted">
                   Discussion
                 </span>
                 <button

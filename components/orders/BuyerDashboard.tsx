@@ -184,7 +184,7 @@ export default function BuyerDashboard() {
 
         {/* Tab bar */}
         <div className="border-b border-border-light mb-6">
-          <div className="flex gap-0 overflow-x-auto -mb-px">
+          <div className="flex gap-0 overflow-x-auto scrollbar-hide -mb-px">
             {STATUS_TABS.map((tab, idx) => (
               <button
                 key={tab.key}

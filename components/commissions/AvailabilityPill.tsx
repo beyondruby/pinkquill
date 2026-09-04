@@ -51,9 +51,8 @@ export default function AvailabilityPill({
   const { label, tone } = describeAvailability(listing, sellerAccepting);
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[0.65rem] font-ui font-semibold uppercase tracking-wide ${TONE_CLASSES[tone]} ${className}`}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-ui font-semibold ${TONE_CLASSES[tone]} ${className}`}
     >
-      <span className={`w-1.5 h-1.5 rounded-full ${tone === "open" ? "bg-emerald-500" : tone === "limited" ? "bg-amber-500" : tone === "waitlist" ? "bg-purple-500" : "bg-muted/60"}`} />
       {label}
     </span>
   );

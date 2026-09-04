@@ -83,7 +83,7 @@ export default function SellerSidebar() {
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
             <path d="M15 19l-7-7 7-7" />
           </svg>
-          <span className="font-ui text-xs">Back to Quill</span>
+          <span className="font-ui text-xs">Back to feed</span>
         </Link>
         <h1 className="font-display text-xl font-bold text-ink">Seller Studio</h1>
         <p className="font-body text-xs text-muted mt-0.5">Manage your creative business</p>

@@ -18,7 +18,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   if (!post) {
     return {
-      title: "Post Not Found | Quill",
+      title: "Post Not Found | PinkQuill",
       description: "This post may have been removed or doesn't exist.",
     };
   }
@@ -32,10 +32,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const description = plainContent || `A ${post.type || "post"} by ${authorName} on Quill.`;
 
   return {
-    title: `${title} | Quill`,
+    title: `${title} | PinkQuill`,
     description,
     openGraph: {
-      title: `${title} | Quill`,
+      title: `${title} | PinkQuill`,
       description,
     },
   };

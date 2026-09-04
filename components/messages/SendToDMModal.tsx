@@ -349,7 +349,7 @@ export default function SendToDMModal({
               ) : (
                 <div className="py-2">
                   {!searchQuery.trim() && (
-                    <p className="px-5 py-2 font-ui text-xs text-muted uppercase tracking-wide">
+                    <p className="px-5 py-2 font-ui text-xs text-muted">
                       Recent
                     </p>
                   )}

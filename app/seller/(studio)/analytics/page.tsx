@@ -1,7 +1,7 @@
 import SellerAnalytics from "@/components/seller/SellerAnalytics";
 
 export const metadata = {
-  title: "Analytics | Quill",
+  title: "Analytics | PinkQuill",
   description: "Revenue, conversion, on-time delivery, response time and repeat buyers.",
 };
 

@@ -67,7 +67,7 @@ export default function ShippingTracker({ order }: { order: Order }) {
         <div className="rounded-xl bg-subtle border border-border-light p-4">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-ui text-muted uppercase tracking-wider mb-1">
+              <p className="text-xs font-ui text-muted mb-1">
                 Tracking Number
               </p>
               <p className="font-ui font-medium text-ink text-sm">

@@ -175,14 +175,6 @@ export default function CommunitiesPage() {
         <div className="relative px-5 py-7 md:px-8 md:py-10">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 md:gap-8">
             <div className="max-w-xl">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 md:gap-2.5 md:px-4 md:py-2 rounded-full bg-surface/70 backdrop-blur-sm border border-purple-primary/10 mb-4 md:mb-5 shadow-sm">
-                <div className="relative">
-                  <div className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid" />
-                  <div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid animate-ping opacity-75" />
-                </div>
-                <span className="font-ui text-xs font-semibold text-purple-primary uppercase tracking-widest">Creative Spaces</span>
-              </div>
-
               <h1 className="font-display text-3xl md:text-5xl font-bold text-ink mb-3 md:mb-4 leading-tight">
                 Find Your
                 <span className="block bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm bg-clip-text text-transparent">
@@ -328,9 +320,6 @@ export default function CommunitiesPage() {
                   </svg>
                 )}
               </div>
-              {sortBy === 'trending' && (
-                <div className="absolute -top-1 -right-1 w-4 h-4 bg-orange-warm rounded-full animate-pulse" />
-              )}
             </div>
             <div>
               <h2 className="font-display text-xl font-bold text-ink">
@@ -348,7 +337,7 @@ export default function CommunitiesPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {featuredCommunities.map((community, index) => (
-              <CommunityCard key={community.id} community={community} variant="featured" rank={index + 1} />
+              <CommunityCard key={community.id} community={community} variant="featured" />
             ))}
           </div>
         </div>
@@ -399,7 +388,7 @@ export default function CommunitiesPage() {
                         {community.name}
                       </h4>
                       <p className="font-ui text-xs text-muted mt-1">
-                        {community.member_count || 0} members
+                        {community.member_count || 0} {community.member_count === 1 ? "member" : "members"}
                       </p>
                     </Link>
                   ))}

@@ -149,7 +149,7 @@ export default function SellerOrdersTable() {
       </div>
 
       <section className="rounded-2xl border border-border-light bg-surface overflow-hidden">
-        <div className="hidden md:grid grid-cols-[32px_minmax(0,1fr)_170px_140px_96px] gap-4 px-4 py-2 border-b border-border-light bg-subtle text-2xs font-ui uppercase tracking-[0.12em] text-muted">
+        <div className="hidden md:grid grid-cols-[32px_minmax(0,1fr)_170px_140px_96px] gap-4 px-4 py-2 border-b border-border-light bg-subtle text-xs font-ui text-muted">
           <span /><span>Order</span><span>Due</span><span>Status</span><span className="text-right">You receive</span>
         </div>
         {loading ? (

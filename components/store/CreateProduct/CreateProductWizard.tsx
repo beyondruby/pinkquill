@@ -351,7 +351,7 @@ export default function CreateProductWizard({
     <div className="min-h-screen bg-surface">
       <div className="max-w-4xl mx-auto px-6 py-12">
         {/* Step Label */}
-        <p className="text-center text-sm font-ui text-muted uppercase tracking-wider mb-4">
+        <p className="text-center text-sm font-ui text-muted mb-4">
           STEP {stepNumber}
         </p>
 

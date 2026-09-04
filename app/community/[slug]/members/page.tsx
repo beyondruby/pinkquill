@@ -517,7 +517,7 @@ export default function CommunityMembersPage() {
                       </Link>
                       {/* Role Badge */}
                       {member.role !== 'member' && (
-                        <span className={`px-2 py-0.5 rounded text-[0.65rem] font-ui font-semibold uppercase ${
+                        <span className={`px-2 py-0.5 rounded text-xs font-ui font-semibold ${
                           member.role === 'admin'
                             ? 'bg-orange-100 text-orange-600'
                             : 'bg-purple-primary/10 text-purple-primary'
@@ -527,7 +527,7 @@ export default function CommunityMembersPage() {
                       )}
                       {/* Status Badge */}
                       {member.status === 'muted' && (
-                        <span className="px-2 py-0.5 rounded text-[0.65rem] font-ui font-semibold uppercase bg-yellow-100 text-yellow-600">
+                        <span className="px-2 py-0.5 rounded text-xs font-ui font-semibold bg-yellow-100 text-yellow-600">
                           Muted
                         </span>
                       )}

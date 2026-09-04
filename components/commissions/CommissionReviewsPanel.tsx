@@ -56,7 +56,7 @@ export default function CommissionReviewsPanel({
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-2">
           <QuillIcon className="h-4 w-4" gradient />
-          <h3 className="text-base font-ui uppercase tracking-[0.14em] text-muted">{roleTitle}</h3>
+          <h3 className="text-base font-ui font-semibold text-ink">{roleTitle}</h3>
         </div>
 
         {reviews.length > 0 && (

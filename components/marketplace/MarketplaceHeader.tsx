@@ -345,7 +345,7 @@ export default function MarketplaceHeader({
           <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-12 py-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 bg-surface/90 border border-border-light rounded-2xl p-5 shadow-sm">
               <div>
-                <h4 className="text-xs font-ui font-semibold uppercase tracking-wider text-muted mb-3">Section</h4>
+                <h4 className="text-xs font-ui font-semibold text-muted mb-3">Section</h4>
                 <div className="space-y-1">
                   {[
                     { value: "product" as const, label: "Products" },
@@ -373,7 +373,7 @@ export default function MarketplaceHeader({
 
               {catalogType === "product" ? (
                 <div>
-                  <h4 className="text-xs font-ui font-semibold uppercase tracking-wider text-muted mb-3">Type</h4>
+                  <h4 className="text-xs font-ui font-semibold text-muted mb-3">Type</h4>
                   <div className="space-y-1">
                     {[
                       { value: undefined, label: "All" },
@@ -405,7 +405,7 @@ export default function MarketplaceHeader({
                 </div>
               ) : (
                 <div>
-                  <h4 className="text-xs font-ui font-semibold uppercase tracking-wider text-muted mb-3">Delivery</h4>
+                  <h4 className="text-xs font-ui font-semibold text-muted mb-3">Delivery</h4>
                   <div className="space-y-1">
                     <button
                       onClick={() => onMaxDeliveryDaysChange(undefined)}
@@ -446,7 +446,7 @@ export default function MarketplaceHeader({
 
               {/* Price Range */}
               <div>
-                <h4 className="text-xs font-ui font-semibold uppercase tracking-wider text-muted mb-3">Price</h4>
+                <h4 className="text-xs font-ui font-semibold text-muted mb-3">Price</h4>
                 <div className="space-y-1">
                   <button
                     onClick={() => onPriceRangeChange(undefined, undefined)}
@@ -494,7 +494,7 @@ export default function MarketplaceHeader({
 
               {catalogType === "service" && (
                 <div>
-                  <h4 className="text-xs font-ui font-semibold uppercase tracking-wider text-muted mb-3">Revisions</h4>
+                  <h4 className="text-xs font-ui font-semibold text-muted mb-3">Revisions</h4>
                   <div className="space-y-1">
                     <button
                       onClick={() => onMinRevisionsChange(undefined)}
@@ -536,7 +536,7 @@ export default function MarketplaceHeader({
               {/* Subcategories (if category selected) */}
               {selectedCategory && (
                 <div>
-                  <h4 className="text-xs font-ui font-semibold uppercase tracking-wider text-muted mb-3">
+                  <h4 className="text-xs font-ui font-semibold text-muted mb-3">
                     {selectedCategory.name}
                   </h4>
                   <div className="space-y-1 max-h-48 overflow-y-auto">

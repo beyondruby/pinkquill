@@ -62,7 +62,7 @@ export default function OrderReceipt({ orderId }: { orderId: string }) {
 
             <DocumentSection title="Order">
               <div className="rounded-xl border border-border-light overflow-hidden">
-                <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-4 px-4 py-3 bg-subtle text-2xs font-ui uppercase tracking-[0.12em] text-muted"><span>Description</span><span className="text-right">Amount</span></div>
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-4 px-4 py-3 bg-subtle text-xs font-ui text-muted"><span>Description</span><span className="text-right">Amount</span></div>
                 <div className="px-4 py-3">
                   <div className="flex items-start justify-between gap-6">
                     <div className="min-w-0">

@@ -327,7 +327,7 @@ function CommunitiesSection() {
                 {community.name}
               </p>
               <p className="text-muted text-xs font-body">
-                {(community.member_count || 0).toLocaleString()} members
+                {(community.member_count || 0).toLocaleString()} {community.member_count === 1 ? "member" : "members"}
               </p>
             </div>
           </Link>

@@ -54,7 +54,7 @@ function Row({ label, value, strong = false, muted = false }: { label: string; v
 }
 
 function Label({ children }: { children: ReactNode }) {
-  return <p className="font-ui text-2xs uppercase tracking-[0.12em] text-muted">{children}</p>;
+  return <p className="font-ui text-xs text-muted">{children}</p>;
 }
 
 // ─── cards ──────────────────────────────────────────────────────────
@@ -152,13 +152,13 @@ function BriefCard({ order, isBuyer, workroom, refetchWorkroom }: Pick<OrderOver
         <dl className={`grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 ${order.brief ? "mt-4" : ""}`}>
           {answers.map((a) => (
             <div key={a.id} className="border-t border-border-light pt-2">
-              <dt className="font-ui text-2xs uppercase tracking-[0.12em] text-muted">{a.label}</dt>
+              <dt className="font-ui text-xs text-muted">{a.label}</dt>
               <dd className="text-sm font-body text-ink mt-0.5 whitespace-pre-wrap">{answerText(a)}</dd>
             </div>
           ))}
           {legacy.map(([k, v]) => (
             <div key={k} className="border-t border-border-light pt-2">
-              <dt className="font-ui text-2xs uppercase tracking-[0.12em] text-muted capitalize">{k.replace(/_/g, " ")}</dt>
+              <dt className="font-ui text-xs text-muted capitalize">{k.replace(/_/g, " ")}</dt>
               <dd className="text-sm font-body text-ink mt-0.5 whitespace-pre-wrap">{Array.isArray(v) ? v.join(", ") : String(v)}</dd>
             </div>
           ))}

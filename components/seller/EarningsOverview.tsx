@@ -133,7 +133,7 @@ export default function EarningsOverview() {
           <div className="px-4 py-8 text-center text-sm font-body text-muted">No paid orders yet.</div>
         ) : (
           <>
-            <div className="hidden md:grid grid-cols-[76px_minmax(0,1fr)_84px_84px_96px_120px] gap-3 px-4 py-2 bg-subtle text-2xs font-ui uppercase tracking-[0.12em] text-muted">
+            <div className="hidden md:grid grid-cols-[76px_minmax(0,1fr)_84px_84px_96px_120px] gap-3 px-4 py-2 bg-subtle text-xs font-ui text-muted">
               <span>Ordered</span><span>Order</span><span className="text-right">Price</span><span className="text-right">Fee 5%</span><span className="text-right">You receive</span><span>Payout</span>
             </div>
             <div className="divide-y divide-border-light">

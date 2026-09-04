@@ -263,7 +263,7 @@ export default function CommunityAboutPage() {
                       <p className="font-ui font-medium text-ink group-hover:text-accent transition-colors">
                         {admin.profile?.display_name || admin.profile?.username}
                       </p>
-                      <span className="px-1.5 py-0.5 rounded text-[0.6rem] font-ui font-bold uppercase bg-orange-warm/20 text-orange-warm">
+                      <span className="px-1.5 py-0.5 rounded text-xs font-ui font-bold bg-orange-warm/20 text-orange-warm">
                         Admin
                       </span>
                     </div>
@@ -307,7 +307,7 @@ export default function CommunityAboutPage() {
                       <p className="font-ui font-medium text-ink group-hover:text-accent transition-colors">
                         {mod.profile?.display_name || mod.profile?.username}
                       </p>
-                      <span className="px-1.5 py-0.5 rounded text-[0.6rem] font-ui font-bold uppercase bg-purple-primary/20 text-purple-primary">
+                      <span className="px-1.5 py-0.5 rounded text-xs font-ui font-bold bg-purple-primary/20 text-purple-primary">
                         Mod
                       </span>
                     </div>

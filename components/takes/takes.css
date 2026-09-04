@@ -350,10 +350,8 @@
   border-radius: 20px;
   color: var(--color-on-accent);
   font-family: var(--font-ui);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 
 .take-type-badge svg {
