@@ -11,8 +11,8 @@ export default function NotificationsSettingsPage() {
       <div className="mb-8">
         <h2 className="font-display text-2xl text-ink mb-2">Notifications</h2>
         <p className="font-body text-muted">
-          Choose what you get notified about. Turning a category off stops it from appearing in
-          your notification panel and badge count — it doesn&apos;t affect anyone else.
+          Choose what reaches you, and where. In-app controls your notification panel and badge;
+          email sends the same updates to your inbox. Nothing here affects anyone else.
         </p>
       </div>
 

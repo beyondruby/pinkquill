@@ -809,3 +809,32 @@ Two reports after the rebuild.
 **Dev-server note:** the long-running `next dev` (since Sep 2) served a stale CSS chunk — it picked up component changes but not the new rule in `globals.css`. The production build had it; a dev-server restart fixed it. If a style change ever seems ignored locally, restart `npm run dev` before debugging the CSS.
 
 **Not done:** an invoice for the seller's own records (their fee statement is the payout statement, still print-to-PDF); tax lines beyond a zero row (no tax is collected).
+
+## Email site-wide (2026-09-04)
+
+**Closes:** the "email phase" — every notification type (not just orders) can leave the app as an email, direct messages get a digest, one template system for all of it including the Supabase auth mails, per-person preferences per category on `/settings/notifications`, and one-click unsubscribe. Order emails are on by default for buyers and sellers.
+
+**Migration** `supabase/migrations/20260904_email_sitewide.sql` (applied to prod as `email_sitewide`):
+- `queue_notification_email()` now fires for every notification except `ops_alert` (was: order-linked only). The route decides per person; the DB stays dumb.
+- `conversation_participants.last_emailed_at` + `queue_dm_digest_emails()`: finds unread messages (`is_read = false`, from someone else, newer than the last digest) whose oldest one has waited ≥ 5 min, stamps `last_emailed_at`, posts `{kind:'dm_digest', user_id, conversation_id, sender_id}` to the route. At most one digest per (person, conversation) per hour. Wired as `run_cron_job('dm_digest')` on a new `dm-digest` pg_cron job every 10 min (the other three branches of `run_cron_job` are byte-identical).
+- Indexes: `notifications (user_id, emailed_at desc) where emailed_at is not null`, `messages (conversation_id, sender_id, created_at) where is_read = false`.
+
+**Preferences** (`lib/email/preferences.ts`, pure): `profiles.email_preferences` is `{ all?, orders?, messages?, comments?, follows?, communities?, collaborations?, post_activity? }`; absent = default. Defaults: everything on except `post_activity` (reactions). `all: false` is the master switch. An in-app mute (`notification_preferences[cat] = false`) also silences that category's email. `shouldEmail(emailPrefs, inAppPrefs, category)` is the one decision function, shared by the route and the settings page.
+
+**Route** `app/api/notifications/email/route.ts` (cron-secret bearer): `{notification_id}` → skips when already emailed, no copy, no category, already read, muted, no address, over 20 emails/hour for that person, or the same subject (post → community → actor) was emailed inside the category's quiet window (comments 30 min, post activity 6 h). Loads actor/post/comment/community/order facts, renders, claims `emailed_at`, sends with `List-Unsubscribe` + `List-Unsubscribe-Post` headers and Resend tags `{category, type}`. `{kind:'dm_digest'}` → verifies the participant, loads the unread messages from that sender, sends the digest (no claim; the DB stamped `last_emailed_at`).
+
+**Templates** — `lib/email/layout.ts` is the one layout (wordmark tile, white card, actor avatar or initial beside a bold-name headline, optional quoted excerpt, facts table, one purple pill button, quiet footer with reason + "sent to" + Email settings + Unsubscribe). `lib/email/templates.ts` has copy for all 56 notification types (subject, headline, button, reason; deep links mirror the panel: `/post/<id>?comment=<id>`, `/studio/<u>`, `/community/<slug>/settings/members`, `/orders/<id>`) plus `renderDmDigestEmail`. `lib/email/auth-templates.ts` renders the six Supabase auth mails through the same layout (OTP shown large); `npm run build:emails` writes them to `email-templates/*.html` (paste into Dashboard → Authentication → Emails → Templates; subjects in each file's banner). `app/api/email/preview?type=…` (admin in prod, open in dev) renders any of them with sample data.
+
+**Unsubscribe** `lib/email/unsubscribe.ts` + `app/api/email/unsubscribe`: HMAC-SHA256(`<user>.<category>`) with `EMAIL_UNSUBSCRIBE_SECRET` (falls back to `CRON_SECRET`). GET mutes + branded confirmation page; POST (mail clients) mutes + 200; bad token changes nothing.
+
+**Send** `lib/email/send.ts`: default sender `PinkQuill <noreply@pinkquill.com>` (the address Supabase Auth already sends from through Resend SMTP; domain verified in Resend), optional headers + tags. Still inert until `RESEND_API_KEY` exists.
+
+**UI** `components/settings/NotificationPreferences.tsx`: master "Email notifications" card (shows the account address), then one list with In-app / Email switches per category; Direct messages is email-only ("Always" in-app); orders row carries the "on for everyone" note; muting in-app disables the email switch with a hint; optimistic with revert + toast.
+
+**Verified**
+- `npx tsc --noEmit` clean; ESLint 0 on every changed file; `npx vitest run` 202 pass (preferences, unsubscribe tokens, every type × role, DM digest, auth placeholders).
+- Local dev server: previews for comment / order_paid (seller) / dm_digest / auth:confirmation; settings page toggles write `email_preferences` and `notification_preferences` and revert on error; in-app mute greys the email switch; the signed unsubscribe link for `post_activity` wrote `{"post_activity": false}` and rendered the confirmation page; bad token → page + 400 on POST; route: valid secret + comment notification → `{"skipped":"no_provider"}`, read notification → `already_read`, wrong secret → 401, bad digest body → 400.
+- Prod DB: trigger body has the `ops_alert` guard, `dm-digest` job scheduled, `last_emailed_at` column present.
+- **Not exercised:** a real send (no `RESEND_API_KEY` in Vercel yet).
+
+**Go-live for email (owner steps):** create a Resend API key (Sending access, domain pinkquill.com) → Vercel → pinkquill → Environment Variables: `RESEND_API_KEY`, `EMAIL_FROM="PinkQuill <noreply@pinkquill.com>"`, optional `EMAIL_UNSUBSCRIBE_SECRET` → redeploy → trigger one notification and check `notifications.emailed_at` + Resend → Emails.
