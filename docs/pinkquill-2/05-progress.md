@@ -11,8 +11,8 @@ Active program: the September 5 Pinkquill 2.0 brief, summarized in `README.md`.
 | 0 — Planning baseline | Complete for planning scope | Direction, source/browser audit, phase plan, and route inventory saved in this directory |
 | 1 — Design proof | 1A/1C delivered; 1B implemented with native keyboard check open | Connected local proof; `06-design-proof.md` |
 | 2 — Foundations | Implemented and verified (2A tokens, 2B controls/overlays, 2C frames) | `07-foundations.md`; 21 React checks; six-theme reference |
-| 3 — Navigation/feed | 3A shell and 3B Home/feed views implemented and verified; 3C explore/tags not started | `07-foundations.md`; shell + feed tests; Playwright guest shots |
-| 4 — Creation/content/Takes | Not started | |
+| 3 — Navigation/feed | Complete: 3A shell, 3B Home/feed views, 3C Explore/tags implemented and verified | `07-foundations.md`; shell, feed, explore tests; Playwright guest shots |
+| 4 — Creation/content/Takes | Not started (next) | |
 | 5 — Communities/conversation | Not started | |
 | 6 — Studio/collections/saved | Not started | |
 | 7 — Commerce discovery/listings | Not started | |
@@ -90,9 +90,20 @@ Date / baseline: 2026-09-05 / `e509c5a`.
 - **Decisions:** no greeting hero on Home; work starts after one toolbar row. Follow buttons in the aside are outline, not primary, so Create stays the only purple button in view.
 - **Revert boundary:** the files above; `git checkout app/globals.css components/feed components/layout/RightSidebar.tsx components/layout/navigation.tsx` and restore `FeedViewMenu.tsx`.
 
-## Exact next task: 3C Explore and tags
+## Batch 3C — Explore and tags — implemented and verified (2026-09-05, baseline `e509c5a`)
 
-Read `06-design-proof.md`, the third slice of `07-foundations.md`, and the 3B entry above. Migrate `components/explore/ExplorePageContent.tsx` and `app/tag/[tag]/page.tsx` onto `PageFrame`/`PageHeader`: replace their sticky surface headers with the page toolbar pattern used on Home (sentence-case heading, segmented or chip filters on tokens, sort control as an ActionMenu or segmented control), keep query state, filters, sorting, related tags, recommendation behaviour and back navigation. Reuse the shared `.post` card, Gallery tiles and `pq-feed-state` states. Verify guest and signed-in at 360/768/1280 and compare against Home for drift. Then update `04-route-coverage.md` rows for `/`, `/explore`, `/tag/[tag]` to "Redesigned (3)".
+- **Routes and components:** `/explore`, `/tag/[tag]`. `components/explore/ExplorePageContent.tsx` (rewritten on `PageFrame`/`PageHeader`), `app/tag/[tag]/page.tsx` (rewritten), `app/tag/[tag]/layout.tsx` (now renders inside `AppShell`; the route previously had no rail or bottom bar at all), new shared `components/ui/Tabs.tsx` + `components/ui/tabs.css` (tab row, chips, list rows), `components/search/SearchResultItem.tsx` (tag results now open `/tag/<name>`).
+- **What changed:** Explore has a page title and one-line lede, a real `tablist` (For you, Trending, Communities, Topics) with arrow-key movement and an underline, and the post-type filter as a shared ActionMenu on a chip trigger that names the active type; the desktop dropdown and the hand-rolled phone bottom sheet are gone. Topics is a list of rows without rank badges (count and "this week" as quiet meta). States use the shared feed states: alert with Try again, per-tab empty copy with a "Show all types" escape when a type filter hides everything, skeletons, end line. The tag page gets a back control, the tag as the title, the count as a lede, related tags as chips, and guest/member empty states. Both pages reuse `getPostTypePhrase` and the default avatar instead of a duplicated label table and a missing `/default-avatar.png`.
+- **Findings addressed:** UX-01 follow-through on discovery pages; a real bug: search tag results linked to `/explore?tag=` which Explore never read, so a tag search landed on an unfiltered page.
+- **Existing capabilities checked:** `useExplore` tabs, type filters, pagination, refresh and auto-retry untouched; `useTagPosts`/`useTrendingTags` untouched; PostCard actions preserved; Explore's ranking and recommendation behaviour untouched. No URL query state existed before and none was added.
+- **Evidence:** 4 tests in `components/explore/__tests__/explore.test.tsx` (TabRow semantics and keys; Explore tabs + type menu; filtered empty state escape; error retry and Topics rows); full suite 233 passing; `tsc` clean; ESLint warnings only. Browser (signed in, 1380px): Explore tabs, type menu (computed: fixed, z 1100, opaque), Topics, `/tag/color`. Playwright guest `/explore` and `/tag/poetry` at iPhone 12 / 768 / 1280 with no horizontal overflow.
+- **Untested:** a data set with trending tags (the local database returns none, so Topics shows its empty state); Communities tab with real community posts; real keyboard traversal of the tab row in a browser.
+- **Decisions:** a type filter is shown as "For you" in the tab row plus the named chip, not as a fifth tab; Explore is a 690px reading column like Classic Home.
+- **Revert boundary:** the files above; restoring `ExplorePageContent.tsx`, the tag page/layout and `SearchResultItem.tsx` from `e509c5a` and deleting `Tabs.tsx`/`tabs.css` (and its import) returns the old pages.
+
+## Exact next task: 4A post detail and actions
+
+Read `03-phases.md` §4A, `06-design-proof.md`, and the 3B/3C entries above. Reconcile the post detail page (`app/post/[id]/page.tsx`, 1,300 lines) and `components/feed/PostDetailModal.tsx` (1,280 lines) onto the shared card language and `PageFrame`: creator row, work, quiet action row, comments (`CommentItem`), deep-link highlights, reactions, relays, saves, share/DM share, menus, collaborations, moderation, content warnings and visibility gates all preserved. Define the explicit back/close contract for page vs modal. Extract presentation seams (header, body, actions, comments) shared by both instead of two copies where behaviour matches. Verify with a text post, an image post and a post with comments at 360/768/1280, guest and signed in.
 
 ## Open verification
 

@@ -100,7 +100,7 @@ export default function SearchResultItem(props: SearchResultItemProps) {
     const { data } = props as TagItemProps;
     return (
       <Link
-        href={`/explore?tag=${encodeURIComponent(data.tag)}`}
+        href={`/tag/${encodeURIComponent(data.tag)}`}
         onClick={onClick}
         className="flex items-center gap-3 px-4 py-2.5 hover:bg-accent/5 transition-colors duration-200 cursor-pointer"
       >
@@ -149,7 +149,7 @@ export default function SearchResultItem(props: SearchResultItemProps) {
       } else if (data.resultType === "community") {
         return `/community/${data.label.toLowerCase().replace(/\s+/g, "-")}`;
       } else {
-        return `/explore?tag=${encodeURIComponent(data.label.replace("#", ""))}`;
+        return `/tag/${encodeURIComponent(data.label.replace("#", ""))}`;
       }
     };
 

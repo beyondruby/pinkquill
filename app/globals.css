@@ -4,6 +4,7 @@
 @import "../components/ui/overlay.css"; /* layered surfaces */
 @import "../components/layout/shell.css"; /* application frame */
 @import "../components/feed/feed.css"; /* home feed frame */
+@import "../components/ui/tabs.css"; /* tabs, chips and list rows */
 
 /* ============================================================================
    THEME TOKEN LAYER

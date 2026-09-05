@@ -1,27 +1,35 @@
 "use client";
 
-import { useRef, useEffect, useCallback, useState } from "react";
-import { getTimeAgoCompact as getTimeAgo } from "@/lib/utils/time";
+import { useRef, useEffect, useCallback, useMemo } from "react";
+import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useExplore } from "@/lib/hooks/useExplore";
 import { useTrendingTags } from "@/lib/hooks/useTags";
 import type { ExploreTab } from "@/lib/hooks/useExplore";
 import PostCard from "@/components/feed/PostCard";
+import PostSkeleton from "@/components/feed/PostSkeleton";
 import type { PostProps, PostType } from "@/components/feed/PostCard/types";
-import Link from "next/link";
+import { PageFrame, PageHeader } from "@/components/layout/PageFrame";
+import { NavIcon } from "@/components/layout/navigation";
+import { TabRow } from "@/components/ui/Tabs";
+import ActionMenu, { type ActionMenuItem } from "@/components/ui/ActionMenu";
+import Button from "@/components/ui/Button";
+import { Spinner } from "@/components/ui/Loading";
+import { getPostTypePhrase } from "@/lib/feed-view/post-type-theme";
+import { getTimeAgoCompact } from "@/lib/utils/time";
+import { DEFAULT_AVATAR } from "@/lib/utils/image";
 
-// Primary navigation tabs
+// The four ways to look around, and the type filter that narrows any of them.
 const PRIMARY_TABS: { id: ExploreTab; label: string }[] = [
-  { id: "for-you", label: "For You" },
+  { id: "for-you", label: "For you" },
   { id: "trending", label: "Trending" },
   { id: "communities", label: "Communities" },
   { id: "topics", label: "Topics" },
 ];
 
-// Category filters for post types with icons
-const CATEGORY_FILTERS: { id: ExploreTab; label: string }[] = [
+const TYPE_FILTERS: { id: ExploreTab; label: string }[] = [
   { id: "poem", label: "Poetry" },
-  { id: "journal", label: "Journal" },
+  { id: "journal", label: "Journals" },
   { id: "thought", label: "Thoughts" },
   { id: "visual", label: "Visual" },
   { id: "essay", label: "Essays" },
@@ -29,89 +37,34 @@ const CATEGORY_FILTERS: { id: ExploreTab; label: string }[] = [
   { id: "quote", label: "Quotes" },
 ];
 
-// Loading skeleton component
-function PostSkeleton() {
-  return (
-    <div className="bg-surface rounded-2xl p-5 animate-pulse">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-11 h-11 rounded-full bg-skeleton" />
-        <div className="flex-1">
-          <div className="h-4 bg-skeleton rounded w-32 mb-2" />
-          <div className="h-3 bg-skeleton rounded w-24" />
-        </div>
-      </div>
-      <div className="space-y-2 mb-4">
-        <div className="h-4 bg-skeleton rounded w-full" />
-        <div className="h-4 bg-skeleton rounded w-5/6" />
-        <div className="h-4 bg-skeleton rounded w-4/6" />
-      </div>
-      <div className="h-48 bg-skeleton rounded-xl" />
-    </div>
-  );
-}
+const EMPTY_COPY: Record<ExploreTab, { title: string; text: string }> = {
+  "for-you": { title: "Nothing here yet", text: "Follow a few people and react to work you like, and this fills in around you." },
+  trending: { title: "Nothing trending right now", text: "Come back a little later to see what people are gathering around." },
+  communities: { title: "No community posts yet", text: "Posts from communities you might like will show up here." },
+  topics: { title: "No topics yet", text: "Tags people use in their posts appear here once there are a few." },
+  poem: { title: "No poetry yet", text: "Poems people share will appear here." },
+  journal: { title: "No journals yet", text: "Journal entries people share will appear here." },
+  thought: { title: "No thoughts yet", text: "Short thoughts people share will appear here." },
+  visual: { title: "No visual work yet", text: "Photos and visual work people share will appear here." },
+  essay: { title: "No essays yet", text: "Essays people share will appear here." },
+  story: { title: "No stories yet", text: "Stories people share will appear here." },
+  letter: { title: "No letters yet", text: "Letters people share will appear here." },
+  quote: { title: "No quotes yet", text: "Quotes people share will appear here." },
+};
 
-// Trending tags sidebar component
-function TrendingSidebar() {
-  const { tags, loading } = useTrendingTags(8);
-
-  if (loading) {
-    return (
-      <div className="bg-surface rounded-2xl p-5 animate-pulse">
-        <div className="h-5 bg-skeleton rounded w-32 mb-4" />
-        <div className="space-y-3">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="flex items-center gap-3">
-              <div className="h-4 bg-skeleton rounded w-24" />
-              <div className="h-3 bg-skeleton rounded w-12 ml-auto" />
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (tags.length === 0) {
-    return null;
-  }
-
-  return (
-    <div className="bg-surface rounded-2xl p-5 border border-border-light">
-      <h3 className="font-display text-sm text-ink mb-4">Trending Topics</h3>
-      <div className="space-y-2">
-        {tags.map((tag, index) => (
-          <Link
-            key={tag.name}
-            href={`/explore?tag=${encodeURIComponent(tag.name)}`}
-            className="flex items-center justify-between group py-2 px-2.5 -mx-2.5 rounded-lg hover:bg-accent/[0.04] transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <span className="font-ui text-[11px] text-muted w-3 tabular-nums">{index + 1}</span>
-              <span className="font-body text-sm text-ink group-hover:text-accent transition-colors">
-                {tag.name}
-              </span>
-            </div>
-            <span className="font-ui text-[11px] text-muted">{tag.post_count}</span>
-          </Link>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// Full Topics Tab View
-function TopicsTabView() {
+function TopicsList() {
   const { tags, loading } = useTrendingTags(30);
 
   if (loading) {
     return (
-      <div className="space-y-3">
-        {[...Array(8)].map((_, i) => (
-          <div key={i} className="flex items-center gap-4 p-4 bg-surface rounded-xl border border-border-light animate-pulse">
-            <div className="w-10 h-10 rounded-lg bg-skeleton" />
-            <div className="flex-1">
-              <div className="h-4 bg-skeleton rounded w-32 mb-2" />
-              <div className="h-3 bg-skeleton rounded w-20" />
-            </div>
+      <div className="pq-list" aria-hidden="true">
+        {[0, 1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="pq-list-row">
+            <span className="pq-skeleton w-10 h-10 rounded-[0.625rem]" />
+            <span className="grid gap-1.5 flex-1">
+              <span className="pq-skeleton h-3 w-32" />
+              <span className="pq-skeleton h-2.5 w-20" />
+            </span>
           </div>
         ))}
       </div>
@@ -120,184 +73,46 @@ function TopicsTabView() {
 
   if (tags.length === 0) {
     return (
-      <div className="text-center py-16">
-        <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-skeleton/60 flex items-center justify-center">
-          <svg className="w-6 h-6 text-muted/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
-          </svg>
-        </div>
-        <h3 className="font-display text-lg text-ink mb-2">No topics yet</h3>
-        <p className="font-body text-sm text-muted max-w-[280px] mx-auto">
-          Start creating posts with hashtags to see topics here.
-        </p>
+      <div className="pq-feed-state pq-feed-state--card">
+        <p className="pq-feed-state__title">{EMPTY_COPY.topics.title}</p>
+        <p className="pq-feed-state__text">{EMPTY_COPY.topics.text}</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-2">
-      {tags.map((tag, index) => (
-        <Link
-          key={tag.name}
-          href={`/tag/${encodeURIComponent(tag.name)}`}
-          className="flex items-center gap-4 p-4 bg-surface rounded-xl border border-border-light hover:border-accent/20 hover:shadow-md transition-all group"
-        >
-          {/* Rank Badge */}
-          <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-ui text-sm font-semibold flex-shrink-0 ${
-            index === 0
-              ? "bg-gradient-to-br from-purple-primary to-pink-vivid text-white"
-              : index === 1
-              ? "bg-purple-primary/20 text-purple-primary"
-              : index === 2
-              ? "bg-purple-primary/10 text-purple-primary/80"
-              : "bg-skeleton/70 text-muted"
-          }`}>
-            {index + 1}
-          </div>
-
-          {/* Tag Info */}
-          <div className="flex-1 min-w-0">
-            <div className="font-ui text-[0.95rem] font-medium text-ink truncate group-hover:text-accent transition-colors">
-              #{tag.name}
-            </div>
-            <div className="font-body text-[0.75rem] text-muted">
-              {tag.post_count} {tag.post_count === 1 ? "post" : "posts"}
-              {tag.recent_posts > 0 && (
-                <span className="text-purple-primary ml-2">
-                  +{tag.recent_posts} this week
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Arrow */}
-          <svg className="w-5 h-5 text-muted/40 group-hover:text-accent group-hover:translate-x-0.5 transition-all flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
+    <nav className="pq-list" aria-label="Topics">
+      {tags.map((tag) => (
+        <Link key={tag.name} href={`/tag/${encodeURIComponent(tag.name)}`} className="pq-list-row">
+          <span className="pq-list-row__mark" aria-hidden="true">#</span>
+          <span className="pq-list-row__text">
+            <span className="pq-list-row__title">#{tag.name}</span>
+            <span className="pq-list-row__meta">
+              {tag.post_count.toLocaleString()} {tag.post_count === 1 ? "post" : "posts"}
+              {tag.recent_posts > 0 && ` · ${tag.recent_posts} this week`}
+            </span>
+          </span>
+          <NavIcon name="back" className="rotate-180" />
         </Link>
       ))}
-    </div>
+    </nav>
   );
 }
 
-// Empty state component - minimal, no create button
-function EmptyState({ tab }: { tab: ExploreTab }) {
-  const messages: Record<ExploreTab, { title: string; subtitle: string }> = {
-    "for-you": {
-      title: "Nothing here yet",
-      subtitle: "Follow creators and engage with posts to see personalized recommendations.",
-    },
-    trending: {
-      title: "Nothing trending",
-      subtitle: "Check back later to see what's popular.",
-    },
-    communities: {
-      title: "No community posts",
-      subtitle: "Posts from communities you might like will appear here.",
-    },
-    topics: {
-      title: "No topics",
-      subtitle: "Trending topics will appear here.",
-    },
-    poem: {
-      title: "No poetry",
-      subtitle: "Poetry posts will appear here.",
-    },
-    journal: {
-      title: "No journal entries",
-      subtitle: "Journal posts will appear here.",
-    },
-    thought: {
-      title: "No thoughts",
-      subtitle: "Thought posts will appear here.",
-    },
-    visual: {
-      title: "No visual stories",
-      subtitle: "Visual posts will appear here.",
-    },
-    essay: {
-      title: "No essays",
-      subtitle: "Essay posts will appear here.",
-    },
-    story: {
-      title: "No stories",
-      subtitle: "Story posts will appear here.",
-    },
-    letter: {
-      title: "No letters",
-      subtitle: "Letter posts will appear here.",
-    },
-    quote: {
-      title: "No quotes",
-      subtitle: "Quote posts will appear here.",
-    },
-  };
+type ExplorePost = ReturnType<typeof useExplore>["posts"][number];
 
-  const { title, subtitle } = messages[tab];
-
-  return (
-    <div className="text-center py-20">
-      <div className="w-12 h-12 mx-auto mb-5 rounded-full bg-skeleton/60 flex items-center justify-center">
-        <svg className="w-5 h-5 text-muted/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-        </svg>
-      </div>
-      <h3 className="font-display text-lg text-ink mb-1.5">{title}</h3>
-      <p className="font-body text-sm text-muted max-w-[240px] mx-auto">{subtitle}</p>
-    </div>
-  );
-}
-
-// Helper function to transform post data for PostCard
-function transformPostForCard(post: {
-  id: string;
-  author_id: string;
-  type: string;
-  title: string | null;
-  content: string | null;
-  content_warning: string | null;
-  created_at: string;
-  media: { id: string; media_url: string; media_type: "image" | "video" | "audio"; caption: string | null; position: number }[];
-  admires_count: number;
-  reactions_count?: number;
-  comments_count: number;
-  relays_count: number;
-  user_has_admired: boolean;
-  user_has_saved: boolean;
-  user_has_relayed: boolean;
-  user_reaction_type: string | null;
-  hashtags?: string[];
-  author?: { username?: string; display_name?: string | null; avatar_url?: string | null };
-  community?: { slug: string; name: string; avatar_url: string | null } | null;
-  flair?: { id: string; community_id: string; name: string; color: string; emoji: string | null; position: number; created_at: string } | null;
-  collaborators?: { status: string; role: string | null; user: { id: string; username: string; display_name: string | null; avatar_url: string | null } }[];
-  mentions?: { user: { id: string; username: string; display_name: string | null; avatar_url: string | null } }[];
-}) {
-  const typeLabels: Record<string, string> = {
-    poem: "wrote a poem",
-    journal: "wrote in their journal",
-    thought: "shared a thought",
-    visual: "shared a visual story",
-    audio: "recorded a voice note",
-    video: "shared a video",
-    essay: "wrote an essay",
-    blog: "published a blog post",
-    story: "shared a story",
-    letter: "wrote a letter",
-    quote: "shared a quote",
-  };
-
+function transformPostForCard(post: ExplorePost): PostProps {
   return {
     id: post.id,
     authorId: post.author_id,
     author: {
       name: post.author?.display_name || post.author?.username || "Unknown",
       handle: `@${post.author?.username || "unknown"}`,
-      avatar: post.author?.avatar_url || "/default-avatar.png",
+      avatar: post.author?.avatar_url || DEFAULT_AVATAR,
     },
     type: post.type as PostType,
-    typeLabel: typeLabels[post.type] || "shared",
-    timeAgo: getTimeAgo(post.created_at),
+    typeLabel: getPostTypePhrase(post.type),
+    timeAgo: getTimeAgoCompact(post.created_at),
     createdAt: post.created_at,
     title: post.title || undefined,
     content: post.content || "",
@@ -313,9 +128,9 @@ function transformPostForCard(post: {
     isSaved: post.user_has_saved,
     isRelayed: post.user_has_relayed,
     reactionType: post.user_reaction_type,
-    community: post.community,
+    community: post.community ?? undefined,
     flair: post.flair || undefined,
-    collaborators: post.collaborators,
+    collaborators: (post.collaborators || []).map((c) => ({ ...c, status: c.status as "pending" | "accepted" | "declined" })),
     mentions: post.mentions,
     hashtags: post.hashtags,
   } as PostProps;
@@ -335,10 +150,7 @@ export default function ExplorePageContent() {
   } = useExplore(user?.id, { enabled: !authLoading });
   const loading = authLoading || exploreLoading;
 
-  const [showCategories, setShowCategories] = useState(false);
-  const [showMobileFilter, setShowMobileFilter] = useState(false);
   const observerRef = useRef<HTMLDivElement>(null);
-  const tabsScrollRef = useRef<HTMLDivElement>(null);
 
   // Auto-recovery: if loading is stuck for >12s, force a retry
   const retryCountRef = useRef(0);
@@ -357,11 +169,11 @@ export default function ExplorePageContent() {
     }
   }, [loading, posts.length, refresh]);
 
-  // Check if current tab is a category filter
-  const isCategory = CATEGORY_FILTERS.some(c => c.id === activeTab);
-  const isPrimaryTab = PRIMARY_TABS.some(t => t.id === activeTab);
+  const typeFilter = TYPE_FILTERS.find((c) => c.id === activeTab);
+  const isPrimaryTab = PRIMARY_TABS.some((t) => t.id === activeTab);
+  // A type filter narrows "For you"; the tab row shows that as its home.
+  const tabValue: ExploreTab = isPrimaryTab ? activeTab : "for-you";
 
-  // Infinite scroll observer
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -371,301 +183,95 @@ export default function ExplorePageContent() {
       },
       { threshold: 0.1 }
     );
-
-    if (observerRef.current) {
-      observer.observe(observerRef.current);
-    }
-
+    if (observerRef.current) observer.observe(observerRef.current);
     return () => observer.disconnect();
   }, [loadMore, pagination.hasMore, loading]);
 
-  const handlePostDeleted = useCallback((postId: string) => {
+  const handlePostDeleted = useCallback(() => {
     refresh();
   }, [refresh]);
 
-  const handleCategorySelect = (categoryId: ExploreTab) => {
-    setActiveTab(categoryId);
-    setShowCategories(false);
-    setShowMobileFilter(false);
-  };
+  const typeMenuItems = useMemo<ActionMenuItem[]>(() => [
+    { label: "All types", onSelect: () => setActiveTab("for-you"), tone: typeFilter ? "default" : "accent" },
+    ...TYPE_FILTERS.map((c) => ({
+      label: c.label,
+      onSelect: () => setActiveTab(c.id),
+      tone: (activeTab === c.id ? "accent" : "default") as ActionMenuItem["tone"],
+      dividerBefore: c.id === TYPE_FILTERS[0].id,
+    })),
+  ], [activeTab, setActiveTab, typeFilter]);
 
-  const handlePrimaryTabSelect = (tabId: ExploreTab) => {
-    setActiveTab(tabId);
-    setShowCategories(false);
-    setShowMobileFilter(false);
-  };
-
-  // Get current category label if active
-  const currentCategory = CATEGORY_FILTERS.find(c => c.id === activeTab);
+  const empty = EMPTY_COPY[activeTab];
 
   return (
-    <div className="min-h-screen">
-      {/* Header - Desktop */}
-      <header className="sticky top-(--pq-topbar) z-(--z-sticky) bg-surface border-b border-border-light hidden md:block">
-        <div className="max-w-[640px] lg:max-w-[780px] mx-auto px-4">
-          {/* Navigation Bar */}
-          <div className="flex items-center h-[52px]">
-            {/* Title */}
-            <h1 className="font-display text-lg text-ink mr-6">Explore</h1>
+    <PageFrame width="narrow">
+      <PageHeader
+        title="Explore"
+        lede="Wander through what people are making, by mood, by medium, or by what's catching on."
+      />
 
-            {/* Primary Tabs */}
-            <div className="flex items-center h-full">
-              {PRIMARY_TABS.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => handlePrimaryTabSelect(tab.id)}
-                  className={`relative h-full px-4 font-ui text-[14px] transition-colors ${
-                    activeTab === tab.id && isPrimaryTab
-                      ? "text-ink font-medium"
-                      : "text-muted hover:text-ink"
-                  }`}
-                >
-                  {tab.label}
-                  {activeTab === tab.id && isPrimaryTab && (
-                    <div className="absolute bottom-0 left-4 right-4 h-[2px] bg-gradient-to-r from-purple-primary to-pink-vivid rounded-full" />
-                  )}
-                </button>
-              ))}
-            </div>
-
-            {/* Divider */}
-            <div className="w-px h-5 bg-skeleton mx-3" />
-
-            {/* Categories Dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => setShowCategories(!showCategories)}
-                className={`flex items-center gap-1.5 h-8 px-3 rounded-lg font-ui text-[13px] transition-all ${
-                  isCategory
-                    ? "text-purple-primary bg-purple-primary/[0.06]"
-                    : "text-muted hover:text-ink hover:bg-subtle"
-                }`}
-              >
-                {isCategory ? currentCategory?.label : "All types"}
-                <svg className={`w-3.5 h-3.5 transition-transform ${showCategories ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-
-              {/* Categories Dropdown Menu */}
-              {showCategories && (
-                <>
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setShowCategories(false)}
-                  />
-                  <div className="absolute top-full left-0 mt-2 w-44 bg-surface rounded-xl shadow-xl shadow-black/[0.08] border border-border-light py-1.5 z-50">
-                    <button
-                      onClick={() => handlePrimaryTabSelect("for-you")}
-                      className={`w-full flex items-center justify-between px-4 py-2 text-left font-ui text-[13px] transition-colors ${
-                        !isCategory
-                          ? "text-purple-primary bg-purple-primary/[0.04]"
-                          : "text-ink hover:bg-subtle"
-                      }`}
-                    >
-                      <span>All types</span>
-                      {!isCategory && (
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
-                    </button>
-                    <div className="h-px bg-skeleton my-1.5 mx-3" />
-                    {CATEGORY_FILTERS.map((category) => (
-                      <button
-                        key={category.id}
-                        onClick={() => handleCategorySelect(category.id)}
-                        className={`w-full flex items-center justify-between px-4 py-2 text-left font-ui text-[13px] transition-colors ${
-                          activeTab === category.id
-                            ? "text-purple-primary bg-purple-primary/[0.04]"
-                            : "text-ink hover:bg-subtle"
-                        }`}
-                      >
-                        <span>{category.label}</span>
-                        {activeTab === category.id && (
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Header - Mobile */}
-      <header className="sticky top-(--pq-topbar) z-(--z-sticky) bg-surface border-b border-border-light md:hidden">
-        {/* Title Row with Filter Button */}
-        <div className="flex items-center justify-between px-4 h-12">
-          <h1 className="font-display text-lg text-ink">Explore</h1>
-
-          {/* Filter Button - Shows current category if selected */}
-          <button
-            onClick={() => setShowMobileFilter(true)}
-            className={`flex items-center gap-1.5 h-8 px-3 rounded-full font-ui text-[13px] transition-all ${
-              isCategory
-                ? "text-purple-primary bg-purple-primary/10"
-                : "text-muted bg-skeleton/70"
-            }`}
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-            </svg>
-            {isCategory ? currentCategory?.label : "Filter"}
-          </button>
-        </div>
-
-        {/* Scrollable Tabs */}
-        <div
-          ref={tabsScrollRef}
-          className="flex items-center overflow-x-auto scrollbar-hide px-4 pb-2 gap-1 -mx-4"
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-        >
-          <div className="flex items-center gap-1 px-4">
-            {PRIMARY_TABS.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => handlePrimaryTabSelect(tab.id)}
-                className={`relative flex-shrink-0 h-9 px-4 rounded-full font-ui text-[13px] transition-all ${
-                  activeTab === tab.id && isPrimaryTab
-                    ? "text-white bg-gradient-to-r from-purple-primary to-pink-vivid font-medium"
-                    : "text-ink bg-skeleton/70 active:bg-skeleton"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </header>
-
-      {/* Mobile Filter Modal */}
-      {showMobileFilter && (
-        <div className="fixed inset-0 z-50 md:hidden">
-          {/* Backdrop */}
-          <div
-            className="absolute inset-0 bg-black/40"
-            onClick={() => setShowMobileFilter(false)}
+      <div className="flex items-end justify-between gap-3 mb-5">
+        <TabRow
+          items={PRIMARY_TABS}
+          value={tabValue}
+          onChange={(id) => setActiveTab(id)}
+          ariaLabel="Explore"
+          className="flex-1 min-w-0"
+        />
+        {activeTab !== "topics" && (
+          <ActionMenu
+            items={typeMenuItems}
+            label="Post type"
+            buttonAriaLabel={typeFilter ? `Post type: ${typeFilter.label}` : "Post type: all"}
+            buttonClassName={`pq-chip ${typeFilter ? "" : ""}`.trim()}
+            trigger={
+              <>
+                <span aria-hidden="true">{typeFilter ? typeFilter.label : "All types"}</span>
+                <NavIcon name="back" className="-rotate-90 w-3.5 h-3.5" />
+              </>
+            }
+            widthClassName="w-48"
+            portal
           />
+        )}
+      </div>
 
-          {/* Bottom Sheet */}
-          <div className="absolute bottom-0 left-0 right-0 bg-surface rounded-t-2xl max-h-[70vh] overflow-hidden animate-slideUp">
-            {/* Handle */}
-            <div className="flex justify-center pt-3 pb-2">
-              <div className="w-10 h-1 rounded-full bg-black/10" />
-            </div>
-
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 pb-3 border-b border-border-light">
-              <h3 className="font-ui text-base font-medium text-ink">Filter by Type</h3>
-              <button
-                onClick={() => setShowMobileFilter(false)}
-                className="w-8 h-8 rounded-full bg-skeleton flex items-center justify-center"
-              >
-                <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            {/* Options */}
-            <div className="p-4 pb-8 overflow-y-auto" style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))' }}>
-              {/* All Types Option */}
-              <button
-                onClick={() => handlePrimaryTabSelect("for-you")}
-                className={`w-full flex items-center justify-between p-4 rounded-xl mb-2 transition-all ${
-                  !isCategory
-                    ? "bg-purple-primary/10 border-2 border-purple-primary"
-                    : "bg-skeleton/60 border-2 border-transparent"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                    !isCategory ? "bg-purple-primary text-white" : "bg-skeleton text-muted"
-                  }`}>
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                    </svg>
-                  </div>
-                  <span className={`font-ui text-[15px] ${!isCategory ? "text-purple-primary font-medium" : "text-ink"}`}>
-                    All Types
-                  </span>
-                </div>
-                {!isCategory && (
-                  <svg className="w-5 h-5 text-purple-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                )}
-              </button>
-
-              {/* Category Grid */}
-              <div className="grid grid-cols-2 gap-2">
-                {CATEGORY_FILTERS.map((category) => (
-                  <button
-                    key={category.id}
-                    onClick={() => handleCategorySelect(category.id)}
-                    className={`flex items-center gap-2 p-3 rounded-xl transition-all ${
-                      activeTab === category.id
-                        ? "bg-purple-primary/10 border-2 border-purple-primary"
-                        : "bg-skeleton/60 border-2 border-transparent active:bg-skeleton"
-                    }`}
-                  >
-                    <span className={`font-ui text-[14px] ${
-                      activeTab === category.id ? "text-purple-primary font-medium" : "text-ink"
-                    }`}>
-                      {category.label}
-                    </span>
-                    {activeTab === category.id && (
-                      <svg className="w-4 h-4 text-purple-primary ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Main Content */}
-      <main className="max-w-[640px] lg:max-w-[780px] mx-auto px-4 py-4 md:px-4 pb-20 md:pb-4">
-        {/* Topics Tab View */}
+      <div role="tabpanel" aria-label={PRIMARY_TABS.find((t) => t.id === tabValue)?.label}>
         {activeTab === "topics" ? (
-          <TopicsTabView />
+          <TopicsList />
         ) : (
           <>
-            {/* Error State */}
             {error && (
-              <div className="bg-red-50/50 border border-red-100 rounded-xl p-4 mb-4">
-                <p className="font-body text-sm text-red-600/90">{error}</p>
-                <button
-                  onClick={refresh}
-                  className="mt-2 font-ui text-[13px] text-red-600 hover:text-red-700 underline underline-offset-2"
-                >
-                  Try again
-                </button>
+              <div className="pq-feed-state pq-feed-state--card mb-4" role="alert">
+                <p className="pq-feed-state__title">Explore didn&rsquo;t load</p>
+                <p className="pq-feed-state__text">{error}</p>
+                <div className="pq-feed-state__actions">
+                  <Button variant="secondary" onClick={() => refresh()}>Try again</Button>
+                </div>
               </div>
             )}
 
-            {/* Loading State */}
-            {loading && posts.length === 0 && (
-              <div className="space-y-4">
-                {[...Array(3)].map((_, i) => (
-                  <PostSkeleton key={i} />
-                ))}
+            {loading && posts.length === 0 && !error && (
+              <div className="pq-feed-list">
+                <div role="status" aria-live="polite" className="sr-only">Loading</div>
+                {[0, 1, 2].map((i) => <PostSkeleton key={i} />)}
               </div>
             )}
 
-            {/* Posts */}
-            {!loading && posts.length === 0 ? (
-              <EmptyState tab={activeTab} />
-            ) : (
-              <div className="space-y-4">
+            {!loading && posts.length === 0 && !error && (
+              <div className="pq-feed-state pq-feed-state--card">
+                <p className="pq-feed-state__title">{empty.title}</p>
+                <p className="pq-feed-state__text">{empty.text}</p>
+                {typeFilter && (
+                  <div className="pq-feed-state__actions">
+                    <Button variant="secondary" onClick={() => setActiveTab("for-you")}>Show all types</Button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {posts.length > 0 && (
+              <div className="pq-feed-list">
                 {posts.map((post) => (
                   <PostCard
                     key={post.id}
@@ -675,28 +281,22 @@ export default function ExplorePageContent() {
                   />
                 ))}
 
-            {/* Loading More Indicator */}
-            {loading && posts.length > 0 && (
-              <div className="flex justify-center py-8">
-                <div className="w-5 h-5 border-[1.5px] border-border-light border-t-ink/60 rounded-full animate-spin" />
+                {loading && (
+                  <div className="pq-feed-more" role="status" aria-label="Loading more">
+                    <Spinner size="lg" />
+                  </div>
+                )}
+
+                <div ref={observerRef} className="h-4" />
+
+                {!pagination.hasMore && (
+                  <p className="pq-feed-end">That&rsquo;s everything for now.</p>
+                )}
               </div>
             )}
-
-            {/* Infinite Scroll Trigger */}
-            <div ref={observerRef} className="h-4" />
-
-            {/* End of Feed */}
-            {!pagination.hasMore && posts.length > 0 && (
-              <div className="text-center py-10">
-                <div className="inline-block w-8 h-px bg-black/10 mb-3" />
-                <p className="font-body text-[13px] text-muted/70">You&apos;re all caught up</p>
-              </div>
-            )}
-          </div>
+          </>
         )}
-        </>
-        )}
-      </main>
-    </div>
+      </div>
+    </PageFrame>
   );
 }

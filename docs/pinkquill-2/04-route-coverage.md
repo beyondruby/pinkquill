@@ -11,8 +11,8 @@ September 5 update: the four-screen proof and component reference live outside a
 | Route pattern | Source | Phase | Redesign status |
 |---|---|---|---|
 | `/` | [app/(feed)/page.tsx](../../app/(feed)/page.tsx) | 3 | Redesigned in 3B (frame, toolbar, three views, states, right column); media-rich cards to verify in Phase 4 |
-| `/explore` | [app/(feed)/explore/page.tsx](../../app/(feed)/explore/page.tsx) | 3 | Not started |
-| `/tag/[tag]` | [app/tag/[tag]/page.tsx](../../app/tag/[tag]/page.tsx) | 3 | Not started |
+| `/explore` | [app/(feed)/explore/page.tsx](../../app/(feed)/explore/page.tsx) | 3 | Redesigned in 3C (frame, tab row, type menu, topics list, states) |
+| `/tag/[tag]` | [app/tag/[tag]/page.tsx](../../app/tag/[tag]/page.tsx) | 3 | Redesigned in 3C (now inside AppShell; header, chips, states) |
 | `/create` | [app/(feed)/create/page.tsx](../../app/(feed)/create/page.tsx) | 4 | Not started |
 | `/pending-collaborations` | [app/(feed)/pending-collaborations/page.tsx](../../app/(feed)/pending-collaborations/page.tsx) | 4 | Not started |
 | `/post/[id]` | [app/post/[id]/page.tsx](../../app/post/[id]/page.tsx) | 4 | Not started |
