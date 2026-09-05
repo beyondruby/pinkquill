@@ -98,6 +98,7 @@ Ratios compare normal text to its fill and border/focus to the existing surface 
 | Application frame, page widths | `components/layout/shell.css`, `AppShell`, `PageFrame`/`PageHeader`; section sidebars (settings, seller, insights, console) stay with their phases |
 | Navigation destinations | `components/layout/navigation.tsx`; add or gate a destination here, never in a component |
 | Tabs, chips, list rows | `components/ui/Tabs.tsx` (`TabRow`) + `components/ui/tabs.css` (`.pq-tabs`, `.pq-chip`, `.pq-list`); first consumers Explore and the tag page, next studio/community/order tabs |
+| Post detail (page + modal) | `components/feed/PostDetail/*` + `components/feed/post-detail.css`; both surfaces render only through these seams |
 | Post card (`.post`, header, actions), stream rows, gallery tiles | `app/globals.css` "POST CARDS" section, retuned on tokens in 3B; shared by feed, studio, community and detail. Home frame classes live in `components/feed/feed.css` |
 
 The `Modal` `aria-hidden` ancestor is fixed and covered by a test. Phase 1B's native Tab/Shift+Tab boundary is covered by the JSDOM containment test and the shared handler; a real-keyboard pass in a browser is still listed as open verification.

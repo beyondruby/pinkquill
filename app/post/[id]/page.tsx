@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
@@ -9,26 +9,23 @@ import { useComments } from "@/lib/hooks/useComments";
 import { useToggleSave, useToggleRelay, useToggleReaction, useReactionCounts, useUserReaction, useBlock } from "@/lib/hooks/useInteractions";
 import { createNotification } from "@/lib/hooks/useNotifications";
 import type { ReactionType } from "@/lib/types";
-import { cleanHtmlForDisplay, stripHtmlPreserveLines } from "@/lib/utils/sanitize";
 import { deleteOwnPost } from "@/lib/content-client";
 import ShareModal from "@/components/ui/ShareModal";
 import ReportModal from "@/components/ui/ReportModal";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
-import CommentItem from "@/components/feed/CommentItem";
-import ReactionPicker from "@/components/feed/ReactionPicker";
-import { AudioPlayer } from "@/components/feed/AudioPlayer";
 import AppShell from "@/components/layout/AppShell";
 import { PageFrame } from "@/components/layout/PageFrame";
 import PostTags from "@/components/feed/PostTags";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { ModalErrorFallback } from "@/components/ui/ErrorFallbacks";
 import { icons } from "@/components/ui/Icons";
+import { NavIcon } from "@/components/layout/navigation";
+import { PostDetailHeader, PostDetailBody, PostDetailActions, Discussion, getDetailTone, type DetailPost } from "@/components/feed/PostDetail";
+import { DEFAULT_AVATAR } from "@/lib/utils/image";
 import ActionMenu, { type ActionMenuItem } from "@/components/ui/ActionMenu";
 import Loading from "@/components/ui/Loading";
-import type { PostBackground, PostStyling } from "@/lib/types";
-import { getTimeAgo, formatDate, formatTime } from "@/lib/utils/time";
-import FlairBadge from "@/components/communities/FlairBadge";
-import { getBackgroundStyle, isDarkBackground, getLuminance, extractColorsFromGradient } from "@/lib/utils/background";
+import type { PostStyling } from "@/lib/types";
+import { getTimeAgo } from "@/lib/utils/time";
 
 interface TaggedUser {
   id: string;
@@ -113,55 +110,6 @@ interface CollaboratorRow {
   user: CollaboratorUser["user"] | CollaboratorUser["user"][] | null;
 }
 
-function formatWeather(weather: string): string {
-  return weather.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-}
-
-function formatMood(mood: string): string {
-  return mood.charAt(0).toUpperCase() + mood.slice(1);
-}
-
-// Weather icons for journal display
-const weatherIcons: Record<string, React.ReactNode> = {
-  'sunny': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="5"/><path d="M12 1v3M12 20v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M1 12h3M20 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg>,
-  'partly-cloudy': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a5 5 0 0 0-4.9 4.03A5 5 0 0 0 3 11a5 5 0 0 0 5 5h9a4 4 0 0 0 0-8h-.35A5 5 0 0 0 12 2z"/></svg>,
-  'cloudy': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M17 18H7a5 5 0 0 1-.9-9.9 6 6 0 0 1 11.8 0A5 5 0 0 1 17 18z"/></svg>,
-  'rainy': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M17 13H7a5 5 0 0 1-.9-9.9 6 6 0 0 1 11.8 0A5 5 0 0 1 17 13zM8 17l-2 4M12 17l-2 4M16 17l-2 4"/></svg>,
-  'stormy': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M17 13H7a5 5 0 0 1-.9-9.9 6 6 0 0 1 11.8 0A5 5 0 0 1 17 13zM13 14l-4 8h5l-1 4"/></svg>,
-  'snowy': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M17 13H7a5 5 0 0 1-.9-9.9 6 6 0 0 1 11.8 0A5 5 0 0 1 17 13zM8 16h.01M12 16h.01M16 16h.01M8 20h.01M12 20h.01M16 20h.01"/></svg>,
-  'foggy': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M4 14h16M4 18h12M4 10h8"/></svg>,
-  'windy': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M9.59 4.59A2 2 0 1 1 11 8H2M12.59 19.41A2 2 0 1 0 14 16H2M17.73 7.73A2.5 2.5 0 1 1 19.5 12H2"/></svg>,
-};
-
-// Mood icons for journal display
-const moodIcons: Record<string, React.ReactNode> = {
-  'reflective': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>,
-  'joyful': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>,
-  'melancholic': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M16 16s-1.5-2-4-2-4 2-4 2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>,
-  'peaceful': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M8 14h8"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>,
-  'anxious': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M8 15h8"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>,
-  'grateful': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>,
-  'creative': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
-  'nostalgic': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
-};
-
-function getTypeLabel(type: string): string {
-  const labels: Record<string, string> = {
-    poem: "wrote a poem",
-    journal: "wrote in their journal",
-    thought: "shared a thought",
-    visual: "shared a visual story",
-    audio: "recorded a voice note",
-    video: "shared a video",
-    essay: "wrote an essay",
-    blog: "published a blog post",
-    story: "shared a story",
-    letter: "wrote a letter",
-    quote: "shared a quote",
-  };
-  return labels[type] || "shared something";
-}
-
 export default function PostPage() {
   const params = useParams();
   const router = useRouter();
@@ -191,6 +139,7 @@ export default function PostPage() {
   const [showContent, setShowContent] = useState(true);
 
   const { blockUser } = useBlock();
+  const commentInputRef = useRef<HTMLInputElement>(null);
 
   const { toggle: toggleSave } = useToggleSave();
   const { toggle: toggleRelay } = useToggleRelay();
@@ -711,59 +660,62 @@ export default function PostPage() {
     return (
       <AppShell>
         <PageFrame width="narrow">
-          <div className="text-center py-20">
-              <h1 className="font-display text-2xl text-ink mb-4">Post not found</h1>
-              <p className="font-body text-muted mb-6">This post may have been removed or doesn&apos;t exist.</p>
-              <Link href="/" className="inline-block px-6 py-3 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid font-ui text-white">
-                Back to feed
-              </Link>
+          <div className="pq-feed-state pq-feed-state--card" role="alert">
+            <h1 className="pq-feed-state__title">This post isn&rsquo;t here</h1>
+            <p className="pq-feed-state__text">It may have been removed, or the link may be wrong.</p>
+            <div className="pq-feed-state__actions">
+              <Link href="/" className="pq-button pq-button--md pq-button--secondary">Back to Home</Link>
+              <Link href="/explore" className="pq-button pq-button--md pq-button--primary">Explore</Link>
             </div>
+          </div>
         </PageFrame>
       </AppShell>
     );
   }
 
-  const audioMedia = post.media?.find((m) => m.media_type === "audio") || null;
-  const visualMedia = (post.media || []).filter((m) => m.media_type !== "audio");
-  const hasMedia = visualMedia.length > 0;
-  const audioCover = visualMedia.find((m) => m.media_type === "image")?.media_url || null;
-  const isVoicePost = (post.type as string) === "voice";
   const failedMediaCount = mediaFailedFromUrl ? Number(mediaFailedFromUrl) : 0;
   const hasFailedMediaNotice = Number.isFinite(failedMediaCount) && failedMediaCount > 0;
-  const hasBackground = Boolean(post.styling?.background);
-  const hasDarkBackground = isDarkBackground(post.styling?.background);
-  const titleColorClass = hasBackground
-    ? hasDarkBackground
-      ? "text-white"
-      : "text-[#1e1e1e]"
-    : "text-ink";
-  const bodyColorClass = titleColorClass;
-  const mutedColorClass = hasBackground
-    ? hasDarkBackground
-      ? "text-white/70"
-      : "text-[#4a4a4a]"
-    : "text-muted";
-  const subtleColorClass = hasBackground
-    ? hasDarkBackground
-      ? "text-white/50"
-      : "text-[#6b6b6b]"
-    : "text-muted";
-  const textAlignment = post.styling?.textAlignment || "left";
-  const lineSpacing = post.styling?.lineSpacing || "normal";
-  const dropCapEnabled = Boolean(post.styling?.dropCap);
+  const visualMedia = (post.media || []).filter((m) => m.media_type !== "audio");
+  const tone = getDetailTone(post.styling);
+  const detail: DetailPost = {
+    id: post.id,
+    authorId: post.author_id,
+    author: {
+      name: post.author.display_name || post.author.username,
+      handle: `@${post.author.username}`,
+      avatar: post.author.avatar_url || DEFAULT_AVATAR,
+    },
+    type: post.type,
+    timeAgo: getTimeAgo(post.created_at),
+    createdAt: post.created_at,
+    title: post.title || undefined,
+    content: post.content,
+    contentWarning: post.content_warning || undefined,
+    media: post.media || [],
+    mentions: post.mentions,
+    hashtags: post.hashtags,
+    collaborators: post.collaborators,
+    styling: post.styling,
+    post_location: post.post_location,
+    metadata: post.metadata,
+    spotify_track: post.spotify_track,
+    flair: post.flair,
+  };
 
-  const textAlignmentClass = {
-    left: "text-left",
-    center: "text-center",
-    right: "text-right",
-    justify: "text-justify",
-  }[textAlignment];
+  const goBack = () => {
+    if (typeof window !== "undefined" && window.history.length > 1) router.back();
+    else router.push("/");
+  };
 
-  const lineSpacingClass = {
-    normal: "leading-relaxed",
-    relaxed: "leading-[2]",
-    loose: "leading-[2.5]",
-  }[lineSpacing];
+  const focusConversation = () => {
+    const input = commentInputRef.current;
+    if (input) {
+      input.focus();
+      input.scrollIntoView({ behavior: "smooth", block: "center" });
+    } else {
+      document.querySelector(".pq-discussion")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
 
   return (
     <ErrorBoundary
@@ -771,483 +723,87 @@ export default function PostPage() {
       fallback={({ reset }) => <ModalErrorFallback onRetry={reset} />}
     >
       <AppShell>
-        <div className="max-w-[1100px] mx-auto py-6 px-4 md:py-8 md:px-6 flex flex-col lg:flex-row gap-6">
-          {/* Left Column - Post */}
-          <div className="flex-1 min-w-0">
-            {/* Post Card */}
-            <article className="bg-surface rounded-2xl shadow-sm border border-border-light overflow-hidden">
-            {/* Author Header */}
-            <div className="flex items-center gap-3 md:gap-4 p-4 md:p-6 border-b border-border-light">
-              <Link href={`/studio/${post.author.username}`}>
-                <img
-                  src={post.author.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"}
-                  alt={post.author.display_name || post.author.username}
-                  className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover border-2 border-white shadow-md hover:scale-110 transition-transform"
-                />
-              </Link>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Link href={`/studio/${post.author.username}`} className="font-ui text-[0.9rem] md:text-[1rem] font-medium text-ink hover:text-accent transition-colors truncate">
-                    {post.author.display_name || post.author.username}
-                  </Link>
-                  {post.flair && (
-                    <FlairBadge flair={post.flair} size="sm" />
-                  )}
-                  <span className="font-ui text-[0.75rem] md:text-[0.85rem] text-muted hidden sm:inline">
-                    {post.type === "journal" ? (
-                      <span className="inline-flex items-center gap-1.5">
-                        wrote in their{" "}
-                        <svg className="w-4 h-4 inline" viewBox="0 0 24 24" fill="none" stroke="url(#journalGradientPage)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <defs>
-                            <linearGradient id="journalGradientPage" x1="0%" y1="0%" x2="100%" y2="100%">
-                              <stop offset="0%" stopColor="#8e44ad" />
-                              <stop offset="50%" stopColor="#ff007f" />
-                              <stop offset="100%" stopColor="#ff9f43" />
-                            </linearGradient>
-                          </defs>
-                          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-                          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-                        </svg>
-                        <span className="font-medium bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm bg-clip-text text-transparent">
-                          Journal
-                        </span>
-                      </span>
-                    ) : (
-                      getTypeLabel(post.type)
-                    )}
-                  </span>
-                </div>
-                <span className="font-ui text-[0.7rem] md:text-[0.8rem] text-muted">
-                  {getTimeAgo(post.created_at)}
-                </span>
-              </div>
+        <PageFrame width="wide">
+          <button type="button" onClick={goBack} className="pq-detail__back pq-button pq-button--sm pq-button--ghost">
+            <NavIcon name="back" className="w-4 h-4" />
+            Back
+          </button>
 
-              {/* Post Options Menu */}
-              {(isOwner || user) && (
-                <ActionMenu
-                  label="Post actions"
-                  description={post?.title || "Share, manage, or report this post"}
-                  items={postMenuItems}
-                  buttonClassName="w-9 h-9 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-skeleton/60 transition-all"
-                  widthClassName="w-72"
-                  buttonAriaLabel="Post actions"
-                />
-              )}
-            </div>
-
-            {hasFailedMediaNotice && (
-              <div className="mx-4 md:mx-6 mt-4 rounded-xl border border-amber-300/60 bg-amber-50 px-4 py-3">
-                <p className="font-ui text-[0.85rem] text-amber-700">
-                  {failedMediaCount} media file{failedMediaCount === 1 ? "" : "s"} failed to upload when this post was published.
-                </p>
-              </div>
-            )}
-
-            {/* Post Content */}
-            <div className="p-4 md:p-6">
-              {/* Actual Content */}
-              <div className={`relative ${hasBackground ? "rounded-xl overflow-hidden" : ""}`}>
-                {hasBackground && (
-                  <div
-                    className="absolute inset-0"
-                    style={{
-                      ...getBackgroundStyle(post.styling?.background),
-                      opacity: post.styling?.background?.type === "image"
-                        ? (post.styling.background.opacity ?? 1)
-                        : 1,
-                      filter:
-                        post.styling?.background?.type === "image" && post.styling.background.blur
-                          ? `blur(${post.styling.background.blur}px)`
-                          : undefined,
-                    }}
+          <div className="pq-detail">
+            <article className="pq-detail__card" aria-label={post.title ? `${post.title} by ${detail.author.name}` : `Post by ${detail.author.name}`}>
+              <PostDetailHeader
+                post={detail}
+                tone={tone}
+                trailing={user ? (
+                  <ActionMenu
+                    label="Post actions"
+                    items={postMenuItems}
+                    buttonClassName="pq-icon-button"
+                    widthClassName="w-64"
+                    buttonAriaLabel="Post actions"
+                    portal
                   />
-                )}
-                {post.styling?.background?.type === "image" && (
-                  <div className="absolute inset-0 bg-black/30" />
-                )}
-                <div className={hasBackground ? "relative z-10 p-4 md:p-6" : ""}>
-                {/* Journal Header - Beautiful date, time, and metadata */}
-                {post.type === "journal" && (
-                  <div className="journal-header mb-6">
-                    {/* Date with Time on same line */}
-                    <div className="flex items-center gap-4 mb-4">
-                      <h2 className={`font-display text-2xl md:text-3xl font-normal tracking-tight ${hasBackground ? titleColorClass : hasDarkBackground ? "text-white" : "text-purple-primary"}`}>
-                        {formatDate(post.created_at)}
-                      </h2>
-                      <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-ui ${hasBackground ? hasDarkBackground ? "bg-white/10 text-white" : "bg-black/5 text-[#1e1e1e]" : hasDarkBackground ? "bg-surface/20 text-white" : "bg-gradient-to-r from-purple-primary/10 to-pink-vivid/10 text-purple-primary"}`}>
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                          <circle cx="12" cy="12" r="10" />
-                          <path d="M12 6v6l4 2" />
-                        </svg>
-                        {formatTime(post.created_at)}
-                      </span>
-                    </div>
-
-                    {/* Location, Weather, Mood - Same line with creative spacing */}
-                    {(post.post_location || post.metadata?.weather || post.metadata?.temperature || post.metadata?.mood) && (
-                      <div className={`flex flex-wrap items-center gap-x-6 gap-y-3 mb-5 ${mutedColorClass}`}>
-                        {/* Location */}
-                        {post.post_location && (
-                          <div className="flex items-center gap-2">
-                            <svg className={`w-4 h-4 ${hasBackground ? subtleColorClass : hasDarkBackground ? "text-white/80" : "text-purple-primary/70"}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                            </svg>
-                            <span className="font-ui text-sm">{post.post_location}</span>
-                          </div>
-                        )}
-
-                        {/* Separator dot */}
-                        {post.post_location && (post.metadata?.weather || post.metadata?.temperature) && (
-                          <span className={`hidden sm:block w-1 h-1 rounded-full ${hasBackground ? hasDarkBackground ? "bg-white/30" : "bg-black/25" : "bg-purple-primary/30"}`} />
-                        )}
-
-                        {/* Weather with temperature */}
-                        {(post.metadata?.weather || post.metadata?.temperature) && (
-                          <div className="flex items-center gap-2">
-                            <span className={hasBackground ? subtleColorClass : "text-purple-primary/70"}>
-                              {post.metadata?.weather ? weatherIcons[post.metadata.weather] : (
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                  <path d="M14 4a6 6 0 00-6 6c0 2.5 1.5 4.5 3.5 5.5L10 20h4l-1.5-4.5c2-1 3.5-3 3.5-5.5a6 6 0 00-2-4.5" />
-                                </svg>
-                              )}
-                            </span>
-                            <span className="font-ui text-sm">
-                              {post.metadata?.temperature}
-                              {post.metadata?.temperature && post.metadata?.weather && <span className="mx-1 opacity-40">·</span>}
-                              {post.metadata?.weather && formatWeather(post.metadata.weather)}
-                            </span>
-                          </div>
-                        )}
-
-                        {/* Separator dot */}
-                        {(post.metadata?.weather || post.metadata?.temperature) && post.metadata?.mood && (
-                          <span className={`hidden sm:block w-1 h-1 rounded-full ${hasBackground ? hasDarkBackground ? "bg-white/30" : "bg-black/25" : "bg-purple-primary/30"}`} />
-                        )}
-
-                        {/* Mood with prefix */}
-                        {post.metadata?.mood && (
-                          <div className="flex items-center gap-2">
-                            <span className={hasBackground ? subtleColorClass : "text-purple-primary/70"}>
-                              {moodIcons[post.metadata.mood] || moodIcons['reflective']}
-                            </span>
-                            <span className="font-ui text-sm">
-                              <span className={mutedColorClass}>Mood:</span>
-                              {' '}
-                              <span className="italic">{formatMood(post.metadata.mood)}</span>
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Elegant divider line */}
-                    <div className={`h-px w-full ${hasBackground ? hasDarkBackground ? "bg-gradient-to-r from-white/25 via-white/10 to-transparent" : "bg-gradient-to-r from-black/20 via-black/10 to-transparent" : "bg-gradient-to-r from-purple-primary/30 via-pink-vivid/20 to-transparent"}`} />
-                  </div>
-                )}
-
-                {/* Spotify Track Embed */}
-                {post.spotify_track && (
-                  <div className="mb-6">
-                    <div className="rounded-xl overflow-hidden bg-gradient-to-r from-[#1DB954]/5 to-[#191414]/5 border border-[#1DB954]/20">
-                      <iframe
-                        src={`https://open.spotify.com/embed/track/${post.spotify_track.id}?utm_source=generator&theme=1`}
-                        width="100%"
-                        height="152"
-                        frameBorder="0"
-                        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                        loading="lazy"
-                        className="rounded-xl"
-                        title={`${post.spotify_track.name} by ${post.spotify_track.artist}`}
-                      />
-                    </div>
-                    <div className={`flex items-center justify-center gap-2 mt-2 ${mutedColorClass}`}>
-                      <svg className="w-4 h-4 text-[#1DB954]" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
-                      </svg>
-                      <span className="font-ui text-xs opacity-60">Listening to this track</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Sound / Voice — inline branded waveform player */}
-                {audioMedia && (
-                  <div className="mb-6">
-                    <AudioPlayer
-                      src={audioMedia.media_url}
-                      title={post.title || undefined}
-                      cover={isVoicePost ? null : audioCover}
-                      variant={isVoicePost ? "voice" : "card"}
-                    />
-                  </div>
-                )}
-
-                {post.title && (
-                  <h1
-                    className={`font-display text-[1.3rem] md:text-[1.6rem] ${titleColorClass} mb-3 md:mb-4 leading-tight ${
-                      post.type === "poem" ? "text-center" : textAlignmentClass
-                    }`}
-                  >
-                    {post.title}
-                  </h1>
-                )}
-
-                {post.type === "poem" ? (
-                  <div
-                    className={`font-body text-[1rem] md:text-[1.15rem] ${bodyColorClass} italic text-center whitespace-pre-line py-3 md:py-4 post-content ${lineSpacingClass} ${dropCapEnabled ? "drop-cap-enabled" : ""}`}
-                  >
-                    {stripHtmlPreserveLines(post.content)}
-                  </div>
-                ) : (
-                  <div
-                    className={`font-body text-[0.95rem] md:text-[1.05rem] ${bodyColorClass} post-content ${textAlignmentClass} ${lineSpacingClass} ${dropCapEnabled ? "drop-cap-enabled" : ""}`}
-                    dangerouslySetInnerHTML={{ __html: cleanHtmlForDisplay(post.content) }}
-                  />
-                )}
-
-              {/* Media Gallery */}
-              {hasMedia && (
-                <div className="mt-6">
-                  <div className="relative rounded-xl overflow-hidden bg-subtle">
-                    {visualMedia[currentMediaIndex]?.media_type === "video" ? (
-                      <video
-                        src={visualMedia[currentMediaIndex].media_url}
-                        className="w-full max-h-[500px] object-contain bg-black"
-                        controls
-                        playsInline
-                      />
-                    ) : (
-                      <img
-                        src={visualMedia[currentMediaIndex]?.media_url}
-                        alt=""
-                        className="w-full max-h-[500px] object-cover cursor-pointer hover:opacity-95 transition-opacity"
-                        onClick={() => {
-                          window.dispatchEvent(new CustomEvent("openLightbox", {
-                            detail: { images: visualMedia, index: currentMediaIndex }
-                          }));
-                        }}
-                      />
-                    )}
-
-                    {visualMedia.length > 1 && (
-                      <>
-                        <button
-                          onClick={() => setCurrentMediaIndex((prev) => (prev === 0 ? visualMedia.length - 1 : prev - 1))}
-                          className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-surface/90 backdrop-blur-sm shadow-lg flex items-center justify-center text-ink hover:bg-surface transition-all"
-                        >
-                          {icons.chevronLeft}
-                        </button>
-                        <button
-                          onClick={() => setCurrentMediaIndex((prev) => (prev === visualMedia.length - 1 ? 0 : prev + 1))}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-surface/90 backdrop-blur-sm shadow-lg flex items-center justify-center text-ink hover:bg-surface transition-all"
-                        >
-                          {icons.chevronRight}
-                        </button>
-                      </>
-                    )}
-                  </div>
-
-                  {visualMedia[currentMediaIndex]?.caption && (
-                    <p className={`text-center font-body text-[0.9rem] italic mt-3 ${mutedColorClass}`}>
-                      {visualMedia[currentMediaIndex].caption}
-                    </p>
-                  )}
-
-                  {visualMedia.length > 1 && (
-                    <div className="flex gap-2 justify-center mt-4">
-                      {visualMedia.map((item, idx) => (
-                        <button
-                          key={item.id}
-                          onClick={() => setCurrentMediaIndex(idx)}
-                          className={`w-14 h-14 rounded-lg overflow-hidden transition-all ${
-                            idx === currentMediaIndex
-                              ? "ring-2 ring-purple-primary ring-offset-2"
-                              : "opacity-60 hover:opacity-100"
-                          }`}
-                        >
-                          <img src={item.media_url} alt="" className="w-full h-full object-cover" />
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-                </div>
-                {/* Content Warning Overlay */}
-                {post.content_warning && !showContent && (
-                  <div className={`absolute inset-0 z-20 flex flex-col items-center justify-center backdrop-blur-2xl ${hasBackground ? hasDarkBackground ? "bg-black/40" : "bg-white/60" : hasDarkBackground ? "bg-black/40" : "bg-surface/40"} rounded-xl`}>
-                    <div className="relative text-center px-8 py-10">
-                      <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-amber-500/10 border border-amber-500/20 mb-5">
-                        <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                        <span className="font-ui text-sm font-semibold text-amber-700">Content Warning</span>
-                      </div>
-
-                      <p className={`font-body text-base mb-6 max-w-md mx-auto ${bodyColorClass}`}>{post.content_warning}</p>
-
-                      <button
-                        onClick={() => setShowContent(true)}
-                        className={`px-6 py-2.5 rounded-full font-ui text-sm font-medium transition-colors ${
-                          hasBackground
-                            ? hasDarkBackground
-                              ? "text-[#1e1e1e] bg-white/90 hover:bg-white"
-                              : "text-white bg-[#1e1e1e]/85 hover:bg-[#1e1e1e]"
-                            : "text-white bg-ink/80 hover:bg-ink"
-                        }`}
-                      >
-                        Show Content
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Tags Section (Collaborators + Tagged People + Hashtags) */}
-            <div className="px-6">
-              <PostTags
-                collaborators={post.collaborators}
-                mentions={post.mentions}
-                hashtags={post.hashtags}
+                ) : undefined}
               />
-            </div>
 
-            {/* Action Buttons */}
-            <div className="flex items-center gap-1.5 md:gap-2 px-4 md:px-6 py-3 md:py-4 border-t border-border-light flex-wrap">
-              {/* Reaction Picker */}
-              <ReactionPicker
-                currentReaction={userReaction}
+              <PostDetailBody
+                post={detail}
+                tone={tone}
+                headingLevel="h1"
+                mediaIndex={currentMediaIndex}
+                onMediaIndexChange={setCurrentMediaIndex}
+                revealed={showContent}
+                onReveal={() => setShowContent(true)}
+                notice={hasFailedMediaNotice ? (
+                  <p className="pq-detail__notice" role="status">
+                    {failedMediaCount} media file{failedMediaCount === 1 ? "" : "s"} failed to upload when this post was published.
+                  </p>
+                ) : undefined}
+              />
+
+              <div className="pq-detail__tags">
+                <PostTags collaborators={post.collaborators} mentions={post.mentions} hashtags={post.hashtags} />
+              </div>
+
+              <PostDetailActions
+                signedIn={!!user}
+                isOwner={!!isOwner}
+                userReaction={userReaction}
                 reactionCounts={reactionCounts}
                 onReact={handleReaction}
                 onRemoveReaction={handleRemoveReaction}
-                disabled={!user}
+                commentCount={comments.length}
+                onComment={focusConversation}
+                relayCount={relayCount}
+                isRelayed={isRelayed}
+                onRelay={handleRelay}
+                onShare={() => setShowShareModal(true)}
+                isSaved={isSaved}
+                onSave={handleSave}
               />
+            </article>
 
-              <button
-                className="flex items-center gap-1.5 px-3 md:px-4 py-2 md:py-2.5 rounded-full bg-skeleton/70 text-muted hover:bg-purple-50 hover:text-accent transition-all"
-              >
-                {icons.comment}
-                {comments.length > 0 && <span className="text-xs md:text-sm font-medium">{comments.length}</span>}
-              </button>
-
-              {!isOwner && (
-                <button
-                  onClick={handleRelay}
-                  disabled={!user}
-                  className={`flex items-center gap-1.5 px-3 md:px-4 py-2 md:py-2.5 rounded-full transition-all ${
-                    isRelayed
-                      ? "bg-green-500/10 text-green-600"
-                      : "bg-skeleton/70 text-muted hover:bg-purple-50 hover:text-accent"
-                  } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
-                >
-                  {icons.relay}
-                  {relayCount > 0 && <span className="text-xs md:text-sm font-medium">{relayCount}</span>}
-                </button>
-              )}
-
-              <div className="flex-1" />
-
-              <button
-                onClick={() => setShowShareModal(true)}
-                className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-skeleton/70 flex items-center justify-center text-muted hover:bg-purple-50 hover:text-accent transition-all"
-              >
-                {icons.share}
-              </button>
-
-              <button
-                onClick={handleSave}
-                disabled={!user}
-                className={`w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all ${
-                  isSaved
-                    ? "bg-amber-500/10 text-amber-600"
-                    : "bg-skeleton/70 text-muted hover:bg-purple-50 hover:text-accent"
-                } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
-              >
-                {isSaved ? icons.bookmarkFilled : icons.bookmark}
-              </button>
-            </div>
-          </article>
+            <Discussion
+              ref={commentInputRef}
+              comments={comments}
+              loading={commentsLoading}
+              currentUserId={user?.id}
+              currentUserAvatar={profile?.avatar_url}
+              signedIn={!!user}
+              signInHref={`/login?redirect=${encodeURIComponent(`/post/${postId}`)}`}
+              value={commentText}
+              onValueChange={setCommentText}
+              onSubmit={handleAddComment}
+              submitting={submitting}
+              onLike={handleCommentLike}
+              onReply={handleCommentReply}
+              onLoadReplies={fetchReplies}
+              onDelete={handleCommentDelete}
+            />
           </div>
-
-          {/* Right Column - Discussion */}
-          <div className="w-full lg:w-[360px] flex-shrink-0">
-            <section className="bg-surface rounded-2xl shadow-sm border border-border-light overflow-hidden lg:sticky lg:top-[86px]">
-              <div className="p-4 md:p-5 border-b border-border-light">
-                <h2 className="font-ui text-[0.9rem] md:text-[1rem] font-medium text-ink flex items-center gap-2">
-                  {icons.comment}
-                  Discussion ({comments.length})
-                </h2>
-              </div>
-
-            {/* Comment Input */}
-            {user ? (
-              <div className="p-4 border-b border-border-light flex gap-3 items-center">
-                <img
-                  src={profile?.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"}
-                  alt="You"
-                  className="w-9 h-9 rounded-full object-cover flex-shrink-0"
-                />
-                <div className="flex-1 flex items-center bg-subtle rounded-full px-4 focus-within:bg-surface focus-within:ring-2 focus-within:ring-purple-primary transition-all">
-                  <input
-                    type="text"
-                    value={commentText}
-                    onChange={(e) => setCommentText(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleAddComment()}
-                    placeholder="Add to the conversation..."
-                    disabled={submitting}
-                    className="flex-1 py-2.5 border-none bg-transparent outline-none font-body text-[0.9rem] text-ink placeholder:text-muted/60"
-                  />
-                </div>
-                <button
-                  onClick={handleAddComment}
-                  disabled={submitting || !commentText.trim()}
-                  className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white flex items-center justify-center hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {icons.send}
-                </button>
-              </div>
-            ) : (
-              <div className="p-4 border-b border-border-light text-center">
-                <p className="font-ui text-[0.9rem] text-muted">
-                  <Link href="/login" className="text-purple-primary hover:underline">Sign in</Link> to comment
-                </p>
-              </div>
-            )}
-
-            {/* Comments List */}
-            <div className="p-4 max-h-[calc(100vh-280px)] overflow-y-auto">
-              {commentsLoading ? (
-                <div className="flex justify-center py-8">
-                  <Loading size="small" text="" />
-                </div>
-              ) : comments.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="font-body text-muted italic">No comments yet. Start the conversation!</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {comments.map((comment) => (
-                    <CommentItem
-                      key={comment.id}
-                      comment={comment}
-                      currentUserId={user?.id}
-                      onLike={handleCommentLike}
-                      onReply={handleCommentReply}
-                      onLoadReplies={fetchReplies}
-                      onDelete={handleCommentDelete}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          </section>
-          </div>
-        </div>
+        </PageFrame>
       </AppShell>
 
-      {/* Share Modal */}
       <ShareModal
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
@@ -1255,54 +811,34 @@ export default function PostPage() {
         title={post.title || post.content.substring(0, 100)}
         description={post.content.substring(0, 200)}
         type={post.type}
-        authorName={post.author.display_name || post.author.username}
+        authorName={detail.author.name}
         authorUsername={post.author.username}
         authorAvatar={post.author.avatar_url || ""}
         imageUrl={visualMedia.length > 0 ? visualMedia[0].media_url : ""}
       />
 
-      {/* Delete Confirmation Modal */}
       <ConfirmationModal
         isOpen={showDeleteConfirm}
         onClose={() => setShowDeleteConfirm(false)}
         onConfirm={handleDelete}
-        title="Delete Post?"
-        description="This action cannot be undone. This will permanently delete your post and remove all associated data including comments, admires, and saves."
-        confirmText="Delete"
+        title="Erase this from your studio?"
+        description="The post, its admires, and the conversation around it will fade for good. This page won't remember it."
+        confirmText="Erase it"
         isDanger
         loading={deleting}
       />
 
-      {/* Block Confirmation Modal */}
-      {showBlockConfirm && post && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] animate-fadeIn">
-          <div className="bg-surface rounded-2xl p-6 max-w-sm w-full mx-4 animate-scaleIn">
-            <h3 className="font-display text-lg font-semibold text-ink mb-2">
-              Block @{post.author.username}?
-            </h3>
-            <p className="font-body text-sm text-muted mb-6">
-              They won&apos;t be able to see your posts, follow you, or message you. They won&apos;t be notified.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowBlockConfirm(false)}
-                className="flex-1 py-2.5 rounded-full border border-border-light font-ui text-sm font-medium text-ink hover:bg-subtle transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleBlock}
-                disabled={isBlocking}
-                className="flex-1 py-2.5 rounded-full bg-red-500 text-white font-ui text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-50"
-              >
-                {isBlocking ? "Blocking..." : "Block"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmationModal
+        isOpen={showBlockConfirm}
+        onClose={() => !isBlocking && setShowBlockConfirm(false)}
+        onConfirm={handleBlock}
+        title={`Block @${post.author.username}?`}
+        description="They won't be able to see your posts, follow you, or message you. They won't be notified."
+        confirmText="Block"
+        isDanger
+        loading={isBlocking}
+      />
 
-      {/* Report Modal */}
       {showReportModal && (
         <ReportModal
           isOpen={showReportModal}

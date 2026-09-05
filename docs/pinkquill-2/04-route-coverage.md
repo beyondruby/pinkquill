@@ -15,7 +15,7 @@ September 5 update: the four-screen proof and component reference live outside a
 | `/tag/[tag]` | [app/tag/[tag]/page.tsx](../../app/tag/[tag]/page.tsx) | 3 | Redesigned in 3C (now inside AppShell; header, chips, states) |
 | `/create` | [app/(feed)/create/page.tsx](../../app/(feed)/create/page.tsx) | 4 | Not started |
 | `/pending-collaborations` | [app/(feed)/pending-collaborations/page.tsx](../../app/(feed)/pending-collaborations/page.tsx) | 4 | Not started |
-| `/post/[id]` | [app/post/[id]/page.tsx](../../app/post/[id]/page.tsx) | 4 | Not started |
+| `/post/[id]` | [app/post/[id]/page.tsx](../../app/post/[id]/page.tsx) | 4 | Redesigned in 4A (shared PostDetail seams, conversation card, back contract); media-rich and commented posts to verify |
 | `/take/[id]` | [app/take/[id]/page.tsx](../../app/take/[id]/page.tsx) | 4 | Not started |
 | `/takes` | [app/takes/page.tsx](../../app/takes/page.tsx) | 4 | Not started |
 | `/takes/create` | [app/takes/create/page.tsx](../../app/takes/create/page.tsx) | 4 | Not started |
