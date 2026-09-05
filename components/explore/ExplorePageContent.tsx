@@ -401,7 +401,7 @@ export default function ExplorePageContent() {
   return (
     <div className="min-h-screen">
       {/* Header - Desktop */}
-      <header className="sticky top-0 z-40 bg-surface border-b border-border-light hidden md:block">
+      <header className="sticky top-(--pq-topbar) z-(--z-sticky) bg-surface border-b border-border-light hidden md:block">
         <div className="max-w-[640px] lg:max-w-[780px] mx-auto px-4">
           {/* Navigation Bar */}
           <div className="flex items-center h-[52px]">
@@ -498,7 +498,7 @@ export default function ExplorePageContent() {
       </header>
 
       {/* Header - Mobile */}
-      <header className="sticky top-0 z-40 bg-surface border-b border-border-light md:hidden">
+      <header className="sticky top-(--pq-topbar) z-(--z-sticky) bg-surface border-b border-border-light md:hidden">
         {/* Title Row with Filter Button */}
         <div className="flex items-center justify-between px-4 h-12">
           <h1 className="font-display text-lg text-ink">Explore</h1>

@@ -269,7 +269,7 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
       </div>
 
       {/* Separate Tab Navigation Bar */}
-      <div className="sticky top-0 z-40 bg-surface/95 backdrop-blur-xl border-b border-ink/5 shadow-sm">
+      <div className="sticky top-(--pq-topbar) z-(--z-sticky) bg-surface/95 backdrop-blur-xl border-b border-ink/5 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 md:px-12 lg:px-16">
           <div className="flex items-center justify-between gap-2">
             {/* Tabs — scrollable on mobile */}

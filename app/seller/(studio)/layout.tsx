@@ -4,10 +4,8 @@ import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useSellerSetupStatus } from "@/lib/hooks/useSellerProfile";
-import LeftSidebar from "@/components/layout/LeftSidebar";
+import AppShell from "@/components/layout/AppShell";
 import SellerSidebar, { SellerMobileNav } from "@/components/seller/SellerSidebar";
-import MobileHeader from "@/components/layout/MobileHeader";
-import MobileBottomNav from "@/components/layout/MobileBottomNav";
 import { FullPageLoading } from "@/components/ui/Loading";
 import AuthUnavailable from "@/components/auth/AuthUnavailable";
 
@@ -52,37 +50,29 @@ export default function SellerLayout({
   // Setup page renders without seller sidebar
   if (isSetupPage) {
     return (
-      <>
-        <MobileHeader />
-        <LeftSidebar />
-        <div className="pt-16 pb-20 md:pt-0 md:pb-0 md:ml-[72px] min-h-screen">
-          <main className="bg-canvas p-4 md:p-8 overflow-y-auto">
-            <div className="max-w-6xl mx-auto">
-              {children}
-            </div>
-          </main>
+      <AppShell>
+        <div className="bg-canvas p-4 md:p-8">
+          <div className="max-w-6xl mx-auto">
+            {children}
+          </div>
         </div>
-        <MobileBottomNav />
-      </>
+      </AppShell>
     );
   }
 
   return (
-    <>
-      <MobileHeader />
-      <LeftSidebar />
-      <div className="pt-16 pb-20 md:pt-0 md:pb-0 md:ml-[72px] min-h-screen flex flex-col md:flex-row">
+    <AppShell>
+      <div className="min-h-[calc(100dvh-var(--pq-topbar)-var(--pq-bottom-nav))] flex flex-col md:flex-row">
         <SellerMobileNav />
         <div className="relative hidden md:block">
           <SellerSidebar />
         </div>
-        <main className="flex-1 bg-canvas p-4 md:p-8 overflow-y-auto">
+        <div className="flex-1 bg-canvas p-4 md:p-8 overflow-y-auto">
           <div className="max-w-6xl mx-auto">
             {children}
           </div>
-        </main>
+        </div>
       </div>
-      <MobileBottomNav />
-    </>
+    </AppShell>
   );
 }

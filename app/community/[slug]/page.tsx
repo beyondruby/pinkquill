@@ -379,7 +379,7 @@ export default function CommunityFeedPage() {
 
       {/* Sidebar */}
       <div className="hidden lg:block">
-        <div className="sticky top-16 space-y-5">
+        <div className="sticky top-[calc(var(--pq-topbar)+1rem)] space-y-5">
           {/* About Card - Combined with members */}
           <div className="relative overflow-hidden rounded-2xl bg-surface/80 backdrop-blur-sm border border-purple-primary/10 p-5">
             <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-purple-primary/5 to-transparent rounded-bl-full" />

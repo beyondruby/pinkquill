@@ -84,7 +84,7 @@ export function FeedViewMenu() {
     <>
       {/* Desktop: always-expanded rail */}
       <div
-        className="fixed top-6 md:top-8 right-4 lg:right-[296px] z-20 hidden md:flex flex-row gap-1 p-1.5 rounded-full bg-surface/80 border border-border-light backdrop-blur-md shadow-sm"
+        className="fixed top-[calc(var(--pq-topbar)+0.75rem)] right-4 lg:right-[296px] z-20 hidden md:flex flex-row gap-1 p-1.5 rounded-full bg-surface/80 border border-border-light backdrop-blur-md shadow-sm"
         role="radiogroup"
         aria-label="Feed layout"
       >
@@ -114,7 +114,7 @@ export function FeedViewMenu() {
       {/* Mobile: collapsed pill that expands on tap */}
       <div
         ref={wrapperRef}
-        className="fixed top-[60px] right-2 z-20 md:hidden flex flex-row items-center gap-0.5 p-1 rounded-full bg-surface/80 border border-border-light backdrop-blur-md shadow-sm"
+        className="fixed top-[calc(var(--pq-topbar)+0.25rem)] right-2 z-20 md:hidden flex flex-row items-center gap-0.5 p-1 rounded-full bg-surface/80 border border-border-light backdrop-blur-md shadow-sm"
       >
         {mobileOpen ? (
           <div role="radiogroup" aria-label="Feed layout" className="flex flex-row gap-0.5">

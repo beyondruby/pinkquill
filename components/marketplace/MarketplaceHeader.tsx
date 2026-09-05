@@ -137,7 +137,7 @@ export default function MarketplaceHeader({
   };
 
   return (
-    <div className="sticky top-0 z-40 bg-surface/90 backdrop-blur-md border-b border-border-light shadow-sm">
+    <div className="sticky top-(--pq-topbar) z-(--z-sticky) bg-surface/90 backdrop-blur-md border-b border-border-light shadow-sm">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-12">
         {/* Main Bar */}
         <div className="flex items-center justify-between gap-3 h-16 sm:h-[72px]">

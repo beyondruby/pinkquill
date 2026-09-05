@@ -17,7 +17,7 @@ import ShareModal from "@/components/ui/ShareModal";
 import ReportModal from "@/components/ui/ReportModal";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import ActionMenu, { type ActionMenuItem } from "@/components/ui/ActionMenu";
-import LeftSidebar from "@/components/layout/LeftSidebar";
+import AppShell from "@/components/layout/AppShell";
 import Loading from "@/components/ui/Loading";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { CommentIcon, icons } from "@/components/ui/Icons";
@@ -520,14 +520,13 @@ export default function SingleTakePage({ params }: PageProps) {
   if (loading) {
     return (
       <>
-        <LeftSidebar />
-        <main className="ml-[72px] min-h-screen bg-canvas">
+        <AppShell>
           <div className="max-w-[680px] mx-auto py-12 px-6">
             <div className="flex justify-center py-20">
               <Loading text="Loading the take" />
             </div>
           </div>
-        </main>
+        </AppShell>
       </>
     );
   }
@@ -536,8 +535,7 @@ export default function SingleTakePage({ params }: PageProps) {
   if (error || !take) {
     return (
       <>
-        <LeftSidebar />
-        <main className="ml-[72px] min-h-screen bg-canvas">
+        <AppShell>
           <div className="max-w-[680px] mx-auto py-12 px-6">
             <div className="text-center py-20">
               <h1 className="font-display text-2xl text-ink mb-4">Take not found</h1>
@@ -547,15 +545,14 @@ export default function SingleTakePage({ params }: PageProps) {
               </Link>
             </div>
           </div>
-        </main>
+        </AppShell>
       </>
     );
   }
 
   return (
     <ErrorBoundary>
-      <LeftSidebar />
-      <main className="ml-[72px] min-h-screen bg-canvas">
+      <AppShell>
         <div className="max-w-[1100px] mx-auto py-8 px-6 flex gap-6">
           {/* Left Column - Take */}
           <div className="flex-1 min-w-0">
@@ -754,7 +751,7 @@ export default function SingleTakePage({ params }: PageProps) {
 
           {/* Right Column - Discussion */}
           <div className="w-[360px] flex-shrink-0">
-            <section className="bg-surface rounded-2xl shadow-sm border border-border-light overflow-hidden sticky top-[86px]">
+            <section className="bg-surface rounded-2xl shadow-sm border border-border-light overflow-hidden sticky top-[calc(var(--pq-topbar)+1.5rem)]">
               <div className="p-5 border-b border-border-light">
                 <h2 className="font-ui text-[1rem] font-medium text-ink flex items-center gap-2">
                   <CommentIcon className="shrink-0" />
@@ -825,7 +822,7 @@ export default function SingleTakePage({ params }: PageProps) {
             </section>
           </div>
         </div>
-      </main>
+      </AppShell>
 
       {/* Share Modal */}
       <ShareModal

@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import type { SearchResultProfile, SearchResultCommunity, SearchResultTag } from "@/lib/hooks.legacy";
+import { DEFAULT_AVATAR } from "@/lib/utils/image";
 
 interface ProfileItemProps {
   type: "profile";
@@ -46,7 +47,7 @@ export default function SearchResultItem(props: SearchResultItemProps) {
         className="flex items-center gap-3 px-4 py-2.5 hover:bg-accent/5 transition-colors duration-200 cursor-pointer"
       >
         <img
-          src={data.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop"}
+          src={data.avatar_url || DEFAULT_AVATAR}
           alt={data.display_name || data.username}
           className="w-8 h-8 rounded-full object-cover border border-purple-primary/10"
         />

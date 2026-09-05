@@ -339,7 +339,7 @@ function CommunitiesSection() {
 
 export default function RightSidebar() {
   return (
-    <aside className="hidden lg:block fixed right-0 top-0 bottom-0 w-[280px] border-l border-border-light overflow-y-auto bg-subtle/50">
+    <aside className="hidden lg:block fixed right-0 top-(--pq-topbar) bottom-0 w-[280px] border-l border-line overflow-y-auto bg-canvas" aria-label="Discover">
       <div className="p-4 space-y-4">
         {/* Trending */}
         <TrendingSection />

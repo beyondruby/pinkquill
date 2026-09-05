@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, type MouseEvent } from "react";
+import { useEffect, useMemo, type MouseEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCollaborationInvites } from "@/lib/hooks.legacy";
@@ -9,6 +9,7 @@ import { useFollowRequests } from "@/lib/hooks/useProfile";
 import type { Notification } from "@/lib/types";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { NotificationSkeleton } from "@/components/ui/Skeleton";
+import Sheet from "@/components/ui/Sheet";
 import { setRequestMetricsScope } from "@/lib/utils/requestMetrics";
 import CollaborationInviteCard from "./CollaborationInviteCard";
 import FollowRequestCard from "./FollowRequestCard";
@@ -1087,27 +1088,9 @@ function NotificationPanelContent({ onClose }: { onClose: () => void }) {
     await declineInvite(postId, authorId);
   };
 
-  // Use a ref for onClose to avoid stale closure in event listener
-  const onCloseRef = useRef(onClose);
-  useEffect(() => {
-    onCloseRef.current = onClose;
-  }, [onClose]);
-
   useEffect(() => {
     setRequestMetricsScope("notifications");
-
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCloseRef.current();
-    };
-
-    document.addEventListener('keydown', handleEscape);
-    document.body.style.overflow = 'hidden';
-
-    return () => {
-      setRequestMetricsScope(null);
-      document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'unset';
-    };
+    return () => setRequestMetricsScope(null);
   }, []);
 
   // Auto-clear the unread badge as soon as the panel opens — the user has now
@@ -1122,156 +1105,100 @@ function NotificationPanelContent({ onClose }: { onClose: () => void }) {
   const hasContent = regularNotifications.length > 0 || invites.length > 0 || followRequests.length > 0;
 
   return (
-    <>
-      {/* Backdrop - full screen on mobile, starts after sidebar on desktop */}
-      <div
-        className="fixed inset-0 md:left-[72px] bg-black/30 backdrop-blur-sm z-[9998] animate-fadeIn"
-        onClick={onClose}
-      />
-
-      {/* Panel - full width on mobile, fixed width on desktop */}
-      <div className="fixed top-0 left-0 md:left-[72px] bottom-0 w-full md:w-[400px] bg-elevated shadow-2xl z-[9999] animate-slideInLeft flex flex-col border-r border-border-light" aria-label="Notifications">
-        {/* Header */}
-        <div className="relative px-6 py-5 border-b border-border-light">
-          {/* Decorative gradient line */}
-          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm opacity-60" />
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <h2 className="font-display text-[1.3rem] font-semibold bg-gradient-to-r from-purple-primary to-pink-vivid bg-clip-text text-transparent">
-                Notifications
-              </h2>
-              {unreadCount > 0 && (
-                <span className="px-2.5 py-1 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-on-accent text-[0.7rem] font-semibold shadow-sm">
-                  {unreadCount}
-                </span>
-              )}
-            </div>
-            <button
-              onClick={onClose}
-              className="w-9 h-9 rounded-full bg-skeleton/60 flex items-center justify-center text-muted hover:text-ink hover:bg-skeleton transition-all"
-              aria-label="Close notifications"
-            >
-              {icons.close}
-            </button>
-          </div>
+    <Sheet
+      isOpen
+      onClose={onClose}
+      presentation="panel"
+      title="Notifications"
+      subtitle={unreadCount > 0 ? `${unreadCount} new since you last looked` : hasContent ? "Your recent activity" : undefined}
+      bodyClassName="pq-dialog__body--flush"
+    >
+      {loading ? (
+        <div className="p-3 space-y-1">
+          {[...Array(5)].map((_, i) => (
+            <NotificationSkeleton key={i} />
+          ))}
         </div>
-
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto">
-          {loading ? (
-            <div className="p-3 space-y-1">
-              {[...Array(5)].map((_, i) => (
-                <NotificationSkeleton key={i} />
-              ))}
+      ) : !hasContent ? (
+        <div className="flex flex-col items-center justify-center py-20 px-8 text-center">
+          <div className="relative mb-6">
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-purple-primary/10 via-pink-vivid/10 to-orange-warm/10 flex items-center justify-center">
+              {icons.bell}
             </div>
-          ) : !hasContent ? (
-            <div className="flex flex-col items-center justify-center py-20 px-8 text-center">
-              <div className="relative mb-6">
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-purple-primary/10 via-pink-vivid/10 to-orange-warm/10 flex items-center justify-center">
-                  {icons.bell}
-                </div>
-                <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-surface shadow-lg flex items-center justify-center">
-                  <svg className="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
+            <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-surface shadow-lg flex items-center justify-center">
+              <svg className="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+          </div>
+          <h3 className="font-display text-lg font-semibold text-ink mb-2">All caught up!</h3>
+          <p className="font-body text-muted text-[0.9rem] leading-relaxed max-w-[240px]">
+            No new whispers from the creative cosmos. Check back later.
+          </p>
+        </div>
+      ) : (
+        <div className="p-3 space-y-1">
+          {/* Follow Requests Section */}
+          {followRequests.length > 0 && (
+            <div className="mb-4">
+              <div className="flex items-center gap-2 px-3 py-2 mb-2">
+                {icons.followRequest}
+                <span className="font-ui text-sm font-medium text-ink">
+                  Follow Requests
+                </span>
+                <span className="text-xs px-2 py-0.5 bg-gradient-to-r from-purple-primary/10 to-pink-vivid/10 text-purple-primary rounded-full font-ui">
+                  {followRequests.length}
+                </span>
               </div>
-              <h3 className="font-display text-lg font-semibold text-ink mb-2">All caught up!</h3>
-              <p className="font-body text-muted text-[0.9rem] leading-relaxed max-w-[240px]">
-                No new whispers from the creative cosmos. Check back later.
-              </p>
-            </div>
-          ) : (
-            <div className="p-3 space-y-1">
-              {/* Follow Requests Section */}
-              {followRequests.length > 0 && (
-                <div className="mb-4">
-                  <div className="flex items-center gap-2 px-3 py-2 mb-2">
-                    {icons.followRequest}
-                    <span className="font-ui text-sm font-medium text-ink">
-                      Follow Requests
-                    </span>
-                    <span className="text-xs px-2 py-0.5 bg-gradient-to-r from-purple-primary/10 to-pink-vivid/10 text-purple-primary rounded-full font-ui">
-                      {followRequests.length}
-                    </span>
-                  </div>
-                  <div className="space-y-3">
-                    {followRequests.map((request) => (
-                      <FollowRequestCard
-                        key={request.follower_id}
-                        request={request}
-                        onAccept={handleAcceptFollowRequest}
-                        onDecline={handleDeclineFollowRequest}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Collaboration Invites Section */}
-              {invites.length > 0 && (
-                <div className="mb-4">
-                  <div className="flex items-center gap-2 px-3 py-2 mb-2">
-                    {icons.collaborationInvite}
-                    <span className="font-ui text-sm font-medium text-ink">
-                      Collaboration Invites
-                    </span>
-                    <span className="text-xs px-2 py-0.5 bg-gradient-to-r from-purple-primary/10 to-pink-vivid/10 text-purple-primary rounded-full font-ui">
-                      {invites.length}
-                    </span>
-                  </div>
-                  <div className="space-y-3">
-                    {invites.map((invite) => (
-                      <CollaborationInviteCard
-                        key={invite.id}
-                        invite={invite}
-                        onAccept={handleAcceptInvite}
-                        onDecline={handleDeclineInvite}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Regular Notifications */}
-              {regularNotifications.map((notification) => (
-                <NotificationItem
-                  key={notification.id}
-                  notification={notification}
-                  onMarkAsRead={markAsRead}
-                  onClose={onClose}
-                />
-              ))}
+              <div className="space-y-3">
+                {followRequests.map((request) => (
+                  <FollowRequestCard
+                    key={request.follower_id}
+                    request={request}
+                    onAccept={handleAcceptFollowRequest}
+                    onDecline={handleDeclineFollowRequest}
+                  />
+                ))}
+              </div>
             </div>
           )}
+
+          {/* Collaboration Invites Section */}
+          {invites.length > 0 && (
+            <div className="mb-4">
+              <div className="flex items-center gap-2 px-3 py-2 mb-2">
+                {icons.collaborationInvite}
+                <span className="font-ui text-sm font-medium text-ink">
+                  Collaboration Invites
+                </span>
+                <span className="text-xs px-2 py-0.5 bg-gradient-to-r from-purple-primary/10 to-pink-vivid/10 text-purple-primary rounded-full font-ui">
+                  {invites.length}
+                </span>
+              </div>
+              <div className="space-y-3">
+                {invites.map((invite) => (
+                  <CollaborationInviteCard
+                    key={invite.id}
+                    invite={invite}
+                    onAccept={handleAcceptInvite}
+                    onDecline={handleDeclineInvite}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Regular Notifications */}
+          {regularNotifications.map((notification) => (
+            <NotificationItem
+              key={notification.id}
+              notification={notification}
+              onMarkAsRead={markAsRead}
+              onClose={onClose}
+            />
+          ))}
         </div>
-
-        {/* Footer */}
-        {hasContent && (
-          <div className="px-6 py-3 border-t border-border-light bg-gradient-to-r from-purple-primary/[0.02] to-pink-vivid/[0.02]">
-            <p className="font-ui text-[0.75rem] text-muted/60 text-center">
-              Showing your recent activity
-            </p>
-          </div>
-        )}
-      </div>
-
-      <style jsx global>{`
-        @keyframes slideInLeft {
-          from {
-            transform: translateX(-100%);
-            opacity: 0;
-          }
-          to {
-            transform: translateX(0);
-            opacity: 1;
-          }
-        }
-        .animate-slideInLeft {
-          animation: slideInLeft 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-      `}</style>
-    </>
+      )}
+    </Sheet>
   );
 }

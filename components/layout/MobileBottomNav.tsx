@@ -1,133 +1,115 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import dynamic from "next/dynamic";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
+import Sheet from "@/components/ui/Sheet";
+import { CREATE_CHOICES, NavIcon, bottomBarDestinations, isDestinationActive } from "./navigation";
 
-const icons: Record<string, React.ReactElement> = {
-  home: (
-    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-    </svg>
-  ),
-  compass: (
-    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-    </svg>
-  ),
-  create: (
-    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-    </svg>
-  ),
-  takes: (
-    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-  ),
-  users: (
-    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-    </svg>
-  ),
-  profile: (
-    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-    </svg>
-  ),
-};
+const MobileMoreSheet = dynamic(() => import("./MobileMoreSheet"), { ssr: false });
 
+/**
+ * Phone bottom bar: Home, Explore, Create, Takes, More. Create opens the same
+ * three existing choices the desktop menu offers instead of jumping straight
+ * to the post composer. Guests get Sign in where Create would be.
+ */
 export default function MobileBottomNav() {
   const pathname = usePathname();
+  const router = useRouter();
   const { user, profile } = useAuth();
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
 
+  const ctx = { signedIn: !!user, username: profile?.username };
+  const [home, explore, takes] = bottomBarDestinations(ctx);
+  const moreActive = !moreOpen && (
+    pathname.startsWith("/community") || pathname.startsWith("/shop") || pathname.startsWith("/saved") ||
+    pathname.startsWith("/cart") || pathname.startsWith("/orders") || pathname.startsWith("/settings") ||
+    pathname.startsWith("/insights") || pathname.startsWith("/seller") || pathname.startsWith("/help") ||
+    pathname.startsWith("/pending-collaborations") || (!!profile && pathname.startsWith(`/studio/${profile.username}`))
+  );
 
-  // Hide bottom nav on messages page (it has its own full-screen layout)
-  const isMessagesPage = pathname.startsWith("/messages");
-  if (isMessagesPage) return null;
-
-  // Build nav items dynamically based on auth state
-  const navItems = [
-    { icon: "home", label: "Home", href: "/" },
-    { icon: "compass", label: "Explore", href: "/explore" },
-    // Only show Create if user is signed in
-    ...(user ? [{ icon: "create", label: "Create", href: "/create" }] : []),
-    { icon: "takes", label: "Takes", href: "/takes" },
-    { icon: "profile", label: "Profile", href: "/profile" },
-  ];
-
-  // Get the profile href - use user's studio if logged in, settings as fallback
-  const getProfileHref = () => {
-    if (user) {
-      return profile?.username ? `/studio/${profile.username}` : "/settings/profile";
-    }
-    return "/login";
-  };
+  const tab = (dest: typeof home) => (
+    <Link
+      key={dest.id}
+      href={dest.href}
+      className="pq-bottom-nav__item"
+      aria-current={isDestinationActive(dest, pathname) ? "page" : undefined}
+    >
+      <NavIcon name={dest.icon} />
+      <span>{dest.label}</span>
+    </Link>
+  );
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-surface/95 backdrop-blur-xl border-t border-border-light md:hidden safe-area-bottom">
-      <div className="flex items-center justify-around h-16 px-2">
-        {navItems.map((item) => {
-          const href = item.icon === "profile" ? getProfileHref() : item.href;
-          const isActive = item.icon === "profile"
-            ? pathname.startsWith("/studio/") || pathname === "/login"
-            : pathname === item.href || (item.icon === "takes" && pathname.startsWith("/takes"));
-          const isCreate = item.icon === "create";
+    <>
+      <nav className="pq-bottom-nav" aria-label="Mobile navigation">
+        {tab(home)}
+        {tab(explore)}
+        {user ? (
+          <button
+            type="button"
+            className="pq-bottom-nav__create"
+            aria-label="Create"
+            aria-haspopup="dialog"
+            aria-expanded={createOpen}
+            onClick={() => setCreateOpen(true)}
+          >
+            <NavIcon name="plus" />
+          </button>
+        ) : null}
+        {tab(takes)}
+        {!user && (
+          <Link
+            href={`/login?redirect=${encodeURIComponent(pathname)}`}
+            className="pq-bottom-nav__item"
+            aria-current={pathname === "/login" ? "page" : undefined}
+          >
+            <NavIcon name="studio" />
+            <span>Sign in</span>
+          </Link>
+        )}
+        <button
+          type="button"
+          className="pq-bottom-nav__item"
+          aria-haspopup="dialog"
+          aria-expanded={moreOpen}
+          aria-current={moreActive ? "page" : undefined}
+          onClick={() => setMoreOpen(true)}
+        >
+          <NavIcon name="more" />
+          <span>More</span>
+        </button>
+      </nav>
 
-          return (
-            <Link
-              key={item.icon}
-              href={href}
-              aria-label={item.label}
-              className={`flex flex-col items-center justify-center flex-1 h-full transition-colors focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2 ${
-                isCreate
-                  ? ""
-                  : isActive
-                  ? "text-accent-2"
-                  : "text-muted hover:text-accent"
-              }`}
+      <MobileMoreSheet isOpen={moreOpen} onClose={() => setMoreOpen(false)} />
+
+      <Sheet isOpen={createOpen} onClose={() => setCreateOpen(false)} title="Create" subtitle="What would you like to share?">
+        <div className="grid gap-2">
+          {CREATE_CHOICES.map((choice) => (
+            <button
+              key={choice.href}
+              type="button"
+              className="pq-choice"
+              onClick={() => {
+                setCreateOpen(false);
+                router.push(choice.href);
+              }}
             >
-              {isCreate ? (
-                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid flex items-center justify-center text-on-accent shadow-lg shadow-pink-vivid/30">
-                  {icons[item.icon]}
-                </div>
-              ) : item.icon === "profile" && user ? (
-                <div className="relative">
-                  {profile?.avatar_url ? (
-                    <img
-                      src={profile.avatar_url}
-                      alt="Profile"
-                      className={`w-9 h-9 rounded-full object-cover ${
-                        isActive
-                          ? "ring-2 ring-accent-2 ring-offset-2 ring-offset-surface"
-                          : "ring-1 ring-border-light"
-                      }`}
-                    />
-                  ) : (
-                    <div
-                      className={`w-9 h-9 rounded-full bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center text-white text-sm font-semibold ${
-                        isActive
-                          ? "ring-2 ring-accent-2 ring-offset-2 ring-offset-surface"
-                          : ""
-                      }`}
-                    >
-                      {(profile?.display_name || profile?.username || "U")
-                        .charAt(0)
-                        .toUpperCase()}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <>
-                  <div className="relative">{icons[item.icon]}</div>
-                  <span className="text-[10px] font-ui mt-1">{item.label}</span>
-                </>
-              )}
-            </Link>
-          );
-        })}
-      </div>
-    </nav>
+              <span className="flex items-center gap-3 min-w-0">
+                <span className="pq-menu__icon" style={{ color: "var(--color-action-ink)" }}><NavIcon name={choice.icon} className="w-5 h-5" /></span>
+                <span className="min-w-0">
+                  <span className="block font-ui text-[0.9375rem] font-medium text-ink">{choice.label}</span>
+                  <span className="block font-body text-xs text-subdued">{choice.description}</span>
+                </span>
+              </span>
+              <NavIcon name="back" className="rotate-180" />
+            </button>
+          ))}
+        </div>
+      </Sheet>
+    </>
   );
 }

@@ -980,7 +980,7 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
             )}
           </div>
 
-          <aside className="hidden lg:block"><div className="sticky top-6">{moneyCard}</div></aside>
+          <aside className="hidden lg:block"><div className="sticky top-[calc(var(--pq-topbar)+1.5rem)]">{moneyCard}</div></aside>
         </div>
       </div>
     </div>

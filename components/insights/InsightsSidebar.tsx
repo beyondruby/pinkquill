@@ -118,7 +118,7 @@ export function InsightsMobileTabs() {
     pathname.startsWith("/insights/content/take/");
 
   return (
-    <div className="md:hidden border-b border-border-light bg-surface/95 backdrop-blur-sm sticky top-14 z-30">
+    <div className="md:hidden border-b border-border-light bg-surface/95 backdrop-blur-sm sticky top-(--pq-topbar) z-(--z-sticky)">
       <nav className="overflow-x-auto scrollbar-hide -mx-px">
         <div className="flex gap-2 px-4 py-2.5 min-w-max">
           {insightsItems.map((item) => {

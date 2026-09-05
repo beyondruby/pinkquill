@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import LeftSidebar from "@/components/layout/LeftSidebar";
+import AppShell from "@/components/layout/AppShell";
 
 export const metadata: Metadata = {
   title: "Takes | PinkQuill",
@@ -11,13 +11,6 @@ export default function TakesLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <>
-      {/* No mobile header/nav for immersive full-screen Takes experience */}
-      <LeftSidebar />
-      <main className="md:ml-[72px] min-h-screen bg-canvas">
-        {children}
-      </main>
-    </>
-  );
+  // Immersive: rail only on desktop, no phone chrome; Takes draws its own controls.
+  return <AppShell chrome="rail">{children}</AppShell>;
 }

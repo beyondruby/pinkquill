@@ -2,6 +2,7 @@
 
 import React from "react";
 import SearchResultItem from "./SearchResultItem";
+import { Spinner } from "@/components/ui/Loading";
 import type { SearchResults } from "@/lib/hooks.legacy";
 
 export interface SearchHistoryEntry {
@@ -42,17 +43,11 @@ export default function SearchDropdown({
   const hasHistory = history.length > 0;
 
   return (
-    <div className="absolute left-full top-0 ml-4 w-[320px] max-h-[450px] overflow-y-auto overflow-x-hidden bg-surface rounded-2xl border border-purple-primary/10 shadow-2xl shadow-purple-primary/10 z-[200] animate-searchDropdownIn">
-      {/* Decorative gradient line at top */}
-      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm rounded-t-2xl" />
-
+    <div id="pq-search-results" className="pq-search__results" role="region" aria-label="Search results">
       {/* Loading State */}
       {loading && (
-        <div className="flex items-center justify-center py-10">
-          <div className="relative">
-            <div className="w-8 h-8 border-2 border-purple-primary/20 rounded-full" />
-            <div className="absolute inset-0 w-8 h-8 border-2 border-transparent border-t-purple-primary rounded-full animate-spin" />
-          </div>
+        <div className="flex items-center justify-center py-10 text-subdued">
+          <Spinner size="md" />
         </div>
       )}
 
@@ -61,21 +56,9 @@ export default function SearchDropdown({
         <>
           {hasHistory ? (
             <>
-              <div className="flex items-center justify-between px-4 py-3 mt-1 border-b border-purple-primary/[0.06]">
-                <div className="flex items-center gap-2">
-                  <svg className="w-3.5 h-3.5 text-purple-primary/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span className="font-ui text-xs text-muted font-semibold">
-                    Recent
-                  </span>
-                </div>
-                <button
-                  onClick={onClearHistory}
-                  className="font-ui text-[0.72rem] font-medium text-purple-primary/70 hover:text-pink-vivid transition-colors"
-                >
-                  Clear all
-                </button>
+              <div className="pq-search__section">
+                <span>Recent</span>
+                <button type="button" onClick={onClearHistory}>Clear all</button>
               </div>
               <div className="py-1">
                 {history.map((item, index) => (
@@ -98,16 +81,7 @@ export default function SearchDropdown({
               </div>
             </>
           ) : (
-            <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-primary/10 to-pink-vivid/10 flex items-center justify-center mb-4">
-                <svg className="w-6 h-6 text-purple-primary/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-              <span className="font-ui text-[0.82rem] text-muted italic">
-                Discover creators & communities
-              </span>
-            </div>
+            <p className="pq-search__empty">Look for a person, a community, or a tag.</p>
           )}
         </>
       )}
@@ -120,14 +94,7 @@ export default function SearchDropdown({
               {/* People Section */}
               {results.profiles.length > 0 && (
                 <div>
-                  <div className="flex items-center gap-2 px-4 py-2.5 mt-1 bg-gradient-to-r from-purple-primary/[0.04] to-transparent border-b border-purple-primary/[0.06]">
-                    <svg className="w-3.5 h-3.5 text-purple-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                    <span className="font-ui text-xs text-purple-primary font-semibold">
-                      People
-                    </span>
-                  </div>
+                  <p className="pq-search__section">People</p>
                   <div className="py-1">
                     {results.profiles.map((profile) => (
                       <SearchResultItem
@@ -152,14 +119,7 @@ export default function SearchDropdown({
               {/* Communities Section */}
               {results.communities.length > 0 && (
                 <div>
-                  <div className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-pink-vivid/[0.04] to-transparent border-b border-purple-primary/[0.06]">
-                    <svg className="w-3.5 h-3.5 text-pink-vivid" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    <span className="font-ui text-xs text-pink-vivid font-semibold">
-                      Communities
-                    </span>
-                  </div>
+                  <p className="pq-search__section">Communities</p>
                   <div className="py-1">
                     {results.communities.map((community) => (
                       <SearchResultItem
@@ -184,12 +144,7 @@ export default function SearchDropdown({
               {/* Tags Section */}
               {results.tags.length > 0 && (
                 <div>
-                  <div className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-orange-warm/[0.04] to-transparent border-b border-purple-primary/[0.06]">
-                    <span className="text-orange-warm font-bold text-sm">#</span>
-                    <span className="font-ui text-xs text-orange-warm font-semibold">
-                      Tags
-                    </span>
-                  </div>
+                  <p className="pq-search__section">Tags</p>
                   <div className="py-1">
                     {results.tags.map((tag) => (
                       <SearchResultItem
@@ -212,19 +167,10 @@ export default function SearchDropdown({
               )}
             </>
           ) : (
-            <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-50 flex items-center justify-center mb-4">
-                <svg className="w-6 h-6 text-muted/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <span className="font-ui text-[0.85rem] text-ink mb-1">
-                No results for &quot;<span className="text-purple-primary">{query}</span>&quot;
-              </span>
-              <span className="font-body text-[0.78rem] text-muted italic">
-                Try a different search term
-              </span>
-            </div>
+            <p className="pq-search__empty">
+              <strong>Nothing for &ldquo;{query}&rdquo; yet</strong>
+              Try another name, community, or tag.
+            </p>
           )}
         </>
       )}

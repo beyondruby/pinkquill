@@ -13,6 +13,7 @@ import {
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { EllipsisIcon } from "@/components/ui/Icons";
+import { useOverlayLayer } from "./overlay/useOverlayLayer";
 
 export interface ActionMenuItem {
   label: string;
@@ -48,14 +49,15 @@ interface ActionMenuProps {
   onOpenChange?: (open: boolean) => void;
 }
 
-const ITEM_STYLES: Record<NonNullable<ActionMenuItem["tone"]>, string> = {
-  default: "text-ink hover:bg-skeleton/60 focus-visible:bg-skeleton/60",
-  danger: "text-red-600 hover:bg-red-50 focus-visible:bg-red-50",
-  success: "text-emerald-700 hover:bg-emerald-50 focus-visible:bg-emerald-50",
-  accent: "text-purple-primary hover:bg-purple-50/70 focus-visible:bg-purple-50/70",
-  warning: "text-orange-600 hover:bg-orange-50 focus-visible:bg-orange-50",
-};
+const MENU_ITEM_SELECTOR = "[role='menuitem']:not([aria-disabled='true'])";
 
+/**
+ * Anchored menu for short choices. Opens beside its trigger on the content
+ * edge, flips when there is no room, dismisses on Escape or outside press,
+ * supports arrow/Home/End traversal, and returns focus to the trigger.
+ * Registered as an overlay layer (without scroll lock) so Escape inside a
+ * menu never also closes the sheet or dialog beneath it.
+ */
 export default function ActionMenu({
   items,
   label,
@@ -87,11 +89,18 @@ export default function ActionMenu({
     },
     [onOpenChange]
   );
+  const close = useCallback(() => setOpen(false), [setOpen]);
 
-  const visibleItems = useMemo(
-    () => items.filter((item) => !item.hidden),
-    [items]
-  );
+  useOverlayLayer({
+    open: isOpen,
+    onClose: close,
+    containerRef: menuRef,
+    lockScroll: false,
+    trapFocus: false,
+    initialFocus: () => menuRef.current?.querySelector<HTMLElement>(MENU_ITEM_SELECTOR),
+  });
+
+  const visibleItems = useMemo(() => items.filter((item) => !item.hidden), [items]);
 
   const positionMenu = useCallback(() => {
     if (!buttonRef.current) return;
@@ -112,12 +121,12 @@ export default function ActionMenu({
     );
     const top = shouldOpenTop
       ? Math.max(viewportPadding, rect.top - menuHeight - portalOffset)
-      : Math.min(rect.bottom + portalOffset, window.innerHeight - viewportPadding - Math.min(menuHeight, window.innerHeight - viewportPadding * 2));
+      : Math.min(
+          rect.bottom + portalOffset,
+          window.innerHeight - viewportPadding - Math.min(menuHeight, window.innerHeight - viewportPadding * 2)
+        );
 
-    setMenuPosition({
-      top,
-      left,
-    });
+    setMenuPosition({ top, left });
   }, [align, placement, portalOffset]);
 
   useEffect(() => {
@@ -127,26 +136,14 @@ export default function ActionMenu({
       const target = event.target as Node;
       const clickedButton = buttonRef.current?.contains(target);
       const clickedMenu = menuRef.current?.contains(target);
-      if (!clickedButton && !clickedMenu) {
-        setOpen(false);
-      }
-    };
-
-    const handleKeyDown = (event: globalThis.KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        setOpen(false);
-        buttonRef.current?.focus();
-      }
+      if (!clickedButton && !clickedMenu) setOpen(false);
     };
 
     document.addEventListener("mousedown", handlePointerDown);
     document.addEventListener("touchstart", handlePointerDown);
-    document.addEventListener("keydown", handleKeyDown);
     return () => {
       document.removeEventListener("mousedown", handlePointerDown);
       document.removeEventListener("touchstart", handlePointerDown);
-      document.removeEventListener("keydown", handleKeyDown);
     };
   }, [isOpen, setOpen]);
 
@@ -170,37 +167,18 @@ export default function ActionMenu({
     };
   }, [isOpen, portal, positionMenu]);
 
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const firstItem = menuRef.current?.querySelector<HTMLElement>("[role='menuitem']:not([aria-disabled='true'])");
-    window.setTimeout(() => firstItem?.focus(), 0);
-  }, [isOpen]);
-
   if (visibleItems.length === 0) return null;
 
-  const localPlacementClass =
-    placement === "top"
-      ? "bottom-full mb-2"
-      : "top-full mt-2";
-  const defaultMenuClassName = `${
-    portal ? "" : `absolute ${align === "end" ? "right-0" : "left-0"} ${localPlacementClass} `
-  }${widthClassName} max-w-[calc(100vw-1.5rem)] max-h-[min(72vh,34rem)] overflow-y-auto bg-surface rounded-xl shadow-lg border border-border-light z-50 animate-fadeIn p-1`;
+  const resolvedPlacement = placement === "top" ? "top" : "bottom";
+  const defaultMenuClassName = `pq-menu ${portal ? "" : "pq-menu--local "}${widthClassName}`;
   const resolvedMenuClassName = menuClassName || defaultMenuClassName;
   const portalMenuStyle: CSSProperties | undefined =
     portal && menuPosition
-      ? {
-          position: "fixed",
-          top: menuPosition.top,
-          left: menuPosition.left,
-          zIndex: 9999,
-        }
+      ? { position: "fixed", top: menuPosition.top, left: menuPosition.left }
       : undefined;
 
   const focusMenuItem = (direction: "next" | "prev" | "first" | "last") => {
-    const menuItems = Array.from(
-      menuRef.current?.querySelectorAll<HTMLElement>("[role='menuitem']:not([aria-disabled='true'])") || []
-    );
+    const menuItems = Array.from(menuRef.current?.querySelectorAll<HTMLElement>(MENU_ITEM_SELECTOR) || []);
     if (menuItems.length === 0) return;
 
     const activeIndex = menuItems.indexOf(document.activeElement as HTMLElement);
@@ -228,55 +206,49 @@ export default function ActionMenu({
     } else if (event.key === "End") {
       event.preventDefault();
       focusMenuItem("last");
+    } else if (event.key === "Tab") {
+      // A menu is a transient list; Tab leaves it rather than cycling inside.
+      setOpen(false);
     }
   };
 
-  const footerContent = typeof footer === "function" ? footer(() => setOpen(false)) : footer;
+  const footerContent = typeof footer === "function" ? footer(close) : footer;
 
   const menuContent = isOpen ? (
     <div
       ref={menuRef}
       className={resolvedMenuClassName}
       style={portal ? portalMenuStyle : undefined}
+      data-align={align}
+      data-placement={resolvedPlacement}
       role="menu"
       aria-label={label || buttonAriaLabel}
       onKeyDown={handleMenuKeyDown}
       onClick={(event) => event.stopPropagation()}
       onMouseDown={(event) => event.stopPropagation()}
     >
+      {description && <p className="pq-menu__section">{description}</p>}
       {visibleItems.map((item, index) => {
         const tone = item.tone || "default";
         const previousSectionLabel = visibleItems[index - 1]?.sectionLabel;
         const showSectionLabel = item.sectionLabel && item.sectionLabel !== previousSectionLabel;
 
-        const itemClassName = `w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-left font-ui text-sm transition-colors outline-none disabled:opacity-45 disabled:cursor-not-allowed ${ITEM_STYLES[tone]}`;
+        const itemClassName = `pq-menu__item${tone !== "default" ? ` pq-menu__item--${tone}` : ""}`;
         const content = (
           <>
-            {item.icon ? (
-              <span className="flex items-center justify-center w-5 h-5 shrink-0 opacity-85">
-                {item.icon}
-              </span>
-            ) : null}
-            <span className="min-w-0 flex-1">
-              <span className="block truncate font-medium">{item.label}</span>
-              {item.description && (
-                <span className="block truncate font-body text-xs text-muted leading-snug mt-0.5">
-                  {item.description}
-                </span>
-              )}
+            {item.icon ? <span className="pq-menu__icon">{item.icon}</span> : null}
+            <span className="pq-menu__text">
+              <span className="pq-menu__label">{item.label}</span>
+              {item.description && <span className="pq-menu__description">{item.description}</span>}
             </span>
-            {item.meta ? <span className="shrink-0 text-xs text-muted">{item.meta}</span> : null}
+            {item.meta ? <span className="pq-menu__meta">{item.meta}</span> : null}
           </>
         );
 
         return (
           <div key={`${item.label}-${index}`}>
-            {item.dividerBefore && <div className="h-px bg-border-light mx-2 my-1" />}
-            {showSectionLabel && (
-              <p className="px-3 pb-1 pt-2 font-ui text-xs font-semibold text-muted">
-                {item.sectionLabel}
-              </p>
-            )}
+            {item.dividerBefore && <div className="pq-menu__divider" role="separator" />}
+            {showSectionLabel && <p className="pq-menu__section">{item.sectionLabel}</p>}
             {item.href && !item.disabled ? (
               <Link
                 href={item.href}
@@ -314,7 +286,7 @@ export default function ActionMenu({
       })}
       {footerContent && (
         <>
-          <div className="h-px bg-border-light mx-2 my-1.5" />
+          <div className="pq-menu__divider" role="separator" />
           {footerContent}
         </>
       )}
@@ -336,10 +308,7 @@ export default function ActionMenu({
           if (buttonDisabled) return;
           setOpen(!isOpen);
         }}
-        className={
-          buttonClassName
-          || "w-9 h-9 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-skeleton/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 transition-all"
-        }
+        className={buttonClassName || "pq-menu-trigger"}
       >
         {trigger || <EllipsisIcon className={buttonIconClassName} />}
       </button>

@@ -1,0 +1,58 @@
+/* Owned by Button.tsx. Component layer keeps consumer utility overrides viable. */
+@layer components {
+  .pq-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-block-size: 2.75rem;
+    max-inline-size: 100%;
+    padding: 0.625rem 1.125rem;
+    border: 1px solid transparent;
+    border-radius: var(--radius-control);
+    font-family: var(--font-ui);
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.5;
+    text-align: center;
+    overflow-wrap: anywhere;
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: background-color 150ms, border-color 150ms, box-shadow 150ms;
+  }
+
+  .pq-button--sm { padding: 0.5rem 0.875rem; font-size: 0.8125rem; }
+  .pq-button--lg { min-block-size: 3rem; padding: 0.75rem 1.5rem; }
+  .pq-button--full { inline-size: 100%; }
+  .pq-button--primary { background: var(--color-action); color: var(--color-on-action); }
+  .pq-button--secondary { background: var(--color-subtle); color: var(--color-ink); }
+  .pq-button--outline {
+    background: transparent;
+    color: var(--color-ink);
+    border-color: var(--color-control-border);
+  }
+  /* Compatibility name for composer Next/Publish. Same accessible accent
+     treatment, with no hardcoded white gradient leaking into dark themes. */
+  .pq-button--outline-gradient {
+    background: var(--color-action-soft);
+    color: var(--color-action-ink);
+    border-color: var(--color-action-ink);
+  }
+  .pq-button--ghost { background: transparent; color: var(--color-action-ink); }
+  .pq-button--danger { background: var(--color-danger-action); color: var(--color-on-danger-action); }
+
+  @media (hover: hover) {
+    .pq-button:hover:not(:disabled) { box-shadow: inset 0 0 0 100px rgb(0 0 0 / 6%); }
+    .pq-button--ghost:hover:not(:disabled) { background: var(--color-action-soft); box-shadow: none; }
+  }
+  .pq-button:active:not(:disabled) { box-shadow: inset 0 0 0 100px rgb(0 0 0 / 10%); }
+  .pq-button:focus-visible { outline: 3px solid var(--color-action); outline-offset: 3px; }
+  .pq-button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .pq-button[aria-busy="true"] { cursor: wait; }
+  .pq-button > svg { flex-shrink: 0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pq-button { transition: none; }
+    .pq-button > .animate-spin { animation: none; }
+  }
+}

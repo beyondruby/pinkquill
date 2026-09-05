@@ -1,0 +1,92 @@
+/* Pinkquill 2.0 control roles. Palette identity and theme persistence stay in
+   globals.css / lib/theme. These roles only affect migrated components. */
+@theme {
+  /* Shape roles from the Phase 1 proof: control 11px, input 9px, card 17px,
+     dialog 20px, menu 14px. Avatars stay circular. */
+  --radius-control: 0.6875rem;
+  --radius-input: 0.5625rem;
+  --radius-card: 1.0625rem;
+  --radius-dialog: 1.25rem;
+  --radius-menu: 0.875rem;
+
+  /* Derived surface roles. Mixed from the active theme's ink/surface so every
+     supported theme gets a matching soft tint and visible-but-quiet line
+     without six hand-picked values. */
+  --color-line: color-mix(in oklab, var(--color-ink) 11%, var(--color-surface));
+  --color-line-strong: color-mix(in oklab, var(--color-ink) 22%, var(--color-surface));
+  --color-tint: color-mix(in oklab, var(--color-ink) 5%, var(--color-surface));
+  --color-danger-soft: color-mix(in oklab, var(--color-danger-action) 12%, var(--color-surface));
+  --color-success-soft: color-mix(in oklab, var(--color-success-ink) 14%, var(--color-surface));
+  --color-warning-soft: color-mix(in oklab, var(--color-warning-ink) 14%, var(--color-surface));
+  --color-scrim: var(--color-overlay);
+  --color-scrim-strong: rgba(0, 0, 0, 0.72);
+}
+
+:root,
+[data-theme] {
+  --color-danger-ink: #a12742;
+  --color-success-ink: #2f6b4b;
+  --color-warning-ink: #8a5312;
+  --color-action: #8e44ad;
+  --color-on-action: #ffffff;
+  --color-action-soft: #f2e8f7;
+  --color-action-ink: #71338a;
+  --color-control-border: #94899b;
+  --color-danger-action: #b52d4a;
+  --color-on-danger-action: #ffffff;
+}
+
+[data-theme="cream"] {
+  --color-action: #995038;
+  --color-on-action: #fffbf3;
+  --color-action-soft: #f7e8db;
+  --color-action-ink: #85432e;
+  --color-control-border: #9c8466;
+}
+
+[data-theme="sepia"] {
+  --color-action: #94532d;
+  --color-on-action: #faf3e0;
+  --color-action-soft: #ecddc0;
+  --color-action-ink: #764020;
+  --color-control-border: #998264;
+}
+
+[data-theme="noir"] {
+  --color-danger-ink: #ff9aae;
+  --color-success-ink: #9fd6b4;
+  --color-warning-ink: #f2c078;
+  --color-action: #22d3ee;
+  --color-on-action: #0e0e12;
+  --color-action-soft: #17343d;
+  --color-action-ink: #7ce4f4;
+  --color-control-border: #777781;
+  --color-danger-action: #ff9aae;
+  --color-on-danger-action: #2a1018;
+}
+
+[data-theme="ocean"] {
+  --color-danger-ink: #ff9aae;
+  --color-success-ink: #9fd6b4;
+  --color-warning-ink: #f2c078;
+  --color-action: #38bdf8;
+  --color-on-action: #0a1628;
+  --color-action-soft: #173c57;
+  --color-action-ink: #8ad9fc;
+  --color-control-border: #728ca9;
+  --color-danger-action: #ff9aae;
+  --color-on-danger-action: #2a1018;
+}
+
+[data-theme="sunset"] {
+  --color-danger-ink: #ff9aae;
+  --color-success-ink: #9fd6b4;
+  --color-warning-ink: #f2c078;
+  --color-action: #fb923c;
+  --color-on-action: #1a0f0a;
+  --color-action-soft: #4b2b18;
+  --color-action-ink: #ffc08a;
+  --color-control-border: #a0846b;
+  --color-danger-action: #ff9aae;
+  --color-on-danger-action: #2a1018;
+}

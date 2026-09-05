@@ -123,7 +123,7 @@ export default function SellerSidebar() {
 export function SellerMobileNav() {
   const pathname = usePathname();
   return (
-    <nav aria-label="Seller studio" className="md:hidden sticky top-16 z-(--z-sticky) bg-surface/95 backdrop-blur-xl border-b border-border-light">
+    <nav aria-label="Seller studio" className="md:hidden sticky top-(--pq-topbar) z-(--z-sticky) bg-surface/95 backdrop-blur-xl border-b border-border-light">
       <div className="flex gap-1 overflow-x-auto px-3 py-2 [scrollbar-width:none]">
         {SELLER_NAV.map((item) => {
           const isActive = pathname.startsWith(item.href);

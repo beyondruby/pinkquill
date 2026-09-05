@@ -17,9 +17,8 @@ import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import CommentItem from "@/components/feed/CommentItem";
 import ReactionPicker from "@/components/feed/ReactionPicker";
 import { AudioPlayer } from "@/components/feed/AudioPlayer";
-import LeftSidebar from "@/components/layout/LeftSidebar";
-import MobileHeader from "@/components/layout/MobileHeader";
-import MobileBottomNav from "@/components/layout/MobileBottomNav";
+import AppShell from "@/components/layout/AppShell";
+import { PageFrame } from "@/components/layout/PageFrame";
 import PostTags from "@/components/feed/PostTags";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { ModalErrorFallback } from "@/components/ui/ErrorFallbacks";
@@ -697,40 +696,30 @@ export default function PostPage() {
   // Loading state
   if (loading) {
     return (
-      <>
-        <MobileHeader />
-        <LeftSidebar />
-        <main className="pt-14 pb-20 md:pt-0 md:pb-0 md:ml-[72px] min-h-screen bg-canvas">
-          <div className="max-w-[680px] mx-auto py-12 px-4 md:px-6">
-            <div className="flex justify-center py-20">
-              <Loading text="Unfolding the page" />
-            </div>
+      <AppShell>
+        <PageFrame width="narrow">
+          <div className="flex justify-center py-20">
+            <Loading text="Unfolding the page" />
           </div>
-        </main>
-        <MobileBottomNav />
-      </>
+        </PageFrame>
+      </AppShell>
     );
   }
 
   // Error state
   if (error || !post) {
     return (
-      <>
-        <MobileHeader />
-        <LeftSidebar />
-        <main className="pt-14 pb-20 md:pt-0 md:pb-0 md:ml-[72px] min-h-screen bg-canvas">
-          <div className="max-w-[680px] mx-auto py-12 px-4 md:px-6">
-            <div className="text-center py-20">
+      <AppShell>
+        <PageFrame width="narrow">
+          <div className="text-center py-20">
               <h1 className="font-display text-2xl text-ink mb-4">Post not found</h1>
               <p className="font-body text-muted mb-6">This post may have been removed or doesn&apos;t exist.</p>
               <Link href="/" className="inline-block px-6 py-3 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid font-ui text-white">
                 Back to feed
               </Link>
             </div>
-          </div>
-        </main>
-        <MobileBottomNav />
-      </>
+        </PageFrame>
+      </AppShell>
     );
   }
 
@@ -781,9 +770,7 @@ export default function PostPage() {
       section="PostDetail"
       fallback={({ reset }) => <ModalErrorFallback onRetry={reset} />}
     >
-      <MobileHeader />
-      <LeftSidebar />
-      <main className="pt-14 pb-20 md:pt-0 md:pb-0 md:ml-[72px] min-h-screen bg-canvas">
+      <AppShell>
         <div className="max-w-[1100px] mx-auto py-6 px-4 md:py-8 md:px-6 flex flex-col lg:flex-row gap-6">
           {/* Left Column - Post */}
           <div className="flex-1 min-w-0">
@@ -1258,7 +1245,7 @@ export default function PostPage() {
           </section>
           </div>
         </div>
-      </main>
+      </AppShell>
 
       {/* Share Modal */}
       <ShareModal
@@ -1325,8 +1312,6 @@ export default function PostPage() {
           submitted={reportSubmitted}
         />
       )}
-
-      <MobileBottomNav />
     </ErrorBoundary>
   );
 }

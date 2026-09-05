@@ -306,7 +306,7 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
 
             {/* Packages on desktop: a sticky panel */}
             <aside className="hidden lg:block">
-              <div className="rounded-2xl border border-border-light bg-surface p-5 sticky top-6">
+              <div className="rounded-2xl border border-border-light bg-surface p-5 sticky top-[calc(var(--pq-topbar)+1.5rem)]">
                 <p className="font-ui text-xs text-muted mb-3">Choose a package</p>
                 <div className="space-y-2.5">
                   {packages.map((p) => <PackageCard key={p.id} pkg={p} selected={pkg?.id === p.id} onSelect={() => setPricingId(p.id)} />)}

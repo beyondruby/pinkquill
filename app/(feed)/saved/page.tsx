@@ -227,7 +227,7 @@ export default function SavedPage() {
     <RequireAuth loadingText="Loading your saved items">
       <div className="min-h-screen pb-20">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-surface/90 backdrop-blur-xl border-b border-border-light">
+      <div className="sticky top-(--pq-topbar) z-(--z-sticky) bg-surface/90 backdrop-blur-xl border-b border-border-light">
         <div className="max-w-5xl mx-auto px-6 py-6">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-5">

@@ -1,5 +1,9 @@
 # PinkQuill — Unified Redesign & Hardening Master Plan
 
+> Historical plan. The new September 5, 2026 brief is tracked in
+> [Pinkquill 2.0](../pinkquill-2/README.md). Read that program for current scope,
+> phases, and progress; the abandoned decisions below are retained as history.
+
 > **⚠️ ABANDONED as of 2026-09-01.** Phase 1 (direction pick) never happened and never will — the
 > owner killed the identity-redesign track: no new brand color, no new fonts, no "Inkline" stroke,
 > no rename, no theme retirement. `phase2-directions.md` and `mockups/` are historical only.

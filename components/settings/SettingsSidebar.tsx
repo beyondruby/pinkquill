@@ -70,7 +70,7 @@ export function SettingsMobileTabs() {
   const pathname = usePathname();
 
   return (
-    <div className="md:hidden border-b border-border-light bg-surface/80 backdrop-blur-sm sticky top-14 z-30">
+    <div className="md:hidden border-b border-border-light bg-surface/80 backdrop-blur-sm sticky top-(--pq-topbar) z-(--z-sticky)">
       <div className="px-4 pt-4 pb-3">
         <h1 className="font-display text-2xl text-ink">Settings</h1>
       </div>

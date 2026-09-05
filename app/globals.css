@@ -1,4 +1,8 @@
 @import "tailwindcss";
+@import "./design-tokens.css";
+@import "../components/ui/button.css";
+@import "../components/ui/overlay.css"; /* layered surfaces */
+@import "../components/layout/shell.css"; /* application frame */
 
 /* ============================================================================
    THEME TOKEN LAYER
@@ -17,7 +21,7 @@
   --color-orange-warm: #ff9f43;
 
   /* === SURFACES === */
-  --color-canvas: #fdfdfd;          /* page background */
+  --color-canvas: #fcfafc;          /* page background (Pinkquill 2.0 proof) */
   --color-surface: #ffffff;         /* cards, sidebars, panels */
   --color-elevated: #ffffff;        /* modals, popovers */
   --color-overlay: rgba(0, 0, 0, 0.4);
@@ -75,12 +79,8 @@
   --text-2xs: 0.6875rem;  /* 11px */
   --text-15: 0.95rem;
 
-  /* No new --radius-* or --spacing-* tokens: Tailwind's built-in radius scale
-     (xs…4xl, full) and spacing scale already cover every real design need
-     here. The audit's "sprawl" findings there are inconsistent *usage* of an
-     already-complete scale (plus 27 arbitrary rounded-[…] and 98 arbitrary
-     p-/m-/gap-/w-/h-[…] one-offs) — a per-file migration task for a later
-     wave, not missing infrastructure. */
+  /* Pinkquill 2.0 introduces component-owned roles in design-tokens.css.
+     Existing radius/spacing utilities stay valid during phased migration. */
 }
 
 :root {
@@ -751,7 +751,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   border-radius: 50%;
   filter: blur(100px);
   z-index: -1;
-  opacity: 0.25;
+  opacity: 0.12; /* Pinkquill 2.0: the work supplies the colour; the canvas stays calm */
   animation: breathe 12s infinite alternate;
   pointer-events: none;
 }

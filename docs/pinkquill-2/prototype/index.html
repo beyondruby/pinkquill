@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en" data-theme="default">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="Pinkquill 2.0 — an interactive local design preview using fictional sample content.">
+  <title>Pinkquill 2.0 · Design preview</title>
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script src="prototype.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <div class="preview-bar"><span><strong>Pinkquill 2.0</strong><span class="desktop-word"> / </span><span class="desktop-word">Design preview · fictional content</span></span><div><button id="state-button" class="preview-control">Populated</button><button id="theme-button" class="preview-control" aria-label="Switch to Noir appearance">Noir <span aria-hidden="true">◐</span></button></div></div>
+  <aside class="sidebar" aria-label="Application sidebar">
+    <a class="brand" href="#home"><img src="assets/icon.svg" alt="" width="31" height="31"><span>pinkquill<span class="brand-dot">.</span></span></a>
+    <p class="brand-line">Show your colors.</p>
+    <nav id="desktop-nav" aria-label="Main navigation"></nav>
+    <button class="button primary create-button" data-action="create"><span data-icon="plus"></span>Create something</button>
+    <div class="sidebar-bottom"><div class="sidebar-note"><span class="small-flower" aria-hidden="true">✳</span><p>There’s room for<br>your kind of creative.</p></div><button class="account" data-action="account"><span class="avatar me">N</span><span><strong>Noor Ahmed</strong><small>@noor</small></span><span data-icon="more"></span></button></div>
+  </aside>
+  <div class="app-body">
+    <header class="topbar"><a href="#home" class="mobile-brand"><img src="assets/icon.svg" alt="Pinkquill home" width="30" height="30"></a><span id="breadcrumb" class="breadcrumb">Your space / Home</span><button class="search-trigger" data-action="search"><span data-icon="search"></span><span>Find people, work, communities…</span></button><button class="icon-button notifications-button" data-action="notifications" aria-label="Notifications, 2 unread"><span data-icon="bell"></span><span class="notification-dot"></span></button><button class="avatar me top-avatar" data-action="account" aria-label="Your account">N</button></header>
+    <main id="main" tabindex="-1"></main>
+    <footer class="page-footer"><span>Made for all the ways you create.</span><button data-action="preview-info">About this preview</button></footer>
+  </div>
+  <nav id="mobile-nav" class="mobile-nav" aria-label="Mobile navigation"></nav>
+  <dialog id="overlay" aria-labelledby="overlay-title"><div class="dialog-head"><div><p id="overlay-eyebrow" class="eyebrow"></p><h2 id="overlay-title"></h2></div><button class="icon-button" data-action="close" aria-label="Close dialog"><span data-icon="close"></span></button></div><div id="overlay-body" class="dialog-body"></div></dialog>
+  <div id="menu" class="context-menu" role="menu" aria-label="Post actions" hidden></div>
+  <div id="status" class="toast" role="status" aria-live="polite" hidden></div>
+</body>
+</html>

@@ -135,7 +135,7 @@ export default function TagPage() {
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-surface border-b border-border-light">
+      <header className="sticky top-(--pq-topbar) z-(--z-sticky) bg-surface border-b border-border-light">
         <div className="max-w-[640px] mx-auto px-4">
           <div className="flex items-center h-[56px] gap-4">
             {/* Back Button */}

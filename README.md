@@ -1,3 +1,9 @@
+# Pinkquill
+
+A social home for creativity in every form.
+
+The active [Pinkquill 2.0 redesign plan](docs/pinkquill-2/README.md) includes the brand direction, current-state audit, implementation phases, complete route inventory, and [continuation ledger](docs/pinkquill-2/05-progress.md).
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started

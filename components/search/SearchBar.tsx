@@ -139,66 +139,34 @@ export default function SearchBar({ className = "" }: SearchBarProps) {
   };
 
   return (
-    <div ref={containerRef} className={`relative mb-5 ${className}`}>
-      {/* Search Input Container */}
-      <div
-        className={`relative flex items-center w-full h-11 rounded-2xl transition-all duration-300 ${
-          isFocused
-            ? "bg-surface shadow-xl shadow-purple-primary/15 ring-2 ring-purple-primary/20"
-            : "bg-gradient-to-r from-purple-primary/[0.06] to-pink-vivid/[0.04] hover:from-purple-primary/[0.1] hover:to-pink-vivid/[0.08]"
-        }`}
-      >
-        {/* Gradient Border Effect (visible when not focused) */}
-        {!isFocused && (
-          <div className="absolute inset-0 rounded-2xl p-[1px] bg-gradient-to-r from-purple-primary/20 via-pink-vivid/20 to-orange-warm/20 -z-10">
-            <div className="w-full h-full rounded-2xl bg-surface/95" />
-          </div>
-        )}
-
-        {/* Left Side - Search Icon */}
-        <div className="absolute left-1.5 flex items-center">
-          <div
-            className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-300 ${
-              isFocused
-                ? "bg-gradient-to-br from-purple-primary to-pink-vivid text-white shadow-md shadow-purple-primary/25"
-                : "bg-gradient-to-br from-purple-primary/80 to-pink-vivid/80 text-white/90"
-            }`}
-          >
-            <svg
-              className="w-3.5 h-3.5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2.5}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-          </div>
-        </div>
-
-        {/* Input */}
+    <div ref={containerRef} className={`pq-search ${className}`.trim()} role="search">
+      <div className="pq-search__field">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M21 21l-5-5M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z" />
+        </svg>
         <input
           ref={inputRef}
-          type="text"
+          type="search"
+          aria-label="Search people, work, communities"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setIsFocused(true)}
-          placeholder="Search"
-          className="w-full h-full pl-12 pr-9 bg-transparent border-none outline-none font-ui text-[0.85rem] text-ink placeholder:text-muted/50"
+          placeholder="Find people, work, communities…"
+          autoComplete="off"
+          enterKeyHint="search"
+          aria-expanded={isFocused}
+          aria-controls={isFocused ? "pq-search-results" : undefined}
+          className="pq-search__input"
         />
-
-        {/* Right Side - Clear Button */}
         {query && (
           <button
+            type="button"
             onClick={handleClearQuery}
-            className="absolute right-2 w-7 h-7 rounded-lg flex items-center justify-center text-muted hover:text-pink-vivid hover:bg-pink-vivid/10 transition-all duration-200"
+            aria-label="Clear search"
+            className="pq-icon-button pq-search__clear"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden="true">
+              <path d="M6 6l12 12M18 6 6 18" />
             </svg>
           </button>
         )}

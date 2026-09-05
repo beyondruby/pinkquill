@@ -5,9 +5,7 @@ import { useEffect, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useIsPlatformAdmin } from "@/lib/hooks/useAdmin";
-import LeftSidebar from "@/components/layout/LeftSidebar";
-import MobileHeader from "@/components/layout/MobileHeader";
-import MobileBottomNav from "@/components/layout/MobileBottomNav";
+import AppShell from "@/components/layout/AppShell";
 import { FullPageLoading } from "@/components/ui/Loading";
 import AuthUnavailable from "@/components/auth/AuthUnavailable";
 
@@ -57,10 +55,8 @@ export default function AdminShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <>
-      <MobileHeader />
-      <LeftSidebar />
-      <div className="pt-16 pb-20 md:pt-0 md:pb-0 md:ml-[72px] min-h-screen flex flex-col md:flex-row">
+    <AppShell>
+      <div className="min-h-[calc(100dvh-var(--pq-topbar)-var(--pq-bottom-nav))] flex flex-col md:flex-row">
         <nav className="md:hidden flex gap-1 overflow-x-auto px-3 py-2 border-b border-border-light bg-surface" aria-label="Console sections">
           {ADMIN_NAV.map((item) => (
             <Link key={item.href} href={item.href} className={`px-3 py-1.5 rounded-full text-xs font-ui font-semibold whitespace-nowrap ${isActive(pathname, item) ? "bg-purple-primary/10 text-purple-800" : "text-muted"}`}>{item.label}</Link>
@@ -81,11 +77,10 @@ export default function AdminShell({ children }: { children: ReactNode }) {
             ))}
           </div>
         </aside>
-        <main className="flex-1 bg-canvas p-4 md:p-8 overflow-y-auto">
+        <div className="flex-1 bg-canvas p-4 md:p-8 overflow-y-auto">
           <div className="max-w-6xl mx-auto">{children}</div>
-        </main>
+        </div>
       </div>
-      <MobileBottomNav />
-    </>
+    </AppShell>
   );
 }
