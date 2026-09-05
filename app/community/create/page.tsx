@@ -1,605 +1,369 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useCreateCommunity } from "@/lib/hooks.legacy";
+import { PageFrame, PageHeader } from "@/components/layout/PageFrame";
+import Button from "@/components/ui/Button";
+import { Spinner } from "@/components/ui/Loading";
+import { ComposerSteps, FieldLabel } from "@/components/create/pieces";
+import { COMMUNITY_CATEGORIES, COMMUNITY_PURPOSES, COMMUNITY_THEMES, findCategoryById } from "@/lib/communities/categories";
+import "@/components/create/composer.css";
+import "@/components/communities/communities.css";
 
-// ===========================================
-// HIERARCHICAL CATEGORY SYSTEM
-// ===========================================
+const STEPS = [
+  { n: 1, label: "Basics" },
+  { n: 2, label: "What it's about" },
+  { n: 3, label: "Rules and create" },
+];
 
-interface CategoryData {
-  id: string;
-  name: string;
-  genres: string[];
+function slugify(name: string) {
+  return name.toLowerCase().replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").trim();
 }
 
-const CATEGORIES: CategoryData[] = [
-  { id: 'writing', name: 'Writing & Literature', genres: ['Poetry', 'Fiction', 'Non-Fiction', 'Short Stories', 'Novels', 'Essays', 'Screenwriting', 'Playwriting', 'Journalism', 'Memoir', 'Fanfiction', 'Flash Fiction', 'Blogging', 'Spoken Word', 'Lyrics', 'Zines', 'Literary Criticism', 'Haiku', 'Prose Poetry', 'Experimental'] },
-  { id: 'visual_arts', name: 'Visual Arts', genres: ['Digital Art', 'Traditional Art', 'Illustration', 'Concept Art', 'Character Design', 'Graphic Design', '3D Art', 'Comics', 'Manga', 'Animation', 'Abstract', 'Portraits', 'Landscapes', 'Surrealism', 'Pop Art', 'Impressionism', 'Minimalism', 'Street Art', 'Graffiti', 'Collage', 'Mixed Media', 'Printmaking', 'Sculpture', 'Installation Art'] },
-  { id: 'performing_arts', name: 'Performing Arts', genres: ['Theater', 'Dance', 'Ballet', 'Contemporary Dance', 'Hip-Hop Dance', 'Choreography', 'Acting', 'Improvisation', 'Stand-Up Comedy', 'Spoken Word', 'Opera', 'Musical Theater', 'Circus Arts', 'Performance Art', 'Drag', 'Puppetry', 'Voice Acting', 'Motion Capture'] },
-  { id: 'music', name: 'Music & Audio', genres: ['Hip-Hop', 'Rock', 'Pop', 'Electronic', 'Jazz', 'Classical', 'R&B', 'Indie', 'Folk', 'Lo-Fi', 'Ambient', 'Songwriting', 'Covers', 'Production', 'Beats', 'Orchestra', 'A Cappella', 'Experimental', 'World Music', 'Soul', 'Punk', 'Metal', 'Blues', 'Acoustic', 'Vocal', 'Instrumental'] },
-  { id: 'film', name: 'Film & Video', genres: ['Short Films', 'Documentaries', 'Music Videos', 'Animation', 'Vlogs', 'Cinematography', 'Editing', 'VFX', 'Film Analysis', 'Horror', 'Comedy', 'Drama', 'Experimental Film', 'Stop Motion', 'Motion Graphics', 'Color Grading', 'Sound Design', 'Directing', 'Screenwriting', 'Film Scoring'] },
-  { id: 'photography', name: 'Photography', genres: ['Portrait', 'Landscape', 'Street', 'Fashion', 'Product', 'Wildlife', 'Architecture', 'Fine Art', 'Black & White', 'Travel', 'Food', 'Conceptual', 'Documentary', 'Analog', 'Darkroom', 'Photo Manipulation', 'Macro', 'Astrophotography', 'Underwater', 'Aerial', 'Event'] },
-  { id: 'fashion_design', name: 'Fashion & Design', genres: ['Fashion Design', 'Costume Design', 'Textile Art', 'Pattern Making', 'Sustainable Fashion', 'Streetwear', 'Haute Couture', 'Accessories', 'Jewelry Design', 'Shoe Design', 'Makeup Artistry', 'Hair Styling', 'Nail Art', 'Body Art', 'Fashion Illustration', 'Styling', 'Upcycling'] },
-  { id: 'crafts', name: 'Crafts & Handmade', genres: ['Ceramics', 'Pottery', 'Woodworking', 'Metalwork', 'Glasswork', 'Leathercraft', 'Bookbinding', 'Paper Art', 'Origami', 'Embroidery', 'Knitting', 'Crochet', 'Weaving', 'Quilting', 'Sewing', 'Jewelry Making', 'Candle Making', 'Soap Making', 'Resin Art', 'Macramé', 'Calligraphy', 'Lettering'] },
-  { id: 'digital_creative', name: 'Digital Creative', genres: ['UI/UX Design', 'Web Design', 'Motion Design', 'Brand Design', 'Digital Illustration', '3D Modeling', '3D Animation', 'Game Art', 'NFT Art', 'Generative Art', 'AI Art', 'VR/AR Art', 'Interactive Media', 'Creative Coding', 'Pixel Art', 'Icon Design', 'Infographics'] },
-  { id: 'architecture', name: 'Architecture & Spaces', genres: ['Architecture', 'Interior Design', 'Landscape Design', 'Urban Planning', 'Sustainable Design', 'Furniture Design', 'Exhibition Design', 'Set Design', 'Lighting Design', 'Spatial Design', 'Architectural Visualization', 'Model Making'] },
-  { id: 'gaming', name: 'Gaming & Interactive', genres: ['RPG', 'Strategy', 'Indie Games', 'Retro', 'Horror', 'Adventure', 'Game Dev', 'Game Design', 'Level Design', 'Game Writing', 'Game Art', 'Esports', 'Reviews', 'Speedrunning', 'Modding', 'Tabletop', 'Board Games', 'Card Games'] },
-  { id: 'technology', name: 'Creative Tech', genres: ['Creative Coding', 'Generative Art', 'Interactive Installations', 'Projection Mapping', 'Hardware Hacking', 'Arduino', 'Raspberry Pi', 'Wearable Tech', 'Sound Engineering', 'Live Visuals', 'VJing', 'AI Tools', 'Open Source', 'Web Dev'] },
-  { id: 'lifestyle', name: 'Lifestyle & Wellness', genres: ['Fashion', 'Food', 'Travel', 'Fitness', 'Wellness', 'Home Decor', 'DIY', 'Self-Improvement', 'Minimalism', 'Journaling', 'Bullet Journal', 'Plant Care', 'Sustainable Living', 'Vintage', 'Thrifting'] },
-  { id: 'education', name: 'Learning & Critique', genres: ['Art History', 'Music Theory', 'Film Studies', 'Design Theory', 'Writing Craft', 'Critique Groups', 'Mentorship', 'Workshops', 'Tutorials', 'Book Club', 'Portfolio Review', 'Career Advice', 'Art Business', 'Creative Process'] },
-  { id: 'culture', name: 'Culture & Community', genres: ['Art Movements', 'Cultural Heritage', 'Folk Art', 'Indigenous Art', 'Diaspora Art', 'Zine Culture', 'Fan Art', 'Fan Fiction', 'Cosplay', 'Conventions', 'Local Scene', 'Collectives', 'Collaborations', 'Open Calls', 'Residencies'] },
-];
+function ChipToggle({ pressed, onClick, children }: { pressed: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button type="button" className="pq-chip" aria-pressed={pressed} onClick={onClick}>
+      {children}
+    </button>
+  );
+}
 
-const THEMES = [
-  // Mood & Emotion
-  'Dark', 'Light', 'Romantic', 'Melancholic', 'Uplifting', 'Intense', 'Peaceful', 'Mysterious', 'Ethereal', 'Raw', 'Intimate', 'Dreamy', 'Haunting', 'Joyful', 'Bittersweet', 'Provocative', 'Contemplative', 'Playful', 'Tender', 'Fierce',
-  // Style & Aesthetic
-  'Minimalist', 'Maximalist', 'Surreal', 'Abstract', 'Realistic', 'Vintage', 'Retro', 'Modern', 'Contemporary', 'Classic', 'Avant-Garde', 'Bohemian', 'Gothic', 'Cyberpunk', 'Cottagecore', 'Dark Academia', 'Kawaii', 'Brutalist', 'Art Deco', 'Baroque',
-  // Setting & Environment
-  'Nature', 'Urban', 'Cosmic', 'Underwater', 'Fantasy', 'Dystopian', 'Utopian', 'Domestic', 'Industrial', 'Sacred', 'Liminal', 'Nocturnal',
-  // Concept & Approach
-  'Experimental', 'Traditional', 'Hybrid', 'Lo-Fi', 'Hi-Fi', 'Handmade', 'Polished', 'Rough', 'Layered', 'Monochrome', 'Vibrant', 'Muted', 'Textured', 'Geometric', 'Organic', 'Narrative', 'Symbolic', 'Political', 'Personal', 'Universal'
-];
-
-const COMMUNITY_TYPES = [
-  { id: 'showcase', name: 'Showcase' },
-  { id: 'workshop', name: 'Workshop' },
-  { id: 'discussion', name: 'Discussion' },
-  { id: 'collaboration', name: 'Collaboration' },
-  { id: 'critique', name: 'Critique' },
-  { id: 'challenge', name: 'Challenge' },
-  { id: 'mentorship', name: 'Mentorship' },
-  { id: 'networking', name: 'Networking' },
-  { id: 'collective', name: 'Collective' },
-  { id: 'archive', name: 'Archive' },
-];
-
+/**
+ * Three short steps: name and visibility; category, genres, themes and
+ * purpose (the same taxonomy the directory filters on); rules and a summary.
+ * Same fields, chips and steps as the composer.
+ */
 export default function CreateCommunityPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { create, creating: loading, error } = useCreateCommunity();
 
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
-    name: '',
-    slug: '',
-    description: '',
-    privacy: 'public' as 'public' | 'private',
+    name: "",
+    slug: "",
+    description: "",
+    privacy: "public" as "public" | "private",
     category: null as string | null,
     selectedGenres: [] as string[],
     selectedThemes: [] as string[],
     customGenres: [] as string[],
     customThemes: [] as string[],
-    newGenre: '',
-    newTheme: '',
+    newGenre: "",
+    newTheme: "",
     communityType: null as string | null,
     rules: [] as { title: string; description: string }[],
   });
-  const [newRule, setNewRule] = useState({ title: '', description: '' });
+  const [newRule, setNewRule] = useState({ title: "", description: "" });
 
-  const selectedCategory = CATEGORIES.find(c => c.id === formData.category);
+  const selectedCategory = findCategoryById(formData.category);
 
-  const generateSlug = (name: string) => {
-    return name
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .trim();
-  };
+  const toggleIn = (key: "selectedGenres" | "selectedThemes", value: string) =>
+    setFormData((prev) => ({ ...prev, [key]: prev[key].includes(value) ? prev[key].filter((v) => v !== value) : [...prev[key], value] }));
 
-  const handleNameChange = (name: string) => {
-    setFormData(prev => ({ ...prev, name, slug: generateSlug(name) }));
-  };
-
-  const selectCategory = (categoryId: string) => {
-    setFormData(prev => ({
-      ...prev,
-      category: prev.category === categoryId ? null : categoryId,
-      selectedGenres: prev.category === categoryId ? prev.selectedGenres : [],
-    }));
-  };
-
-  const toggleGenre = (genre: string) => {
-    setFormData(prev => ({
-      ...prev,
-      selectedGenres: prev.selectedGenres.includes(genre)
-        ? prev.selectedGenres.filter(g => g !== genre)
-        : [...prev.selectedGenres, genre]
-    }));
-  };
-
-  const toggleTheme = (theme: string) => {
-    setFormData(prev => ({
-      ...prev,
-      selectedThemes: prev.selectedThemes.includes(theme)
-        ? prev.selectedThemes.filter(t => t !== theme)
-        : [...prev.selectedThemes, theme]
-    }));
-  };
-
-  const selectCommunityType = (typeId: string) => {
-    setFormData(prev => ({
-      ...prev,
-      communityType: prev.communityType === typeId ? null : typeId
-    }));
+  const addCustom = (kind: "genre" | "theme") => {
+    const value = (kind === "genre" ? formData.newGenre : formData.newTheme).trim();
+    if (!value) return;
+    setFormData((prev) => {
+      if (kind === "genre") {
+        return prev.selectedGenres.includes(value)
+          ? { ...prev, newGenre: "" }
+          : { ...prev, selectedGenres: [...prev.selectedGenres, value], customGenres: [...prev.customGenres, value], newGenre: "" };
+      }
+      return prev.selectedThemes.includes(value)
+        ? { ...prev, newTheme: "" }
+        : { ...prev, selectedThemes: [...prev.selectedThemes, value], customThemes: [...prev.customThemes, value], newTheme: "" };
+    });
   };
 
   const addRule = () => {
-    if (newRule.title.trim()) {
-      setFormData(prev => ({
-        ...prev,
-        rules: [...prev.rules, { title: newRule.title.trim(), description: newRule.description.trim() }]
-      }));
-      setNewRule({ title: '', description: '' });
-    }
-  };
-
-  const removeRule = (index: number) => {
-    setFormData(prev => ({ ...prev, rules: prev.rules.filter((_, i) => i !== index) }));
+    if (!newRule.title.trim()) return;
+    setFormData((prev) => ({ ...prev, rules: [...prev.rules, { title: newRule.title.trim(), description: newRule.description.trim() }] }));
+    setNewRule({ title: "", description: "" });
   };
 
   const handleSubmit = async () => {
     if (!user) return;
-
-    const tagsWithType = [
-      ...formData.selectedGenres.map(tag => ({ tag, tag_type: 'genre' })),
-      ...formData.selectedThemes.map(tag => ({ tag, tag_type: 'theme' })),
-      ...(formData.communityType ? [{ tag: formData.communityType, tag_type: 'type' }] : []),
+    const tags = [
+      ...formData.selectedGenres.map((tag) => ({ tag, tag_type: "genre" })),
+      ...formData.selectedThemes.map((tag) => ({ tag, tag_type: "theme" })),
+      ...(formData.communityType ? [{ tag: formData.communityType, tag_type: "type" }] : []),
     ];
-
-    const result = await create({
-      name: formData.name,
-      slug: formData.slug,
-      description: formData.description,
-      privacy: formData.privacy,
-      topics: formData.category ? [selectedCategory?.name || ''] : [],
-      tags: tagsWithType,
-      rules: formData.rules,
-    }, user.id);
-
-    if (result.success && result.community) {
-      router.push(`/community/${result.community.slug}`);
-    }
+    const result = await create(
+      {
+        name: formData.name,
+        slug: formData.slug,
+        description: formData.description,
+        privacy: formData.privacy,
+        topics: selectedCategory ? [selectedCategory.name] : [],
+        tags,
+        rules: formData.rules,
+      },
+      user.id
+    );
+    if (result.success && result.community) router.push(`/community/${result.community.slug}`);
   };
 
-  if (!user) {
+  if (authLoading) {
     return (
-      <div className="max-w-xl mx-auto px-6 py-16 text-center">
-        <h1 className="font-display text-2xl text-ink mb-3">Sign in to create a community</h1>
-        <p className="font-body text-muted">You need to be logged in to create a community.</p>
-      </div>
+      <PageFrame width="reading">
+        <div className="pq-feed-state" role="status" aria-label="Loading"><Spinner size="lg" /></div>
+      </PageFrame>
     );
   }
 
+  if (!user) {
+    return (
+      <PageFrame width="narrow">
+        <PageHeader title="Start a community" />
+        <div className="pq-feed-state pq-feed-state--card">
+          <p className="pq-feed-state__title">Sign in to start a community</p>
+          <p className="pq-feed-state__text">A community is a shared space you run for your kind of work.</p>
+          <div className="pq-feed-state__actions">
+            <Link href="/login?redirect=%2Fcommunity%2Fcreate" className="pq-button pq-button--md pq-button--primary">Sign in</Link>
+          </div>
+        </div>
+      </PageFrame>
+    );
+  }
+
+  const canContinue1 = formData.name.trim().length > 0 && formData.slug.trim().length > 0;
+
   return (
-    <div className="max-w-xl mx-auto px-6 py-10">
-      {/* Header */}
-      <div className="mb-10">
-        <p className="font-ui text-xs text-purple-primary mb-2">New Community</p>
-        <h1 className="font-display text-2xl text-ink">Create your space</h1>
-      </div>
+    <PageFrame width="reading" className="pq-composer">
+      <PageHeader
+        title="Start a community"
+        lede="Give it a name and a purpose. You can change everything later in its settings."
+        actions={<Link href="/community" className="pq-button pq-button--sm pq-button--ghost">Cancel</Link>}
+      />
 
-      {/* Progress */}
-      <div className="flex items-center gap-2 mb-10">
-        {[1, 2, 3].map((s) => (
-          <React.Fragment key={s}>
-            <button
-              onClick={() => s < step && setStep(s)}
-              disabled={s > step}
-              className={`w-8 h-8 rounded-full font-ui text-xs font-medium transition-all ${
-                s === step
-                  ? 'bg-purple-primary text-white'
-                  : s < step
-                  ? 'bg-purple-primary/20 text-purple-primary cursor-pointer'
-                  : 'bg-skeleton text-muted'
-              }`}
-            >
-              {s}
-            </button>
-            {s < 3 && (
-              <div className={`flex-1 h-px ${s < step ? 'bg-purple-primary/30' : 'bg-black/10'}`} />
-            )}
-          </React.Fragment>
-        ))}
-      </div>
+      <ComposerSteps steps={STEPS} current={step} onSelect={(n) => n < step && setStep(n)} />
 
-      {/* Step 1: Basics */}
       {step === 1 && (
-        <div className="space-y-10">
+        <div className="grid gap-5">
           <div>
-            <label className="block font-ui text-xs tracking-wide text-muted mb-3">Name</label>
+            <FieldLabel htmlFor="community-name">Name</FieldLabel>
             <input
+              id="community-name"
               type="text"
+              className="pq-field"
               value={formData.name}
-              onChange={(e) => handleNameChange(e.target.value)}
-              placeholder="Give your community a name"
-              className="w-full px-0 py-2 bg-transparent border-0 border-b border-border-light font-body text-lg text-ink placeholder:text-muted/40 focus:outline-none focus:border-purple-primary transition-colors"
+              onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value, slug: slugify(e.target.value) }))}
+              placeholder="What people will call it"
               maxLength={100}
               autoFocus
             />
           </div>
-
           <div>
-            <label className="block font-ui text-xs tracking-wide text-muted mb-3">URL</label>
-            <div className="flex items-baseline gap-0.5 py-2 border-b border-border-light focus-within:border-purple-primary transition-colors">
-              <span className="font-body text-lg text-muted/30">pinkquill.com/c/</span>
-              <input
-                type="text"
-                value={formData.slug}
-                onChange={(e) => setFormData(prev => ({ ...prev, slug: generateSlug(e.target.value) }))}
-                className="flex-1 bg-transparent border-0 font-body text-lg text-ink focus:outline-none"
-                placeholder="community-name"
-                maxLength={50}
-              />
-            </div>
+            <FieldLabel htmlFor="community-slug" hint="pinkquill.com/community/…">Address</FieldLabel>
+            <input
+              id="community-slug"
+              type="text"
+              className="pq-field pq-field--ui"
+              value={formData.slug}
+              onChange={(e) => setFormData((prev) => ({ ...prev, slug: slugify(e.target.value) }))}
+              placeholder="community-name"
+              maxLength={50}
+            />
           </div>
-
           <div>
-            <label className="block font-ui text-xs tracking-wide text-muted mb-3">
-              Description <span className="text-muted/50">(optional)</span>
-            </label>
+            <FieldLabel htmlFor="community-description" hint={`(optional) ${formData.description.length}/500`}>What it&rsquo;s for</FieldLabel>
             <textarea
+              id="community-description"
+              className="pq-field"
               value={formData.description}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              placeholder="What is this community about?"
+              onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+              placeholder="Who it's for and what gets shared here."
               rows={3}
-              className="w-full px-0 py-2 bg-transparent border-0 border-b border-border-light font-body text-base text-ink placeholder:text-muted/40 focus:outline-none focus:border-purple-primary transition-colors resize-none"
               maxLength={500}
             />
           </div>
-
           <div>
-            <label className="block font-ui text-xs tracking-wide text-muted mb-5">Visibility</label>
-            <div className="flex gap-3">
+            <p className="pq-label">Who can join</p>
+            <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Who can join">
               {[
-                { id: 'public', label: 'Public', desc: 'Anyone can join' },
-                { id: 'private', label: 'Private', desc: 'Invite only' },
+                { id: "public" as const, label: "Public", desc: "Anyone can join and see the posts." },
+                { id: "private" as const, label: "Private", desc: "People ask to join; admins approve." },
               ].map((option) => (
                 <button
                   key={option.id}
                   type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, privacy: option.id as 'public' | 'private' }))}
-                  className={`flex-1 py-4 px-5 rounded-xl text-left transition-all ${
-                    formData.privacy === option.id
-                      ? 'bg-purple-primary/5 ring-1 ring-purple-primary'
-                      : 'bg-subtle hover:bg-skeleton/60'
-                  }`}
+                  role="radio"
+                  aria-checked={formData.privacy === option.id}
+                  className="pq-choice"
+                  style={formData.privacy === option.id ? { borderColor: "var(--color-action)", background: "var(--color-action-soft)" } : undefined}
+                  onClick={() => setFormData((prev) => ({ ...prev, privacy: option.id }))}
                 >
-                  <span className={`font-ui text-sm font-medium block ${
-                    formData.privacy === option.id ? 'text-purple-primary' : 'text-ink'
-                  }`}>{option.label}</span>
-                  <span className="font-body text-xs text-muted">{option.desc}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="pt-4">
-            <button
-              onClick={() => setStep(2)}
-              disabled={!formData.name.trim() || !formData.slug.trim()}
-              className="w-full py-3.5 rounded-xl bg-purple-primary text-white font-ui text-sm font-medium hover:bg-accent/90 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              Continue
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Step 2: Category & Details */}
-      {step === 2 && (
-        <div className="space-y-12">
-          {/* Category */}
-          <div>
-            <label className="block font-ui text-xs tracking-wide text-muted mb-5">Category</label>
-            <div className="grid grid-cols-2 gap-2">
-              {CATEGORIES.map((category) => (
-                <button
-                  key={category.id}
-                  type="button"
-                  onClick={() => selectCategory(category.id)}
-                  className={`group py-3 px-4 rounded-lg text-left transition-all ${
-                    formData.category === category.id
-                      ? 'bg-purple-primary'
-                      : 'hover:bg-subtle'
-                  }`}
-                >
-                  <span className={`font-ui text-[0.8rem] transition-colors ${
-                    formData.category === category.id
-                      ? 'text-white'
-                      : 'text-ink/70 group-hover:text-ink'
-                  }`}>
-                    {category.name}
+                  <span>
+                    <strong className="block font-semibold">{option.label}</strong>
+                    <span className="text-sm text-subdued">{option.desc}</span>
                   </span>
                 </button>
               ))}
             </div>
           </div>
-
-          {/* Genres - only show when category selected */}
-          {selectedCategory && (
-            <div className="animate-fadeIn">
-              <div className="flex items-baseline justify-between mb-5">
-                <label className="font-ui text-xs tracking-wide text-muted">Genres</label>
-                {formData.selectedGenres.length > 0 && (
-                  <span className="font-ui text-xs text-purple-primary">{formData.selectedGenres.length} selected</span>
-                )}
-              </div>
-              <div className="flex flex-wrap gap-2 mb-4">
-                {selectedCategory.genres.map((genre) => (
-                  <button
-                    key={genre}
-                    type="button"
-                    onClick={() => toggleGenre(genre)}
-                    className={`px-3.5 py-1.5 rounded-full font-ui text-[0.8rem] transition-all ${
-                      formData.selectedGenres.includes(genre)
-                        ? 'bg-purple-primary text-white'
-                        : 'bg-skeleton/70 text-ink/60 hover:bg-skeleton hover:text-ink'
-                    }`}
-                  >
-                    {genre}
-                  </button>
-                ))}
-                {formData.customGenres?.map((genre) => (
-                  <button
-                    key={genre}
-                    type="button"
-                    onClick={() => toggleGenre(genre)}
-                    className="px-3.5 py-1.5 rounded-full font-ui text-[0.8rem] bg-purple-primary text-white"
-                  >
-                    {genre}
-                  </button>
-                ))}
-              </div>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={formData.newGenre || ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, newGenre: e.target.value }))}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && formData.newGenre?.trim()) {
-                      const genre = formData.newGenre.trim();
-                      if (!formData.selectedGenres.includes(genre)) {
-                        setFormData(prev => ({
-                          ...prev,
-                          selectedGenres: [...prev.selectedGenres, genre],
-                          customGenres: [...(prev.customGenres || []), genre],
-                          newGenre: ''
-                        }));
-                      }
-                    }
-                  }}
-                  placeholder="Add custom genre"
-                  className="flex-1 px-3.5 py-2 rounded-full bg-skeleton/60 border border-dashed border-border-light font-ui text-[0.8rem] text-ink placeholder:text-muted/40 focus:outline-none focus:border-purple-300"
-                />
-              </div>
+          <div className="pq-composer-foot">
+            <div className="pq-composer-foot__audience" />
+            <div className="pq-composer-foot__actions">
+              <Button variant="primary" onClick={() => setStep(2)} disabled={!canContinue1}>Next</Button>
             </div>
-          )}
-
-          {/* Themes */}
-          {selectedCategory && (
-            <div className="animate-fadeIn">
-              <div className="flex items-baseline justify-between mb-5">
-                <label className="font-ui text-xs tracking-wide text-muted">
-                  Themes <span className="text-muted/50">(optional)</span>
-                </label>
-                {formData.selectedThemes.length > 0 && (
-                  <span className="font-ui text-xs text-pink-vivid">{formData.selectedThemes.length} selected</span>
-                )}
-              </div>
-              <div className="flex flex-wrap gap-2 mb-4">
-                {THEMES.map((theme) => (
-                  <button
-                    key={theme}
-                    type="button"
-                    onClick={() => toggleTheme(theme)}
-                    className={`px-3.5 py-1.5 rounded-full font-ui text-[0.8rem] transition-all ${
-                      formData.selectedThemes.includes(theme)
-                        ? 'bg-pink-vivid text-white'
-                        : 'bg-skeleton/70 text-ink/60 hover:bg-skeleton hover:text-ink'
-                    }`}
-                  >
-                    {theme}
-                  </button>
-                ))}
-                {formData.customThemes?.map((theme) => (
-                  <button
-                    key={theme}
-                    type="button"
-                    onClick={() => toggleTheme(theme)}
-                    className="px-3.5 py-1.5 rounded-full font-ui text-[0.8rem] bg-pink-vivid text-white"
-                  >
-                    {theme}
-                  </button>
-                ))}
-              </div>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={formData.newTheme || ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, newTheme: e.target.value }))}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && formData.newTheme?.trim()) {
-                      const theme = formData.newTheme.trim();
-                      if (!formData.selectedThemes.includes(theme)) {
-                        setFormData(prev => ({
-                          ...prev,
-                          selectedThemes: [...prev.selectedThemes, theme],
-                          customThemes: [...(prev.customThemes || []), theme],
-                          newTheme: ''
-                        }));
-                      }
-                    }
-                  }}
-                  placeholder="Add custom theme"
-                  className="flex-1 px-3.5 py-2 rounded-full bg-skeleton/60 border border-dashed border-border-light font-ui text-[0.8rem] text-ink placeholder:text-muted/40 focus:outline-none focus:border-pink-300"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Purpose */}
-          {selectedCategory && (
-            <div className="animate-fadeIn">
-              <label className="block font-ui text-xs tracking-wide text-muted mb-5">
-                Purpose <span className="text-muted/50">(optional)</span>
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {COMMUNITY_TYPES.map((type) => (
-                  <button
-                    key={type.id}
-                    type="button"
-                    onClick={() => selectCommunityType(type.id)}
-                    className={`px-3.5 py-1.5 rounded-full font-ui text-[0.8rem] transition-all ${
-                      formData.communityType === type.id
-                        ? 'bg-purple-primary text-white'
-                        : 'bg-skeleton/70 text-ink/60 hover:bg-skeleton hover:text-ink'
-                    }`}
-                  >
-                    {type.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="flex gap-3 pt-6">
-            <button
-              onClick={() => setStep(1)}
-              className="px-6 py-3.5 rounded-xl bg-skeleton/60 text-ink font-ui text-sm font-medium hover:bg-skeleton transition-colors"
-            >
-              Back
-            </button>
-            <button
-              onClick={() => setStep(3)}
-              disabled={!formData.category}
-              className="flex-1 py-3.5 rounded-xl bg-purple-primary text-white font-ui text-sm font-medium hover:bg-accent/90 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              Continue
-            </button>
           </div>
         </div>
       )}
 
-      {/* Step 3: Rules & Create */}
-      {step === 3 && (
-        <div className="space-y-10">
-          {/* Rules */}
+      {step === 2 && (
+        <div className="grid gap-6">
           <div>
-            <label className="block font-ui text-xs tracking-wide text-muted mb-5">
-              Rules <span className="text-muted/50">(optional)</span>
-            </label>
-
-            {formData.rules.length > 0 && (
-              <div className="space-y-3 mb-6">
-                {formData.rules.map((rule, index) => (
-                  <div key={index} className="py-4 px-5 rounded-xl bg-subtle">
-                    <div className="flex items-start gap-3">
-                      <span className="w-5 h-5 rounded-full bg-purple-primary/10 text-purple-primary flex items-center justify-center flex-shrink-0 font-ui text-[0.65rem] font-bold mt-0.5">
-                        {index + 1}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-ui text-sm font-medium text-ink">{rule.title}</p>
-                        {rule.description && (
-                          <p className="font-body text-sm text-muted mt-1">{rule.description}</p>
-                        )}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => removeRule(index)}
-                        className="text-muted/30 hover:text-red-500 transition-colors"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div className="space-y-3 p-5 rounded-xl border border-dashed border-border-light">
-              <input
-                type="text"
-                value={newRule.title}
-                onChange={(e) => setNewRule(prev => ({ ...prev, title: e.target.value }))}
-                placeholder="Rule title"
-                className="w-full px-0 py-1 bg-transparent border-0 font-ui text-sm text-ink placeholder:text-muted/40 focus:outline-none"
-              />
-              <textarea
-                value={newRule.description}
-                onChange={(e) => setNewRule(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="Description (optional)"
-                rows={2}
-                className="w-full px-0 py-1 bg-transparent border-0 font-body text-sm text-muted placeholder:text-muted/30 focus:outline-none resize-none"
-              />
-              <button
-                type="button"
-                onClick={addRule}
-                disabled={!newRule.title.trim()}
-                className="px-4 py-2 rounded-lg bg-purple-primary/10 text-purple-primary font-ui text-xs font-medium hover:bg-accent/20 transition-colors disabled:opacity-30"
-              >
-                Add Rule
-              </button>
+            <p className="pq-label">Category</p>
+            <div className="pq-chip-row" role="group" aria-label="Category">
+              {COMMUNITY_CATEGORIES.map((category) => (
+                <ChipToggle
+                  key={category.id}
+                  pressed={formData.category === category.id}
+                  onClick={() => setFormData((prev) => ({ ...prev, category: prev.category === category.id ? null : category.id, selectedGenres: prev.category === category.id ? prev.selectedGenres : [] }))}
+                >
+                  {category.name}
+                </ChipToggle>
+              ))}
             </div>
           </div>
 
-          {/* Summary */}
-          <div className="py-6 border-t border-border-light">
-            <p className="font-ui text-xs tracking-wide text-muted mb-4">Summary</p>
-            <dl className="space-y-3">
-              <div className="flex justify-between">
-                <dt className="font-body text-sm text-muted">Name</dt>
-                <dd className="font-ui text-sm text-ink">{formData.name}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="font-body text-sm text-muted">Category</dt>
-                <dd className="font-ui text-sm text-ink">{selectedCategory?.name}</dd>
-              </div>
-              {formData.selectedGenres.length > 0 && (
-                <div className="flex justify-between">
-                  <dt className="font-body text-sm text-muted">Genres</dt>
-                  <dd className="font-ui text-sm text-ink text-right max-w-[60%]">
-                    {formData.selectedGenres.slice(0, 3).join(', ')}
-                    {formData.selectedGenres.length > 3 && ` +${formData.selectedGenres.length - 3}`}
-                  </dd>
+          {selectedCategory && (
+            <>
+              <div>
+                <FieldLabel htmlFor="community-genre" hint={formData.selectedGenres.length ? `${formData.selectedGenres.length} chosen` : "(optional)"}>Genres</FieldLabel>
+                <div className="pq-chip-row mb-2" role="group" aria-label="Genres">
+                  {[...selectedCategory.genres, ...formData.customGenres.filter((g) => !selectedCategory.genres.includes(g))].map((genre) => (
+                    <ChipToggle key={genre} pressed={formData.selectedGenres.includes(genre)} onClick={() => toggleIn("selectedGenres", genre)}>{genre}</ChipToggle>
+                  ))}
                 </div>
-              )}
-              <div className="flex justify-between">
-                <dt className="font-body text-sm text-muted">Visibility</dt>
-                <dd className="font-ui text-sm text-ink capitalize">{formData.privacy}</dd>
+                <input
+                  id="community-genre"
+                  type="text"
+                  className="pq-field pq-field--ui"
+                  value={formData.newGenre}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, newGenre: e.target.value }))}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCustom("genre"); } }}
+                  placeholder="Add your own and press Enter"
+                />
               </div>
+
+              <div>
+                <FieldLabel htmlFor="community-theme" hint={formData.selectedThemes.length ? `${formData.selectedThemes.length} chosen` : "(optional)"}>Themes</FieldLabel>
+                <div className="pq-chip-row mb-2" role="group" aria-label="Themes">
+                  {[...COMMUNITY_THEMES, ...formData.customThemes.filter((t) => !COMMUNITY_THEMES.includes(t))].map((theme) => (
+                    <ChipToggle key={theme} pressed={formData.selectedThemes.includes(theme)} onClick={() => toggleIn("selectedThemes", theme)}>{theme}</ChipToggle>
+                  ))}
+                </div>
+                <input
+                  id="community-theme"
+                  type="text"
+                  className="pq-field pq-field--ui"
+                  value={formData.newTheme}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, newTheme: e.target.value }))}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCustom("theme"); } }}
+                  placeholder="Add your own and press Enter"
+                />
+              </div>
+
+              <div>
+                <p className="pq-label">Purpose <span className="pq-label__hint">(optional)</span></p>
+                <div className="pq-chip-row" role="group" aria-label="Purpose">
+                  {COMMUNITY_PURPOSES.map((type) => (
+                    <ChipToggle key={type.id} pressed={formData.communityType === type.id} onClick={() => setFormData((prev) => ({ ...prev, communityType: prev.communityType === type.id ? null : type.id }))}>
+                      {type.name}
+                    </ChipToggle>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          <div className="pq-composer-foot">
+            <div className="pq-composer-foot__audience">
+              {!selectedCategory && <span className="text-sm text-subdued">Pick a category so people can find it.</span>}
+            </div>
+            <div className="pq-composer-foot__actions">
+              <Button variant="ghost" onClick={() => setStep(1)}>Back</Button>
+              <Button variant="primary" onClick={() => setStep(3)} disabled={!formData.category}>Next</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {step === 3 && (
+        <div className="grid gap-6">
+          <div>
+            <p className="pq-label">Rules <span className="pq-label__hint">(optional)</span></p>
+            {formData.rules.length > 0 && (
+              <ol className="grid gap-2 mb-3 list-none p-0 m-0">
+                {formData.rules.map((rule, index) => (
+                  <li key={`${rule.title}-${index}`} className="pq-rule">
+                    <span className="pq-rule__num">{index + 1}</span>
+                    <span className="pq-rule__text">
+                      {rule.title}
+                      {rule.description && <small>{rule.description}</small>}
+                    </span>
+                    <button type="button" className="pq-icon-button" onClick={() => setFormData((prev) => ({ ...prev, rules: prev.rules.filter((_, i) => i !== index) }))} aria-label={`Remove rule ${index + 1}`}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden="true" className="w-4 h-4"><path d="M6 6l12 12M18 6L6 18" /></svg>
+                    </button>
+                  </li>
+                ))}
+              </ol>
+            )}
+            <div className="pq-panel grid gap-2">
+              <input
+                type="text"
+                className="pq-field pq-field--ui"
+                value={newRule.title}
+                onChange={(e) => setNewRule((prev) => ({ ...prev, title: e.target.value }))}
+                placeholder="A rule, in a few words"
+                aria-label="Rule"
+              />
+              <textarea
+                className="pq-field"
+                value={newRule.description}
+                onChange={(e) => setNewRule((prev) => ({ ...prev, description: e.target.value }))}
+                placeholder="Why it matters here (optional)"
+                aria-label="Rule description"
+                rows={2}
+              />
+              <div>
+                <Button variant="secondary" size="sm" onClick={addRule} disabled={!newRule.title.trim()}>Add rule</Button>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <p className="pq-label">Summary</p>
+            <dl className="pq-summary">
+              <div><dt>Name</dt><dd>{formData.name}</dd></div>
+              <div><dt>Address</dt><dd>/community/{formData.slug}</dd></div>
+              <div><dt>Category</dt><dd>{selectedCategory?.name}</dd></div>
+              {formData.selectedGenres.length > 0 && (
+                <div><dt>Genres</dt><dd>{formData.selectedGenres.slice(0, 3).join(", ")}{formData.selectedGenres.length > 3 ? ` +${formData.selectedGenres.length - 3}` : ""}</dd></div>
+              )}
+              <div><dt>Who can join</dt><dd>{formData.privacy === "private" ? "Private, by request" : "Public"}</dd></div>
+              <div><dt>Rules</dt><dd>{formData.rules.length || "None yet"}</dd></div>
             </dl>
           </div>
 
-          {error && (
-            <div className="py-3 px-4 rounded-xl bg-red-50 text-red-600 font-ui text-sm">
-              {error}
-            </div>
-          )}
+          {error && <p className="pq-alert" role="alert">{error}</p>}
 
-          <div className="flex gap-3 pt-4">
-            <button
-              onClick={() => setStep(2)}
-              className="px-6 py-3.5 rounded-xl bg-skeleton/60 text-ink font-ui text-sm font-medium hover:bg-skeleton transition-colors"
-            >
-              Back
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={loading}
-              className="flex-1 py-3.5 rounded-xl bg-purple-primary text-white font-ui text-sm font-medium hover:bg-accent/90 transition-colors disabled:opacity-60"
-            >
-              {loading ? 'Creating...' : 'Create Community'}
-            </button>
+          <div className="pq-composer-foot">
+            <div className="pq-composer-foot__audience">
+              <span className="text-sm text-subdued">You&rsquo;ll be the admin. Rules and members are managed in Settings.</span>
+            </div>
+            <div className="pq-composer-foot__actions">
+              <Button variant="ghost" onClick={() => setStep(2)} disabled={loading}>Back</Button>
+              <Button variant="primary" onClick={handleSubmit} loading={loading} loadingText="Creating…">Create community</Button>
+            </div>
           </div>
         </div>
       )}
-    </div>
+    </PageFrame>
   );
 }

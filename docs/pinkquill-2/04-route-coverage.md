@@ -19,19 +19,19 @@ September 5 update: the four-screen proof and component reference live outside a
 | `/take/[id]` | [app/take/[id]/page.tsx](../../app/take/[id]/page.tsx) | 4 | Redesigned in 4C (PostDetail seams + TakeStage; auth-wait and error-clear bug fixed) |
 | `/takes` | [app/takes/page.tsx](../../app/takes/page.tsx) | 4 | Redesigned in 4C (immersive feed on tokens, quiet arrows, rail states, comments on Sheet) |
 | `/takes/create` | [app/takes/create/page.tsx](../../app/takes/create/page.tsx) | 4 | Redesigned in 4C (reading frame, shared Take editor pieces, disclosures) |
-| `/community` | [app/community/page.tsx](../../app/community/page.tsx) | 5 | Not started |
-| `/community/[slug]` | [app/community/[slug]/page.tsx](../../app/community/[slug]/page.tsx) | 5 | Not started |
-| `/community/[slug]/about` | [app/community/[slug]/about/page.tsx](../../app/community/[slug]/about/page.tsx) | 5 | Not started |
-| `/community/[slug]/members` | [app/community/[slug]/members/page.tsx](../../app/community/[slug]/members/page.tsx) | 5 | Not started |
-| `/community/[slug]/mod` | [app/community/[slug]/mod/page.tsx](../../app/community/[slug]/mod/page.tsx) | 5 | Not started |
-| `/community/[slug]/settings` | [app/community/[slug]/settings/page.tsx](../../app/community/[slug]/settings/page.tsx) | 5 | Not started |
-| `/community/[slug]/settings/chat` | [app/community/[slug]/settings/chat/page.tsx](../../app/community/[slug]/settings/chat/page.tsx) | 5 | Not started |
-| `/community/[slug]/settings/flairs` | [app/community/[slug]/settings/flairs/page.tsx](../../app/community/[slug]/settings/flairs/page.tsx) | 5 | Not started |
-| `/community/[slug]/settings/general` | [app/community/[slug]/settings/general/page.tsx](../../app/community/[slug]/settings/general/page.tsx) | 5 | Not started |
-| `/community/[slug]/settings/members` | [app/community/[slug]/settings/members/page.tsx](../../app/community/[slug]/settings/members/page.tsx) | 5 | Not started |
-| `/community/[slug]/settings/moderation` | [app/community/[slug]/settings/moderation/page.tsx](../../app/community/[slug]/settings/moderation/page.tsx) | 5 | Not started |
-| `/community/[slug]/settings/rules` | [app/community/[slug]/settings/rules/page.tsx](../../app/community/[slug]/settings/rules/page.tsx) | 5 | Not started |
-| `/community/create` | [app/community/create/page.tsx](../../app/community/create/page.tsx) | 5 | Not started |
+| `/community` | [app/community/page.tsx](../../app/community/page.tsx) | 5 | Redesigned in 5A (frame, search + sort, tabs, one category row, quiet cards, states) |
+| `/community/[slug]` | [app/community/[slug]/page.tsx](../../app/community/[slug]/page.tsx) | 5 | Redesigned in 5A (compact identity + tab row in the layout client, feed with sorts/pinned/welcome, rules aside, gates) |
+| `/community/[slug]/about` | [app/community/[slug]/about/page.tsx](../../app/community/[slug]/about/page.tsx) | 5 | Under the 5A header; page body old (5B) |
+| `/community/[slug]/members` | [app/community/[slug]/members/page.tsx](../../app/community/[slug]/members/page.tsx) | 5 | Under the 5A header; page body old (5B) |
+| `/community/[slug]/mod` | [app/community/[slug]/mod/page.tsx](../../app/community/[slug]/mod/page.tsx) | 5 | Under the 5A header; page body old (5B) |
+| `/community/[slug]/settings` | [app/community/[slug]/settings/page.tsx](../../app/community/[slug]/settings/page.tsx) | 5 | Under the 5A header; page body old (5B) |
+| `/community/[slug]/settings/chat` | [app/community/[slug]/settings/chat/page.tsx](../../app/community/[slug]/settings/chat/page.tsx) | 5 | Under the 5A header; page body old (5B) |
+| `/community/[slug]/settings/flairs` | [app/community/[slug]/settings/flairs/page.tsx](../../app/community/[slug]/settings/flairs/page.tsx) | 5 | Under the 5A header; page body old (5B) |
+| `/community/[slug]/settings/general` | [app/community/[slug]/settings/general/page.tsx](../../app/community/[slug]/settings/general/page.tsx) | 5 | Under the 5A header; page body old (5B) |
+| `/community/[slug]/settings/members` | [app/community/[slug]/settings/members/page.tsx](../../app/community/[slug]/settings/members/page.tsx) | 5 | Under the 5A header; page body old (5B) |
+| `/community/[slug]/settings/moderation` | [app/community/[slug]/settings/moderation/page.tsx](../../app/community/[slug]/settings/moderation/page.tsx) | 5 | Under the 5A header; page body old (5B) |
+| `/community/[slug]/settings/rules` | [app/community/[slug]/settings/rules/page.tsx](../../app/community/[slug]/settings/rules/page.tsx) | 5 | Under the 5A header; page body old (5B) |
+| `/community/create` | [app/community/create/page.tsx](../../app/community/create/page.tsx) | 5 | Redesigned in 5A (three composer steps on the shared taxonomy) |
 | `/messages` | [app/(feed)/messages/page.tsx](../../app/(feed)/messages/page.tsx) | 5 | Not started |
 | `/messages/community` | [app/(feed)/messages/community/page.tsx](../../app/(feed)/messages/community/page.tsx) | 5 | Not started |
 | `/saved` | [app/(feed)/saved/page.tsx](../../app/(feed)/saved/page.tsx) | 6 | Not started |

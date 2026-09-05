@@ -1,0 +1,124 @@
+/* Communities — directory, identity, home layout. Loaded by the community
+   routes and the card. Shared tabs/chips/list rows come from ui/tabs.css. */
+@layer components {
+
+  /* ---- Directory ------------------------------------------------------- */
+  .pq-community-toolbar { display: grid; gap: 0.75rem; margin-block-end: 1.25rem; }
+  @media (min-width: 640px) { .pq-community-toolbar__row { display: flex; align-items: center; gap: 0.75rem; } }
+  .pq-community-toolbar__row { display: grid; gap: 0.75rem; }
+  .pq-community-toolbar__row > .pq-field { flex: 1; min-inline-size: 0; }
+  .pq-search { position: relative; }
+  .pq-search > svg { position: absolute; inset-inline-start: 0.875rem; inset-block-start: 50%; transform: translateY(-50%); inline-size: 1rem; block-size: 1rem; color: var(--color-subdued); pointer-events: none; }
+  .pq-search > .pq-field { padding-inline-start: 2.5rem; }
+  .pq-chip-scroll { display: flex; gap: 0.5rem; overflow-x: auto; padding-block: 0.125rem; scrollbar-width: none; }
+  .pq-chip-scroll::-webkit-scrollbar { display: none; }
+  .pq-chip-scroll > .pq-chip { flex: 0 0 auto; }
+
+  .pq-section { margin-block-end: 2rem; }
+  .pq-section__head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-block-end: 0.875rem; }
+  .pq-section__title { margin: 0; font-family: var(--font-display); font-size: 1.125rem; font-weight: 600; color: var(--color-ink); }
+  .pq-section__lede { margin: 0.125rem 0 0; font-family: var(--font-body); font-size: 0.875rem; color: var(--color-subdued); }
+
+  .pq-community-grid { display: grid; gap: 1rem; grid-template-columns: 1fr; }
+  @media (min-width: 640px) { .pq-community-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (min-width: 1024px) { .pq-community-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+  /* ---- Card ------------------------------------------------------------- */
+  .pq-community-card {
+    display: flex;
+    flex-direction: column;
+    min-inline-size: 0;
+    background: var(--color-surface);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+    overflow: hidden;
+    color: inherit;
+    text-decoration: none;
+    transition: border-color 150ms, background-color 150ms;
+  }
+  @media (hover: hover) { .pq-community-card:hover { border-color: var(--color-line-strong); } }
+  .pq-community-card:focus-visible { outline: 3px solid var(--color-action); outline-offset: 2px; }
+  .pq-community-card__cover { display: block; inline-size: 100%; aspect-ratio: 3 / 1; object-fit: cover; background: var(--color-tint); }
+  .pq-community-card__body { display: grid; gap: 0.625rem; padding: 1rem; }
+  .pq-community-card__head { display: flex; align-items: center; gap: 0.75rem; min-inline-size: 0; }
+  .pq-community-card__name { margin: 0; font-family: var(--font-display); font-size: 1rem; font-weight: 600; color: var(--color-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pq-community-card__meta { margin: 0.125rem 0 0; font-family: var(--font-ui); font-size: 0.75rem; color: var(--color-subdued); display: flex; flex-wrap: wrap; gap: 0.25rem 0.5rem; }
+  .pq-community-card__text { margin: 0; font-family: var(--font-body); font-size: 0.875rem; line-height: 1.5; color: var(--color-subdued); display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .pq-community-card__foot { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; font-family: var(--font-ui); font-size: 0.75rem; color: var(--color-subdued); }
+  .pq-community-card__state { color: var(--color-action-ink); font-weight: 600; }
+
+  /* Community mark: the avatar or the first letter on the action tint. */
+  .pq-community-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    inline-size: 2.75rem;
+    block-size: 2.75rem;
+    border-radius: 0.875rem;
+    overflow: hidden;
+    background: var(--color-action-soft);
+    color: var(--color-action-ink);
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    font-weight: 600;
+    line-height: 1;
+  }
+  .pq-community-mark img { inline-size: 100%; block-size: 100%; object-fit: cover; }
+  .pq-community-mark--lg { inline-size: 4.5rem; block-size: 4.5rem; border-radius: 1.25rem; font-size: 2rem; }
+  .pq-community-mark--sm { inline-size: 2rem; block-size: 2rem; border-radius: 0.5rem; font-size: 0.875rem; }
+
+  /* ---- Identity (community home header) --------------------------------- */
+  .pq-community-cover { display: block; inline-size: 100%; aspect-ratio: 5 / 1; max-block-size: 12rem; object-fit: cover; border-radius: var(--radius-card); background: var(--color-tint); margin-block-end: 1rem; }
+  .pq-community-intro { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 1rem 1.25rem; align-items: start; padding-block-end: 1.25rem; }
+  @media (min-width: 768px) { .pq-community-intro { grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; } }
+  .pq-community-intro__text { min-inline-size: 0; display: grid; gap: 0.375rem; }
+  .pq-community-intro__title { margin: 0; font-family: var(--font-display); font-size: clamp(1.5rem, 1.1rem + 1.5vw, 2rem); font-weight: 600; letter-spacing: -0.01em; color: var(--color-ink); overflow-wrap: anywhere; }
+  .pq-community-intro__desc { margin: 0; font-family: var(--font-body); font-size: 0.9375rem; line-height: 1.55; color: var(--color-subdued); max-inline-size: 40rem; }
+  .pq-community-intro__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.5rem; font-family: var(--font-ui); font-size: 0.8125rem; color: var(--color-subdued); }
+  .pq-community-intro__meta a { color: inherit; text-decoration: none; }
+  .pq-community-intro__meta a:hover { color: var(--color-ink); text-decoration: underline; }
+  .pq-community-intro__actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+  @media (min-width: 768px) { .pq-community-intro__actions { grid-column: auto; justify-content: flex-end; } }
+  .pq-community-intro__actions > .pq-button { flex: 1 1 auto; }
+  @media (min-width: 768px) { .pq-community-intro__actions > .pq-button { flex: none; } }
+
+  .pq-community-nav { margin-block-end: 1.5rem; }
+  .pq-community-nav .pq-tab { text-decoration: none; }
+
+  /* ---- Home layout ------------------------------------------------------ */
+  .pq-community-layout { display: grid; gap: 1.5rem; grid-template-columns: minmax(0, 1fr); align-items: start; }
+  @media (min-width: 1024px) { .pq-community-layout { grid-template-columns: minmax(0, 1fr) 17rem; gap: 2rem; } }
+  .pq-community-main { min-inline-size: 0; }
+  .pq-community-aside { display: grid; gap: 1rem; }
+  @media (min-width: 1024px) { .pq-community-aside { position: sticky; top: calc(var(--pq-topbar) + 1rem); } }
+  .pq-community-sort { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; margin-block-end: 1rem; }
+  .pq-community-sort__left { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+
+  .pq-pinned { margin-block-end: 1.5rem; display: grid; gap: 1rem; }
+  .pq-pinned__label { display: inline-flex; align-items: center; gap: 0.375rem; margin: 0; font-family: var(--font-ui); font-size: 0.8125rem; font-weight: 600; color: var(--color-subdued); }
+  .pq-pinned__label svg { inline-size: 0.875rem; block-size: 0.875rem; }
+
+  .pq-side-card { display: grid; gap: 0.75rem; padding: 1rem 1.125rem; background: var(--color-surface); border: 1px solid var(--color-line); border-radius: var(--radius-card); }
+  .pq-side-card__title { margin: 0; font-family: var(--font-ui); font-size: 0.9375rem; font-weight: 600; color: var(--color-ink); }
+  .pq-side-card__text { margin: 0; font-family: var(--font-body); font-size: 0.875rem; line-height: 1.5; color: var(--color-subdued); }
+  .pq-side-card__list { margin: 0; padding: 0; list-style: none; display: grid; gap: 0.5rem; font-family: var(--font-ui); font-size: 0.8125rem; color: var(--color-subdued); }
+  .pq-side-card__list li { display: flex; gap: 0.5rem; align-items: baseline; }
+  .pq-side-card__list li > span:first-child { flex-shrink: 0; inline-size: 1.25rem; color: var(--color-action-ink); font-weight: 600; }
+  .pq-side-card__link { font-family: var(--font-ui); font-size: 0.8125rem; font-weight: 600; color: var(--color-action-ink); text-decoration: none; min-block-size: 2.75rem; display: inline-flex; align-items: center; }
+  .pq-side-card__link:hover { text-decoration: underline; }
+  .pq-welcome { display: flex; gap: 0.75rem; align-items: flex-start; padding: 0.875rem 1rem; background: var(--color-tint); border-radius: var(--radius-card); margin-block-end: 1.25rem; font-family: var(--font-body); font-size: 0.875rem; color: var(--color-ink); }
+  .pq-welcome strong { display: block; font-family: var(--font-ui); font-size: 0.8125rem; font-weight: 600; margin-block-end: 0.125rem; }
+
+  /* ---- Create flow ------------------------------------------------------ */
+  .pq-rule { display: flex; gap: 0.75rem; align-items: flex-start; padding: 0.75rem 0.875rem; border: 1px solid var(--color-line); border-radius: var(--radius-control); background: var(--color-surface); }
+  .pq-rule__num { flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; inline-size: 1.5rem; block-size: 1.5rem; border-radius: 999px; background: var(--color-action-soft); color: var(--color-action-ink); font-family: var(--font-ui); font-size: 0.75rem; font-weight: 600; }
+  .pq-rule__text { flex: 1; min-inline-size: 0; font-family: var(--font-ui); font-size: 0.875rem; color: var(--color-ink); }
+  .pq-rule__text small { display: block; margin-block-start: 0.125rem; font-family: var(--font-body); font-size: 0.8125rem; color: var(--color-subdued); }
+  .pq-summary { margin: 0; display: grid; gap: 0.5rem; font-family: var(--font-ui); font-size: 0.875rem; }
+  .pq-summary > div { display: flex; justify-content: space-between; gap: 1rem; }
+  .pq-summary dt { color: var(--color-subdued); }
+  .pq-summary dd { margin: 0; color: var(--color-ink); text-align: end; }
+
+  @media (prefers-reduced-motion: reduce) { .pq-community-card { transition: none; } }
+}
