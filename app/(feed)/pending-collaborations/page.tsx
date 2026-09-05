@@ -5,7 +5,11 @@ import { Suspense, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { usePendingCollaborations } from "@/lib/hooks.legacy";
-import Loading from "@/components/ui/Loading";
+import { PageFrame, PageHeader } from "@/components/layout/PageFrame";
+import { PostTypeChip } from "@/components/feed/PostTypeChip";
+import { Spinner } from "@/components/ui/Loading";
+import { formatDate } from "@/lib/utils/time";
+import "./pending.css";
 
 interface RawCollaborator {
   status?: string;
@@ -20,6 +24,10 @@ interface RawCollaborator {
     display_name: string | null;
     avatar_url: string | null;
   }[];
+}
+
+function plural(n: number, one: string, many: string) {
+  return `${n} ${n === 1 ? one : many}`;
 }
 
 function PendingCollaborationsPageContent() {
@@ -51,102 +59,90 @@ function PendingCollaborationsPageContent() {
 
   if (authLoading || loading) {
     return (
-      <div className="max-w-[720px] mx-auto py-10 px-6 flex justify-center">
-        <Loading text="Gathering invitations" />
-      </div>
+      <PageFrame width="narrow">
+        <PageHeader title="Waiting on collaborators" />
+        <div className="pq-feed-state" role="status" aria-label="Loading">
+          <Spinner size="lg" />
+        </div>
+      </PageFrame>
     );
   }
 
   if (!user) {
     return (
-      <div className="max-w-[720px] mx-auto py-10 px-6 text-center">
-        <h1 className="font-display text-[2rem] text-ink mb-3">Pending Collaborations</h1>
-        <p className="font-body text-muted mb-6">Sign in to review posts waiting on collaborator approval.</p>
-        <Link
-          href="/login"
-          className="inline-block px-6 py-3 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid font-ui text-[0.95rem] font-medium text-white"
-        >
-          Sign In
-        </Link>
-      </div>
+      <PageFrame width="narrow">
+        <PageHeader title="Waiting on collaborators" />
+        <div className="pq-feed-state pq-feed-state--card">
+          <p className="pq-feed-state__title">Sign in to see your drafts</p>
+          <p className="pq-feed-state__text">Posts with invited collaborators stay here until everyone has answered.</p>
+          <div className="pq-feed-state__actions">
+            <Link href="/login?redirect=%2Fpending-collaborations" className="pq-button pq-button--md pq-button--primary">Sign in</Link>
+          </div>
+        </div>
+      </PageFrame>
     );
   }
 
   return (
-    <div className="max-w-[720px] mx-auto py-10 px-6">
-      <div className="mb-6">
-        <h1 className="font-display text-[2rem] text-ink mb-2">Pending Collaborations</h1>
-        <p className="font-body text-muted">
-          These posts are saved as drafts until collaborators accept your invitations.
-        </p>
-      </div>
+    <PageFrame width="narrow">
+      <PageHeader
+        title="Waiting on collaborators"
+        lede="These posts stay as drafts until the people you invited accept. You can keep editing them in the meantime."
+      />
+
       {justCreated && (
-        <div className="mb-6 rounded-2xl border border-amber-300/60 bg-amber-50 p-4">
-          <p className="font-ui text-[0.9rem] text-amber-700">
-            Collaboration invite sent. Your post will publish after collaborators accept.
-          </p>
+        <div className="pq-note mb-5" role="status">
+          <div className="pq-note__text">
+            <p className="pq-note__title">Invitations sent</p>
+            <p>Your post publishes once your collaborators accept.</p>
+          </div>
         </div>
       )}
 
       {pendingPosts.length === 0 ? (
-        <div className="rounded-2xl border border-border-light bg-surface p-8 text-center">
-          <h2 className="font-display text-[1.3rem] text-ink mb-2">No pending collaboration drafts</h2>
-          <p className="font-body text-muted mb-6">
-            All collaboration requests are resolved or you have not created any collaboration posts yet.
+        <div className="pq-feed-state pq-feed-state--card">
+          <p className="pq-feed-state__title">Nothing waiting</p>
+          <p className="pq-feed-state__text">
+            Every collaboration invite has been answered, or you haven&rsquo;t made a post with collaborators yet.
           </p>
-          <Link
-            href="/create"
-            className="inline-block px-5 py-2.5 rounded-full border border-border-light font-ui text-[0.9rem] text-muted hover:border-accent hover:text-accent transition-all"
-          >
-            Create Post
-          </Link>
+          <div className="pq-feed-state__actions">
+            <Link href="/create" className="pq-button pq-button--md pq-button--primary">Share something</Link>
+          </div>
         </div>
       ) : (
-        <div className="space-y-4">
+        <ul className="pq-pending-list" aria-label="Posts waiting on collaborators">
           {pendingPosts.map((post) => (
-            <article key={post.id} className="rounded-2xl border border-border-light bg-surface p-5">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="font-ui text-[0.75rem] text-muted mb-1">{post.type}</p>
-                  <h2 className="font-display text-[1.2rem] text-ink mb-2">{post.title}</h2>
-                  <p className="font-body text-[0.85rem] text-muted">
-                    Created {new Date(post.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="font-ui text-[0.8rem] text-amber-600">{post.pendingCount} pending</p>
-                  <p className="font-ui text-[0.8rem] text-emerald-600">{post.acceptedCount} accepted</p>
-                  <p className="font-ui text-[0.8rem] text-rose-500">{post.declinedCount} declined</p>
-                </div>
+            <li key={post.id} className="pq-pending">
+              <div className="pq-pending__head">
+                <PostTypeChip type={post.type} variant="label" size="sm" />
+                <span className="pq-pending__date">{formatDate(post.createdAt)}</span>
               </div>
-
-              <div className="flex flex-wrap gap-2 mt-4">
-                <Link
-                  href={`/create?edit=${post.id}`}
-                  className="px-4 py-2 rounded-full border border-border-light font-ui text-[0.85rem] text-muted hover:border-accent hover:text-accent transition-all"
-                >
-                  Edit Draft
-                </Link>
-                <Link
-                  href={`/post/${post.id}`}
-                  className="px-4 py-2 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid font-ui text-[0.85rem] font-medium text-white"
-                >
-                  Open Post
-                </Link>
+              <h2 className="pq-pending__title">{post.title}</h2>
+              <p className="pq-pending__counts">
+                <span>{plural(post.pendingCount, "person", "people")} still to answer</span>
+                {post.acceptedCount > 0 && <span>{post.acceptedCount} accepted</span>}
+                {post.declinedCount > 0 && <span>{post.declinedCount} declined</span>}
+              </p>
+              <div className="pq-pending__actions">
+                <Link href={`/create?edit=${post.id}`} className="pq-button pq-button--sm pq-button--secondary">Edit draft</Link>
+                <Link href={`/post/${post.id}`} className="pq-button pq-button--sm pq-button--ghost">Open post</Link>
               </div>
-            </article>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
-    </div>
+    </PageFrame>
   );
 }
 
 function PendingCollaborationsFallback() {
   return (
-    <div className="max-w-[720px] mx-auto py-10 px-6 flex justify-center">
-      <Loading text="Gathering invitations" />
-    </div>
+    <PageFrame width="narrow">
+      <PageHeader title="Waiting on collaborators" />
+      <div className="pq-feed-state" role="status" aria-label="Loading">
+        <Spinner size="lg" />
+      </div>
+    </PageFrame>
   );
 }
 

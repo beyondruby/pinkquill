@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Sheet from "./Sheet";
+import Button from "./Button";
+import { TabRow } from "./Tabs";
 
 interface ShareModalProps {
   isOpen: boolean;
@@ -89,8 +92,6 @@ export default function ShareModal({
   type = "post",
   authorName = "",
   authorUsername = "",
-  authorAvatar = "",
-  imageUrl = "",
   onSendToDM,
 }: ShareModalProps) {
   const [copied, setCopied] = useState(false);
@@ -107,21 +108,6 @@ export default function ShareModal({
       setActiveTab("share");
     }
   }, [isOpen]);
-
-  // Close on escape key
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    if (isOpen) {
-      document.addEventListener("keydown", handleEscape);
-      document.body.style.overflow = "hidden";
-    }
-    return () => {
-      document.removeEventListener("keydown", handleEscape);
-      document.body.style.overflow = "";
-    };
-  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -199,13 +185,6 @@ export default function ShareModal({
   };
 
   // Get first N words of description (strips HTML)
-  const getFirstNWords = (text: string, n: number) => {
-    const cleanText = text.replace(/<[^>]*>/g, '').trim();
-    const words = cleanText.split(/\s+/);
-    return words.slice(0, n).join(' ') + (words.length > n ? '...' : '');
-  };
-
-  const hasImage = !!imageUrl;
 
   // Helper to wrap text into lines
   const wrapText = (ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] => {
@@ -508,231 +487,122 @@ export default function ShareModal({
     }
   };
 
+  const typeLabel = type === "take" || type === "video" ? "take" : type;
+
   return (
-    <div className="share-modal-overlay" onClick={onClose}>
-      <div className="share-modal" onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
-        <div className="share-modal-header">
-          <h3 className="share-modal-title">Share this {type}</h3>
-          <button className="share-modal-close" onClick={onClose}>
-            {icons.close}
-          </button>
-        </div>
+    <Sheet isOpen={isOpen} onClose={onClose} title={`Share this ${typeLabel}`} bodyClassName="pq-share">
+      <TabRow
+        ariaLabel="Ways to share"
+        items={[
+          { id: "share", label: "Link" },
+          { id: "instagram", label: "Story image" },
+          { id: "embed", label: "Embed" },
+        ]}
+        value={activeTab}
+        onChange={setActiveTab}
+      />
 
-        {/* Tabs */}
-        <div className="share-tabs">
-          <button
-            className={`share-tab ${activeTab === "share" ? "active" : ""}`}
-            onClick={() => setActiveTab("share")}
-          >
-            Share
-          </button>
-          <button
-            className={`share-tab ${activeTab === "instagram" ? "active" : ""}`}
-            onClick={() => setActiveTab("instagram")}
-          >
-            <span className="flex items-center gap-1.5">
-              {icons.instagram}
-              Story
-            </span>
-          </button>
-          <button
-            className={`share-tab ${activeTab === "embed" ? "active" : ""}`}
-            onClick={() => setActiveTab("embed")}
-          >
-            Embed
-          </button>
-        </div>
+      {/* Hidden canvas for story generation */}
+      <canvas ref={canvasRef} style={{ display: "none" }} />
 
-        {/* Hidden canvas for story generation */}
-        <canvas ref={canvasRef} style={{ display: 'none' }} />
+      {activeTab === "share" && (
+        <div className="grid gap-4">
+          {onSendToDM && (
+            <Button
+              variant="primary"
+              fullWidth
+              onClick={() => {
+                onClose();
+                onSendToDM();
+              }}
+            >
+              Send as a message
+            </Button>
+          )}
 
-        {activeTab === "share" && (
-          <div className="px-5 py-5 space-y-5">
-            {/* Send as Message */}
-            {onSendToDM && (
-              <button
-                onClick={() => {
-                  onClose();
-                  onSendToDM();
-                }}
-                className="w-full flex items-center justify-center gap-2.5 py-3 rounded-xl bg-gradient-to-r from-purple-primary to-pink-vivid text-white font-ui font-semibold text-[0.85rem] hover:shadow-lg hover:shadow-pink-vivid/20 active:scale-[0.98] transition-all"
-              >
-                <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path d="M8 3.5C4.5 3.5 2 6 2 9c0 1.4.5 2.6 1.4 3.6L2 16l2.8-1.3c.7.5 1.6.8 2.5.8.7 0 1.3-.1 1.9-.3" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                  <path d="M15 6.5c-3 0-5.5 2.5-5.5 5.5s2.5 5.5 5.5 5.5c.8 0 1.5-.1 2.2-.4L21 19l-1.5-3c.7-1 1.1-2.2 1.1-3.5 0-3-2.4-5.5-5.6-5.5z" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                  <path d="M12 10.5h6M12 13h4" strokeWidth="1.8" strokeLinecap="round" />
-                </svg>
-                Send as Message
-              </button>
-            )}
+          <div className="pq-share__link">
+            <input type="text" value={url} readOnly aria-label="Link to copy" className="pq-share__url" onFocus={(e) => e.currentTarget.select()} />
+            <Button variant={copied ? "secondary" : "primary"} size="sm" onClick={handleCopyLink} aria-live="polite">
+              {copied ? icons.check : icons.copy}
+              <span>{copied ? "Copied" : "Copy link"}</span>
+            </Button>
+          </div>
 
-            {/* Copy Link */}
-            <div className="flex items-center gap-2 rounded-xl bg-skeleton/60 p-1.5">
-              <input
-                type="text"
-                value={url}
-                readOnly
-                className="flex-1 min-w-0 px-3 py-2 font-body text-[0.8rem] text-muted bg-transparent border-none outline-none truncate"
-              />
-              <button
-                onClick={handleCopyLink}
-                className={`shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-lg font-ui text-[0.8rem] font-medium transition-all ${
-                  copied
-                    ? "bg-emerald-500 text-white"
-                    : "bg-ink text-white hover:bg-ink/85"
-                }`}
-              >
-                {copied ? icons.check : icons.copy}
-                <span>{copied ? "Copied!" : "Copy link"}</span>
-              </button>
-            </div>
-
-            {/* Social Share */}
-            <div className="flex items-center justify-center gap-3">
-              {socialLinks.map((social) => (
-                <button
-                  key={social.name}
-                  onClick={() => handleSocialClick(social.url)}
-                  className="group flex flex-col items-center gap-1.5"
-                  title={`Share on ${social.name}`}
-                >
-                  <span
-                    className="w-11 h-11 flex items-center justify-center rounded-full bg-skeleton/70 text-muted transition-all group-hover:scale-110 group-hover:text-white group-hover:shadow-lg"
-                    style={{
-                      "--hover-bg": social.color,
-                    } as React.CSSProperties}
-                    onMouseEnter={(e) => {
-                      (e.currentTarget as HTMLElement).style.backgroundColor = social.color;
-                    }}
-                    onMouseLeave={(e) => {
-                      (e.currentTarget as HTMLElement).style.backgroundColor = "";
-                    }}
-                  >
-                    {social.icon}
-                  </span>
-                  <span className="font-ui text-[0.65rem] font-medium text-muted/70">{social.name}</span>
+          <ul className="pq-share__socials" aria-label="Share elsewhere">
+            {socialLinks.map((social) => (
+              <li key={social.name}>
+                <button type="button" className="pq-share__social" onClick={() => handleSocialClick(social.url)}>
+                  <span className="pq-share__social-icon">{social.icon}</span>
+                  <span>{social.name}</span>
                 </button>
-              ))}
-            </div>
-          </div>
-        )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
-        {activeTab === "instagram" && (
-          <div className="share-instagram-section">
-            {/* Story Preview */}
-            <div className="story-preview-container">
-              <div className="story-preview story-preview-watercolor">
-                {/* Watercolor Background */}
-                <div className="story-watercolor-bg">
-                  <div className="story-watercolor-blob blob-purple-1" />
-                  <div className="story-watercolor-blob blob-pink" />
-                  <div className="story-watercolor-blob blob-orange" />
-                  <div className="story-watercolor-blob blob-purple-2" />
-                </div>
-
-                {/* Glass Card */}
-                <div className="story-glass-card">
-                  {/* Title */}
-                  <h4 className="story-card-title">
-                    {(title || 'Untitled').substring(0, 150)}{(title || '').length > 150 ? '...' : ''}
-                  </h4>
-
-                  {/* Decorative divider */}
-                  <div className="story-card-divider" />
-
-                  {/* Content excerpt */}
-                  {description && (
-                    <p className="story-card-excerpt">
-                      {description.replace(/<[^>]*>/g, '').substring(0, 2000)}
-                      {description.replace(/<[^>]*>/g, '').length > 2000 ? '...' : ''}
-                    </p>
-                  )}
-
-                  {/* Follow text */}
-                  <div className="story-card-follow">
-                    follow @{(authorUsername || 'anonymous').replace(/^@/, '')} on pinkquill.com
-                  </div>
-                </div>
-
-                {/* Branding outside card at bottom */}
-                <div className="story-bottom-brand">
-                  PinkQuill — share your creative journey
-                </div>
+      {activeTab === "instagram" && (
+        <div className="grid gap-4">
+          <div className="story-preview-container">
+            <div className="story-preview story-preview-watercolor">
+              <div className="story-watercolor-bg">
+                <div className="story-watercolor-blob blob-purple-1" />
+                <div className="story-watercolor-blob blob-pink" />
+                <div className="story-watercolor-blob blob-orange" />
+                <div className="story-watercolor-blob blob-purple-2" />
               </div>
-            </div>
-
-            {/* Actions */}
-            <div className="story-actions">
-              <button
-                className="story-share-btn"
-                onClick={handleShareToInstagram}
-                disabled={storyGenerating}
-              >
-                {storyGenerating ? (
-                  <span className="flex items-center gap-2">
-                    <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                    Creating...
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-2">
-                    {icons.instagram}
-                    Share to Story
-                  </span>
-                )}
-              </button>
-
-              <button
-                className="story-download-btn"
-                onClick={handleDownloadStory}
-                disabled={storyGenerating}
-              >
-                <span className="flex items-center gap-2">
-                  {icons.download}
-                  Download Image
-                </span>
-              </button>
-            </div>
-
-            <p className="story-hint">
-              On mobile, tapping &ldquo;Share to Story&rdquo; will open your share menu.
-              On desktop, download the image and upload it to Instagram manually.
-            </p>
-          </div>
-        )}
-
-        {activeTab === "embed" && (
-          <div className="share-embed-section">
-            <p className="share-embed-label">
-              Copy and paste this code to embed on your website
-            </p>
-            <div className="share-embed-code">
-              <pre>{embedCode}</pre>
-              <button
-                className={`share-copy-btn ${embedCopied ? "copied" : ""}`}
-                onClick={handleCopyEmbed}
-              >
-                {embedCopied ? icons.check : icons.copy}
-                <span>{embedCopied ? "Copied!" : "Copy"}</span>
-              </button>
-            </div>
-            <div className="share-embed-preview">
-              <span className="share-embed-preview-label">Preview</span>
-              <div className="share-embed-preview-box">
-                <div className="share-embed-preview-content">
-                  {title && <p className="share-embed-preview-title">{title}</p>}
-                  <p className="share-embed-preview-desc">
-                    {description || "Content preview will appear here"}
+              <div className="story-glass-card">
+                <h4 className="story-card-title">
+                  {(title || "Untitled").substring(0, 150)}{(title || "").length > 150 ? "…" : ""}
+                </h4>
+                <div className="story-card-divider" />
+                {description && (
+                  <p className="story-card-excerpt">
+                    {description.replace(/<[^>]*>/g, "").substring(0, 2000)}
+                    {description.replace(/<[^>]*>/g, "").length > 2000 ? "…" : ""}
                   </p>
+                )}
+                <div className="story-card-follow">
+                  follow @{(authorUsername || "anonymous").replace(/^@/, "")} on pinkquill.com
                 </div>
               </div>
+              <div className="story-bottom-brand">PinkQuill — share your creative journey</div>
             </div>
           </div>
-        )}
-      </div>
-    </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Button variant="primary" onClick={handleShareToInstagram} disabled={storyGenerating} loading={storyGenerating} loadingText="Making the image…">
+              Share to a story
+            </Button>
+            <Button variant="secondary" onClick={handleDownloadStory} disabled={storyGenerating}>
+              Download image
+            </Button>
+          </div>
+          <p className="text-sm text-subdued">
+            On a phone, sharing opens your share menu. On a computer, download the image and add it to your story yourself.
+          </p>
+        </div>
+      )}
+
+      {activeTab === "embed" && (
+        <div className="grid gap-4">
+          <p className="text-sm text-subdued">Paste this where you want the {typeLabel} to appear on your own site.</p>
+          <div className="pq-share__embed">
+            <pre>{embedCode}</pre>
+            <Button variant="secondary" size="sm" onClick={handleCopyEmbed} aria-live="polite">
+              {embedCopied ? icons.check : icons.copy}
+              <span>{embedCopied ? "Copied" : "Copy"}</span>
+            </Button>
+          </div>
+          <div>
+            <p className="pq-label">Preview</p>
+            <div className="pq-share__preview">
+              {title && <p className="font-semibold text-ink">{title}</p>}
+              <p className="text-sm text-subdued">{description || "A short preview of the content appears here."}</p>
+            </div>
+          </div>
+        </div>
+      )}
+    </Sheet>
   );
 }

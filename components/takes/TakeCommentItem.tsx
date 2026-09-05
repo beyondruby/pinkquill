@@ -9,6 +9,8 @@ import { supabase } from "@/lib/supabase";
 import ReportModal from "@/components/ui/ReportModal";
 import { icons } from "@/components/ui/Icons";
 import ActionMenu from "@/components/ui/ActionMenu";
+import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import { DEFAULT_AVATAR } from "@/lib/utils/image";
 
 interface TakeCommentItemProps {
   comment: TakeComment;
@@ -165,7 +167,7 @@ export default function TakeCommentItem({
       <div className="flex gap-3 group">
         <Link href={`/studio/${comment.author.username}`} onClick={onModalClose} className="flex-shrink-0">
           <img
-            src={comment.author.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"}
+            src={comment.author.avatar_url || DEFAULT_AVATAR}
             alt={comment.author.display_name || comment.author.username}
             className={`rounded-full object-cover hover:scale-110 transition-transform ${isReply ? "w-7 h-7" : "w-9 h-9"}`}
           />
@@ -338,34 +340,16 @@ export default function TakeCommentItem({
         </div>
       </div>
 
-      {/* Block Confirmation Modal */}
-      {showBlockConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] animate-fadeIn">
-          <div className="bg-surface rounded-2xl p-6 max-w-sm w-full mx-4 animate-scaleIn">
-            <h3 className="font-display text-lg font-semibold text-ink mb-2">
-              Block @{comment.author.username}?
-            </h3>
-            <p className="font-body text-sm text-muted mb-6">
-              They won&apos;t be able to see your posts, follow you, or message you. They won&apos;t be notified.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowBlockConfirm(false)}
-                className="flex-1 py-2.5 rounded-full border border-border-light font-ui text-sm font-medium text-ink hover:bg-subtle transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleBlock}
-                disabled={isBlocking}
-                className="flex-1 py-2.5 rounded-full bg-red-500 text-white font-ui text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-50"
-              >
-                {isBlocking ? "Blocking..." : "Block"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmationModal
+        isOpen={showBlockConfirm}
+        onClose={() => setShowBlockConfirm(false)}
+        onConfirm={handleBlock}
+        title={`Block @${comment.author.username}?`}
+        description="They won't be able to see your posts, follow you, or message you. They won't be notified."
+        confirmText="Block"
+        isDanger
+        loading={isBlocking}
+      />
 
       {/* Report Modal */}
       {showReportModal && (

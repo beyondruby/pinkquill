@@ -198,3 +198,69 @@
     .pq-steps__bar, .pq-tool, .pq-dropzone, .pq-format-cat, .pq-disclosure__chevron, .pq-switch, .pq-switch::after, .pq-progress > span { transition: none; }
   }
 }
+
+/* ---- Take editor (shared by /takes/create and the composer's Take mode) ---- */
+@layer components {
+  .pq-take-editor { display: grid; gap: 1.5rem; }
+  @media (min-width: 768px) { .pq-take-editor { grid-template-columns: minmax(0, 18rem) minmax(0, 1fr); align-items: start; } }
+  .pq-take-editor__stage { display: grid; gap: 0.75rem; }
+  .pq-take-editor__fields { display: grid; gap: 1.25rem; min-inline-size: 0; }
+  .pq-dropzone--stage { aspect-ratio: 9 / 16; max-inline-size: 18rem; margin-inline: auto; justify-content: center; }
+
+  .pq-take-preview { position: relative; inline-size: 100%; max-inline-size: 18rem; margin-inline: auto; background: #000; border-radius: var(--radius-card); overflow: hidden; }
+  .pq-take-preview__video { display: block; inline-size: 100%; block-size: 100%; object-fit: contain; cursor: pointer; }
+  .pq-take-preview__toggle {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    inline-size: 3.5rem; block-size: 3.5rem; border: 0; border-radius: 999px;
+    background: rgba(255, 255, 255, 0.92); color: var(--color-action-ink);
+    display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+    opacity: 0; transition: opacity 150ms ease;
+  }
+  .pq-take-preview:hover .pq-take-preview__toggle, .pq-take-preview:focus-within .pq-take-preview__toggle,
+  .pq-take-preview__toggle[aria-pressed="false"] { opacity: 1; }
+  .pq-take-preview__toggle > svg { inline-size: 1.5rem; block-size: 1.5rem; }
+  .pq-take-preview__remove {
+    position: absolute; top: 0.625rem; right: 0.625rem; inline-size: 2.5rem; block-size: 2.5rem; border: 0; border-radius: 999px;
+    background: rgba(0, 0, 0, 0.55); color: #fff; display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+  }
+  .pq-take-preview__remove > svg { inline-size: 1rem; block-size: 1rem; }
+  .pq-take-preview__remove:hover { background: rgba(0, 0, 0, 0.75); }
+  .pq-take-preview__badges { position: absolute; inset: auto 0.625rem 0.625rem; display: flex; flex-wrap: wrap; gap: 0.375rem; pointer-events: none; }
+  .pq-take-preview__badge { display: inline-flex; align-items: center; gap: 0.3rem; max-inline-size: 100%; padding: 0.25rem 0.6rem; border-radius: 999px; background: rgba(0, 0, 0, 0.55); color: #fff; font-family: var(--font-ui); font-size: 0.6875rem; font-weight: 600; }
+  .pq-take-preview__badge > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pq-take-preview__toggle:focus-visible, .pq-take-preview__remove:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+
+  .pq-take-filters { display: flex; gap: 0.5rem; overflow-x: auto; padding: 0.125rem; scrollbar-width: thin; }
+  .pq-take-filter { display: grid; gap: 0.375rem; justify-items: center; flex: 0 0 auto; border: 0; background: none; padding: 0; cursor: pointer; font-family: var(--font-ui); font-size: 0.6875rem; color: var(--color-subdued); }
+  .pq-take-filter__swatch { inline-size: 3.25rem; block-size: 3.25rem; border-radius: 0.75rem; border: 2px solid transparent; background: linear-gradient(135deg, var(--color-purple-primary), var(--color-pink-vivid), var(--color-orange-warm)); }
+  .pq-take-filter[aria-checked="true"] { color: var(--color-action-ink); font-weight: 600; }
+  .pq-take-filter[aria-checked="true"] .pq-take-filter__swatch { border-color: var(--color-action); box-shadow: 0 0 0 3px var(--color-action-soft); }
+  .pq-take-filter:focus-visible { outline: 3px solid var(--color-action); outline-offset: 2px; border-radius: 0.5rem; }
+
+  .pq-take-covers { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; max-inline-size: 16rem; }
+  .pq-take-cover { position: relative; aspect-ratio: 9 / 16; border: 2px solid var(--color-line); border-radius: var(--radius-control); overflow: hidden; background: var(--color-tint); color: var(--color-subdued); display: grid; place-items: center; padding: 0.5rem; text-align: center; cursor: pointer; font-family: var(--font-ui); font-size: 0.75rem; }
+  .pq-take-cover img { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; object-fit: cover; }
+  .pq-take-cover[aria-checked="true"] { border-color: var(--color-action); box-shadow: 0 0 0 3px var(--color-action-soft); }
+  .pq-take-cover[disabled] { cursor: default; opacity: 0.7; }
+  .pq-take-cover:focus-visible { outline: 3px solid var(--color-action); outline-offset: 2px; }
+  .pq-take-cover__label { position: absolute; inset: auto 0.375rem 0.375rem; padding: 0.25rem 0.5rem; border-radius: 999px; background: rgba(0, 0, 0, 0.55); color: #fff; font-size: 0.6875rem; font-weight: 600; }
+
+  .pq-range-row { display: grid; grid-template-columns: 6rem minmax(0, 1fr) 3rem; align-items: center; gap: 0.75rem; font-family: var(--font-ui); font-size: 0.8125rem; color: var(--color-ink); }
+  .pq-range-row output { text-align: end; color: var(--color-subdued); font-variant-numeric: tabular-nums; }
+  .pq-range { inline-size: 100%; min-block-size: 2.75rem; accent-color: var(--color-action); cursor: pointer; }
+
+  .pq-take-sound-list { display: grid; gap: 0.125rem; max-block-size: 14rem; overflow-y: auto; }
+  .pq-take-sound-item { display: flex; align-items: center; gap: 0.75rem; inline-size: 100%; min-block-size: 2.75rem; padding: 0.5rem 0.625rem; border: 0; border-radius: var(--radius-control); background: transparent; text-align: start; cursor: pointer; color: var(--color-ink); font-family: var(--font-ui); font-size: 0.875rem; }
+  .pq-take-sound-item:hover { background: var(--color-tint); }
+  .pq-take-sound-item:focus-visible { outline: 3px solid var(--color-action); outline-offset: -3px; }
+  .pq-take-sound-item__art { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; inline-size: 2.25rem; block-size: 2.25rem; border-radius: 0.5rem; overflow: hidden; background: var(--color-action-soft); color: var(--color-action-ink); }
+  .pq-take-sound-item__art img { inline-size: 100%; block-size: 100%; object-fit: cover; }
+  .pq-take-sound-item__art > svg { inline-size: 1rem; block-size: 1rem; }
+  .pq-take-sound-item__meta { min-inline-size: 0; flex: 1; }
+  .pq-take-sound-item__meta strong, .pq-take-sound-item__meta small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pq-take-sound-item__meta strong { font-weight: 500; }
+  .pq-take-sound-item__meta small { color: var(--color-subdued); font-size: 0.75rem; }
+  .pq-sound__meta { min-inline-size: 0; flex: 1; font-family: var(--font-ui); font-size: 0.875rem; color: var(--color-ink); }
+  .pq-sound__meta small { display: block; color: var(--color-subdued); font-size: 0.75rem; }
+  .pq-sound__art { inline-size: 100%; block-size: 100%; object-fit: cover; }
+}

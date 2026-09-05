@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from "react";
 import { getTimeAgo } from "@/lib/utils/time";
-import Link from "next/link";
 import Modal from "@/components/ui/Modal";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useTakeComments, useTakeReactionCounts, TakeReactionType, Take } from "@/lib/hooks/useTakes";
@@ -13,9 +12,14 @@ import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import ActionMenu, { type ActionMenuItem } from "@/components/ui/ActionMenu";
 import TakeReactionPicker from "@/components/takes/TakeReactionPicker";
 import TakeCommentItem from "@/components/takes/TakeCommentItem";
+import TakeStage from "@/components/takes/TakeStage";
 import PostTags from "@/components/feed/PostTags";
+import { PostDetailHeader, PostDetailActions, Discussion, getDetailTone, type DetailPost } from "@/components/feed/PostDetail";
+import { NavIcon } from "@/components/layout/navigation";
 import { supabase } from "@/lib/supabase";
 import { CommentIcon, icons } from "@/components/ui/Icons";
+import { DEFAULT_AVATAR } from "@/lib/utils/image";
+import "./takes.css";
 
 export interface TakeUpdate {
   takeId: string;
@@ -392,340 +396,176 @@ export default function TakeDetailModal({
     }
   };
 
+  const authorName = take.author.display_name || take.author.username;
+  const detail: DetailPost = {
+    id: take.id,
+    authorId: take.author_id,
+    author: { name: authorName, handle: `@${take.author.username}`, avatar: take.author.avatar_url || DEFAULT_AVATAR },
+    type: "take",
+    timeAgo: getTimeAgo(take.created_at),
+    createdAt: take.created_at,
+    content: take.caption || "",
+    media: [],
+  };
+  const tone = getDetailTone(null);
+
   return (
     <>
-      <Modal isOpen={isOpen} onClose={onClose}>
-        <div className={`flex h-full ${showComments ? "" : ""}`}>
-          {/* Main Content Area */}
-          <div
-            className={`flex flex-col overflow-y-auto p-10 ${
-              showComments ? "flex-1 border-r border-border-light" : "flex-1"
-            }`}
-          >
-            {/* Author Header */}
-            <div className="flex items-center gap-4 mb-8 pb-6 border-b border-border-light">
-              <Link href={`/studio/${take.author.username}`} onClick={onClose}>
-                <img
-                  src={take.author.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"}
-                  alt={take.author.display_name || take.author.username}
-                  className="w-14 h-14 rounded-full object-cover border-[3px] border-white shadow-lg hover:scale-110 transition-transform"
-                />
-              </Link>
-              <div className="flex flex-col gap-1 flex-1">
-                <div className="flex items-center gap-2">
-                  <Link
-                    href={`/studio/${take.author.username}`}
-                    onClick={onClose}
-                    className="font-ui text-[1.1rem] font-medium text-ink hover:text-accent transition-colors"
+      <Modal isOpen={isOpen} onClose={onClose} ariaLabel={`Take by ${authorName}`}>
+        <div className={`pq-detail-modal ${showComments ? "pq-detail-modal--conversation" : ""}`}>
+          <div className="pq-detail-modal__work">
+            <PostDetailHeader
+              post={detail}
+              tone={tone}
+              typeLabel="shared a take"
+              onNavigate={onClose}
+              leading={
+                <button type="button" onClick={onClose} className="pq-icon-button pq-detail-modal__hide-md -ml-2" aria-label="Back">
+                  <NavIcon name="back" />
+                </button>
+              }
+              trailing={
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setShowComments((open) => !open)}
+                    className="pq-chip pq-detail-modal__show-md"
+                    aria-pressed={showComments}
+                    aria-label={`Conversation, ${comments.length} comments`}
                   >
-                    {take.author.display_name || take.author.username}
-                  </Link>
-                  <span className="font-ui text-[0.9rem] font-light text-muted">
-                    shared a take
-                  </span>
-                </div>
-                <span className="font-ui text-[0.85rem] text-muted">
-                  {getTimeAgo(take.created_at)}
-                </span>
-              </div>
-              <button
-                onClick={() => setShowComments(!showComments)}
-                className="view-discussion-btn"
-              >
-                <CommentIcon className="shrink-0" />
-                <span>Discussion</span>
-                <span className="badge">
-                  {comments.length}
-                </span>
-              </button>
-
-              {/* Take Options Menu */}
-              {(isOwner || user) && (
-                <ActionMenu
-                  items={takeMenuItems}
-                  buttonClassName="w-10 h-10 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-skeleton/60 transition-all"
-                  widthClassName="w-40"
-                  buttonAriaLabel="Take options menu"
-                />
-              )}
-            </div>
-
-            {/* Post Content */}
-            <div className="flex-1">
-              {/* Caption */}
-              {take.caption && (
-                <p className="font-body text-[1.1rem] text-ink leading-relaxed mb-6">
-                  {take.caption}
-                </p>
-              )}
-
-              {/* Tags */}
-              <PostTags
-                hashtags={hashtags}
-                collaborators={collaborators}
-                mentions={mentions}
-                onNavigate={onClose}
-              />
-
-              {/* Video Player */}
-              <div className="mt-2">
-                <div className="relative group rounded-2xl overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.15)]">
-                  <div className="relative bg-black">
-                    <video
-                      ref={videoRef}
-                      src={take.video_url}
-                      poster={take.thumbnail_url || undefined}
-                      className={`w-full object-contain cursor-pointer ${take.content_warning && !showContent ? 'blur-xl' : ''}`}
-                      style={{ maxHeight: '480px' }}
-                      loop
-                      playsInline
-                      muted={isMuted}
-                      onClick={handleVideoClick}
+                    <CommentIcon size="sm" />
+                    <span>Conversation</span>
+                    {comments.length > 0 && <span className="pq-tab__count">{comments.length}</span>}
+                  </button>
+                  {user && (
+                    <ActionMenu
+                      items={takeMenuItems}
+                      buttonClassName="pq-icon-button"
+                      widthClassName="w-56"
+                      buttonAriaLabel="Take options menu"
+                      portal
                     />
+                  )}
+                  <button type="button" onClick={onClose} className="pq-icon-button pq-detail-modal__show-md" aria-label="Close">
+                    <NavIcon name="close" />
+                  </button>
+                </>
+              }
+            />
 
-                    {/* Content Warning Overlay */}
-                    {take.content_warning && !showContent && (
-                      <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60">
-                        <div className="flex flex-col items-center gap-4 p-6 max-w-[300px] text-center">
-                          <div className="w-14 h-14 rounded-full bg-amber-500/20 flex items-center justify-center">
-                            <svg className="w-7 h-7 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                            </svg>
-                          </div>
-                          <div>
-                            <h3 className="font-ui text-base font-semibold text-white mb-1">Content Warning</h3>
-                            <p className="font-ui text-sm text-white/70">{take.content_warning}</p>
-                          </div>
-                          <button
-                            onClick={() => setShowContent(true)}
-                            className="px-6 py-2.5 rounded-full font-ui text-sm font-medium text-white bg-surface/20 hover:bg-surface/30 transition-colors"
-                          >
-                            Show Content
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Play/Pause Overlay */}
-                    {!isPlaying && showContent && (
-                      <div
-                        className="absolute inset-0 flex items-center justify-center bg-black/30 cursor-pointer"
-                        onClick={handleVideoClick}
-                      >
-                        <div className="w-20 h-20 rounded-full bg-surface/95 backdrop-blur-sm shadow-[0_4px_20px_rgba(0,0,0,0.2)] flex items-center justify-center text-purple-primary hover:scale-110 transition-transform">
-                          {icons.play}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Video Controls Overlay */}
-                    <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                      <div className="flex items-center justify-between">
-                        {/* Duration Badge */}
-                        <div className="px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-sm text-white font-ui text-[0.8rem]">
-                          {Math.floor(take.duration / 60)}:{String(Math.floor(take.duration % 60)).padStart(2, '0')}
-                        </div>
-
-                        {/* Mute Button */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleMute();
-                          }}
-                          className="w-10 h-10 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/80 transition-colors"
-                        >
-                          {isMuted ? icons.volumeOff : icons.volumeOn}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+            <div className="pq-take-detail">
+              <TakeStage
+                videoRef={videoRef}
+                src={take.video_url}
+                poster={take.thumbnail_url}
+                isPlaying={isPlaying}
+                onTogglePlay={handleVideoClick}
+                isMuted={isMuted}
+                onToggleMute={toggleMute}
+                duration={take.duration}
+                contentWarning={take.content_warning}
+                revealed={showContent}
+                onReveal={() => setShowContent(true)}
+              />
+              <div className="pq-take-detail__text">
+                {take.caption && <p className="pq-detail__text pq-take-detail__caption">{take.caption}</p>}
+                <div className="pq-detail__tags">
+                  <PostTags hashtags={hashtags} collaborators={collaborators} mentions={mentions} onNavigate={onClose} />
                 </div>
               </div>
             </div>
 
-            {/* Actions */}
-            <div className="flex items-center gap-2 mt-auto pt-6 border-t border-border-light">
-              {/* Reaction Picker */}
-              <TakeReactionPicker
-                currentReaction={userReaction}
-                reactionCounts={reactionCounts}
-                onReact={handleReaction}
-                onRemoveReaction={handleRemoveReaction}
-                disabled={!user}
-                standardStyle
-              />
-
-              {/* Comment Button */}
-              <button
-                onClick={() => setShowComments(true)}
-                className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-skeleton/70 text-muted hover:bg-purple-50 hover:text-accent transition-all"
-              >
-                <CommentIcon className="shrink-0" />
-                {comments.length > 0 && <span className="text-sm font-medium">{comments.length}</span>}
-              </button>
-
-              {/* Relay Button */}
-              <button
-                onClick={handleRelay}
-                disabled={!user || take.author_id === user?.id}
-                className={`flex items-center gap-1.5 px-4 py-2.5 rounded-full transition-all ${
-                  isRelayed
-                    ? "bg-green-500/10 text-green-600"
-                    : "bg-skeleton/70 text-muted hover:bg-purple-50 hover:text-accent"
-                } ${(!user || take.author_id === user?.id) ? "opacity-50 cursor-not-allowed" : ""}`}
-              >
-                {icons.relay}
-                {relayCount > 0 && <span className="text-sm font-medium">{relayCount}</span>}
-              </button>
-
-              {/* Share Button */}
-              <button
-                onClick={() => setShowShareModal(true)}
-                className="w-11 h-11 rounded-full bg-skeleton/70 flex items-center justify-center text-muted hover:bg-purple-50 hover:text-accent transition-all"
-              >
-                {icons.share}
-              </button>
-
-              {/* Save/Bookmark Button */}
-              <button
-                onClick={handleSave}
-                disabled={!user}
-                className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${
-                  isSaved
-                    ? "bg-amber-500/10 text-amber-600"
-                    : "bg-skeleton/70 text-muted hover:bg-purple-50 hover:text-accent"
-                } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
-              >
-                {isSaved ? (
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                  </svg>
-                ) : (
-                  icons.bookmark
-                )}
-              </button>
-            </div>
+            <PostDetailActions
+              signedIn={!!user}
+              isOwner={!!isOwner}
+              reactionControl={
+                <TakeReactionPicker
+                  currentReaction={userReaction}
+                  reactionCounts={reactionCounts}
+                  onReact={handleReaction}
+                  onRemoveReaction={handleRemoveReaction}
+                  disabled={!user}
+                  compact
+                />
+              }
+              commentCount={comments.length}
+              onComment={() => setShowComments(true)}
+              relayCount={relayCount}
+              isRelayed={isRelayed}
+              onRelay={handleRelay}
+              onShare={() => setShowShareModal(true)}
+              isSaved={isSaved}
+              onSave={handleSave}
+            />
           </div>
 
-          {/* Comments Panel */}
-          {showComments && (
-            <div className="discussion-panel">
-              {/* Comments Header */}
-              <div className="p-5 border-b border-border-light bg-surface/60 flex justify-between items-center">
-                <span className="font-ui text-[0.8rem] font-medium text-muted">
-                  Discussion
-                </span>
-                <button
-                  onClick={() => setShowComments(false)}
-                  className="w-9 h-9 rounded-full flex items-center justify-center text-muted hover:text-pink-vivid hover:rotate-90 transition-all"
-                >
-                  {icons.close}
+          <div className="pq-detail-modal__panel">
+            <Discussion
+              count={comments.length}
+              thread={comments.map((comment) => (
+                <TakeCommentItem
+                  key={comment.id}
+                  comment={comment}
+                  currentUserId={user?.id}
+                  onLike={handleCommentLike}
+                  onReply={async (content, parentId) => addComment(content, parentId)}
+                  onDelete={handleCommentDelete}
+                  onModalClose={onClose}
+                />
+              ))}
+              loading={commentsLoading}
+              currentUserId={user?.id}
+              currentUserAvatar={profile?.avatar_url}
+              signedIn={!!user}
+              signInHref="/login"
+              value={commentText}
+              onValueChange={setCommentText}
+              onSubmit={handleAddComment}
+              submitting={submitting}
+              headerLeading={
+                <button type="button" onClick={() => setShowComments(false)} className="pq-icon-button pq-detail-modal__hide-md -ml-2" aria-label="Back to the take">
+                  <NavIcon name="back" />
                 </button>
-              </div>
-
-              {/* Comments List */}
-              <div className="flex-1 overflow-y-auto p-6">
-                {commentsLoading ? (
-                  <div className="text-center py-8">
-                    <div className="w-6 h-6 border-2 border-purple-primary border-t-transparent rounded-full animate-spin mx-auto" />
-                  </div>
-                ) : comments.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="font-body text-muted italic">No comments yet. Start the conversation!</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {comments.map((comment) => (
-                      <TakeCommentItem
-                        key={comment.id}
-                        comment={comment}
-                        currentUserId={user?.id}
-                        onLike={handleCommentLike}
-                        onReply={async (content, parentId) => {
-                          return await addComment(content, parentId);
-                        }}
-                        onDelete={handleCommentDelete}
-                        onModalClose={onClose}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Comment Input */}
-              {user ? (
-                <div className="p-4 bg-surface border-t border-border-light flex gap-2.5 items-center">
-                  <img
-                    src={profile?.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"}
-                    alt="You"
-                    className="w-9 h-9 rounded-full object-cover flex-shrink-0"
-                  />
-                  <div className="flex-1 flex items-center bg-subtle rounded-3xl px-4 focus-within:bg-surface focus-within:ring-2 focus-within:ring-purple-primary focus-within:shadow-lg transition-all">
-                    <input
-                      type="text"
-                      value={commentText}
-                      onChange={(e) => setCommentText(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && handleAddComment()}
-                      placeholder="Add to the conversation..."
-                      disabled={submitting}
-                      className="flex-1 py-2.5 border-none bg-transparent outline-none font-body text-[0.95rem] text-ink placeholder:text-muted/60 placeholder:italic"
-                    />
-                  </div>
-                  <button
-                    onClick={handleAddComment}
-                    disabled={submitting || !commentText.trim()}
-                    className="w-[42px] h-[42px] rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white flex items-center justify-center hover:scale-110 hover:shadow-lg hover:shadow-purple-primary/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                  >
-                    {icons.send}
-                  </button>
-                </div>
-              ) : (
-                <div className="p-4 bg-surface border-t border-border-light text-center">
-                  <p className="font-ui text-[0.9rem] text-muted">
-                    <Link href="/login" className="text-purple-primary hover:underline">Sign in</Link> to comment
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
+              }
+              headerTrailing={
+                <button type="button" onClick={() => setShowComments(false)} className="pq-icon-button pq-detail-modal__show-md" aria-label="Hide conversation">
+                  <NavIcon name="close" />
+                </button>
+              }
+            />
+          </div>
         </div>
       </Modal>
 
-      {/* Share Modal */}
-      {take && (
-        <ShareModal
-          isOpen={showShareModal}
-          onClose={() => setShowShareModal(false)}
-          url={takeUrl}
-          title={take.caption || "Take"}
-          description={take.caption || "Check out this take"}
-          type="video"
-          authorName={take.author.display_name || take.author.username}
-        />
-      )}
+      <ShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        url={takeUrl}
+        title={take.caption || "Take"}
+        description={take.caption || "Check out this take"}
+        type="take"
+        authorName={authorName}
+        authorUsername={take.author.username}
+      />
 
-      {/* Delete Confirmation Modal */}
       <ConfirmationModal
         isOpen={showDeleteConfirm}
         onClose={() => setShowDeleteConfirm(false)}
         onConfirm={handleDelete}
-        title="Delete Take?"
-        description="This action cannot be undone. This will permanently delete your take and remove all associated data including comments and reactions."
+        title="Delete this take?"
+        description="This can't be undone. The take, its comments and reactions are removed for good."
         confirmText="Delete"
         isDanger
         loading={deleting}
       />
 
-      {/* Report Modal */}
-      {showReportModal && (
-        <ReportModal
-          isOpen={showReportModal}
-          onClose={() => setShowReportModal(false)}
-          onSubmit={handleReport}
-          submitting={reportSubmitting}
-          submitted={reportSubmitted}
-        />
-      )}
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        onSubmit={handleReport}
+        submitting={reportSubmitting}
+        submitted={reportSubmitted}
+      />
     </>
   );
 }

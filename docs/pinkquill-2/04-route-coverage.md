@@ -13,12 +13,12 @@ September 5 update: the four-screen proof and component reference live outside a
 | `/` | [app/(feed)/page.tsx](../../app/(feed)/page.tsx) | 3 | Redesigned in 3B (frame, toolbar, three views, states, right column); media-rich cards to verify in Phase 4 |
 | `/explore` | [app/(feed)/explore/page.tsx](../../app/(feed)/explore/page.tsx) | 3 | Redesigned in 3C (frame, tab row, type menu, topics list, states) |
 | `/tag/[tag]` | [app/tag/[tag]/page.tsx](../../app/tag/[tag]/page.tsx) | 3 | Redesigned in 3C (now inside AppShell; header, chips, states) |
-| `/create` | [app/(feed)/create/page.tsx](../../app/(feed)/create/page.tsx) | 4 | Redesigned in 4B (frame, steps, toolbar, media, format choice, extras, footer menus); Take editor inside it still old (4C) |
-| `/pending-collaborations` | [app/(feed)/pending-collaborations/page.tsx](../../app/(feed)/pending-collaborations/page.tsx) | 4 | Not started |
+| `/create` | [app/(feed)/create/page.tsx](../../app/(feed)/create/page.tsx) | 4 | Redesigned in 4B (frame, steps, toolbar, media, format choice, extras, footer menus); Take editor on shared pieces in 4C |
+| `/pending-collaborations` | [app/(feed)/pending-collaborations/page.tsx](../../app/(feed)/pending-collaborations/page.tsx) | 4 | Redesigned in 4C (narrow frame, note, draft list with counts and buttons) |
 | `/post/[id]` | [app/post/[id]/page.tsx](../../app/post/[id]/page.tsx) | 4 | Redesigned in 4A (shared PostDetail seams, conversation card, back contract); media-rich and commented posts to verify |
-| `/take/[id]` | [app/take/[id]/page.tsx](../../app/take/[id]/page.tsx) | 4 | Not started |
-| `/takes` | [app/takes/page.tsx](../../app/takes/page.tsx) | 4 | Not started |
-| `/takes/create` | [app/takes/create/page.tsx](../../app/takes/create/page.tsx) | 4 | Not started |
+| `/take/[id]` | [app/take/[id]/page.tsx](../../app/take/[id]/page.tsx) | 4 | Redesigned in 4C (PostDetail seams + TakeStage; auth-wait and error-clear bug fixed) |
+| `/takes` | [app/takes/page.tsx](../../app/takes/page.tsx) | 4 | Redesigned in 4C (immersive feed on tokens, quiet arrows, rail states, comments on Sheet) |
+| `/takes/create` | [app/takes/create/page.tsx](../../app/takes/create/page.tsx) | 4 | Redesigned in 4C (reading frame, shared Take editor pieces, disclosures) |
 | `/community` | [app/community/page.tsx](../../app/community/page.tsx) | 5 | Not started |
 | `/community/[slug]` | [app/community/[slug]/page.tsx](../../app/community/[slug]/page.tsx) | 5 | Not started |
 | `/community/[slug]/about` | [app/community/[slug]/about/page.tsx](../../app/community/[slug]/about/page.tsx) | 5 | Not started |
@@ -103,7 +103,7 @@ September 5 update: the four-screen proof and component reference live outside a
 | Root providers, theme/font setup, global tokens | `app/layout.tsx`, `app/globals.css`, `lib/theme/`, `components/providers/` | 2 | Not started |
 | Desktop/mobile navigation, search, create/More menus | `components/layout/`, `components/search/` | 3 | Not started |
 | Post detail modal, reactions, comments, sharing, reporting, media lightbox | `components/feed/`, `components/comments/`, `components/ui/` | 4; shared mechanics in 2 | Not started |
-| Takes players, reactions, comments, creation controls | `components/takes/` | 4 | Not started |
+| Takes players, reactions, comments, creation controls | `components/takes/` | 4 | Redesigned in 4C (`TakeStage`, `TakeEditorPieces`, `takes.css`; `TakeComments.tsx` deleted) |
 | Membership/invite/role/flair/moderation overlays | `components/communities/` | 5 | Not started |
 | Notification panel, invitations, follow requests | `components/notifications/` | 5 | Not started |
 | Studio follower dialogs and collection controls | `components/studio/`, `components/collections/` | 6 | Not started |

@@ -38,6 +38,8 @@ interface SheetProps {
    * `panel`: full-height trailing side panel (notifications), full screen on phones.
    */
   presentation?: "sheet" | "panel";
+  /** Element to focus on open instead of the first focusable (e.g. a compose field in the footer). */
+  initialFocus?: () => HTMLElement | null | undefined;
 }
 
 export default function Sheet({
@@ -52,6 +54,7 @@ export default function Sheet({
   size = "md",
   bodyClassName = "",
   presentation = "sheet",
+  initialFocus,
 }: SheetProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const headingId = useId();
@@ -60,7 +63,7 @@ export default function Sheet({
     if (!busy) onClose();
   }, [busy, onClose]);
 
-  useOverlayLayer({ open: isOpen, onClose, containerRef: panelRef, busy });
+  useOverlayLayer({ open: isOpen, onClose, containerRef: panelRef, busy, initialFocus });
 
   if (!isOpen) return null;
 

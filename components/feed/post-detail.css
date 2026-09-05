@@ -207,3 +207,19 @@
 
   @media (prefers-reduced-motion: reduce) { .pq-detail__thumb { transition: none; } }
 }
+
+/* A comment linked to from a notification pulses once when it scrolls into view. */
+.highlight-comment {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-purple-primary) 8%, transparent) 0%, color-mix(in srgb, var(--color-pink-vivid) 6%, transparent) 50%, color-mix(in srgb, var(--color-orange-warm) 4%, transparent) 100%);
+  border-radius: 12px;
+  animation: highlightPulse 2s ease-out;
+}
+
+@keyframes highlightPulse {
+  0% {
+    background: linear-gradient(135deg, color-mix(in srgb, var(--color-purple-primary) 15%, transparent) 0%, color-mix(in srgb, var(--color-pink-vivid) 12%, transparent) 50%, color-mix(in srgb, var(--color-orange-warm) 8%, transparent) 100%);
+  }
+  100% {
+    background: transparent;
+  }
+}

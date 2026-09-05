@@ -12,10 +12,12 @@ interface PostDetailHeaderProps {
   /** Discussion toggle, menu, … rendered after the creator. */
   trailing?: ReactNode;
   onNavigate?: () => void;
+  /** Replaces the post-type chip (Takes: "shared a take"). */
+  typeLabel?: ReactNode;
 }
 
 /** Creator row: who made this, what kind of work, when. */
-export default function PostDetailHeader({ post, tone, leading, trailing, onNavigate }: PostDetailHeaderProps) {
+export default function PostDetailHeader({ post, tone, leading, trailing, onNavigate, typeLabel }: PostDetailHeaderProps) {
   const handle = post.author.handle.replace(/^@/, "");
   return (
     <div className="pq-detail__creator">
@@ -31,7 +33,7 @@ export default function PostDetailHeader({ post, tone, leading, trailing, onNavi
           {post.flair && <FlairBadge flair={post.flair} size="sm" />}
         </div>
         <div className={`pq-detail__meta ${tone.muted}`}>
-          <PostTypeChip type={post.type} variant="label" size="sm" className="text-inherit" />
+          {typeLabel ? <span>{typeLabel}</span> : <PostTypeChip type={post.type} variant="label" size="sm" className="text-inherit" />}
           <span aria-hidden="true">·</span>
           <span>{post.timeAgo}</span>
         </div>

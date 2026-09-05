@@ -38,6 +38,19 @@ import ActionMenu, { type ActionMenuItem } from "@/components/ui/ActionMenu";
 import { PageFrame, PageHeader } from "@/components/layout/PageFrame";
 import { ComposerSteps, Disclosure, Switch, FieldLabel } from "@/components/create/pieces";
 import {
+  TakeDropzone,
+  TakePreview,
+  PreviewBadge,
+  TakeFilterChoice,
+  TakeSegmented,
+  TakeRange,
+  TakeCoverChoice,
+  TakeSoundRow,
+  TakeSoundList,
+  takeMusicIcon,
+  formatSeconds,
+} from "@/components/takes/TakeEditorPieces";
+import {
   POST_CATEGORIES,
   CATEGORY_ORDER,
   DEFAULT_FORMAT,
@@ -803,10 +816,9 @@ export default function CreatePost() {
   const [takeThumbnailFromVideo, setTakeThumbnailFromVideo] = useState<string | null>(null);
   const [takeEditorTab, setTakeEditorTab] = useState<"details" | "effects" | "sound" | "cover" | "ratio">("details");
   const [takeSoundSearch, setTakeSoundSearch] = useState("");
-  const [takeShowSoundPicker, setTakeShowSoundPicker] = useState(false);
   const thumbnailInputRef = useRef<HTMLInputElement>(null);
   const takeAudioRef = useRef<HTMLAudioElement>(null);
-  const [takeSoundPlaying, setTakeSoundPlaying] = useState(false);
+  const [, setTakeSoundPlaying] = useState(false);
 
   // Take creation hook
   const { createTake, uploading: takeUploading, progress: takeProgress, error: takeError } = useCreateTake();
@@ -1588,13 +1600,6 @@ export default function CreatePost() {
     setTakeDragActive(false);
   }, []);
 
-  const handleTakeInputChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (file) handleTakeVideoSelect(file);
-    },
-    [handleTakeVideoSelect]
-  );
 
   const handleRemoveTakeVideo = useCallback(() => {
     if (takeVideoPreview) {
@@ -2532,351 +2537,159 @@ export default function CreatePost() {
             {/* Hidden audio for sound preview */}
             <audio ref={takeAudioRef} onEnded={() => setTakeSoundPlaying(false)} />
 
-            {/* Upload State */}
             {!takeVideoPreview ? (
-              <div
-                className={`relative border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all max-w-md mx-auto ${
-                  takeDragActive
-                    ? "border-purple-primary bg-purple-primary/5"
-                    : "border-border-light hover:border-purple-primary/50 hover:bg-purple-primary/[0.02]"
-                }`}
+              <TakeDropzone
+                active={takeDragActive}
+                inputRef={videoInputRef}
+                onFile={handleTakeVideoSelect}
                 onDrop={handleTakeDrop}
                 onDragOver={handleTakeDragOver}
                 onDragLeave={handleTakeDragLeave}
-                onClick={() => videoInputRef.current?.click()}
-              >
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center text-white">
-                  {icons.video}
-                </div>
-                <p className="font-ui text-[1rem] text-ink font-medium mb-1">Upload your Take</p>
-                <p className="font-body text-[0.85rem] text-muted">Drag & drop or click to browse</p>
-                <p className="font-body text-[0.75rem] text-muted/60 mt-3">MP4 or MOV · Max 3 min · Max 200MB</p>
-                <input
-                  ref={videoInputRef}
-                  type="file"
-                  accept="video/mp4,video/quicktime,video/mov"
-                  onChange={handleTakeInputChange}
-                  className="hidden"
-                />
-              </div>
+              />
             ) : (
-              /* Video Uploaded - Show editor */
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Left: Video Preview */}
-                <div>
-                  <div className="relative mx-auto" style={{ maxWidth: "300px" }}>
-                    <div
-                      className="relative rounded-2xl overflow-hidden bg-black shadow-xl"
-                      style={{ aspectRatio: takeAspectRatio.replace(":", "/") }}
-                    >
-                      <video
-                        ref={videoPreviewRef}
-                        src={takeVideoPreview}
-                        className="w-full h-full object-contain"
-                        style={TAKE_FILTER_OPTIONS.find(f => f.name === takeSelectedFilter)?.style}
-                        loop
-                        playsInline
-                        muted={takeOriginalVolume === 0}
-                        onClick={handleToggleTakePreview}
-                        onLoadedData={handleGenerateThumbnailFromVideo}
-                      />
-                      <div
-                        className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 hover:opacity-100 transition-opacity cursor-pointer"
-                        onClick={handleToggleTakePreview}
-                      >
-                        <div className="w-14 h-14 rounded-full bg-surface/90 flex items-center justify-center text-accent">
-                          {isTakePreviewPlaying ? icons.pause : icons.play}
-                        </div>
-                      </div>
-                      <button
-                        onClick={handleRemoveTakeVideo}
-                        className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-red-500 transition-all"
-                      >
-                        {icons.x}
-                      </button>
-                      <div className="absolute bottom-3 left-3 flex items-center gap-2">
-                        <span className="px-2 py-1 rounded-full bg-black/60 text-white font-ui text-[0.75rem]">
-                          {takeVideoDuration}s
-                        </span>
-                        <span className="px-2 py-1 rounded-full bg-black/60 text-white font-ui text-[0.75rem]">
-                          {takeAspectRatio}
-                        </span>
-                      </div>
-                      {takeSelectedSound && (
-                        <div className="absolute bottom-3 right-3 px-2 py-1 rounded-full bg-pink-500/90 text-white font-ui text-[0.7rem] flex items-center gap-1">
-                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
-                          <span className="truncate max-w-[80px]">{takeSelectedSound.name}</span>
-                        </div>
-                      )}
-                      {takeSelectedFilter !== "none" && (
-                        <div className="absolute top-3 left-3 px-2 py-1 rounded-full bg-purple-500/90 text-white font-ui text-[0.7rem]">
-                          {TAKE_FILTER_OPTIONS.find(f => f.name === takeSelectedFilter)?.label}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {takeValidationError && (
-                    <div className="mt-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 font-ui text-[0.85rem] flex items-center gap-2">
-                      {icons.warning}
-                      {takeValidationError}
-                    </div>
-                  )}
+              <div className="pq-take-editor">
+                <div className="pq-take-editor__stage">
+                  <TakePreview
+                    videoRef={videoPreviewRef}
+                    src={takeVideoPreview}
+                    aspectRatio={takeAspectRatio}
+                    filterStyle={TAKE_FILTER_OPTIONS.find(f => f.name === takeSelectedFilter)?.style}
+                    muted={takeOriginalVolume === 0}
+                    playing={isTakePreviewPlaying}
+                    onToggle={handleToggleTakePreview}
+                    onLoadedData={handleGenerateThumbnailFromVideo}
+                    onRemove={handleRemoveTakeVideo}
+                    badges={
+                      <>
+                        {takeVideoDuration > 0 && <PreviewBadge>{formatSeconds(takeVideoDuration)}</PreviewBadge>}
+                        <PreviewBadge>{takeAspectRatio}</PreviewBadge>
+                        {takeSelectedFilter !== "none" && <PreviewBadge>{TAKE_FILTER_OPTIONS.find(f => f.name === takeSelectedFilter)?.label}</PreviewBadge>}
+                        {takeSelectedSound && <PreviewBadge icon={<span className="w-3 h-3 inline-flex">{takeMusicIcon}</span>}>{takeSelectedSound.name}</PreviewBadge>}
+                      </>
+                    }
+                  />
+                  {takeValidationError && <p className="pq-alert" role="alert">{takeValidationError}</p>}
                 </div>
 
-                {/* Right: Editor Sections */}
-                <div className="space-y-6">
-                  {/* Caption */}
+                <div className="pq-take-editor__fields">
                   <div>
+                    <FieldLabel htmlFor="composer-take-caption" hint={`${takeCaption.length}/500`}>Caption</FieldLabel>
                     <textarea
+                      id="composer-take-caption"
                       value={takeCaption}
                       onChange={(e) => setTakeCaption(e.target.value)}
-                      placeholder="Write a caption..."
+                      placeholder="Say something about it. #tags work here too."
                       maxLength={500}
                       rows={3}
-                      className="w-full p-3 rounded-xl border border-border-light bg-canvas font-body text-[0.9rem] text-ink resize-none outline-none focus:border-purple-primary focus:bg-surface transition-all placeholder:text-muted/50"
+                      className="pq-field"
                     />
-                    <div className="text-right font-ui text-[0.7rem] text-muted mt-1">{takeCaption.length}/500</div>
                   </div>
 
-                  {/* Filters Section */}
-                  <div className="border-t border-border-light pt-5">
-                    <button
-                      onClick={() => setTakeEditorTab(takeEditorTab === "effects" ? "details" : "effects")}
-                      className="w-full flex items-center justify-between mb-3"
-                    >
-                      <span className="font-ui text-[0.8rem] font-medium text-ink">Filters</span>
-                      <svg className={`w-4 h-4 text-muted transition-transform ${takeEditorTab === "effects" ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg>
-                    </button>
-                    {takeEditorTab === "effects" && (
-                      <div className="space-y-4">
-                        <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
-                          {TAKE_FILTER_OPTIONS.map((filter) => (
-                            <button
-                              key={filter.name}
-                              onClick={() => {
-                                setTakeSelectedFilter(filter.name);
-                                if (filter.name !== "none") {
-                                  setTakeEffects([{ type: "filter", name: filter.name }]);
-                                } else {
-                                  setTakeEffects([]);
-                                }
-                              }}
-                              className={`flex-shrink-0 flex flex-col items-center gap-1.5 transition-all`}
-                            >
-                              <div
-                                className={`w-14 h-14 rounded-xl overflow-hidden border-2 transition-all ${
-                                  takeSelectedFilter === filter.name
-                                    ? "border-purple-primary ring-2 ring-purple-primary/20"
-                                    : "border-transparent"
-                                }`}
-                              >
-                                <div
-                                  className="w-full h-full bg-gradient-to-br from-purple-400 via-pink-400 to-orange-400"
-                                  style={filter.style}
-                                />
-                              </div>
-                              <span className={`text-[0.65rem] font-medium ${takeSelectedFilter === filter.name ? "text-accent" : "text-muted"}`}>
-                                {filter.label}
-                              </span>
-                            </button>
-                          ))}
-                        </div>
-                        <div>
-                          <p className="font-ui text-[0.75rem] text-muted mb-2">Speed</p>
-                          <div className="flex gap-1.5">
-                            {TAKE_SPEED_OPTIONS.map((speed) => (
-                              <button
-                                key={speed.value}
-                                onClick={() => setTakePlaybackSpeed(speed.value)}
-                                className={`flex-1 py-1.5 rounded-lg text-[0.75rem] font-medium transition-all ${
-                                  takePlaybackSpeed === speed.value
-                                    ? "bg-ink text-white"
-                                    : "bg-skeleton text-muted hover:bg-skeleton"
-                                }`}
-                              >
-                                {speed.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
+                  <Disclosure
+                    id="composer-take-look"
+                    label="Look"
+                    state={[takeSelectedFilter !== "none" ? TAKE_FILTER_OPTIONS.find(f => f.name === takeSelectedFilter)?.label : null, takePlaybackSpeed !== 1 ? `${takePlaybackSpeed}×` : null].filter(Boolean).join(" · ") || undefined}
+                    open={takeEditorTab === "effects"}
+                    onToggle={() => setTakeEditorTab(takeEditorTab === "effects" ? "details" : "effects")}
+                  >
+                    <div className="grid gap-4">
+                      <div>
+                        <p className="pq-label">Filter</p>
+                        <TakeFilterChoice
+                          options={TAKE_FILTER_OPTIONS}
+                          value={takeSelectedFilter}
+                          onChange={(name) => {
+                            setTakeSelectedFilter(name);
+                            setTakeEffects(name !== "none" ? [{ type: "filter", name }] : []);
+                          }}
+                        />
                       </div>
-                    )}
-                  </div>
+                      <div>
+                        <p className="pq-label">Speed</p>
+                        <TakeSegmented label="Playback speed" options={TAKE_SPEED_OPTIONS} value={takePlaybackSpeed} onChange={setTakePlaybackSpeed} />
+                      </div>
+                    </div>
+                  </Disclosure>
 
-                  {/* Sound Section */}
-                  <div className="border-t border-border-light pt-5">
-                    <button
-                      onClick={() => setTakeEditorTab(takeEditorTab === "sound" ? "details" : "sound")}
-                      className="w-full flex items-center justify-between mb-3"
-                    >
-                      <span className="font-ui text-[0.8rem] font-medium text-ink">
-                        {takeSelectedSound ? `Sound: ${takeSelectedSound.name}` : "Add Sound"}
-                      </span>
-                      <svg className={`w-4 h-4 text-muted transition-transform ${takeEditorTab === "sound" ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg>
-                    </button>
-                    {takeEditorTab === "sound" && (
-                      <div className="space-y-3">
-                        {takeSelectedSound ? (
-                          <div className="space-y-3">
-                            <div className="flex items-center gap-3 p-3 bg-canvas rounded-xl">
-                              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white flex-shrink-0">
-                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium text-sm truncate">{takeSelectedSound.name}</p>
-                                <p className="text-xs text-muted truncate">{takeSelectedSound.artist || "Original Sound"}</p>
-                              </div>
-                              <button onClick={() => setTakeSelectedSound(null)} className="p-1.5 hover:bg-black/10 rounded-full text-muted">{icons.x}</button>
-                            </div>
-                            {takeSelectedSound.duration > 0 && (
-                              <div className="flex items-center gap-3">
-                                <span className="text-xs text-muted w-20">Start</span>
-                                <input
-                                  type="range"
-                                  min="0"
-                                  max={Math.max(0, takeSelectedSound.duration - 1)}
-                                  value={Math.min(takeSoundStartTime, Math.max(0, takeSelectedSound.duration - 1))}
-                                  onChange={(e) => setTakeSoundStartTime(Number(e.target.value))}
-                                  className="flex-1 h-1.5 bg-skeleton rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-pink-500"
-                                />
-                                <span className="text-xs text-muted w-8 text-right">{takeSoundStartTime}s</span>
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <>
-                            <input
-                              type="text"
-                              placeholder="Search sounds..."
-                              value={takeSoundSearch}
-                              onChange={(e) => setTakeSoundSearch(e.target.value)}
-                              className="w-full p-2.5 rounded-lg border border-border-light bg-canvas text-sm outline-none focus:border-purple-primary"
+                  <Disclosure
+                    id="composer-take-sound"
+                    label="Sound"
+                    state={takeSelectedSound ? takeSelectedSound.name : undefined}
+                    open={takeEditorTab === "sound"}
+                    onToggle={() => setTakeEditorTab(takeEditorTab === "sound" ? "details" : "sound")}
+                  >
+                    <div className="grid gap-4">
+                      {takeSelectedSound ? (
+                        <>
+                          <TakeSoundRow sound={takeSelectedSound} onRemove={() => setTakeSelectedSound(null)} />
+                          {takeSelectedSound.duration > 0 && (
+                            <TakeRange
+                              id="composer-take-sound-start"
+                              label="Start at"
+                              min={0}
+                              max={Math.max(0, takeSelectedSound.duration - 1)}
+                              value={Math.min(takeSoundStartTime, Math.max(0, takeSelectedSound.duration - 1))}
+                              onChange={setTakeSoundStartTime}
+                              format={(v) => `${v}s`}
                             />
-                            <div className="max-h-36 overflow-y-auto space-y-1">
-                              {searchingSounds ? (
-                                <p className="text-center py-3 text-muted text-sm">Searching...</p>
-                              ) : displaySounds.length === 0 ? (
-                                <p className="text-center py-3 text-muted text-sm">No sounds found</p>
-                              ) : (
-                                displaySounds.map((sound) => (
-                                  <button
-                                    key={sound.id}
-                                    onClick={() => { setTakeSelectedSound(sound); setTakeEditorTab("details"); }}
-                                    className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-skeleton transition-colors"
-                                  >
-                                    <div className="w-8 h-8 rounded bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white flex-shrink-0">
-                                      <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
-                                    </div>
-                                    <div className="flex-1 min-w-0 text-left">
-                                      <p className="text-sm font-medium truncate">{sound.name}</p>
-                                      <p className="text-[0.7rem] text-muted truncate">{sound.artist || "Original"}</p>
-                                    </div>
-                                  </button>
-                                ))
-                              )}
-                            </div>
-                          </>
-                        )}
-                        <div className="space-y-2 pt-2">
-                          <div className="flex items-center gap-3">
-                            <span className="text-xs text-muted w-20">Original</span>
-                            <input type="range" min="0" max="100" value={takeOriginalVolume} onChange={(e) => setTakeOriginalVolume(Number(e.target.value))} className="flex-1 h-1.5 bg-skeleton rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-purple-500" />
-                            <span className="text-xs text-muted w-8 text-right">{takeOriginalVolume}%</span>
-                          </div>
-                          {takeSelectedSound && (
-                            <div className="flex items-center gap-3">
-                              <span className="text-xs text-muted w-20">Added</span>
-                              <input type="range" min="0" max="100" value={takeAddedVolume} onChange={(e) => setTakeAddedVolume(Number(e.target.value))} className="flex-1 h-1.5 bg-skeleton rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-pink-500" />
-                              <span className="text-xs text-muted w-8 text-right">{takeAddedVolume}%</span>
-                            </div>
                           )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Aspect Ratio Section */}
-                  <div className="border-t border-border-light pt-5">
-                    <button
-                      onClick={() => setTakeEditorTab(takeEditorTab === "ratio" ? "details" : "ratio")}
-                      className="w-full flex items-center justify-between mb-3"
-                    >
-                      <span className="font-ui text-[0.8rem] font-medium text-ink">Aspect Ratio</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[0.75rem] text-muted">{takeAspectRatio}</span>
-                        <svg className={`w-4 h-4 text-muted transition-transform ${takeEditorTab === "ratio" ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg>
-                      </div>
-                    </button>
-                    {takeEditorTab === "ratio" && (
-                      <div className="flex gap-2">
-                        {TAKE_ASPECT_RATIOS.map((ar) => {
-                          const [w, h] = ar.value.split(":").map(Number);
-                          const isVertical = h > w;
-                          return (
-                            <button
-                              key={ar.value}
-                              onClick={() => setTakeAspectRatio(ar.value)}
-                              className={`flex-1 flex flex-col items-center gap-1.5 py-3 rounded-xl transition-all ${
-                                takeAspectRatio === ar.value
-                                  ? "bg-ink text-white"
-                                  : "bg-subtle text-muted hover:bg-skeleton"
-                              }`}
-                            >
-                              <div
-                                className={`border-2 rounded-sm ${takeAspectRatio === ar.value ? 'border-white' : 'border-current'}`}
-                                style={{ width: isVertical ? 12 : 18, height: isVertical ? 18 : (w === h ? 12 : 10) }}
-                              />
-                              <span className="text-[0.65rem] font-medium">{ar.label}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Cover Section */}
-                  <div className="border-t border-border-light pt-5">
-                    <button
-                      onClick={() => setTakeEditorTab(takeEditorTab === "cover" ? "details" : "cover")}
-                      className="w-full flex items-center justify-between mb-3"
-                    >
-                      <span className="font-ui text-[0.8rem] font-medium text-ink">Cover</span>
-                      <svg className={`w-4 h-4 text-muted transition-transform ${takeEditorTab === "cover" ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg>
-                    </button>
-                    {takeEditorTab === "cover" && (
-                      <div className="grid grid-cols-2 gap-2">
-                        {takeThumbnailFromVideo ? (
-                          <button
-                            onClick={() => { setTakeThumbnailPreview(null); setTakeThumbnailFile(null); }}
-                            className={`relative aspect-video rounded-lg overflow-hidden border-2 transition-all ${!takeThumbnailPreview ? "border-purple-primary" : "border-transparent hover:border-gray-300"}`}
-                          >
-                            <img src={takeThumbnailFromVideo} alt="" className="w-full h-full object-cover" />
-                            <span className="absolute bottom-1 left-1 right-1 text-[0.6rem] text-white text-center bg-black/50 rounded px-1 py-0.5">From Video</span>
-                          </button>
-                        ) : (
-                          <div className="aspect-video rounded-lg border-2 border-dashed border-gray-200 flex items-center justify-center text-muted text-xs">Loading...</div>
+                        </>
+                      ) : (
+                        <>
+                          <input
+                            type="search"
+                            placeholder="Search sounds"
+                            aria-label="Search sounds"
+                            value={takeSoundSearch}
+                            onChange={(e) => setTakeSoundSearch(e.target.value)}
+                            className="pq-field pq-field--ui"
+                          />
+                          <TakeSoundList
+                            sounds={displaySounds}
+                            loading={searchingSounds}
+                            onSelect={(sound) => { setTakeSelectedSound(sound); setTakeEditorTab("details"); }}
+                          />
+                        </>
+                      )}
+                      <div className="grid gap-2">
+                        <TakeRange id="composer-take-original-volume" label="Original audio" min={0} max={100} value={takeOriginalVolume} onChange={setTakeOriginalVolume} format={(v) => `${v}%`} />
+                        {takeSelectedSound && (
+                          <TakeRange id="composer-take-added-volume" label="Added sound" min={0} max={100} value={takeAddedVolume} onChange={setTakeAddedVolume} format={(v) => `${v}%`} />
                         )}
-                        <button
-                          onClick={() => thumbnailInputRef.current?.click()}
-                          className={`relative aspect-video rounded-lg overflow-hidden border-2 transition-all ${takeThumbnailPreview ? "border-purple-primary" : "border-dashed border-gray-200 hover:border-gray-300"}`}
-                        >
-                          {takeThumbnailPreview ? (
-                            <>
-                              <img src={takeThumbnailPreview} alt="" className="w-full h-full object-cover" />
-                              <span className="absolute bottom-1 left-1 right-1 text-[0.6rem] text-white text-center bg-black/50 rounded px-1 py-0.5">Custom</span>
-                            </>
-                          ) : (
-                            <div className="w-full h-full flex flex-col items-center justify-center bg-subtle">
-                              <svg className="w-5 h-5 text-gray-300 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                              <span className="text-[0.65rem] text-muted">Upload</span>
-                            </div>
-                          )}
-                          <input ref={thumbnailInputRef} type="file" accept="image/*" onChange={(e) => { const file = e.target.files?.[0]; if (file && file.type.startsWith("image/")) { setTakeThumbnailFile(file); setTakeThumbnailPreview(URL.createObjectURL(file)); }}} className="hidden" />
-                        </button>
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  </Disclosure>
+
+                  <Disclosure
+                    id="composer-take-frame"
+                    label="Frame"
+                    state={takeAspectRatio}
+                    open={takeEditorTab === "ratio"}
+                    onToggle={() => setTakeEditorTab(takeEditorTab === "ratio" ? "details" : "ratio")}
+                  >
+                    <TakeSegmented
+                      label="Aspect ratio"
+                      options={TAKE_ASPECT_RATIOS.map((ar) => ({ value: ar.value, label: ar.label }))}
+                      value={takeAspectRatio}
+                      onChange={setTakeAspectRatio}
+                    />
+                  </Disclosure>
+
+                  <Disclosure
+                    id="composer-take-cover"
+                    label="Cover"
+                    state={takeThumbnailPreview ? "Your image" : takeThumbnailFromVideo ? "From the video" : undefined}
+                    open={takeEditorTab === "cover"}
+                    onToggle={() => setTakeEditorTab(takeEditorTab === "cover" ? "details" : "cover")}
+                  >
+                    <TakeCoverChoice
+                      fromVideo={takeThumbnailFromVideo}
+                      custom={takeThumbnailPreview}
+                      onUseFrame={() => { setTakeThumbnailPreview(null); setTakeThumbnailFile(null); }}
+                      inputRef={thumbnailInputRef}
+                      onCustomFile={(file) => { setTakeThumbnailFile(file); setTakeThumbnailPreview(URL.createObjectURL(file)); }}
+                    />
+                  </Disclosure>
                 </div>
               </div>
             )}

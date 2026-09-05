@@ -15,28 +15,24 @@ import {
   Sound,
 } from "@/lib/hooks/useTakes";
 import { useCommunities } from "@/lib/hooks.legacy";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { PageFrame, PageHeader } from "@/components/layout/PageFrame";
+import Button from "@/components/ui/Button";
+import { Spinner } from "@/components/ui/Loading";
+import { Disclosure, FieldLabel, Switch } from "@/components/create/pieces";
 import {
-  faCloudUploadAlt,
-  faTimes,
-  faUsers,
-  faExclamationTriangle,
-  faSpinner,
-  faPlay,
-  faPause,
-  faCheck,
-  faImage,
-  faMusic,
-  faCrop,
-  faMagic,
-  faFont,
-  faTachometerAlt,
-  faVolumeUp,
-  faVolumeMute,
-  faSearch,
-  faHeart,
-  faChevronRight,
-} from "@fortawesome/free-solid-svg-icons";
+  TakeDropzone,
+  TakePreview,
+  PreviewBadge,
+  TakeFilterChoice,
+  TakeSegmented,
+  TakeRange,
+  TakeCoverChoice,
+  TakeSoundRow,
+  TakeSoundList,
+  takeMusicIcon,
+  formatSeconds,
+} from "@/components/takes/TakeEditorPieces";
+import "@/components/create/composer.css";
 import PeoplePickerModal, { CollaboratorWithRole } from "@/components/ui/PeoplePickerModal";
 import type { SearchableUser } from "@/lib/hooks.legacy";
 import { supabase } from "@/lib/supabase";
@@ -80,11 +76,11 @@ const FILTER_OPTIONS = [
   { name: "vivid", label: "Vivid", style: { filter: "saturate(150%) contrast(110%)" } },
 ];
 
-type EditorTab = "details" | "sound" | "effects" | "thumbnail";
+type EditorTab = "details" | "sound" | "effects" | "thumbnail" | "frame" | "people" | "audience";
 
 export default function CreateTake({ onSuccess, onCancel, initialSoundId }: CreateTakeProps) {
   const router = useRouter();
-  const { user, profile, loading: authLoading, status: authStatus, isAnonymous } = useAuth();
+  const { user, loading: authLoading, status: authStatus, isAnonymous } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const thumbnailInputRef = useRef<HTMLInputElement>(null);
   const videoPreviewRef = useRef<HTMLVideoElement>(null);
@@ -111,7 +107,6 @@ export default function CreateTake({ onSuccess, onCancel, initialSoundId }: Crea
   const [contentWarning, setContentWarning] = useState("");
   const [showContentWarning, setShowContentWarning] = useState(false);
   const [selectedCommunity, setSelectedCommunity] = useState<string | null>(null);
-  const [showCommunityPicker, setShowCommunityPicker] = useState(false);
 
   // New creative options
   const [aspectRatio, setAspectRatio] = useState<TakeAspectRatio>("9:16");
@@ -361,7 +356,6 @@ export default function CreateTake({ onSuccess, onCancel, initialSoundId }: Crea
     audioRef.current.currentTime = soundStartTime;
   }, [selectedSound, soundStartTime]);
 
-  // eslint-disable-next-line react-hooks/preserve-manual-memoization -- Complex async handler with many dependencies
   const handleSubmit = useCallback(async () => {
     if (!user?.id || !videoFile || uploading) return;
 
@@ -445,779 +439,325 @@ export default function CreateTake({ onSuccess, onCancel, initialSoundId }: Crea
 
   if (authLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-black">
-        <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
-      </div>
+      <PageFrame width="reading">
+        <div className="pq-feed-state" role="status" aria-label="Loading">
+          <Spinner size="lg" />
+        </div>
+      </PageFrame>
     );
   }
 
   if (!user) return null;
 
   const currentFilter = FILTER_OPTIONS.find(f => f.name === selectedFilter);
+  const toggleSection = (tab: EditorTab) => setActiveTab((current) => (current === tab ? "details" : tab));
+  const cancel = onCancel || (() => router.back());
+  const peopleCount = collaborators.length + taggedPeople.length;
+  const communityName = selectedCommunity ? communities?.find((c) => c.id === selectedCommunity)?.name : undefined;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white">
+    <PageFrame width="reading" className="pq-composer">
       {/* Hidden audio element for sound preview */}
       <audio ref={audioRef} onEnded={() => { setIsSoundPlaying(false); setPlayingSoundUrl(null); }} />
 
-      {/* Header */}
-      <div className="sticky top-0 z-50 bg-gray-900/95 backdrop-blur-sm border-b border-surface/10">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-          <button
-            onClick={onCancel || (() => router.back())}
-            className="p-2 hover:bg-surface/10 rounded-full transition-colors"
-          >
-            <FontAwesomeIcon icon={faTimes} className="w-5 h-5" />
-          </button>
-          <h1 className="font-display text-lg font-semibold">Create Take</h1>
-          <button
-            onClick={handleSubmit}
-            disabled={!videoFile || uploading}
-            className="px-4 py-2 bg-gradient-to-r from-purple-primary to-pink-vivid rounded-full font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition-opacity"
-          >
-            {uploading ? `${Math.round(progress)}%` : "Post"}
-          </button>
+      <PageHeader
+        title="Share a Take"
+        lede="A short video, up to three minutes. Add a caption, a sound and a cover, then post."
+        actions={<Button variant="ghost" size="sm" onClick={cancel}>Cancel</Button>}
+      />
+
+      {uploading && (
+        <div className="pq-progress mb-4" role="progressbar" aria-label="Uploading" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress)}>
+          <span style={{ inlineSize: `${progress}%` }} />
         </div>
-        {uploading && (
-          <div className="h-1 bg-surface/10">
-            <div
-              className="h-full bg-gradient-to-r from-purple-primary to-pink-vivid transition-all duration-300"
-              style={{ width: `${progress}%` }}
+      )}
+
+      <div className="pq-take-editor">
+        <div className="pq-take-editor__stage">
+          {!videoPreview ? (
+            <TakeDropzone
+              active={dragActive}
+              inputRef={fileInputRef}
+              onFile={handleFileSelect}
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+            />
+          ) : (
+            <TakePreview
+              videoRef={videoPreviewRef}
+              src={videoPreview}
+              aspectRatio={aspectRatio}
+              filterStyle={currentFilter?.style}
+              muted={originalAudioVolume === 0}
+              playing={isPreviewPlaying}
+              onToggle={handleTogglePreview}
+              onLoadedData={generateThumbnailFromVideo}
+              onRemove={handleRemoveVideo}
+              badges={
+                <>
+                  {videoDuration > 0 && <PreviewBadge>{formatSeconds(videoDuration)}</PreviewBadge>}
+                  <PreviewBadge>{aspectRatio}</PreviewBadge>
+                  {selectedSound && <PreviewBadge icon={<span className="w-3 h-3 inline-flex">{takeMusicIcon}</span>}>{selectedSound.name}</PreviewBadge>}
+                </>
+              }
+            />
+          )}
+          {validationError && <p className="pq-alert" role="alert">{validationError}</p>}
+        </div>
+
+        <div className="pq-take-editor__fields">
+          <div>
+            <FieldLabel htmlFor="take-caption" hint={`${caption.length}/500`}>Caption</FieldLabel>
+            <textarea
+              id="take-caption"
+              className="pq-field"
+              placeholder="Say something about it. #tags work here too."
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+              maxLength={500}
+              rows={3}
             />
           </div>
-        )}
-      </div>
 
-      <div className="max-w-5xl mx-auto px-4 py-6">
-        {/* Feature Pills - Always visible at top */}
-        <div className="flex flex-wrap items-center justify-center gap-3 mb-6">
-          <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-primary/20 to-pink-vivid/20 rounded-full border border-purple-500/30">
-            <FontAwesomeIcon icon={faMagic} className="w-4 h-4 text-purple-400" />
-            <span className="text-sm text-white/80">9 Filters</span>
-          </div>
-          <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-pink-vivid/20 to-orange-500/20 rounded-full border border-pink-500/30">
-            <FontAwesomeIcon icon={faMusic} className="w-4 h-4 text-pink-400" />
-            <span className="text-sm text-white/80">Add Sounds</span>
-          </div>
-          <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-full border border-blue-500/30">
-            <FontAwesomeIcon icon={faCrop} className="w-4 h-4 text-blue-400" />
-            <span className="text-sm text-white/80">5 Aspect Ratios</span>
-          </div>
-          <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500/20 to-teal-500/20 rounded-full border border-green-500/30">
-            <FontAwesomeIcon icon={faImage} className="w-4 h-4 text-green-400" />
-            <span className="text-sm text-white/80">Custom Covers</span>
-          </div>
-                  <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500/20 to-yellow-500/20 rounded-full border border-orange-500/30">
-            <FontAwesomeIcon icon={faTachometerAlt} className="w-4 h-4 text-orange-400" />
-            <span className="text-sm text-white/80">Speed Control</span>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-          {/* Video Preview Section - Takes 2 columns */}
-          <div className="lg:col-span-2 space-y-4">
-            {!videoPreview ? (
-              <div
-                className={`aspect-[9/16] max-h-[70vh] rounded-2xl border-2 border-dashed transition-colors cursor-pointer flex flex-col items-center justify-center bg-gradient-to-b from-surface/5 to-transparent ${
-                  dragActive ? "border-purple-500 bg-purple-500/10" : "border-surface/20 hover:border-surface/40"
-                }`}
-                onDrop={handleDrop}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center mb-4">
-                  <FontAwesomeIcon icon={faCloudUploadAlt} className="w-8 h-8 text-white" />
-                </div>
-                <p className="text-white/80 text-center px-4 font-medium">
-                  Upload your video
-                </p>
-                <p className="text-white/40 text-sm mt-2 text-center px-4">
-                  Drag & drop or click to browse<br/>
-                  MP4/MOV · Max 3 min · Max 200MB
-                </p>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="video/mp4,video/quicktime,video/mov"
-                  onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
-                  className="hidden"
-                />
-              </div>
-            ) : (
-              <div className="relative">
-                <div
-                  className="relative rounded-2xl overflow-hidden bg-black"
-                  style={{
-                    aspectRatio: aspectRatio.replace(":", "/"),
-                    maxHeight: "70vh",
-                    margin: "0 auto",
-                  }}
-                >
-                  <video
-                    ref={videoPreviewRef}
-                    src={videoPreview}
-                    className="w-full h-full object-contain"
-                    style={currentFilter?.style}
-                    loop
-                    playsInline
-                    muted={originalAudioVolume === 0}
-                    onClick={handleTogglePreview}
-                    onLoadedData={generateThumbnailFromVideo}
-                  />
-
-                  {/* Play/Pause overlay */}
-                  <div
-                    className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 hover:opacity-100 transition-opacity cursor-pointer"
-                    onClick={handleTogglePreview}
-                  >
-                    <div className="w-16 h-16 rounded-full bg-surface/20 backdrop-blur-sm flex items-center justify-center">
-                      <FontAwesomeIcon icon={isPreviewPlaying ? faPause : faPlay} className="w-6 h-6 text-white" />
-                    </div>
-                  </div>
-
-                  {/* Duration badge */}
-                  <div className="absolute bottom-3 right-3 px-2 py-1 bg-black/60 rounded-lg text-xs font-medium">
-                    {videoDuration}s
-                  </div>
-
-                  {/* Remove button */}
-                  <button
-                    onClick={handleRemoveVideo}
-                    className="absolute top-3 right-3 w-8 h-8 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center transition-colors"
-                  >
-                    <FontAwesomeIcon icon={faTimes} className="w-4 h-4" />
+          <div>
+            <FieldLabel htmlFor="take-tags" hint="(optional)">Tags</FieldLabel>
+            <div className="pq-field pq-tag-field">
+              {tags.map((tag) => (
+                <span key={tag} className="pq-chip">
+                  #{tag}
+                  <button type="button" className="pq-chip__remove" onClick={() => handleRemoveTag(tag)} aria-label={`Remove tag ${tag}`}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
                   </button>
-
-                  {/* Sound indicator */}
-                  {selectedSound && (
-                    <div className="absolute bottom-3 left-3 flex items-center gap-2 px-3 py-1.5 bg-black/60 rounded-full">
-                      <FontAwesomeIcon icon={faMusic} className="w-3 h-3 text-pink-400" />
-                      <span className="text-xs truncate max-w-[120px]">{selectedSound.name}</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Quick actions under video */}
-                <div className="flex items-center justify-center gap-2 mt-4">
-                  {[
-                    { tab: "effects" as EditorTab, icon: faMagic, label: "Filters" },
-                    { tab: "sound" as EditorTab, icon: faMusic, label: "Sound" },
-                    { tab: "thumbnail" as EditorTab, icon: faImage, label: "Cover" },
-                  ].map(({ tab, icon, label }) => (
-                    <button
-                      key={tab}
-                      onClick={() => setActiveTab(tab)}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm transition-colors ${
-                        activeTab === tab
-                          ? "bg-purple-500 text-white"
-                          : "bg-surface/10 text-white/70 hover:bg-surface/20"
-                      }`}
-                    >
-                      <FontAwesomeIcon icon={icon} className="w-4 h-4" />
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {validationError && (
-              <div className="flex items-center gap-2 p-3 bg-red-500/20 border border-red-500/30 rounded-lg text-red-400 text-sm">
-                <FontAwesomeIcon icon={faExclamationTriangle} />
-                {validationError}
-              </div>
-            )}
+                </span>
+              ))}
+              <input
+                id="take-tags"
+                type="text"
+                placeholder={tags.length ? "Add another" : "Add a tag and press Enter"}
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleAddTag();
+                  }
+                }}
+              />
+            </div>
           </div>
 
-          {/* Editor Panel - Takes 3 columns */}
-          <div className="lg:col-span-3 space-y-6">
-            {/* Tab navigation with icons */}
-            <div className="flex gap-1 p-1.5 bg-surface/5 rounded-2xl border border-surface/10">
-              {[
-                { tab: "details" as EditorTab, label: "Details", icon: faFont },
-                { tab: "effects" as EditorTab, label: "Effects", icon: faMagic },
-                { tab: "sound" as EditorTab, label: "Sound", icon: faMusic },
-                { tab: "thumbnail" as EditorTab, label: "Cover", icon: faImage },
-              ].map(({ tab, label, icon }) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-medium transition-all ${
-                    activeTab === tab
-                      ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white shadow-lg"
-                      : "text-white/50 hover:text-white/70 hover:bg-surface/5"
-                  }`}
-                >
-                  <FontAwesomeIcon icon={icon} className="w-4 h-4" />
-                  <span className="hidden sm:inline">{label}</span>
-                </button>
-              ))}
+          <Disclosure
+            id="take-look"
+            label="Look"
+            state={[currentFilter && currentFilter.name !== "none" ? currentFilter.label : null, playbackSpeed !== 1 ? `${playbackSpeed}×` : null].filter(Boolean).join(" · ") || undefined}
+            open={activeTab === "effects"}
+            onToggle={() => toggleSection("effects")}
+          >
+            <div className="grid gap-4">
+              <div>
+                <p className="pq-label">Filter</p>
+                <TakeFilterChoice options={FILTER_OPTIONS} value={selectedFilter} onChange={setSelectedFilter} />
+              </div>
+              <div>
+                <p className="pq-label">Speed</p>
+                <TakeSegmented label="Playback speed" options={SPEED_OPTIONS} value={playbackSpeed} onChange={setPlaybackSpeed} />
+              </div>
             </div>
+          </Disclosure>
 
-            {/* Details Tab */}
-            {activeTab === "details" && (
-              <div className="space-y-5">
-                {/* Caption */}
-                <div>
-                  <label className="block text-sm font-medium mb-2 text-white/70">Caption</label>
-                  <textarea
-                    className="w-full bg-surface/5 border border-surface/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-purple-500 resize-none"
-                    placeholder="Write a caption... Use #hashtags"
-                    value={caption}
-                    onChange={(e) => setCaption(e.target.value)}
-                    maxLength={500}
-                    rows={3}
+          <Disclosure
+            id="take-sound"
+            label="Sound"
+            state={selectedSound ? selectedSound.name : undefined}
+            open={activeTab === "sound"}
+            onToggle={() => toggleSection("sound")}
+          >
+            <div className="grid gap-4">
+              {selectedSound ? (
+                <>
+                  <TakeSoundRow sound={selectedSound} onRemove={handleRemoveSound} />
+                  {selectedSound.duration > 0 && (
+                    <TakeRange
+                      id="take-sound-start"
+                      label="Start at"
+                      min={0}
+                      max={Math.max(0, selectedSound.duration - 1)}
+                      value={Math.min(soundStartTime, Math.max(0, selectedSound.duration - 1))}
+                      onChange={setSoundStartTime}
+                      format={(v) => `${v}s`}
+                    />
+                  )}
+                </>
+              ) : !showSoundPicker ? (
+                <Button variant="secondary" size="sm" onClick={() => setShowSoundPicker(true)}>Add a sound</Button>
+              ) : (
+                <>
+                  <input
+                    type="search"
+                    className="pq-field pq-field--ui"
+                    placeholder="Search sounds"
+                    aria-label="Search sounds"
+                    value={soundSearch}
+                    onChange={(e) => setSoundSearch(e.target.value)}
                   />
-                  <span className="text-xs text-white/40 mt-1 block text-right">{caption.length}/500</span>
-                </div>
+                  <TakeSoundList
+                    sounds={displaySounds}
+                    loading={searchingSound}
+                    onSelect={handleSelectSound}
+                    onPreview={handlePreviewSound}
+                    playingUrl={isSoundPlaying ? playingSoundUrl : null}
+                  />
+                </>
+              )}
 
-                {/* Tags */}
-                <div>
-                  <label className="block text-sm font-medium mb-2 text-white/70">Tags</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      className="flex-1 bg-surface/5 border border-surface/10 rounded-xl px-4 py-2 text-white placeholder-white/30 focus:outline-none focus:border-purple-500"
-                      placeholder="Add a tag..."
-                      value={tagInput}
-                      onChange={(e) => setTagInput(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddTag())}
-                    />
-                    <button
-                      onClick={handleAddTag}
-                      disabled={!tagInput.trim()}
-                      className="px-4 py-2 bg-purple-500 rounded-xl font-medium text-sm disabled:opacity-50"
-                    >
-                      Add
-                    </button>
-                  </div>
-                  {tags.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-3">
-                      {tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="inline-flex items-center gap-1 px-3 py-1 bg-purple-500/20 text-purple-300 rounded-full text-sm"
-                        >
-                          #{tag}
-                          <button onClick={() => handleRemoveTag(tag)} className="hover:text-white">
-                            <FontAwesomeIcon icon={faTimes} className="w-3 h-3" />
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Aspect Ratio */}
-                <div className="bg-surface/5 rounded-2xl p-4 border border-surface/10">
-                  <div className="flex items-center gap-2 mb-4">
-                    <FontAwesomeIcon icon={faCrop} className="w-4 h-4 text-blue-400" />
-                    <label className="text-sm font-semibold text-white">Aspect Ratio</label>
-                  </div>
-                  <div className="grid grid-cols-5 gap-2">
-                    {ASPECT_RATIOS.map((ar) => (
-                      <button
-                        key={ar.value}
-                        onClick={() => setAspectRatio(ar.value)}
-                        className={`flex flex-col items-center gap-2 p-3 rounded-xl transition-all ${
-                          aspectRatio === ar.value
-                            ? "bg-gradient-to-br from-blue-500 to-cyan-500 text-white shadow-lg"
-                            : "bg-surface/5 text-white/60 hover:bg-surface/10 border border-surface/10"
-                        }`}
-                      >
-                        <div
-                          className={`border-2 ${aspectRatio === ar.value ? 'border-white' : 'border-surface/30'} rounded`}
-                          style={{
-                            width: ar.value === '16:9' ? '32px' : ar.value === '9:16' ? '18px' : ar.value === '1:1' ? '24px' : ar.value === '4:5' ? '20px' : '26px',
-                            height: ar.value === '16:9' ? '18px' : ar.value === '9:16' ? '32px' : ar.value === '1:1' ? '24px' : ar.value === '4:5' ? '25px' : '20px',
-                          }}
-                        />
-                        <span className="text-xs font-medium">{ar.icon}</span>
-                      </button>
-                    ))}
-                  </div>
-                  <p className="text-xs text-white/40 mt-3">
-                    Choose how your video will be displayed in the feed
-                  </p>
-                </div>
-
-                {/* Community */}
-                {communities && communities.length > 0 && (
-                  <div>
-                    <label className="block text-sm font-medium mb-2 text-white/70">Post to Community</label>
-                    <button
-                      onClick={() => setShowCommunityPicker(!showCommunityPicker)}
-                      className="w-full flex items-center justify-between px-4 py-3 bg-surface/5 border border-surface/10 rounded-xl text-left hover:bg-surface/10 transition-colors"
-                    >
-                      <span className={selectedCommunity ? "text-white" : "text-white/40"}>
-                        {selectedCommunity
-                          ? communities.find((c) => c.id === selectedCommunity)?.name
-                          : "Select a community (optional)"}
-                      </span>
-                      <FontAwesomeIcon icon={faChevronRight} className="w-4 h-4 text-white/40" />
-                    </button>
-                    {showCommunityPicker && (
-                      <div className="mt-2 bg-surface/5 border border-surface/10 rounded-xl overflow-hidden">
-                        {communities.map((community) => (
-                          <button
-                            key={community.id}
-                            className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-surface/10 transition-colors ${
-                              selectedCommunity === community.id ? "bg-purple-500/20" : ""
-                            }`}
-                            onClick={() => {
-                              setSelectedCommunity(community.id === selectedCommunity ? null : community.id);
-                              setShowCommunityPicker(false);
-                            }}
-                          >
-                            {community.avatar_url && (
-                              <img src={community.avatar_url} alt="" className="w-8 h-8 rounded-lg object-cover" />
-                            )}
-                            <span className="flex-1">{community.name}</span>
-                            {selectedCommunity === community.id && (
-                              <FontAwesomeIcon icon={faCheck} className="text-purple-400" />
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Content Warning */}
-                <div>
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={showContentWarning}
-                      onChange={(e) => setShowContentWarning(e.target.checked)}
-                      className="w-5 h-5 rounded border-surface/20 bg-surface/5 text-purple-500 focus:ring-purple-500"
-                    />
-                    <span className="text-sm text-white/70">Add content warning</span>
-                  </label>
-                  {showContentWarning && (
-                    <input
-                      type="text"
-                      className="w-full mt-3 bg-surface/5 border border-surface/10 rounded-xl px-4 py-2 text-white placeholder-white/30 focus:outline-none focus:border-purple-500"
-                      placeholder="Describe the warning..."
-                      value={contentWarning}
-                      onChange={(e) => setContentWarning(e.target.value)}
-                      maxLength={100}
-                    />
-                  )}
-                </div>
-
-                {/* Collaborators and Tags */}
-                <div className="bg-surface/5 rounded-2xl p-4 border border-surface/10">
-                  <div className="flex items-center gap-2 mb-4">
-                    <FontAwesomeIcon icon={faUsers} className="w-4 h-4 text-purple-400" />
-                    <label className="text-sm font-semibold text-white">People</label>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setShowCollaboratorPicker(true)}
-                      className="flex items-center justify-between gap-3 px-4 py-3 bg-surface/5 border border-surface/10 rounded-xl hover:bg-surface/10 transition-colors"
-                    >
-                      <span className="flex items-center gap-2 text-sm text-white/80">
-                        <FontAwesomeIcon icon={faUsers} className="w-4 h-4 text-purple-300" />
-                        Collaborators
-                      </span>
-                      <span className="text-xs text-white/40">{collaborators.length}</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowTagPeoplePicker(true)}
-                      className="flex items-center justify-between gap-3 px-4 py-3 bg-surface/5 border border-surface/10 rounded-xl hover:bg-surface/10 transition-colors"
-                    >
-                      <span className="flex items-center gap-2 text-sm text-white/80">
-                        <FontAwesomeIcon icon={faHeart} className="w-4 h-4 text-pink-300" />
-                        Tag people
-                      </span>
-                      <span className="text-xs text-white/40">{taggedPeople.length}</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Effects Tab */}
-            {activeTab === "effects" && (
-              <div className="space-y-6">
-                {/* Filters */}
-                <div className="bg-surface/5 rounded-2xl p-4 border border-surface/10">
-                  <div className="flex items-center gap-2 mb-4">
-                    <FontAwesomeIcon icon={faMagic} className="w-4 h-4 text-purple-400" />
-                    <label className="text-sm font-semibold text-white">Video Filters</label>
-                  </div>
-                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
-                    {FILTER_OPTIONS.map((filter) => (
-                      <button
-                        key={filter.name}
-                        onClick={() => setSelectedFilter(filter.name)}
-                        className={`relative aspect-square rounded-xl overflow-hidden border-2 transition-all ${
-                          selectedFilter === filter.name
-                            ? "border-purple-500 scale-105 shadow-lg shadow-purple-500/30"
-                            : "border-surface/10 hover:border-surface/30"
-                        }`}
-                      >
-                        <div
-                          className="w-full h-full bg-gradient-to-br from-purple-primary via-pink-vivid to-orange-500"
-                          style={filter.style}
-                        />
-                        <span className="absolute bottom-1 left-1 right-1 text-[10px] font-semibold text-white text-center bg-black/60 backdrop-blur-sm rounded px-1 py-0.5">
-                          {filter.label}
-                        </span>
-                        {selectedFilter === filter.name && (
-                          <div className="absolute top-1 right-1 w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center">
-                            <FontAwesomeIcon icon={faCheck} className="w-3 h-3 text-white" />
-                          </div>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Speed */}
-                <div className="bg-surface/5 rounded-2xl p-4 border border-surface/10">
-                  <div className="flex items-center gap-2 mb-4">
-                    <FontAwesomeIcon icon={faTachometerAlt} className="w-4 h-4 text-orange-400" />
-                    <label className="text-sm font-semibold text-white">Playback Speed</label>
-                  </div>
-                  <div className="flex gap-2 flex-wrap">
-                    {SPEED_OPTIONS.map((speed) => (
-                      <button
-                        key={speed.value}
-                        onClick={() => setPlaybackSpeed(speed.value)}
-                        className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-                          playbackSpeed === speed.value
-                            ? "bg-gradient-to-r from-orange-500 to-yellow-500 text-white shadow-lg"
-                            : "bg-surface/5 text-white/60 hover:bg-surface/10 border border-surface/10"
-                        }`}
-                      >
-                        {speed.label}
-                      </button>
-                    ))}
-                  </div>
-                  <p className="text-xs text-white/40 mt-3">
-                    Slow motion (0.25x-0.75x) or speed up (1.5x-3x) your video
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Sound Tab */}
-            {activeTab === "sound" && (
-              <div className="space-y-5">
-                {/* Current Sound */}
-                <div className="bg-surface/5 rounded-2xl p-4 border border-surface/10">
-                  <div className="flex items-center gap-2 mb-4">
-                    <FontAwesomeIcon icon={faMusic} className="w-4 h-4 text-pink-400" />
-                    <label className="text-sm font-semibold text-white">Add Music or Sound</label>
-                  </div>
-
-                  {selectedSound ? (
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-purple-primary/20 to-pink-vivid/20 rounded-xl border border-purple-500/30">
-                        <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-pink-vivid to-purple-primary flex items-center justify-center overflow-hidden flex-shrink-0">
-                          {selectedSound.cover_url ? (
-                            <img src={selectedSound.cover_url} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <FontAwesomeIcon icon={faMusic} className="w-6 h-6 text-white" />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold truncate">{selectedSound.name}</p>
-                          <p className="text-sm text-white/50 truncate">{selectedSound.artist || "Original Sound"}</p>
-                          <p className="text-xs text-pink-400 mt-1">{selectedSound.use_count} uses</p>
-                        </div>
-                        <button
-                          onClick={handleRemoveSound}
-                          className="p-2 hover:bg-surface/10 rounded-full"
-                        >
-                          <FontAwesomeIcon icon={faTimes} className="w-4 h-4" />
-                        </button>
-                      </div>
-                      {selectedSound.duration > 0 && (
-                        <div>
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm text-white/70">Sound start</span>
-                            <span className="text-sm font-medium text-pink-400">{soundStartTime}s</span>
-                          </div>
-                          <input
-                            type="range"
-                            min="0"
-                            max={Math.max(0, selectedSound.duration - 1)}
-                            value={Math.min(soundStartTime, Math.max(0, selectedSound.duration - 1))}
-                            onChange={(e) => setSoundStartTime(Number(e.target.value))}
-                            className="w-full h-2 bg-surface/10 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gradient-to-r [&::-webkit-slider-thumb]:from-pink-vivid [&::-webkit-slider-thumb]:to-orange-500 [&::-webkit-slider-thumb]:shadow-lg"
-                          />
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => setShowSoundPicker(true)}
-                      className="w-full flex items-center justify-center gap-3 p-6 bg-gradient-to-r from-pink-vivid/10 to-purple-primary/10 border border-pink-500/20 border-dashed rounded-xl text-white/70 hover:bg-pink-500/20 hover:text-white hover:border-pink-500/40 transition-all"
-                    >
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-vivid to-purple-primary flex items-center justify-center">
-                        <FontAwesomeIcon icon={faMusic} className="w-5 h-5 text-white" />
-                      </div>
-                      <div className="text-left">
-                        <p className="font-semibold">Add a Sound</p>
-                        <p className="text-sm text-white/50">Browse trending sounds or search</p>
-                      </div>
-                    </button>
-                  )}
-                </div>
-
-                {/* Volume Controls */}
-                <div className="bg-surface/5 rounded-2xl p-4 border border-surface/10">
-                  <div className="flex items-center gap-2 mb-4">
-                    <FontAwesomeIcon icon={faVolumeUp} className="w-4 h-4 text-cyan-400" />
-                    <label className="text-sm font-semibold text-white">Volume Mixer</label>
-                  </div>
-                  <div className="space-y-4">
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-white/70">Original Audio</span>
-                          {originalAudioVolume === 0 && (
-                            <FontAwesomeIcon icon={faVolumeMute} className="w-3 h-3 text-white/40" />
-                          )}
-                        </div>
-                        <span className="text-sm font-medium text-purple-400">{originalAudioVolume}%</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        value={originalAudioVolume}
-                        onChange={(e) => setOriginalAudioVolume(Number(e.target.value))}
-                        className="w-full h-2 bg-surface/10 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gradient-to-r [&::-webkit-slider-thumb]:from-purple-primary [&::-webkit-slider-thumb]:to-pink-vivid [&::-webkit-slider-thumb]:shadow-lg"
-                      />
-                    </div>
-                    {selectedSound && (
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm text-white/70">Added Sound</span>
-                            {addedSoundVolume === 0 && (
-                              <FontAwesomeIcon icon={faVolumeMute} className="w-3 h-3 text-white/40" />
-                            )}
-                          </div>
-                          <span className="text-sm font-medium text-pink-400">{addedSoundVolume}%</span>
-                        </div>
-                        <input
-                          type="range"
-                          min="0"
-                          max="100"
-                          value={addedSoundVolume}
-                          onChange={(e) => setAddedSoundVolume(Number(e.target.value))}
-                          className="w-full h-2 bg-surface/10 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gradient-to-r [&::-webkit-slider-thumb]:from-pink-vivid [&::-webkit-slider-thumb]:to-orange-500 [&::-webkit-slider-thumb]:shadow-lg"
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Allow Sound Use */}
-                <div className="bg-surface/5 rounded-2xl p-4 border border-surface/10">
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={allowSoundUse}
-                      onChange={(e) => setAllowSoundUse(e.target.checked)}
-                      className="w-5 h-5 rounded-lg border-surface/20 bg-surface/5 text-purple-500 focus:ring-purple-500"
-                    />
-                    <div>
-                      <span className="text-sm font-medium text-white">Allow others to use this sound</span>
-                      <p className="text-xs text-white/50 mt-0.5">Let other creators use your original audio in their takes</p>
-                    </div>
-                  </label>
-                </div>
-
-                {/* Sound Picker */}
-                {showSoundPicker && (
-                  <div className="space-y-4">
-                    <div className="relative">
-                      <FontAwesomeIcon
-                        icon={faSearch}
-                        className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40"
-                      />
-                      <input
-                        type="text"
-                        placeholder="Search sounds..."
-                        value={soundSearch}
-                        onChange={(e) => setSoundSearch(e.target.value)}
-                        className="w-full bg-surface/5 border border-surface/10 rounded-xl pl-11 pr-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-purple-500"
-                      />
-                    </div>
-                    <div className="space-y-2 max-h-64 overflow-y-auto">
-                      {searchingSound ? (
-                        <div className="flex items-center justify-center py-8">
-                          <FontAwesomeIcon icon={faSpinner} spin className="w-6 h-6 text-white/40" />
-                        </div>
-                      ) : displaySounds.length === 0 ? (
-                        <p className="text-center py-8 text-white/40">No sounds found</p>
-                      ) : (
-                        displaySounds.map((sound) => (
-                          <button
-                            key={sound.id}
-                            onClick={() => handleSelectSound(sound)}
-                            className="w-full flex items-center gap-3 p-3 bg-surface/5 hover:bg-surface/10 rounded-xl transition-colors"
-                          >
-                            <div
-                              className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center flex-shrink-0 overflow-hidden"
-                            >
-                              {sound.cover_url ? (
-                                <img src={sound.cover_url} alt="" className="w-full h-full object-cover" />
-                              ) : (
-                                <FontAwesomeIcon icon={faMusic} className="w-4 h-4 text-white" />
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0 text-left">
-                              <p className="font-medium truncate">{sound.name}</p>
-                              <p className="text-xs text-white/50 truncate">
-                                {sound.artist || "Original"} · {sound.use_count} uses
-                              </p>
-                            </div>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handlePreviewSound(sound);
-                              }}
-                              className="p-2 hover:bg-surface/10 rounded-full"
-                            >
-                              <FontAwesomeIcon
-                                icon={isSoundPlaying && playingSoundUrl === sound.audio_url ? faPause : faPlay}
-                                className="w-3 h-3"
-                              />
-                            </button>
-                          </button>
-                        ))
-                      )}
-                    </div>
-                  </div>
+              <div className="grid gap-2">
+                <TakeRange id="take-original-volume" label="Original audio" min={0} max={100} value={originalAudioVolume} onChange={setOriginalAudioVolume} format={(v) => `${v}%`} />
+                {selectedSound && (
+                  <TakeRange id="take-added-volume" label="Added sound" min={0} max={100} value={addedSoundVolume} onChange={setAddedSoundVolume} format={(v) => `${v}%`} />
                 )}
               </div>
-            )}
 
-            {/* Thumbnail Tab */}
-            {activeTab === "thumbnail" && (
-              <div className="space-y-5">
-                <div className="bg-surface/5 rounded-2xl p-4 border border-surface/10">
-                  <div className="flex items-center gap-2 mb-2">
-                    <FontAwesomeIcon icon={faImage} className="w-4 h-4 text-green-400" />
-                    <label className="text-sm font-semibold text-white">Cover Image</label>
-                  </div>
-                  <p className="text-sm text-white/50 mb-4">Choose a cover image that will be shown before your video plays</p>
+              <div className="pq-switch-row">
+                <span>Let others use this sound in their takes</span>
+                <Switch checked={allowSoundUse} onChange={setAllowSoundUse} label="Let others use this sound" />
+              </div>
+            </div>
+          </Disclosure>
 
-                  {/* Thumbnail options */}
-                  <div className="grid grid-cols-2 gap-4">
-                    {/* From video */}
-                    {thumbnailFromVideo ? (
-                      <button
-                        onClick={() => {
-                          setThumbnailPreview(null);
-                          setThumbnailFile(null);
-                        }}
-                        className={`relative aspect-[9/16] rounded-xl overflow-hidden border-2 transition-all ${
-                          !thumbnailPreview ? "border-green-500 shadow-lg shadow-green-500/20" : "border-surface/10 hover:border-surface/30"
-                        }`}
-                      >
-                        <img src={thumbnailFromVideo} alt="" className="w-full h-full object-cover" />
-                        <span className="absolute bottom-2 left-2 right-2 text-xs font-semibold text-white text-center bg-black/60 backdrop-blur-sm rounded-lg px-2 py-1.5">
-                          From Video
-                        </span>
-                        {!thumbnailPreview && (
-                          <div className="absolute top-2 right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                            <FontAwesomeIcon icon={faCheck} className="w-3 h-3 text-white" />
-                          </div>
-                        )}
-                      </button>
-                    ) : (
-                      <div className="aspect-[9/16] rounded-xl border-2 border-dashed border-surface/10 flex flex-col items-center justify-center bg-surface/5 text-white/30">
-                        <FontAwesomeIcon icon={faPlay} className="w-8 h-8 mb-2" />
-                        <span className="text-xs text-center px-4">Upload a video first to capture a frame</span>
-                      </div>
-                    )}
+          <Disclosure
+            id="take-frame"
+            label="Frame"
+            state={aspectRatio}
+            open={activeTab === "frame"}
+            onToggle={() => toggleSection("frame")}
+          >
+            <TakeSegmented
+              label="Aspect ratio"
+              options={ASPECT_RATIOS.map((ar) => ({ value: ar.value, label: `${ar.label} ${ar.value}` }))}
+              value={aspectRatio}
+              onChange={setAspectRatio}
+            />
+            <p className="mt-2 text-sm text-subdued">How the video sits in the feed.</p>
+          </Disclosure>
 
-                    {/* Custom upload */}
-                    <button
-                      onClick={() => thumbnailInputRef.current?.click()}
-                      className={`relative aspect-[9/16] rounded-xl overflow-hidden border-2 transition-all ${
-                        thumbnailPreview ? "border-green-500 shadow-lg shadow-green-500/20" : "border-dashed border-surface/20 hover:border-green-500/50 hover:bg-green-500/5"
-                      }`}
-                    >
-                      {thumbnailPreview ? (
-                        <>
-                          <img src={thumbnailPreview} alt="" className="w-full h-full object-cover" />
-                          <span className="absolute bottom-2 left-2 right-2 text-xs font-semibold text-white text-center bg-black/60 backdrop-blur-sm rounded-lg px-2 py-1.5">
-                            Custom Cover
-                          </span>
-                          <div className="absolute top-2 right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                            <FontAwesomeIcon icon={faCheck} className="w-3 h-3 text-white" />
-                          </div>
-                        </>
-                      ) : (
-                        <div className="w-full h-full flex flex-col items-center justify-center bg-surface/5">
-                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-500/20 to-teal-500/20 flex items-center justify-center mb-3">
-                            <FontAwesomeIcon icon={faCloudUploadAlt} className="w-5 h-5 text-green-400" />
-                          </div>
-                          <span className="text-sm text-white/60 font-medium">Upload Custom</span>
-                          <span className="text-xs text-white/40 mt-1">JPG, PNG up to 5MB</span>
-                        </div>
-                      )}
-                      <input
-                        ref={thumbnailInputRef}
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => e.target.files?.[0] && handleThumbnailSelect(e.target.files[0])}
-                        className="hidden"
-                      />
-                    </button>
-                  </div>
+          <Disclosure
+            id="take-cover"
+            label="Cover"
+            state={thumbnailPreview ? "Your image" : thumbnailFromVideo ? "From the video" : undefined}
+            open={activeTab === "thumbnail"}
+            onToggle={() => toggleSection("thumbnail")}
+          >
+            <TakeCoverChoice
+              fromVideo={thumbnailFromVideo}
+              custom={thumbnailPreview}
+              onUseFrame={() => { setThumbnailPreview(null); setThumbnailFile(null); }}
+              inputRef={thumbnailInputRef}
+              onCustomFile={handleThumbnailSelect}
+            />
+          </Disclosure>
+
+          <Disclosure
+            id="take-people"
+            label="People"
+            state={peopleCount > 0 ? `${peopleCount}` : undefined}
+            open={activeTab === "people"}
+            onToggle={() => toggleSection("people")}
+          >
+            <div className="flex flex-wrap gap-2">
+              <Button variant="secondary" size="sm" onClick={() => setShowCollaboratorPicker(true)}>
+                Collaborators{collaborators.length > 0 ? ` (${collaborators.length})` : ""}
+              </Button>
+              <Button variant="secondary" size="sm" onClick={() => setShowTagPeoplePicker(true)}>
+                Tag people{taggedPeople.length > 0 ? ` (${taggedPeople.length})` : ""}
+              </Button>
+            </div>
+          </Disclosure>
+
+          <Disclosure
+            id="take-audience"
+            label="Community and warning"
+            state={[communityName, showContentWarning ? "Warning" : null].filter(Boolean).join(" · ") || undefined}
+            open={activeTab === "audience"}
+            onToggle={() => toggleSection("audience")}
+          >
+            <div className="grid gap-4">
+              {communities && communities.length > 0 && (
+                <div>
+                  <FieldLabel htmlFor="take-community" hint="(optional)">Post to a community</FieldLabel>
+                  <select
+                    id="take-community"
+                    className="pq-field pq-field--ui"
+                    value={selectedCommunity ?? ""}
+                    onChange={(e) => setSelectedCommunity(e.target.value || null)}
+                  >
+                    <option value="">Just my studio</option>
+                    {communities.map((community) => (
+                      <option key={community.id} value={community.id}>{community.name}</option>
+                    ))}
+                  </select>
                 </div>
+              )}
+              <div className="pq-switch-row">
+                <span>Add a content warning</span>
+                <Switch checked={showContentWarning} onChange={setShowContentWarning} label="Add a content warning" />
               </div>
-            )}
+              {showContentWarning && (
+                <input
+                  type="text"
+                  className="pq-field pq-field--ui"
+                  placeholder="What should people know before watching?"
+                  aria-label="Content warning"
+                  value={contentWarning}
+                  onChange={(e) => setContentWarning(e.target.value)}
+                  maxLength={100}
+                />
+              )}
+            </div>
+          </Disclosure>
 
-            {/* Error display */}
-            {error && (
-              <div className="flex items-center gap-2 p-3 bg-red-500/20 border border-red-500/30 rounded-lg text-red-400 text-sm">
-                <FontAwesomeIcon icon={faExclamationTriangle} />
-                {error}
-              </div>
-            )}
+          {error && <p className="pq-alert" role="alert">{error}</p>}
+
+          <div className="pq-composer-foot">
+            <div className="pq-composer-foot__audience">
+              <span className="text-sm text-subdued">Takes are visible to everyone.</span>
+            </div>
+            <div className="pq-composer-foot__actions">
+              <Button variant="ghost" onClick={cancel} disabled={uploading}>Cancel</Button>
+              <Button
+                variant="primary"
+                onClick={handleSubmit}
+                disabled={!videoFile || uploading}
+                loading={uploading}
+                loadingText={`Posting ${Math.round(progress)}%`}
+              >
+                Post take
+              </Button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Modals */}
-      {user && (
-        <>
-          <PeoplePickerModal
-            isOpen={showCollaboratorPicker}
-            onClose={() => setShowCollaboratorPicker(false)}
-            onConfirm={(selected) => setCollaborators(selected)}
-            currentUserId={user.id}
-            mode="collaborators"
-            initialSelected={collaborators}
-            maxSelections={10}
-            excludeIds={taggedPeople.map((t) => t.id)}
-          />
-          <PeoplePickerModal
-            isOpen={showTagPeoplePicker}
-            onClose={() => setShowTagPeoplePicker(false)}
-            onConfirm={(selected) => setTaggedPeople(selected)}
-            currentUserId={user.id}
-            mode="mentions"
-            initialSelected={taggedPeople}
-            maxSelections={50}
-            excludeIds={collaborators.map((c) => c.id)}
-          />
-        </>
-      )}
-    </div>
+      <PeoplePickerModal
+        isOpen={showCollaboratorPicker}
+        onClose={() => setShowCollaboratorPicker(false)}
+        onConfirm={(selected) => setCollaborators(selected)}
+        currentUserId={user.id}
+        mode="collaborators"
+        initialSelected={collaborators}
+        maxSelections={10}
+        excludeIds={taggedPeople.map((t) => t.id)}
+      />
+      <PeoplePickerModal
+        isOpen={showTagPeoplePicker}
+        onClose={() => setShowTagPeoplePicker(false)}
+        onConfirm={(selected) => setTaggedPeople(selected)}
+        currentUserId={user.id}
+        mode="mentions"
+        initialSelected={taggedPeople}
+        maxSelections={50}
+        excludeIds={collaborators.map((c) => c.id)}
+      />
+    </PageFrame>
   );
 }

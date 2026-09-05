@@ -203,9 +203,6 @@ export default function TakesFeed({
   if (loading && visibleTakes.length === 0) {
     return (
       <div className="tiktok-feed-container">
-        <div className="aura-blob blob-1" />
-        <div className="aura-blob blob-2" />
-        <div className="aura-blob blob-3" />
         <div className="tiktok-status">
           <div className="takes-loading-quill">
             <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -273,9 +270,6 @@ export default function TakesFeed({
   if (error) {
     return (
       <div className="tiktok-feed-container">
-        <div className="aura-blob blob-1" />
-        <div className="aura-blob blob-2" />
-        <div className="aura-blob blob-3" />
         <div className="tiktok-status">
           <div className="tiktok-status-icon error">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -295,9 +289,6 @@ export default function TakesFeed({
   if (visibleTakes.length === 0) {
     return (
       <div className="tiktok-feed-container">
-        <div className="aura-blob blob-1" />
-        <div className="aura-blob blob-2" />
-        <div className="aura-blob blob-3" />
         <div className="tiktok-status">
           <div className="tiktok-status-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -313,18 +304,10 @@ export default function TakesFeed({
 
   return (
     <div className={`tiktok-feed-container ${commentsPanelOpen ? "comments-open" : ""}`}>
-      {/* Background */}
-      <div className="aura-blob blob-1 hidden md:block" />
-      <div className="aura-blob blob-2 hidden md:block" />
-      <div className="aura-blob blob-3 hidden md:block" />
 
       {/* Mobile Navigation - Back to Home */}
-      <Link
-        href="/"
-        className="md:hidden fixed top-3 left-3 z-50 w-10 h-10 rounded-full bg-black/50 flex items-center justify-center text-white"
-        style={{ top: 'calc(12px + env(safe-area-inset-top, 0px))' }}
-      >
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <Link href="/" className="pq-takes-back md:hidden" aria-label="Back to Home">
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
         </svg>
       </Link>
@@ -337,21 +320,8 @@ export default function TakesFeed({
           className={`takes-nav-arrow ${activeIndex === 0 ? 'disabled' : ''}`}
           aria-label="Previous take"
         >
-          <svg viewBox="0 0 24 24" fill="none">
-            <defs>
-              <linearGradient id="navArrowGradUp" x1="0%" y1="100%" x2="0%" y2="0%">
-                <stop offset="0%" stopColor="#8e44ad" />
-                <stop offset="50%" stopColor="#ff007f" />
-                <stop offset="100%" stopColor="#ff9f43" />
-              </linearGradient>
-            </defs>
-            <path
-              d="M12 19V5M5 12l7-7 7 7"
-              stroke="url(#navArrowGradUp)"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 19V5M5 12l7-7 7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
 
@@ -361,21 +331,8 @@ export default function TakesFeed({
           className={`takes-nav-arrow ${activeIndex >= visibleTakes.length - 1 ? 'disabled' : ''}`}
           aria-label="Next take"
         >
-          <svg viewBox="0 0 24 24" fill="none">
-            <defs>
-              <linearGradient id="navArrowGradDown" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#8e44ad" />
-                <stop offset="50%" stopColor="#ff007f" />
-                <stop offset="100%" stopColor="#ff9f43" />
-              </linearGradient>
-            </defs>
-            <path
-              d="M12 5v14M5 12l7 7 7-7"
-              stroke="url(#navArrowGradDown)"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 5v14M5 12l7 7 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
       </div>

@@ -17,8 +17,8 @@ import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import ActionMenu, { type ActionMenuItem } from "@/components/ui/ActionMenu";
 import TakeReactionPicker from "@/components/takes/TakeReactionPicker";
 import { supabase } from "@/lib/supabase";
+import { DEFAULT_AVATAR } from "@/lib/utils/image";
 import {
-  HeartIcon,
   CommentIcon,
   RelayIcon,
   ShareIcon,
@@ -463,7 +463,7 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
             className="author-avatar-link"
           >
             <Image
-              src={take.author.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"}
+              src={take.author.avatar_url || DEFAULT_AVATAR}
               alt=""
               width={70}
               height={70}
@@ -561,7 +561,7 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
               <button
                 className={`action-btn ${isRelayedState ? 'active' : ''}`}
                 onClick={handleRelay}
-                style={isRelayedState ? { color: '#22c55e' } : undefined}
+                aria-pressed={isRelayedState}
               >
                 <RelayIcon />
                 <span className="action-count">{formatCount(relayCount)}</span>
@@ -613,46 +613,16 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
         />
       )}
 
-      {/* Block Confirmation Modal */}
-      {showBlockConfirm && (
-        <>
-          <div
-            className="fixed inset-0 bg-black/50 z-[1000]"
-            onClick={() => !blockLoading && setShowBlockConfirm(false)}
-          />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] bg-surface rounded-2xl shadow-2xl z-[1001] p-6">
-            <h3 className="font-display text-xl text-ink mb-3">
-              Block @{take.author.username}?
-            </h3>
-            <p className="font-body text-sm text-muted mb-6">
-              You won&apos;t see their posts anymore. They won&apos;t be able to see your posts, follow you, or message you.
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setShowBlockConfirm(false)}
-                disabled={blockLoading}
-                className="px-5 py-2.5 rounded-full font-ui text-sm text-muted bg-skeleton/70 hover:bg-skeleton transition-colors disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleBlockUser}
-                disabled={blockLoading}
-                className="px-5 py-2.5 rounded-full font-ui text-sm text-white bg-red-500 hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center gap-2"
-              >
-                {blockLoading ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Blocking...
-                  </>
-                ) : (
-                  "Block"
-                )}
-              </button>
-            </div>
-          </div>
-        </>
-      )}
+      <ConfirmationModal
+        isOpen={showBlockConfirm}
+        onClose={() => setShowBlockConfirm(false)}
+        onConfirm={handleBlockUser}
+        title={`Block @${take.author.username}?`}
+        description="You won't see their posts anymore. They won't be able to see your posts, follow you, or message you."
+        confirmText="Block"
+        isDanger
+        loading={blockLoading}
+      />
     </>
   );
 }

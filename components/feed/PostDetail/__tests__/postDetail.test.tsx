@@ -105,3 +105,24 @@ describe("PostDetailHeader", () => {
     expect(screen.getByText("2h ago")).toBeInTheDocument();
   });
 });
+
+describe("Take seams", () => {
+  it("lets Takes swap the type chip for a phrase and the reaction control for their own picker", () => {
+    render(<PostDetailHeader post={post} tone={getDetailTone(null)} typeLabel="shared a take" />);
+    expect(screen.getByText("shared a take")).toBeInTheDocument();
+
+    render(
+      <PostDetailActions signedIn isOwner={false} reactionControl={<button>Take react</button>} commentCount={0} onComment={vi.fn()} relayCount={0} isRelayed={false} onRelay={vi.fn()} onShare={vi.fn()} isSaved={false} onSave={vi.fn()} />
+    );
+    expect(screen.getByRole("button", { name: "Take react" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "React" })).toBeNull();
+  });
+
+  it("renders a pre-built thread with its own count", () => {
+    render(
+      <Discussion count={2} thread={<div>custom thread</div>} loading={false} signedIn signInHref="/login" value="" onValueChange={vi.fn()} onSubmit={vi.fn()} submitting={false} />
+    );
+    expect(screen.getByText("custom thread")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Conversation\s*2/ })).toBeInTheDocument();
+  });
+});

@@ -9,7 +9,14 @@ import type { Comment } from "@/lib/types";
 import { getOptimizedAvatarUrl, DEFAULT_AVATAR } from "@/lib/utils/image";
 
 interface DiscussionProps {
-  comments: Comment[];
+  /** Post comments rendered with the default CommentItem. Omit when passing `thread`. */
+  comments?: Comment[];
+  /**
+   * A pre-rendered thread (Takes render their own comment item). `count`
+   * drives the heading and empty state when this is used.
+   */
+  thread?: ReactNode;
+  count?: number;
   loading: boolean;
   currentUserId?: string;
   currentUserAvatar?: string | null;
@@ -19,8 +26,8 @@ interface DiscussionProps {
   onValueChange: (value: string) => void;
   onSubmit: () => void;
   submitting: boolean;
-  onLike: (commentId: string, isLiked: boolean) => void;
-  onReply: (parentId: string, content: string) => Promise<{ success: boolean; error?: string } | void>;
+  onLike?: (commentId: string, isLiked: boolean) => void;
+  onReply?: (parentId: string, content: string) => Promise<{ success: boolean; error?: string } | void>;
   onLoadReplies?: (commentId: string) => Promise<unknown>;
   onDelete?: (commentId: string) => void;
   canModerateDelete?: boolean;
@@ -38,7 +45,9 @@ interface DiscussionProps {
  */
 const Discussion = forwardRef<HTMLInputElement, DiscussionProps>(function Discussion(
   {
-    comments,
+    comments = [],
+    thread,
+    count: countProp,
     loading,
     currentUserId,
     currentUserAvatar,
@@ -60,7 +69,7 @@ const Discussion = forwardRef<HTMLInputElement, DiscussionProps>(function Discus
   },
   inputRef
 ) {
-  const count = comments.length;
+  const count = countProp ?? comments.length;
   return (
     <section className={`pq-discussion ${className}`.trim()} aria-label="Conversation">
       <header className="pq-discussion__head">
@@ -78,13 +87,13 @@ const Discussion = forwardRef<HTMLInputElement, DiscussionProps>(function Discus
           <p className="pq-discussion__state">Nothing here yet. Say something kind, or something true.</p>
         ) : (
           <div className="pq-discussion__thread">
-            {comments.map((comment) => (
+            {thread ?? comments.map((comment) => (
               <CommentItem
                 key={comment.id}
                 comment={comment}
                 currentUserId={currentUserId}
-                onLike={onLike}
-                onReply={onReply}
+                onLike={onLike ?? (() => {})}
+                onReply={onReply ?? (async () => {})}
                 onLoadReplies={onLoadReplies}
                 onDelete={onDelete}
                 canModerateDelete={canModerateDelete}

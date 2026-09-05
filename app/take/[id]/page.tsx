@@ -12,15 +12,22 @@ import { useTakeComments } from "@/lib/hooks/useTakes";
 import { deleteOwnTake } from "@/lib/content-client";
 import TakeReactionPicker from "@/components/takes/TakeReactionPicker";
 import TakeCommentItem from "@/components/takes/TakeCommentItem";
+import TakeStage from "@/components/takes/TakeStage";
 import PostTags from "@/components/feed/PostTags";
+import { PostDetailHeader, PostDetailActions, Discussion, getDetailTone, type DetailPost } from "@/components/feed/PostDetail";
 import ShareModal from "@/components/ui/ShareModal";
 import ReportModal from "@/components/ui/ReportModal";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import ActionMenu, { type ActionMenuItem } from "@/components/ui/ActionMenu";
 import AppShell from "@/components/layout/AppShell";
+import { PageFrame } from "@/components/layout/PageFrame";
+import { NavIcon } from "@/components/layout/navigation";
+import Button from "@/components/ui/Button";
 import Loading from "@/components/ui/Loading";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
-import { CommentIcon, icons } from "@/components/ui/Icons";
+import { DEFAULT_AVATAR } from "@/lib/utils/image";
+import { icons } from "@/components/ui/Icons";
+import "@/components/takes/takes.css";
 
 interface Take {
   id: string;
@@ -49,7 +56,7 @@ interface PageProps {
 export default function SingleTakePage({ params }: PageProps) {
   const { id } = use(params);
   const router = useRouter();
-  const { user, profile } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const [take, setTake] = useState<Take | null>(null);
@@ -108,6 +115,7 @@ export default function SingleTakePage({ params }: PageProps) {
   const fetchTake = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
 
       // Fetch the take
       const { data: takeData, error: takeError } = await supabase
@@ -149,7 +157,7 @@ export default function SingleTakePage({ params }: PageProps) {
           // Check if the current user follows the take author (must be accepted)
           const { count: followCount } = await supabase
             .from("follows")
-            .select("*", { count: "exact", head: true })
+            .select("follower_id", { count: "exact" })
             .eq("follower_id", user.id)
             .eq("following_id", takeData.author_id);
 
@@ -180,7 +188,7 @@ export default function SingleTakePage({ params }: PageProps) {
           // Check if user is an accepted follower
           const { count: followCount } = await supabase
             .from("follows")
-            .select("*", { count: "exact", head: true })
+            .select("follower_id", { count: "exact" })
             .eq("follower_id", user.id)
             .eq("following_id", takeData.author_id);
 
@@ -210,8 +218,8 @@ export default function SingleTakePage({ params }: PageProps) {
       // Fetch counts, tags, collaborators, and mentions
       const [reactionsRes, savesRes, relaysRes, tagsRes, collabRes, mentionsRes] = await Promise.all([
         supabase.from("take_reactions").select("reaction_type").eq("take_id", id),
-        supabase.from("take_saves").select("id", { count: "exact" }).eq("take_id", id),
-        supabase.from("take_relays").select("id", { count: "exact" }).eq("take_id", id),
+        supabase.from("take_saves").select("take_id", { count: "exact" }).eq("take_id", id),
+        supabase.from("take_relays").select("take_id", { count: "exact" }).eq("take_id", id),
         supabase.from("take_tags").select("tag").eq("take_id", id),
         supabase.from("take_collaborators").select("role, user_id").eq("take_id", id).eq("status", "accepted"),
         supabase.from("take_mentions").select("user_id").eq("take_id", id),
@@ -276,7 +284,7 @@ export default function SingleTakePage({ params }: PageProps) {
           supabase.from("take_reactions").select("reaction_type").eq("take_id", id).eq("user_id", user.id).maybeSingle(),
           supabase.from("take_saves").select("take_id").eq("take_id", id).eq("user_id", user.id).maybeSingle(),
           supabase.from("take_relays").select("take_id").eq("take_id", id).eq("user_id", user.id).maybeSingle(),
-          supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", user.id).eq("following_id", takeData.author_id),
+          supabase.from("follows").select("follower_id", { count: "exact" }).eq("follower_id", user.id).eq("following_id", takeData.author_id),
         ]);
 
         setUserReaction(userReactionRes.data?.reaction_type as TakeReactionType || null);
@@ -295,8 +303,9 @@ export default function SingleTakePage({ params }: PageProps) {
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
+    if (authLoading) return;
     fetchTake();
-  }, [fetchTake]);
+  }, [fetchTake, authLoading]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   // Video control
@@ -516,315 +525,169 @@ export default function SingleTakePage({ params }: PageProps) {
 
   const takeUrl = typeof window !== "undefined" ? `${window.location.origin}/take/${id}` : `/take/${id}`;
 
+  const commentInputRef = useRef<HTMLInputElement>(null);
+  const focusConversation = () => {
+    commentInputRef.current?.focus();
+    commentInputRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+  };
+
   // Loading state
   if (loading) {
     return (
-      <>
-        <AppShell>
-          <div className="max-w-[680px] mx-auto py-12 px-6">
-            <div className="flex justify-center py-20">
-              <Loading text="Loading the take" />
-            </div>
+      <AppShell>
+        <PageFrame width="narrow">
+          <div className="pq-feed-state" role="status">
+            <Loading text="Loading the take" />
           </div>
-        </AppShell>
-      </>
+        </PageFrame>
+      </AppShell>
     );
   }
 
   // Error state
   if (error || !take) {
     return (
-      <>
-        <AppShell>
-          <div className="max-w-[680px] mx-auto py-12 px-6">
-            <div className="text-center py-20">
-              <h1 className="font-display text-2xl text-ink mb-4">Take not found</h1>
-              <p className="font-body text-muted mb-6">This take may have been removed or doesn&apos;t exist.</p>
-              <Link href="/takes" className="inline-block px-6 py-3 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid font-ui text-white">
-                Browse Takes
-              </Link>
+      <AppShell>
+        <PageFrame width="narrow">
+          <div className="pq-feed-state pq-feed-state--card">
+            <p className="pq-feed-state__title">{error && error !== "Take not found" ? "You can\u2019t see this take" : "This take isn\u2019t here"}</p>
+            <p className="pq-feed-state__text">{error && error !== "Take not found" ? error : "It may have been removed, or the link is wrong."}</p>
+            <div className="pq-feed-state__actions">
+              <Link href="/takes" className="pq-button pq-button--md pq-button--primary">Browse Takes</Link>
             </div>
           </div>
-        </AppShell>
-      </>
+        </PageFrame>
+      </AppShell>
     );
   }
+
+  const authorName = take.author.display_name || take.author.username;
+  const detail: DetailPost = {
+    id: take.id,
+    authorId: take.author_id,
+    author: { name: authorName, handle: `@${take.author.username}`, avatar: take.author.avatar_url || DEFAULT_AVATAR },
+    type: "take",
+    timeAgo: getTimeAgo(take.created_at),
+    createdAt: take.created_at,
+    content: take.caption || "",
+    media: [],
+  };
+  const tone = getDetailTone(null);
 
   return (
     <ErrorBoundary>
       <AppShell>
-        <div className="max-w-[1100px] mx-auto py-8 px-6 flex gap-6">
-          {/* Left Column - Take */}
-          <div className="flex-1 min-w-0">
-            {/* Take Card */}
-            <article className="bg-surface rounded-2xl shadow-sm border border-border-light overflow-hidden">
-              {/* Author Header */}
-              <div className="flex items-center gap-4 p-6 border-b border-border-light">
-                <Link href={`/studio/${take.author.username}`}>
-                  <img
-                    src={take.author.avatar_url || "/defaultprofile.png"}
-                    alt={take.author.display_name || take.author.username}
-                    className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-md hover:scale-110 transition-transform"
-                  />
-                </Link>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <Link href={`/studio/${take.author.username}`} className="font-ui text-[1rem] font-medium text-ink hover:text-accent transition-colors">
-                      {take.author.display_name || take.author.username}
-                    </Link>
-                    <span className="font-ui text-[0.85rem] text-muted">
-                      shared a take
-                    </span>
-                  </div>
-                  <span className="font-ui text-[0.8rem] text-muted">
-                    {getTimeAgo(take.created_at)}
-                  </span>
-                </div>
+        <PageFrame width="wide">
+          <Link href="/takes" className="pq-detail__back pq-button pq-button--sm pq-button--ghost">
+            <NavIcon name="back" className="w-4 h-4" />
+            Takes
+          </Link>
 
-                {/* Follow Button */}
-                {!isOwner && user && (
-                  <button
-                    onClick={handleFollow}
-                    className={`px-4 py-1.5 rounded-full font-ui text-sm font-medium transition-all ${
-                      isFollowing
-                        ? "bg-skeleton/70 text-ink hover:bg-skeleton"
-                        : "bg-gradient-to-r from-purple-primary to-pink-vivid text-white hover:scale-105"
-                    }`}
-                  >
-                    {isFollowing ? "Following" : "Follow"}
-                  </button>
-                )}
-
-                {(isOwner || user) && (
-                  <ActionMenu
-                    items={takeMenuItems}
-                    buttonClassName="w-9 h-9 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-skeleton/60 transition-all"
-                    widthClassName="w-40"
-                    buttonAriaLabel="Take options menu"
-                  />
-                )}
-              </div>
-
-              {/* Video Content */}
-              <div className="p-6">
-                {/* Caption */}
-                {take.caption && (
-                  <p className="font-body text-[1.05rem] text-ink leading-relaxed mb-4">
-                    {take.caption}
-                  </p>
-                )}
-
-                {/* Tags */}
-                <PostTags
-                  hashtags={hashtags}
-                  collaborators={collaborators}
-                  mentions={mentions}
-                  className="mb-4"
-                />
-
-                {/* Video Player */}
-                <div className="relative rounded-xl overflow-hidden bg-black aspect-[9/16] max-w-[400px] mx-auto">
-                  <video
-                    ref={videoRef}
-                    src={take.video_url}
-                    className={`absolute inset-0 w-full h-full object-cover cursor-pointer ${take.content_warning && !showContent ? 'blur-xl' : ''}`}
-                    loop
-                    playsInline
-                    muted={isMuted}
-                    onClick={togglePlayPause}
-                    poster={take.thumbnail_url || undefined}
-                  />
-
-                  {/* Content Warning Overlay */}
-                  {take.content_warning && !showContent && (
-                    <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60">
-                      <div className="flex flex-col items-center gap-4 p-6 max-w-[280px] text-center">
-                        <div className="w-14 h-14 rounded-full bg-amber-500/20 flex items-center justify-center">
-                          <svg className="w-7 h-7 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                          </svg>
-                        </div>
-                        <div>
-                          <h3 className="font-ui text-base font-semibold text-white mb-1">Content Warning</h3>
-                          <p className="font-ui text-sm text-white/70">{take.content_warning}</p>
-                        </div>
-                        <button
-                          onClick={() => setShowContent(true)}
-                          className="px-6 py-2.5 rounded-full font-ui text-sm font-medium text-white bg-surface/20 hover:bg-surface/30 transition-colors"
-                        >
-                          Show Content
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Play/Pause Overlay */}
-                  {!isPlaying && showContent && (
-                    <div
-                      className="absolute inset-0 flex items-center justify-center bg-black/30 cursor-pointer"
-                      onClick={togglePlayPause}
-                    >
-                      <div className="w-16 h-16 rounded-full bg-surface/20 backdrop-blur-sm flex items-center justify-center hover:bg-surface/30 transition-colors">
-                        <svg className="w-8 h-8 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M8 5v14l11-7z" />
-                        </svg>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Volume Control */}
-                  <button
-                    onClick={toggleMute}
-                    className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/70 transition-colors"
-                  >
-                    {isMuted ? icons.volumeOff : icons.volumeOn}
-                  </button>
-
-                  {/* Duration Badge */}
-                  {take.duration > 0 && (
-                    <div className="absolute bottom-4 right-4 px-2 py-1 rounded bg-black/60 backdrop-blur-sm">
-                      <span className="font-ui text-xs text-white">
-                        {Math.floor(take.duration / 60)}:{(take.duration % 60).toString().padStart(2, '0')}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex items-center gap-2 px-6 py-4 border-t border-border-light">
-                {/* Reaction Picker */}
-                <TakeReactionPicker
-                  currentReaction={userReaction}
-                  reactionCounts={reactionCounts}
-                  onReact={handleReaction}
-                  onRemoveReaction={handleRemoveReaction}
-                  disabled={!user}
-                  standardStyle
-                />
-
-                <button
-                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-skeleton/70 text-muted hover:bg-purple-50 hover:text-accent transition-all"
-                >
-                  <CommentIcon className="shrink-0" />
-                  {comments.length > 0 && <span className="text-sm font-medium">{comments.length}</span>}
-                </button>
-
-                {!isOwner && (
-                  <button
-                    onClick={handleRelay}
-                    disabled={!user}
-                    className={`flex items-center gap-1.5 px-4 py-2.5 rounded-full transition-all ${
-                      isRelayed
-                        ? "bg-green-500/10 text-green-600"
-                        : "bg-skeleton/70 text-muted hover:bg-purple-50 hover:text-accent"
-                    } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
-                  >
-                    {icons.relay}
-                    {relaysCount > 0 && <span className="text-sm font-medium">{relaysCount}</span>}
-                  </button>
-                )}
-
-                <div className="flex-1" />
-
-                <button
-                  onClick={() => setShowShareModal(true)}
-                  className="w-10 h-10 rounded-full bg-skeleton/70 flex items-center justify-center text-muted hover:bg-purple-50 hover:text-accent transition-all"
-                >
-                  {icons.share}
-                </button>
-
-                <button
-                  onClick={handleSave}
-                  disabled={!user}
-                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
-                    isSaved
-                      ? "bg-amber-500/10 text-amber-600"
-                      : "bg-skeleton/70 text-muted hover:bg-purple-50 hover:text-accent"
-                  } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
-                >
-                  {isSaved ? icons.bookmarkFilled : icons.bookmark}
-                </button>
-              </div>
-            </article>
-          </div>
-
-          {/* Right Column - Discussion */}
-          <div className="w-[360px] flex-shrink-0">
-            <section className="bg-surface rounded-2xl shadow-sm border border-border-light overflow-hidden sticky top-[calc(var(--pq-topbar)+1.5rem)]">
-              <div className="p-5 border-b border-border-light">
-                <h2 className="font-ui text-[1rem] font-medium text-ink flex items-center gap-2">
-                  <CommentIcon className="shrink-0" />
-                  Discussion ({comments.length})
-                </h2>
-              </div>
-
-              {/* Comment Input */}
-              {user ? (
-                <div className="p-4 border-b border-border-light flex gap-3 items-center">
-                  <img
-                    src={profile?.avatar_url || "/defaultprofile.png"}
-                    alt="You"
-                    className="w-9 h-9 rounded-full object-cover flex-shrink-0"
-                  />
-                  <div className="flex-1 flex items-center bg-subtle rounded-full px-4 focus-within:bg-surface focus-within:ring-2 focus-within:ring-purple-primary transition-all">
-                    <input
-                      type="text"
-                      value={commentText}
-                      onChange={(e) => setCommentText(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && handleAddComment()}
-                      placeholder="Add to the conversation..."
-                      disabled={submitting}
-                      className="flex-1 py-2.5 border-none bg-transparent outline-none font-body text-[0.9rem] text-ink placeholder:text-muted/60"
-                    />
-                  </div>
-                  <button
-                    onClick={handleAddComment}
-                    disabled={submitting || !commentText.trim()}
-                    className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white flex items-center justify-center hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {icons.send}
-                  </button>
-                </div>
-              ) : (
-                <div className="p-4 border-b border-border-light text-center">
-                  <p className="font-ui text-[0.9rem] text-muted">
-                    <Link href="/login" className="text-purple-primary hover:underline">Sign in</Link> to comment
-                  </p>
-                </div>
-              )}
-
-              {/* Comments List */}
-              <div className="p-4 max-h-[calc(100vh-280px)] overflow-y-auto">
-                {commentsLoading ? (
-                  <div className="flex justify-center py-8">
-                    <Loading size="small" text="" />
-                  </div>
-                ) : comments.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="font-body text-muted italic">No comments yet. Start the conversation!</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {comments.map((comment) => (
-                      <TakeCommentItem
-                        key={comment.id}
-                        comment={comment}
-                        currentUserId={user?.id}
-                        onLike={handleCommentLike}
-                        onReply={handleCommentReply}
-                        onDelete={handleCommentDelete}
+          <div className="pq-detail">
+            <article className="pq-detail__card" aria-label={`Take by ${authorName}`}>
+              <PostDetailHeader
+                post={detail}
+                tone={tone}
+                typeLabel="shared a take"
+                trailing={
+                  <>
+                    {!isOwner && user && (
+                      <Button
+                        variant={isFollowing ? "secondary" : "primary"}
+                        size="sm"
+                        onClick={handleFollow}
+                        aria-pressed={isFollowing}
+                      >
+                        {isFollowing ? "Following" : "Follow"}
+                      </Button>
+                    )}
+                    {user && (
+                      <ActionMenu
+                        label="Take actions"
+                        items={takeMenuItems}
+                        buttonClassName="pq-icon-button"
+                        widthClassName="w-64"
+                        buttonAriaLabel="Take actions"
+                        portal
                       />
-                    ))}
+                    )}
+                  </>
+                }
+              />
+
+              <div className="pq-take-detail">
+                <TakeStage
+                  videoRef={videoRef}
+                  src={take.video_url}
+                  poster={take.thumbnail_url}
+                  isPlaying={isPlaying}
+                  onTogglePlay={togglePlayPause}
+                  isMuted={isMuted}
+                  onToggleMute={toggleMute}
+                  duration={take.duration}
+                  contentWarning={take.content_warning}
+                  revealed={showContent}
+                  onReveal={() => setShowContent(true)}
+                />
+                <div className="pq-take-detail__text">
+                  {take.caption && <p className="pq-detail__text pq-take-detail__caption">{take.caption}</p>}
+                  <div className="pq-detail__tags">
+                    <PostTags hashtags={hashtags} collaborators={collaborators} mentions={mentions} />
                   </div>
-                )}
+                </div>
               </div>
-            </section>
+
+              <PostDetailActions
+                signedIn={!!user}
+                isOwner={!!isOwner}
+                reactionControl={
+                  <TakeReactionPicker
+                    currentReaction={userReaction}
+                    reactionCounts={reactionCounts}
+                    onReact={handleReaction}
+                    onRemoveReaction={handleRemoveReaction}
+                    disabled={!user}
+                    compact
+                  />
+                }
+                commentCount={comments.length}
+                onComment={focusConversation}
+                relayCount={relaysCount}
+                isRelayed={isRelayed}
+                onRelay={handleRelay}
+                onShare={() => setShowShareModal(true)}
+                isSaved={isSaved}
+                onSave={handleSave}
+              />
+            </article>
+
+            <Discussion
+              ref={commentInputRef}
+              count={comments.length}
+              thread={comments.map((comment) => (
+                <TakeCommentItem
+                  key={comment.id}
+                  comment={comment}
+                  currentUserId={user?.id}
+                  onLike={handleCommentLike}
+                  onReply={handleCommentReply}
+                  onDelete={handleCommentDelete}
+                />
+              ))}
+              loading={commentsLoading}
+              currentUserId={user?.id}
+              currentUserAvatar={profile?.avatar_url}
+              signedIn={!!user}
+              signInHref={`/login?redirect=${encodeURIComponent(`/take/${id}`)}`}
+              value={commentText}
+              onValueChange={setCommentText}
+              onSubmit={handleAddComment}
+              submitting={submitting}
+            />
           </div>
-        </div>
+        </PageFrame>
       </AppShell>
 
-      {/* Share Modal */}
       <ShareModal
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
@@ -832,60 +695,39 @@ export default function SingleTakePage({ params }: PageProps) {
         title={take.caption || "Check out this Take"}
         description={take.caption || ""}
         type="take"
-        authorName={take.author.display_name || take.author.username}
+        authorName={authorName}
+        authorUsername={take.author.username}
       />
 
-      {/* Report Modal */}
-      {showReportModal && (
-        <ReportModal
-          isOpen={showReportModal}
-          onClose={() => setShowReportModal(false)}
-          onSubmit={handleReport}
-          submitting={reportSubmitting}
-          submitted={reportSubmitted}
-        />
-      )}
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        onSubmit={handleReport}
+        submitting={reportSubmitting}
+        submitted={reportSubmitted}
+      />
 
-      {/* Delete Confirmation Modal */}
       <ConfirmationModal
         isOpen={showDeleteConfirm}
         onClose={() => setShowDeleteConfirm(false)}
         onConfirm={handleDelete}
-        title="Delete Take?"
-        description="This action cannot be undone. This will permanently delete your take and remove all associated data including comments and reactions."
+        title="Delete this take?"
+        description="This can't be undone. The take, its comments and reactions are removed for good."
         confirmText="Delete"
         isDanger
         loading={deleting}
       />
 
-      {/* Block Confirmation Modal */}
-      {showBlockConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] animate-fadeIn">
-          <div className="bg-surface rounded-2xl p-6 max-w-sm w-full mx-4 animate-scaleIn">
-            <h3 className="font-display text-lg font-semibold text-ink mb-2">
-              Block @{take.author.username}?
-            </h3>
-            <p className="font-body text-sm text-muted mb-6">
-              They won&apos;t be able to see your posts, follow you, or message you. They won&apos;t be notified.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowBlockConfirm(false)}
-                className="flex-1 py-2.5 rounded-full border border-border-light font-ui text-sm font-medium text-ink hover:bg-subtle transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleBlock}
-                disabled={isBlocking}
-                className="flex-1 py-2.5 rounded-full bg-red-500 text-white font-ui text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-50"
-              >
-                {isBlocking ? "Blocking..." : "Block"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmationModal
+        isOpen={showBlockConfirm}
+        onClose={() => setShowBlockConfirm(false)}
+        onConfirm={handleBlock}
+        title={`Block @${take.author.username}?`}
+        description="They won't be able to see your posts, follow you, or message you. They won't be notified."
+        confirmText="Block"
+        isDanger
+        loading={isBlocking}
+      />
     </ErrorBoundary>
   );
 }

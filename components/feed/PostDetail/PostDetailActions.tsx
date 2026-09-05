@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import ReactionPicker from "@/components/feed/ReactionPicker";
 import { BookmarkIcon, CommentIcon, RelayIcon, ShareIcon } from "@/components/ui/Icons";
 import type { ReactionType, ReactionCounts } from "@/lib/types";
@@ -7,10 +8,12 @@ import type { ReactionType, ReactionCounts } from "@/lib/types";
 interface PostDetailActionsProps {
   signedIn: boolean;
   isOwner: boolean;
-  userReaction: ReactionType | null;
-  reactionCounts: ReactionCounts;
-  onReact: (type: ReactionType) => void;
-  onRemoveReaction: () => void;
+  userReaction?: ReactionType | null;
+  reactionCounts?: ReactionCounts;
+  onReact?: (type: ReactionType) => void;
+  onRemoveReaction?: () => void;
+  /** A different reaction control (Takes have their own picker). */
+  reactionControl?: ReactNode;
   commentCount: number;
   onComment: () => void;
   relayCount: number;
@@ -33,6 +36,7 @@ export default function PostDetailActions({
   reactionCounts,
   onReact,
   onRemoveReaction,
+  reactionControl,
   commentCount,
   onComment,
   relayCount,
@@ -45,13 +49,15 @@ export default function PostDetailActions({
   return (
     <div className="actions pq-detail__actions" role="toolbar" aria-label="Post actions">
       <div className="actions-left">
-        <ReactionPicker
-          currentReaction={userReaction}
-          reactionCounts={reactionCounts}
-          onReact={onReact}
-          onRemoveReaction={onRemoveReaction}
-          disabled={!signedIn}
-        />
+        {reactionControl ?? (reactionCounts && onReact && onRemoveReaction ? (
+          <ReactionPicker
+            currentReaction={userReaction ?? null}
+            reactionCounts={reactionCounts}
+            onReact={onReact}
+            onRemoveReaction={onRemoveReaction}
+            disabled={!signedIn}
+          />
+        ) : null)}
         <button type="button" className="action-btn" onClick={onComment} aria-label={`${commentCount} comments, go to the conversation`}>
           <CommentIcon />
           <span className="action-count">{commentCount}</span>

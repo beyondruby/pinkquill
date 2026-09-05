@@ -1,6 +1,6 @@
 # Pinkquill 2.0
 
-Started 2026-09-05 · baseline commit `e509c5a` · status: proof, foundations, shell and Phase 3 discovery pages done; Phase 4 expression surfaces next.
+Started 2026-09-05 · baseline commit `e509c5a` · status: proof, foundations, shell, Phase 3 discovery pages and Phase 4 expression surfaces done; Phase 5 communities next.
 
 Pinkquill is a social home for creativity in every form. Someone sharing a dance rehearsal, a drawing, a song, a sporting skill, a poem, or an ordinary thought should feel equally at home. The redesign must make that promise visible throughout the product.
 
@@ -32,4 +32,4 @@ Completion is evidence-based: all routes accounted for, existing capabilities pr
 - Make room for future capabilities through reusable components and existing registries. Do not add new product capabilities, data fields, ranking systems, subscriptions, events, or other speculative features.
 - Local design and implementation are authorized by the current request. Review checkpoints are concrete outputs, not automatic permission stops before routine work. Publication and any action beyond the redesign scope must be considered separately in context.
 
-Review the [connected design proof](prototype/index.html) and the [real shared control reference](foundations/index.html). The four prototype screens use fictional local content. Runtime changes cover the shared Button, the layered surfaces (Modal, Sheet, ConfirmationModal, ActionMenu, ReportModal, notifications panel) on one overlay foundation, and the application shell (rail, top bar with visible search, phone bottom bar, More and Create sheets) on one navigation registry. Phase 3 (shell, Home and its three views, Explore, tags), 4A (post detail page and modal on shared seams) and 4B (composer) are complete. Next is **4C**, Takes and pending collaborations; see [the handoff](05-progress.md).
+Review the [connected design proof](prototype/index.html) and the [real shared control reference](foundations/index.html). The four prototype screens use fictional local content. Runtime changes cover the shared Button, the layered surfaces (Modal, Sheet, ConfirmationModal, ActionMenu, ReportModal, notifications panel) on one overlay foundation, and the application shell (rail, top bar with visible search, phone bottom bar, More and Create sheets) on one navigation registry. Phase 3 (shell, Home and its three views, Explore, tags) and Phase 4 (4A post detail page and modal on shared seams, 4B composer, 4C Takes and pending collaborations) are complete. Next is **5A**, Communities discovery and community home; see [the handoff](05-progress.md).

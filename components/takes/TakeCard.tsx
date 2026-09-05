@@ -218,24 +218,12 @@ function TakeCard({
 
         {/* Content Warning Overlay */}
         {take.content_warning && !showContent && (
-          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/90">
-            <div className="flex flex-col items-center gap-4 p-6 max-w-[280px] text-center">
-              <div className="w-14 h-14 rounded-full bg-amber-500/20 flex items-center justify-center">
-                <svg className="w-7 h-7 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-              </div>
-              <div>
-                <h3 className="font-ui text-base font-semibold text-white mb-1">Content Warning</h3>
-                <p className="font-ui text-sm text-white/70">{take.content_warning}</p>
-              </div>
-              <button
-                onClick={() => setShowContent(true)}
-                className="px-6 py-2.5 rounded-full font-ui text-sm font-medium text-white bg-surface/20 hover:bg-surface/30 transition-colors"
-              >
-                Show Content
-              </button>
-            </div>
+          <div className="pq-take-stage__cw pq-take-stage__cw--feed" role="group" aria-label="Content warning">
+            <p className="pq-take-stage__cw-label">Content warning</p>
+            <p className="pq-take-stage__cw-text">{take.content_warning}</p>
+            <button type="button" className="pq-take-stage__reveal" onClick={() => setShowContent(true)}>
+              Show the take
+            </button>
           </div>
         )}
 
@@ -247,9 +235,12 @@ function TakeCard({
           {/* Left side - Mute & Volume */}
           <div className="tiktok-volume-control" ref={volumeRef}>
             <button
+              type="button"
               className="tiktok-mute-btn"
               onClick={onToggleMute}
               onMouseEnter={() => setShowVolumeSlider(true)}
+              aria-label={isMuted ? "Unmute" : "Mute"}
+              aria-pressed={!isMuted}
             >
               {isMuted ? (
                 <svg viewBox="0 0 24 24" fill="currentColor">
@@ -413,8 +404,8 @@ function TakeCard({
             )}
           </Link>
           {!isOwnTake && !isFollowing && (
-            <button className="tiktok-follow-btn" onClick={onToggleFollow}>
-              <svg viewBox="0 0 24 24" fill="currentColor">
+            <button type="button" className="tiktok-follow-btn" onClick={onToggleFollow} aria-label={`Follow @${take.author.username}`}>
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
               </svg>
             </button>
@@ -429,7 +420,7 @@ function TakeCard({
         />
 
         {/* Comments */}
-        <button className="tiktok-action-btn" onClick={onOpenComments}>
+        <button type="button" className="tiktok-action-btn" onClick={onOpenComments} aria-label={`${formatCount(take.comments_count)} comments, open the conversation`}>
           <div className="tiktok-action-icon">
             <CommentIcon />
           </div>
@@ -438,8 +429,11 @@ function TakeCard({
 
         {/* Save */}
         <button
+          type="button"
           className={`tiktok-action-btn ${take.is_saved ? "saved" : ""}`}
           onClick={onToggleSave}
+          aria-pressed={take.is_saved}
+          aria-label={take.is_saved ? "Remove from saved" : "Save"}
         >
           <div className="tiktok-action-icon">
             <svg viewBox="0 0 24 24" fill={take.is_saved ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
@@ -452,8 +446,11 @@ function TakeCard({
         {/* Relay (Repost) - Only show for other people's takes */}
         {!isOwnTake && (
           <button
+            type="button"
             className={`tiktok-action-btn ${take.is_relayed ? "relayed" : ""}`}
             onClick={onToggleRelay}
+            aria-pressed={take.is_relayed}
+            aria-label={take.is_relayed ? "Remove relay" : "Relay"}
           >
             <div className="tiktok-action-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -468,7 +465,7 @@ function TakeCard({
         )}
 
         {/* Share */}
-        <button className="tiktok-action-btn" onClick={() => setShowShareModal(true)}>
+        <button type="button" className="tiktok-action-btn" onClick={() => setShowShareModal(true)} aria-label="Share">
           <div className="tiktok-action-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8" />
