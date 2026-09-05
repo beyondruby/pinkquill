@@ -34,6 +34,9 @@ import type { Collection, CollectionItem } from "@/lib/types";
 import { getBackgroundStyle, isDarkBackground } from "@/lib/utils/background";
 import { Spinner } from "@/components/ui/Loading";
 import Button from "@/components/ui/Button";
+import ActionMenu, { type ActionMenuItem } from "@/components/ui/ActionMenu";
+import { PageFrame, PageHeader } from "@/components/layout/PageFrame";
+import { ComposerSteps, Disclosure, Switch, FieldLabel } from "@/components/create/pieces";
 import {
   POST_CATEGORIES,
   CATEGORY_ORDER,
@@ -656,7 +659,6 @@ export default function CreatePost() {
     error: communitiesError,
   } = useCommunities(user?.id, 'joined', { enabled: !!user });
   const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(null);
-  const [showCommunityMenu, setShowCommunityMenu] = useState(false);
 
   // Post flair (for community posts)
   const [selectedFlair, setSelectedFlair] = useState<CommunityFlair | null>(null);
@@ -699,7 +701,6 @@ export default function CreatePost() {
   const isCommunityPost = isEditing
     ? Boolean(selectedCommunity?.id || editingCommunityId)
     : Boolean(selectedCommunity?.id);
-  const [showVisibilityMenu, setShowVisibilityMenu] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showFontMenu, setShowFontMenu] = useState(false);
@@ -2373,209 +2374,161 @@ export default function CreatePost() {
 
   if (!user) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="text-center px-6">
-          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-orange-warm/20 to-pink-vivid/20 flex items-center justify-center">
-            <svg className="w-10 h-10 text-purple-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-            </svg>
+      <PageFrame width="narrow">
+        <div className="pq-feed-state pq-feed-state--card">
+          <p className="pq-feed-state__title">Sign in to create</p>
+          <p className="pq-feed-state__text">Your studio is waiting. Sign in to start sharing what you make.</p>
+          <div className="pq-feed-state__actions">
+            <Button onClick={() => router.push("/login?redirect=%2Fcreate")}>Sign in</Button>
           </div>
-          <h2 className="text-2xl font-display font-bold text-ink mb-2">Sign in to create</h2>
-          <p className="text-muted font-body mb-6">Create an account to start sharing your work</p>
-          <button
-            onClick={() => router.push("/login")}
-            className="px-8 py-3 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid font-ui font-semibold text-white hover:opacity-90 transition-opacity"
-          >
-            Sign In
-          </button>
         </div>
-      </div>
+      </PageFrame>
     );
   }
 
   if (loadingPost) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="text-center px-6">
-          <Spinner size="xl" className="text-purple-primary mx-auto mb-4" />
-          <p className="font-body text-muted">Loading post...</p>
+      <PageFrame width="narrow">
+        <div className="pq-feed-state" role="status" aria-live="polite">
+          <Spinner size="lg" />
+          <p className="pq-feed-state__text">Opening your post…</p>
         </div>
-      </div>
+      </PageFrame>
     );
   }
 
+  const visualCount = mediaItems.filter((m) => m.type !== "audio").length;
+  const shownCategory: PostCategory | null =
+    activeCategory ?? (selectedType !== DEFAULT_FORMAT ? getCategoryOf(selectedType) : null);
+  const shownFormats: FormatSpec[] = shownCategory ? getFormatsByCategory(shownCategory) : [];
+  const hasFormatDetails =
+    selectedType === "audio" || selectedType === "quote" || selectedType === "essay" || selectedType === "blog" || selectedType === "journal";
+
+  const visibilityMenuItems: ActionMenuItem[] = visibilityOptions.map((option) => ({
+    label: option.label,
+    description: option.desc,
+    icon: icons[option.icon],
+    tone: visibility === option.id ? "accent" : "default",
+    onSelect: () => setVisibility(option.id),
+  }));
+
+  const communityMenuItems: ActionMenuItem[] = [
+    {
+      label: "Personal feed",
+      description: "Share to your own studio",
+      icon: icons.globe,
+      tone: !selectedCommunity ? "accent" : "default",
+      onSelect: () => setSelectedCommunity(null),
+    },
+    ...userCommunities.map((community) => ({
+      label: community.name,
+      sectionLabel: "Your communities",
+      icon: community.avatar_url ? (
+        <img src={community.avatar_url} alt="" className="w-5 h-5 rounded-full object-cover" />
+      ) : (
+        <span className="pq-avatar" style={{ inlineSize: 20, blockSize: 20, fontSize: 10 }}>{community.name.charAt(0).toUpperCase()}</span>
+      ),
+      tone: (selectedCommunity?.id === community.id ? "accent" : "default") as ActionMenuItem["tone"],
+      onSelect: () => setSelectedCommunity(community),
+    })),
+    ...(!communitiesLoading && communitiesError
+      ? [{ label: "Communities unavailable right now", disabled: true }]
+      : !communitiesLoading && userCommunities.length === 0
+        ? [{ label: "No joined communities yet", disabled: true, sectionLabel: "Your communities" }]
+        : []),
+  ];
+
+  const swatchGroups = (list: { id: string; color: string; label: string }[], groups: [string, number, number][], onPick: (c: string) => void) =>
+    groups.map(([name, from, to]) => (
+      <div key={name} className="pq-popover__group">
+        <span className="pq-popover__group-label">{name}</span>
+        <div className="pq-swatches">
+          {list.slice(from, to).map((c) => (
+            <button key={c.id} type="button" onClick={() => onPick(c.color)} className="pq-swatch" style={{ backgroundColor: c.color }} aria-label={c.label} title={c.label} />
+          ))}
+        </div>
+      </div>
+    ));
+
+  const tool = (label: string, onClick: () => void, icon: React.ReactNode, pressed?: boolean) => (
+    <button key={label} type="button" onClick={onClick} className="pq-tool" aria-label={label} title={label} aria-pressed={pressed}>
+      {icon}
+    </button>
+  );
+
   return (
-    <div className="min-h-screen bg-surface">
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
-
-      {/* Header */}
-      <h1 className="text-center text-3xl md:text-4xl font-display font-bold text-ink mb-10">
-        {isEditing ? (
-          <>
-            <span className="bg-gradient-to-r from-orange-warm to-pink-vivid bg-clip-text text-transparent">Edit</span>{" "}
-            <span className="bg-gradient-to-r from-pink-vivid to-purple-primary bg-clip-text text-transparent">your post</span>
-          </>
-        ) : (
-          <>
-            Let&apos;s{" "}
-            <span className="bg-gradient-to-r from-orange-warm to-pink-vivid bg-clip-text text-transparent">create</span>{" "}
-            <span className="bg-gradient-to-r from-pink-vivid to-purple-primary bg-clip-text text-transparent">something</span>
-          </>
-        )}
-      </h1>
-
-      {/* Draft Recovery Banner (Step 1 / Create) */}
-      {step === 1 && showDraftRecovery && recoveredDraft && (
-        <div className="mb-6 rounded-2xl border border-purple-primary/15 bg-gradient-to-r from-purple-primary/[0.04] via-surface to-pink-vivid/[0.04] p-5 animate-fadeIn">
-          <div className="flex items-start gap-4">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid flex items-center justify-center text-white flex-shrink-0">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
+    <PageFrame width="reading">
+      <div className="pq-composer">
+        <PageHeader
+          title={isEditing ? "Edit your post" : "Create"}
+          lede={isEditing ? "Change anything, then update. Your original stays until you do." : "Words, photos, video, sound. Start with whatever you have; you can shape it after."}
+          actions={!isEditing ? (
+            <div className="pq-segmented" role="radiogroup" aria-label="What are you making?">
+              <button
+                type="button"
+                role="radio"
+                aria-checked={!isTakeMode}
+                className="pq-segmented__option"
+                onClick={() => {
+                  if (isTakeMode) {
+                    setSelectedType(DEFAULT_FORMAT);
+                    setStep(1);
+                  }
+                }}
+              >
+                {icons.feather}
+                Post
+              </button>
+              <button type="button" role="radio" aria-checked={isTakeMode} className="pq-segmented__option" onClick={() => setSelectedType("take")}>
+                {icons.video}
+                Take
+              </button>
             </div>
+          ) : undefined}
+        />
+
+        {step === 1 && showDraftRecovery && recoveredDraft && (
+          <section className="pq-note" aria-label="Unsaved draft">
+            <span className="pq-note__icon" aria-hidden="true">{icons.book}</span>
             <div className="flex-1 min-w-0">
-              <h3 className="font-ui text-[0.95rem] font-semibold text-ink mb-1">
-                You have an unsaved draft
-              </h3>
-              <p className="font-body text-[0.85rem] text-muted mb-3">
-                {recoveredDraft.title ? `"${recoveredDraft.title.substring(0, 50)}${recoveredDraft.title.length > 50 ? '...' : ''}"` : 'Untitled'}
-                {' · '}
-                {new Date(recoveredDraft.updatedAt).toLocaleDateString(undefined, {
-                  month: 'short',
-                  day: 'numeric',
-                  hour: 'numeric',
-                  minute: '2-digit'
-                })}
+              <p className="pq-note__title">You have an unsaved draft</p>
+              <p className="pq-note__text">
+                {recoveredDraft.title ? `“${recoveredDraft.title.substring(0, 50)}${recoveredDraft.title.length > 50 ? "…" : ""}”` : "Untitled"}
+                {" · "}
+                {new Date(recoveredDraft.updatedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
               </p>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={handleRecoverDraft}
-                  className="px-4 py-2 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid font-ui text-[0.85rem] font-medium text-white shadow-md shadow-purple-primary/30 hover:-translate-y-0.5 hover:shadow-lg transition-all"
-                >
-                  Continue Editing
-                </button>
-                <button
-                  onClick={handleDismissDraftRecovery}
-                  className="px-4 py-2 rounded-full border border-border-light bg-surface font-ui text-[0.85rem] text-muted hover:border-accent hover:text-accent transition-all"
-                >
-                  Start Fresh
-                </button>
-                <button
-                  onClick={handleDeleteRecoveredDraft}
-                  className="px-4 py-2 rounded-full font-ui text-[0.85rem] text-red-500 hover:bg-red-50 transition-all"
-                >
-                  Delete Draft
-                </button>
+              <div className="pq-note__actions">
+                <Button size="sm" onClick={handleRecoverDraft}>Continue editing</Button>
+                <Button size="sm" variant="secondary" onClick={handleDismissDraftRecovery}>Start fresh</Button>
+                <Button size="sm" variant="ghost" onClick={handleDeleteRecoveredDraft}>Delete draft</Button>
               </div>
             </div>
-            <button
-              onClick={handleDismissDraftRecovery}
-              className="p-1.5 rounded-full hover:bg-skeleton text-muted transition-all flex-shrink-0"
-            >
-              {icons.x}
-            </button>
-          </div>
-        </div>
-      )}
+          </section>
+        )}
 
-      {/* Post vs Take mode toggle. Takes keep their dedicated single-page
-          creator; normal posts use the 2-step wizard below. Hidden when
-          editing (you can't switch an existing post's medium). */}
-      {!isEditing && (
-        <div className="mb-8 flex justify-center">
-          <div className="inline-flex items-center gap-1 p-1 rounded-full bg-subtle border border-border-light">
-            <button
-              onClick={() => {
-                if (isTakeMode) {
-                  setSelectedType(DEFAULT_FORMAT);
-                  setStep(1);
-                }
-              }}
-              className={`flex items-center gap-2 px-5 py-2 rounded-full font-ui text-sm font-medium transition-all ${
-                !isTakeMode ? "bg-surface text-ink shadow-sm" : "text-muted hover:text-ink"
-              }`}
-            >
-              {icons.feather}
-              Post
-            </button>
-            <button
-              onClick={() => setSelectedType("take")}
-              className={`flex items-center gap-2 px-5 py-2 rounded-full font-ui text-sm font-medium transition-all ${
-                isTakeMode ? "bg-surface text-ink shadow-sm" : "text-muted hover:text-ink"
-              }`}
-            >
-              {icons.video}
-              Take
-            </button>
-          </div>
-        </div>
-      )}
+        {!isTakeMode && (
+          <ComposerSteps
+            steps={[{ n: 1, label: "Write" }, { n: 2, label: "Format & share" }]}
+            current={step}
+            onSelect={(n) => setStep(n as 1 | 2)}
+          />
+        )}
 
-      {/* Wizard step indicator (normal posts only) — matches the product /
-          commission creation wizard: gradient circles + gradient progress bar. */}
-      {!isTakeMode && (
-        <div className="mb-8">
-          <div className="flex items-center justify-center gap-8 mb-4">
-            {([
-              { n: 1 as const, label: "Create" },
-              { n: 2 as const, label: "Format" },
-            ]).map((s) => (
-              <button
-                key={s.n}
-                onClick={() => setStep(s.n)}
-                className="flex items-center gap-2"
-              >
-                <span
-                  className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${
-                    step >= s.n
-                      ? "bg-gradient-to-r from-orange-warm to-pink-vivid text-white"
-                      : "bg-skeleton text-gray-500"
-                  }`}
-                >
-                  {s.n}
-                </span>
-                <span
-                  className={`text-sm font-ui hidden sm:inline ${
-                    step >= s.n ? "text-ink font-medium" : "text-muted"
-                  }`}
-                >
-                  {s.label}
-                </span>
-              </button>
-            ))}
-          </div>
-
-          {/* Progress Bar */}
-          <div className="h-1.5 bg-skeleton rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm transition-all duration-500"
-              style={{ width: `${(step / 2) * 100}%` }}
+        {!isEditing && !isTakeMode && step === 1 && (
+          <div>
+            <FieldLabel hint="(optional)">Collection</FieldLabel>
+            <CollectionSelector
+              selectedCollection={selectedCollection}
+              selectedItem={selectedCollectionItem}
+              onSelectCollection={setSelectedCollection}
+              onSelectItem={setSelectedCollectionItem}
             />
           </div>
-        </div>
-      )}
-
-      {/* Collection Selector (Step 1) */}
-      {!isEditing && !isTakeMode && step === 1 && (
-        <div className="mb-8">
-          <label className="block text-sm font-ui font-semibold text-ink mb-3">
-            Collection <span className="text-muted font-normal">(optional)</span>
-          </label>
-          <CollectionSelector
-            selectedCollection={selectedCollection}
-            selectedItem={selectedCollectionItem}
-            onSelectCollection={setSelectedCollection}
-            onSelectItem={setSelectedCollectionItem}
-          />
-        </div>
-      )}
-
-      {/* Editor */}
-      <div>
+        )}
 
         {/* Take Mode - Enhanced Video Upload Section */}
         {isTakeMode && (
-          <div className="p-6">
+          <div className="pq-panel">
             {/* Hidden audio for sound preview */}
             <audio ref={takeAudioRef} onEnded={() => setTakeSoundPlaying(false)} />
 
@@ -2930,1633 +2883,565 @@ export default function CreatePost() {
           </div>
         )}
 
-        {/* Regular Post Mode - Title Input.
-            Kept MOUNTED across both steps because the title lives in this
-            uncontrolled contentEditable div — unmounting would drop it. The
-            content + toolbar render identically on Step 1 and Step 2 so Step 2
-            reads as a seamless continuation of Step 1 (not a preview). */}
         {!isTakeMode && (
-          <div className="mb-6">
-            <label className="block text-sm font-ui font-semibold text-ink mb-3">
-              Title <span className="text-muted font-normal">(optional)</span>
-            </label>
-            <div className="relative">
-              <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm p-[1px]">
-                <div className="w-full h-full rounded-xl bg-surface" />
+          <div>
+            <FieldLabel id="composer-title-label" hint="(optional)">Title</FieldLabel>
+            <div
+              ref={titleRef}
+              contentEditable
+              role="textbox"
+              aria-labelledby="composer-title-label"
+              onKeyUp={updateFormattingState}
+              onMouseUp={updateFormattingState}
+              onKeyDown={(e) => {
+                if (e.key === "Tab" && !e.shiftKey) {
+                  e.preventDefault();
+                  editorRef.current?.focus();
+                }
+              }}
+              data-placeholder="Give it a name, if it has one"
+              className="pq-editor-title title-editor"
+            />
+          </div>
+        )}
+
+        {!isTakeMode && (
+          <div role="toolbar" aria-label="Text formatting" className="pq-toolbar">
+            <div className="pq-toolbar__group">
+              {tool("Bold", handleBold, icons.bold, isBold)}
+              {tool("Italic", handleItalic, icons.italic, isItalic)}
+              {tool("Underline", handleUnderline, icons.underline, isUnderline)}
+              {tool("Strikethrough", handleStrikethrough, icons.strikethrough)}
+            </div>
+            <div className="pq-toolbar__group">
+              {tool("Heading", handleHeading, icons.heading)}
+              {tool("Quote block", handleBlockquote, icons.quote2)}
+              {tool("Bullet list", handleBulletList, icons.list)}
+              {tool("Numbered list", handleOrderedList, icons.orderedList)}
+              {tool("Divider", handleDivider, icons.divider)}
+            </div>
+            <div className="pq-toolbar__group">
+              <div className="relative" data-dropdown-menu>
+                <button
+                  type="button"
+                  onClick={() => { setShowFontMenu(!showFontMenu); setShowTextColorMenu(false); setShowHighlightMenu(false); }}
+                  className="pq-tool"
+                  aria-haspopup="listbox"
+                  aria-expanded={showFontMenu}
+                >
+                  {icons.font}
+                  <span>Font</span>
+                  {icons.chevronDown}
+                </button>
+                {showFontMenu && (
+                  <div className="pq-popover" role="listbox" aria-label="Font">
+                    {fontOptions.map((font) => (
+                      <button key={font.id} type="button" role="option" aria-selected={false} onClick={() => handleFontChange(font.family)} className="pq-popover__option" style={{ fontFamily: font.family }}>
+                        {font.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div className="relative flex items-center">
-                <div
-                  ref={titleRef}
-                  contentEditable
-                  onKeyUp={updateFormattingState}
-                  onMouseUp={updateFormattingState}
-                  onKeyDown={(e) => {
-                    if (e.key === "Tab" && !e.shiftKey) {
-                      e.preventDefault();
-                      editorRef.current?.focus();
-                    }
-                  }}
-                  data-placeholder="Give your creation a title..."
-                  className="title-editor w-full px-4 py-3.5 pr-12 rounded-xl text-xl font-display font-bold text-ink bg-transparent outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-muted/40 empty:before:font-normal"
-                />
-                <div className="absolute right-4 text-orange-warm">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                  </svg>
-                </div>
+              <div className="relative" data-dropdown-menu>
+                <button
+                  type="button"
+                  onClick={() => { setShowTextColorMenu(!showTextColorMenu); setShowHighlightMenu(false); setShowFontMenu(false); }}
+                  className="pq-tool"
+                  aria-label="Text colour"
+                  title="Text colour"
+                  aria-haspopup="dialog"
+                  aria-expanded={showTextColorMenu}
+                >
+                  {icons.textColor}
+                </button>
+                {showTextColorMenu && (
+                  <div className="pq-popover" role="group" aria-label="Text colour">
+                    <p className="pq-popover__title">Text colour</p>
+                    {swatchGroups(textColors, [["White & light", 0, 4], ["Grayscale", 4, 8], ["Warm", 8, 12], ["Nature", 12, 16], ["Cool", 16, 20], ["Vibrant", 20, 24], ["Light", 24, 28], ["Soft", 28, 32]], handleTextColor)}
+                  </div>
+                )}
               </div>
+              <div className="relative" data-dropdown-menu>
+                <button
+                  type="button"
+                  onClick={() => { setShowHighlightMenu(!showHighlightMenu); setShowTextColorMenu(false); setShowFontMenu(false); }}
+                  className="pq-tool"
+                  aria-label="Highlight"
+                  title="Highlight"
+                  aria-haspopup="dialog"
+                  aria-expanded={showHighlightMenu}
+                >
+                  {icons.highlight}
+                </button>
+                {showHighlightMenu && (
+                  <div className="pq-popover" role="group" aria-label="Highlight">
+                    <p className="pq-popover__title">Highlight</p>
+                    <button type="button" onClick={() => handleHighlight("transparent")} className="pq-popover__option">Remove highlight</button>
+                    {swatchGroups(highlightColors, [["Light", 1, 4], ["Warm", 4, 8], ["Cool", 8, 12], ["Purple & pink", 12, 16]], handleHighlight)}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="pq-toolbar__group">
+              {(["left", "center", "right", "justify"] as TextAlignment[]).map((align) =>
+                tool(`Align ${align}`, () => setTextAlignment(align), icons[`align${align.charAt(0).toUpperCase() + align.slice(1)}` as keyof typeof icons], textAlignment === align)
+              )}
+            </div>
+            <div className="pq-toolbar__group">
+              {(["normal", "relaxed", "loose"] as LineSpacing[]).map((spacing) =>
+                tool(`Line spacing ${spacing}`, () => setLineSpacing(spacing), <span>{spacing === "normal" ? "1×" : spacing === "relaxed" ? "1.5×" : "2×"}</span>, lineSpacing === spacing)
+              )}
+              {tool("Drop cap", () => setDropCapEnabled(!dropCapEnabled), icons.dropCap, dropCapEnabled)}
+            </div>
+            <div className="pq-toolbar__group">
+              <button type="button" onClick={() => setShowBackgroundPicker(true)} className="pq-tool" aria-pressed={Boolean(styling.background)} aria-haspopup="dialog">
+                {icons.background}
+                <span>Background</span>
+              </button>
             </div>
           </div>
         )}
 
-        {/* Formatting Toolbar — shown on BOTH steps (Step 2 is a seamless
-            continuation of Step 1, with the same editable content + toolbar). */}
         {!isTakeMode && (
-        <div className="mb-4 px-4 py-2.5 rounded-xl bg-subtle/80 border border-border-light flex items-center gap-1 flex-wrap">
-          {/* Text Formatting */}
-          <div className="flex items-center gap-1 pr-3 border-r border-border-light">
-            <button
-              onClick={handleBold}
-              className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${
-                isBold ? "bg-purple-primary text-white" : "hover:bg-skeleton text-muted"
-              }`}
-              title="Bold (Ctrl+B)"
-            >
-              {icons.bold}
-            </button>
-            <button
-              onClick={handleItalic}
-              className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${
-                isItalic ? "bg-purple-primary text-white" : "hover:bg-skeleton text-muted"
-              }`}
-              title="Italic (Ctrl+I)"
-            >
-              {icons.italic}
-            </button>
-            <button
-              onClick={handleUnderline}
-              className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${
-                isUnderline ? "bg-purple-primary text-white" : "hover:bg-skeleton text-muted"
-              }`}
-              title="Underline (Ctrl+U)"
-            >
-              {icons.underline}
-            </button>
-            <button
-              onClick={handleStrikethrough}
-              className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-skeleton text-muted transition-all"
-              title="Strikethrough"
-            >
-              {icons.strikethrough}
-            </button>
-          </div>
-
-          {/* Block Formatting */}
-          <div className="flex items-center gap-1 px-3 border-r border-border-light">
-            <button
-              onClick={handleHeading}
-              className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-skeleton text-muted transition-all"
-              title="Heading"
-            >
-              {icons.heading}
-            </button>
-            <button
-              onClick={handleBlockquote}
-              className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-skeleton text-muted transition-all"
-              title="Quote"
-            >
-              {icons.quote2}
-            </button>
-          </div>
-
-          {/* Lists */}
-          <div className="flex items-center gap-1 px-3 border-r border-border-light">
-            <button
-              onClick={handleBulletList}
-              className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-skeleton text-muted transition-all"
-              title="Bullet List"
-            >
-              {icons.list}
-            </button>
-            <button
-              onClick={handleOrderedList}
-              className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-skeleton text-muted transition-all"
-              title="Numbered List"
-            >
-              {icons.orderedList}
-            </button>
-            <button
-              onClick={handleDivider}
-              className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-skeleton text-muted transition-all"
-              title="Horizontal Line"
-            >
-              {icons.divider}
-            </button>
-          </div>
-
-          {/* Font Selector */}
-          <div className="relative pl-3" data-dropdown-menu>
-            <button
-              onClick={() => {
-                setShowFontMenu(!showFontMenu);
-                setShowTextColorMenu(false);
-                setShowHighlightMenu(false);
-              }}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-skeleton text-muted transition-all font-ui text-[0.85rem]"
-            >
-              {icons.font}
-              <span>Font</span>
-              {icons.chevronDown}
-            </button>
-
-            {showFontMenu && (
-              <div className="absolute top-full left-0 md:left-0 right-0 md:right-auto mt-1 w-56 max-h-80 overflow-y-auto bg-surface rounded-xl shadow-xl border border-border-light z-50">
-                {fontOptions.map((font) => (
-                  <button
-                    key={font.id}
-                    onClick={() => handleFontChange(font.family)}
-                    className="w-full px-4 py-2.5 text-left transition-all hover:bg-subtle text-ink text-[0.9rem]"
-                    style={{ fontFamily: font.family }}
-                  >
-                    {font.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Text Color */}
-          <div className="relative" data-dropdown-menu>
-            <button
-              onClick={() => {
-                setShowTextColorMenu(!showTextColorMenu);
-                setShowHighlightMenu(false);
-                setShowFontMenu(false);
-              }}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-skeleton text-muted transition-all"
-              title="Text Color"
-            >
-              {icons.textColor}
-              <div className="w-4 h-1 rounded-full bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-500" />
-            </button>
-
-            {showTextColorMenu && (
-              <div className="absolute top-full left-0 md:left-0 right-0 md:right-auto mt-2 w-[220px] bg-surface rounded-2xl shadow-2xl border border-border-light z-50 overflow-hidden">
-                <div className="px-3 py-2 bg-subtle border-b border-border-light">
-                  <span className="font-ui text-xs font-medium text-muted">Text Color</span>
-                </div>
-                <div className="p-3 max-h-[400px] overflow-y-auto">
-                  {/* White & Light */}
-                  <div className="mb-3">
-                    <span className="font-ui text-xs text-muted/60">White & Light</span>
-                    <div className="flex gap-2 mt-1.5">
-                      {textColors.slice(0, 4).map((c) => (
-                        <button
-                          key={c.id}
-                          onClick={() => handleTextColor(c.color)}
-                          className="w-10 h-10 rounded-xl border border-border-light hover:border-purple-400 hover:shadow-lg transition-all"
-                          style={{ backgroundColor: c.color }}
-                          title={c.label}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  {/* Grayscale */}
-                  <div className="mb-3">
-                    <span className="font-ui text-xs text-muted/60">Grayscale</span>
-                    <div className="flex gap-2 mt-1.5">
-                      {textColors.slice(4, 8).map((c) => (
-                        <button
-                          key={c.id}
-                          onClick={() => handleTextColor(c.color)}
-                          className="w-10 h-10 rounded-xl border-2 border-transparent hover:border-purple-400 hover:shadow-lg transition-all"
-                          style={{ backgroundColor: c.color }}
-                          title={c.label}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  {/* Warm */}
-                  <div className="mb-3">
-                    <span className="font-ui text-xs text-muted/60">Warm</span>
-                    <div className="flex gap-2 mt-1.5">
-                      {textColors.slice(8, 12).map((c) => (
-                        <button
-                          key={c.id}
-                          onClick={() => handleTextColor(c.color)}
-                          className="w-10 h-10 rounded-xl border-2 border-transparent hover:border-purple-400 hover:shadow-lg transition-all"
-                          style={{ backgroundColor: c.color }}
-                          title={c.label}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  {/* Nature */}
-                  <div className="mb-3">
-                    <span className="font-ui text-xs text-muted/60">Nature</span>
-                    <div className="flex gap-2 mt-1.5">
-                      {textColors.slice(12, 16).map((c) => (
-                        <button
-                          key={c.id}
-                          onClick={() => handleTextColor(c.color)}
-                          className="w-10 h-10 rounded-xl border-2 border-transparent hover:border-purple-400 hover:shadow-lg transition-all"
-                          style={{ backgroundColor: c.color }}
-                          title={c.label}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  {/* Cool */}
-                  <div className="mb-3">
-                    <span className="font-ui text-xs text-muted/60">Cool</span>
-                    <div className="flex gap-2 mt-1.5">
-                      {textColors.slice(16, 20).map((c) => (
-                        <button
-                          key={c.id}
-                          onClick={() => handleTextColor(c.color)}
-                          className="w-10 h-10 rounded-xl border-2 border-transparent hover:border-purple-400 hover:shadow-lg transition-all"
-                          style={{ backgroundColor: c.color }}
-                          title={c.label}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  {/* Vibrant */}
-                  <div className="mb-3">
-                    <span className="font-ui text-xs text-muted/60">Vibrant</span>
-                    <div className="flex gap-2 mt-1.5">
-                      {textColors.slice(20, 24).map((c) => (
-                        <button
-                          key={c.id}
-                          onClick={() => handleTextColor(c.color)}
-                          className="w-10 h-10 rounded-xl border-2 border-transparent hover:border-purple-400 hover:shadow-lg transition-all"
-                          style={{ backgroundColor: c.color }}
-                          title={c.label}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  {/* Light Pastels */}
-                  <div className="mb-3">
-                    <span className="font-ui text-xs text-muted/60">Light</span>
-                    <div className="flex gap-2 mt-1.5">
-                      {textColors.slice(24, 28).map((c) => (
-                        <button
-                          key={c.id}
-                          onClick={() => handleTextColor(c.color)}
-                          className="w-10 h-10 rounded-xl border-2 border-transparent hover:border-purple-400 hover:shadow-lg transition-all"
-                          style={{ backgroundColor: c.color }}
-                          title={c.label}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  {/* Soft */}
-                  <div>
-                    <span className="font-ui text-xs text-muted/60">Soft</span>
-                    <div className="flex gap-2 mt-1.5">
-                      {textColors.slice(28, 32).map((c) => (
-                        <button
-                          key={c.id}
-                          onClick={() => handleTextColor(c.color)}
-                          className="w-10 h-10 rounded-xl border-2 border-transparent hover:border-purple-400 hover:shadow-lg transition-all"
-                          style={{ backgroundColor: c.color }}
-                          title={c.label}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Highlight */}
-          <div className="relative" data-dropdown-menu>
-            <button
-              onClick={() => {
-                setShowHighlightMenu(!showHighlightMenu);
-                setShowTextColorMenu(false);
-                setShowFontMenu(false);
-              }}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-skeleton text-muted transition-all"
-              title="Highlight"
-            >
-              {icons.highlight}
-              <div className="w-4 h-1 rounded-full bg-gradient-to-r from-yellow-300 via-green-300 to-blue-300" />
-            </button>
-
-            {showHighlightMenu && (
-              <div className="absolute top-full left-0 md:left-0 right-0 md:right-auto mt-2 w-[220px] bg-surface rounded-2xl shadow-2xl border border-border-light z-50 overflow-hidden">
-                <div className="px-3 py-2 bg-subtle border-b border-border-light">
-                  <span className="font-ui text-xs font-medium text-muted">Highlight</span>
-                </div>
-                <div className="p-3">
-                  {/* Remove highlight option */}
-                  <button
-                    onClick={() => handleHighlight("transparent")}
-                    className="w-full mb-3 px-3 py-2 rounded-xl border-2 border-dashed border-gray-300 hover:border-gray-400 text-muted text-sm font-ui flex items-center justify-center gap-2 transition-all"
-                  >
-                    <span>✕</span>
-                    <span>Remove Highlight</span>
-                  </button>
-                  {/* White & Light */}
-                  <div className="mb-2">
-                    <span className="font-ui text-xs text-muted/60">Light</span>
-                    <div className="flex gap-2 mt-1.5">
-                      {highlightColors.slice(1, 4).map((c) => (
-                        <button
-                          key={c.id}
-                          onClick={() => handleHighlight(c.color)}
-                          className="w-11 h-11 rounded-xl border border-border-light hover:border-purple-400 hover:shadow-lg transition-all"
-                          style={{ backgroundColor: c.color }}
-                          title={c.label}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  {/* Warm highlights */}
-                  <div className="mb-2">
-                    <span className="font-ui text-xs text-muted/60">Warm</span>
-                    <div className="flex gap-2 mt-1.5">
-                      {highlightColors.slice(4, 8).map((c) => (
-                        <button
-                          key={c.id}
-                          onClick={() => handleHighlight(c.color)}
-                          className="w-11 h-11 rounded-xl border-2 border-white shadow-sm hover:border-purple-400 hover:shadow-lg transition-all"
-                          style={{ backgroundColor: c.color }}
-                          title={c.label}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  {/* Cool highlights */}
-                  <div className="mb-2">
-                    <span className="font-ui text-xs text-muted/60">Cool</span>
-                    <div className="flex gap-2 mt-1.5">
-                      {highlightColors.slice(8, 12).map((c) => (
-                        <button
-                          key={c.id}
-                          onClick={() => handleHighlight(c.color)}
-                          className="w-11 h-11 rounded-xl border-2 border-white shadow-sm hover:border-purple-400 hover:shadow-lg transition-all"
-                          style={{ backgroundColor: c.color }}
-                          title={c.label}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  {/* Purple/Pink */}
-                  <div>
-                    <span className="font-ui text-xs text-muted/60">Purple & Pink</span>
-                    <div className="flex gap-2 mt-1.5">
-                      {highlightColors.slice(12, 16).map((c) => (
-                        <button
-                          key={c.id}
-                          onClick={() => handleHighlight(c.color)}
-                          className="w-11 h-11 rounded-xl border-2 border-white shadow-sm hover:border-purple-400 hover:shadow-lg transition-all"
-                          style={{ backgroundColor: c.color }}
-                          title={c.label}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Text Alignment */}
-          <div className="flex items-center gap-0.5 pl-3 border-l border-border-light">
-            {(['left', 'center', 'right', 'justify'] as TextAlignment[]).map((align) => (
-              <button
-                key={align}
-                onClick={() => setTextAlignment(align)}
-                className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
-                  textAlignment === align
-                    ? "bg-purple-primary text-white"
-                    : 'hover:bg-skeleton text-muted'
-                }`}
-                title={`Align ${align}`}
-              >
-                {icons[`align${align.charAt(0).toUpperCase() + align.slice(1)}` as keyof typeof icons]}
-              </button>
-            ))}
-          </div>
-
-          {/* Line Spacing */}
-          <div className="flex items-center gap-0.5 pl-3 border-l border-border-light">
-            {(['normal', 'relaxed', 'loose'] as LineSpacing[]).map((spacing) => (
-              <button
-                key={spacing}
-                onClick={() => setLineSpacing(spacing)}
-                className={`px-2 py-1 rounded-lg font-ui text-xs transition-all ${
-                  lineSpacing === spacing
-                    ? "bg-purple-primary text-white"
-                    : 'hover:bg-skeleton text-muted'
-                }`}
-                title={`Line spacing ${spacing}`}
-              >
-                {spacing === 'normal' ? '1x' : spacing === 'relaxed' ? '1.5x' : '2x'}
-              </button>
-            ))}
-          </div>
-
-          {/* Drop Cap */}
-          <button
-            onClick={() => setDropCapEnabled(!dropCapEnabled)}
-            className={`w-8 h-8 rounded-lg flex items-center justify-center ml-2 transition-all ${
-              dropCapEnabled
-                ? "bg-purple-primary text-white"
-                : 'hover:bg-skeleton text-muted'
-            }`}
-            title="Drop Cap"
-          >
-            {icons.dropCap}
-          </button>
-
-          {/* Background */}
-          <div className="flex items-center gap-1 pl-3 border-l border-border-light ml-2">
-            <button
-              onClick={() => setShowBackgroundPicker(true)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all ${
-                styling.background
-                  ? "bg-purple-primary/10 text-purple-primary"
-                  : "hover:bg-purple-50 text-muted hover:text-accent"
-              }`}
-              title="Background"
-            >
-              {icons.background}
-              <span className="font-ui text-[0.8rem] hidden sm:inline">Background</span>
-            </button>
-          </div>
-        </div>
-        )}
-
-        {/* Content Editor - Hidden in Take mode.
-            Kept MOUNTED across both steps — its rich text lives in this
-            uncontrolled contentEditable div; unmounting would drop it. Fully
-            editable on Step 2 as part of the continuous draft canvas. */}
-        {!isTakeMode && (
-        <div className="mb-6">
-          <label className="block text-sm font-ui font-semibold text-ink mb-3">
-            Content <span className="text-pink-vivid">*</span>
-          </label>
-          <div className="relative">
-            <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm p-[1px]">
-              <div className="w-full h-full rounded-xl bg-surface" />
-            </div>
-            <div className="relative rounded-xl overflow-hidden">
+          <div>
+            <FieldLabel id="composer-body-label">Your words</FieldLabel>
+            <div className="pq-editor-shell">
               {hasAuthoredBackground && authoredBackground && (
                 <div
-                  className="absolute inset-[1px] rounded-[11px]"
+                  className="absolute inset-0"
+                  aria-hidden="true"
                   style={{
                     ...authoredBackgroundStyle,
-                    opacity:
-                      authoredBackground.type === "image"
-                        ? (authoredBackground.opacity ?? 1)
-                        : 1,
-                    filter:
-                      authoredBackground.type === "image" && authoredBackground.blur
-                        ? `blur(${authoredBackground.blur}px)`
-                        : undefined,
-                    transform:
-                      authoredBackground.type === "image" && authoredBackground.blur
-                        ? "scale(1.03)"
-                        : undefined,
+                    opacity: authoredBackground.type === "image" ? (authoredBackground.opacity ?? 1) : 1,
+                    filter: authoredBackground.type === "image" && authoredBackground.blur ? `blur(${authoredBackground.blur}px)` : undefined,
+                    transform: authoredBackground.type === "image" && authoredBackground.blur ? "scale(1.03)" : undefined,
                   }}
                 />
               )}
-              {authoredBackground?.type === "image" && (
-                <div className="absolute inset-[1px] rounded-[11px] bg-black/30" />
-              )}
+              {authoredBackground?.type === "image" && <div className="absolute inset-0 bg-black/30" aria-hidden="true" />}
               <div
                 ref={editorRef}
                 contentEditable
+                role="textbox"
+                aria-multiline="true"
+                aria-labelledby="composer-body-label"
                 onInput={handleEditorInput}
                 onKeyUp={updateFormattingState}
                 onMouseUp={updateFormattingState}
                 data-placeholder={currentType?.placeholder || "Let your thoughts flow freely..."}
-                style={
-                  authoredBackgroundIsDark
-                    ? ({ "--editor-placeholder-color": "rgba(255, 255, 255, 0.75)" } as React.CSSProperties)
-                    : undefined
-                }
-                className={`editor-content relative z-10 w-full min-h-[320px] px-5 py-4 rounded-xl font-body text-[1.05rem] ${authoredTextClass} bg-transparent outline-none ${authoredPlaceholderClass} ${
-                  textAlignment === 'left' ? 'text-left' :
-                  textAlignment === 'center' ? 'text-center' :
-                  textAlignment === 'right' ? 'text-right' :
-                  'text-justify'
-                } ${
-                  lineSpacing === 'normal' ? 'leading-relaxed' :
-                  lineSpacing === 'relaxed' ? 'leading-[2]' :
-                  'leading-[2.5]'
-                } ${dropCapEnabled ? 'drop-cap-enabled' : ''}`}
+                style={authoredBackgroundIsDark ? ({ "--editor-placeholder-color": "rgba(255, 255, 255, 0.75)" } as React.CSSProperties) : undefined}
+                className={`editor-content relative z-10 w-full font-body text-[1.05rem] ${authoredTextClass} bg-transparent outline-none ${authoredPlaceholderClass} ${
+                  textAlignment === "left" ? "text-left" : textAlignment === "center" ? "text-center" : textAlignment === "right" ? "text-right" : "text-justify"
+                } ${lineSpacing === "normal" ? "leading-relaxed" : lineSpacing === "relaxed" ? "leading-[2]" : "leading-[2.5]"} ${dropCapEnabled ? "drop-cap-enabled" : ""}`}
               />
             </div>
+            <p className={`pq-composer-count mt-1.5 ${charCount > 10000 ? "pq-composer-count--over" : charCount > 8000 ? "pq-composer-count--warn" : ""}`} aria-live="polite">
+              {charCount.toLocaleString()} characters
+            </p>
           </div>
-        </div>
         )}
 
-        {/* Media Section — visible & editable across both steps so the draft
-            canvas stays continuous (gallery edits persist between steps). */}
         {!isTakeMode && (
-          <div className="mb-8">
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              accept="image/*,video/*"
-              onChange={handleFileSelect}
-              className="hidden"
-            />
-            <input
-              ref={audioInputRef}
-              type="file"
-              accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg"
-              onChange={handleAudioSelect}
-              className="hidden"
-            />
+          <div className="grid gap-3">
+            <input ref={fileInputRef} type="file" multiple accept="image/*,video/*" onChange={handleFileSelect} className="hidden" />
+            <input ref={audioInputRef} type="file" accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg" onChange={handleAudioSelect} className="hidden" />
 
-            <label className="block text-sm font-ui font-semibold text-ink mb-3">
-              Media {mediaItems.filter((m) => m.type !== "audio").length > 0 && <span className="text-muted font-normal">({mediaItems.filter((m) => m.type !== "audio").length}/20)</span>}
-            </label>
+            <FieldLabel hint={visualCount > 0 ? `(${visualCount}/20)` : "(optional)"}>Photos and video</FieldLabel>
 
-            {mediaItems.filter((m) => m.type !== "audio").length === 0 ? (
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="w-full rounded-2xl border border-dashed border-pink-vivid/25 bg-gradient-to-br from-pink-vivid/5 via-surface to-purple-primary/5 p-10 flex flex-col items-center gap-4 hover:border-pink-vivid/50 hover:shadow-sm transition-all group"
-              >
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-primary/10 to-pink-vivid/10 flex items-center justify-center group-hover:scale-105 transition-transform">
-                  <svg className="w-7 h-7 text-pink-vivid/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <div className="text-center">
-                  <p className="font-ui text-sm font-medium text-ink/70 group-hover:text-ink transition-colors">Add photos or videos</p>
-                  <p className="font-ui text-xs text-muted mt-1">Drag & drop or click to browse — up to 20 files</p>
-                </div>
+            {visualCount === 0 ? (
+              <button type="button" onClick={() => fileInputRef.current?.click()} className="pq-dropzone">
+                {icons.image}
+                <strong>Add photos or video</strong>
+                <small>Up to 20 files. Drag and drop works too.</small>
               </button>
             ) : (
-              <div className="rounded-2xl border border-border-light bg-gradient-to-br from-surface via-pink-vivid/[0.04] to-purple-primary/[0.04] p-5">
-                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                  {mediaItems.filter((m) => m.type !== "audio").map((item, index) => (
-                    <div
-                      key={item.id}
-                      className="relative rounded-xl overflow-hidden bg-skeleton group shadow-sm"
-                    >
-                      <div className="aspect-square">
-                        <div className="absolute top-2 left-2 w-6 h-6 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white font-ui text-[0.65rem] font-bold flex items-center justify-center z-10 shadow-sm">
-                          {index + 1}
-                        </div>
-                        <button
-                          onClick={() => handleRemoveMedia(item.id)}
-                          className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 z-10"
-                        >
-                          {icons.x}
-                        </button>
-                        {item.type === "video" ? (
-                          <video src={item.preview} className="w-full h-full object-cover" />
-                        ) : (
-                          <img src={item.preview} alt="" className="w-full h-full object-cover" />
-                        )}
-                      </div>
-                      <div className="px-2.5 py-2 bg-surface">
-                        <input
-                          type="text"
-                          value={item.caption}
-                          onChange={(e) => handleCaptionChange(item.id, e.target.value)}
-                          onClick={(e) => e.stopPropagation()}
-                          placeholder="Add a caption..."
-                          className="w-full font-ui text-xs text-ink bg-transparent outline-none placeholder:text-muted/50"
-                        />
-                      </div>
+              <div className="pq-media-grid">
+                {mediaItems.filter((m) => m.type !== "audio").map((item, index) => (
+                  <div key={item.id} className="pq-media-item">
+                    <div className="pq-media-item__frame">
+                      <span className="pq-media-item__index" aria-hidden="true">{index + 1}</span>
+                      <button type="button" onClick={() => handleRemoveMedia(item.id)} className="pq-media-item__remove" aria-label={`Remove item ${index + 1}`}>
+                        {icons.x}
+                      </button>
+                      {item.type === "video" ? <video src={item.preview} /> : <img src={item.preview} alt="" />}
                     </div>
-                  ))}
-                  {mediaItems.filter((m) => m.type !== "audio").length < 20 && (
-                    <div className="relative rounded-xl overflow-hidden">
-                      <div className="aspect-square">
-                        <button
-                          onClick={() => fileInputRef.current?.click()}
-                          className="w-full h-full rounded-xl border border-dashed border-pink-vivid/25 bg-surface/60 flex flex-col items-center justify-center gap-2 text-muted hover:border-pink-vivid/50 hover:text-pink-vivid transition-all"
-                        >
-                          {icons.plus}
-                          <span className="text-xs font-ui font-medium">Add more</span>
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                    <input
+                      type="text"
+                      value={item.caption}
+                      onChange={(e) => handleCaptionChange(item.id, e.target.value)}
+                      placeholder="Caption"
+                      aria-label={`Caption for item ${index + 1}`}
+                      className="pq-media-item__caption"
+                    />
+                  </div>
+                ))}
+                {visualCount < 20 && (
+                  <button type="button" onClick={() => fileInputRef.current?.click()} className="pq-media-add">
+                    {icons.plus}
+                    <span>Add more</span>
+                  </button>
+                )}
               </div>
             )}
 
-            {/* Add sound — audio is a MEDIUM you attach here (not a format). */}
-            <div className="mt-4">
-              {audioItem ? (
-                <div className="rounded-2xl border border-border-light bg-subtle/40 p-4">
-                  <div className="flex items-center gap-3">
-                    <span className="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-purple-primary/15 to-pink-vivid/15 text-purple-primary flex-shrink-0">
-                      {icons.soundWave}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-ui text-sm font-medium text-ink">Sound attached</p>
-                      <audio src={audioItem.preview} controls className="mt-2 w-full h-9" />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleRemoveAudio}
-                      className="w-9 h-9 rounded-lg hover:bg-red-50 flex items-center justify-center text-muted hover:text-red-500 transition-colors flex-shrink-0"
-                      aria-label="Remove sound"
-                    >
-                      {icons.x}
-                    </button>
-                  </div>
+            {audioItem ? (
+              <div className="pq-sound">
+                <span className="pq-sound__icon" aria-hidden="true">{icons.soundWave}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="font-ui text-sm font-medium text-ink">Sound attached</p>
+                  <audio src={audioItem.preview} controls />
                 </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => audioInputRef.current?.click()}
-                  disabled={audioUploading}
-                  className="w-full rounded-2xl border border-dashed border-purple-primary/25 bg-gradient-to-br from-purple-primary/[0.04] via-surface to-pink-vivid/[0.04] p-6 flex items-center justify-center gap-3 text-muted hover:border-purple-primary/50 hover:text-purple-primary transition-all disabled:opacity-60 disabled:cursor-wait"
-                >
-                  {audioUploading ? (
-                    <Spinner size="lg" className="text-purple-primary" />
-                  ) : (
-                    icons.soundWave
-                  )}
-                  <span className="font-ui text-sm font-medium">
-                    {audioUploading ? "Uploading sound…" : "Add sound"}
-                  </span>
+                <button type="button" onClick={handleRemoveAudio} className="pq-icon-button" aria-label="Remove sound">
+                  {icons.x}
                 </button>
-              )}
-              {audioError && !audioItem && (
-                <p className="mt-2 font-ui text-sm text-red-500">{audioError}</p>
-              )}
-            </div>
+              </div>
+            ) : (
+              <button type="button" onClick={() => audioInputRef.current?.click()} disabled={audioUploading} className="pq-dropzone pq-dropzone--row" aria-busy={audioUploading || undefined}>
+                {audioUploading ? <Spinner size="md" /> : icons.soundWave}
+                <span>{audioUploading ? "Uploading sound…" : "Add a sound or a song you made"}</span>
+              </button>
+            )}
+            {audioError && !audioItem && <p className="pq-alert" role="alert">{audioError}</p>}
           </div>
         )}
 
-
-        {/* ============================ STEP 2: FORMAT ============================ */}
-
-        {/* Format picker (Step 2) — four categories, NO pre-selection. Skipping
-            leaves the post a Thought (DEFAULT_FORMAT). Picking a format sets
-            selectedType and reveals that format's options below. Sits directly
-            beneath the editable draft canvas, reading as one continuous flow. */}
         {!isTakeMode && step === 2 && (
-          <div className="mb-8 rounded-3xl border border-border-light bg-gradient-to-br from-surface via-surface to-purple-primary/[0.03] p-6 sm:p-8">
-            <div className="mb-8 text-center">
-              <h3 className="font-display text-lg font-bold text-ink">Choose a format</h3>
-              <p className="font-ui text-sm text-muted mt-1">
-                Pick how your post looks in the feed. Skip it to share a simple text post.
-              </p>
+          <section className="pq-panel grid gap-5" aria-labelledby="format-title">
+            <div>
+              <h2 id="format-title" className="pq-panel__title">How should this read?</h2>
+              <p className="pq-panel__text">Pick a format to shape how your post appears. Skip it and it stays a simple text post.</p>
             </div>
 
-            {/* Category cards — glass circles with the brand gradient ring on the
-                active medium, mirroring the product/service creation wizard. */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 mb-8">
+            <div className="pq-format-cats">
               {CATEGORY_ORDER.map((cat) => {
                 const meta = POST_CATEGORIES[cat];
-                const isActive =
-                  activeCategory === cat ||
-                  (activeCategory === null && selectedType !== DEFAULT_FORMAT && getCategoryOf(selectedType) === cat);
+                const isActive = shownCategory === cat;
                 return (
                   <button
                     key={cat}
                     type="button"
                     onClick={() => setActiveCategory((prev) => (prev === cat ? null : cat))}
-                    className="group flex flex-col items-center text-center"
+                    className="pq-format-cat"
+                    aria-pressed={isActive}
                   >
-                    <div
-                      className={`relative w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300 mb-3 backdrop-blur-sm bg-surface/80 ${
-                        isActive
-                          ? "shadow-xl shadow-pink-vivid/20"
-                          : "shadow-lg shadow-black/5 group-hover:shadow-xl group-hover:shadow-pink-vivid/10"
-                      }`}
-                      style={{
-                        border: isActive ? "2px solid transparent" : "1px solid rgba(0, 0, 0, 0.05)",
-                        backgroundImage: isActive
-                          ? "linear-gradient(white, white), linear-gradient(to right, #8e44ad, #ff007f, #ff9f43)"
-                          : undefined,
-                        backgroundOrigin: "border-box",
-                        backgroundClip: isActive ? "padding-box, border-box" : undefined,
-                      }}
-                    >
-                      <span
-                        className={`transition-colors duration-300 ${
-                          isActive ? "text-pink-vivid" : "text-pink-vivid/40 group-hover:text-pink-vivid/70"
-                        }`}
-                      >
-                        {categoryIcons[cat]}
-                      </span>
-                    </div>
-                    <span
-                      className={`font-ui text-sm font-semibold transition-colors duration-300 ${
-                        isActive ? "text-pink-vivid" : "text-ink group-hover:text-pink-vivid/80"
-                      }`}
-                    >
-                      {meta.label}
-                    </span>
+                    <span aria-hidden="true">{categoryIcons[cat]}</span>
+                    <span>{meta.label}</span>
                   </button>
                 );
               })}
             </div>
 
-            {/* Formats for the open category — selectable cards matching the
-                wizard's subcategory style (gradient ring + check on select). */}
-            {(() => {
-              const shownCategory: PostCategory | null =
-                activeCategory ??
-                (selectedType !== DEFAULT_FORMAT ? getCategoryOf(selectedType) : null);
-              if (!shownCategory) {
-                return (
-                  <p className="font-ui text-sm text-muted text-center">
-                    Choose one above to see its formats.
-                  </p>
-                );
-              }
-              const formats: FormatSpec[] = getFormatsByCategory(shownCategory);
-              return (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {formats.map((fmt) => {
-                    const chosen = selectedType === fmt.id;
-                    return (
-                      <button
-                        key={fmt.id}
-                        type="button"
-                        onClick={() => handleSelectFormat(fmt.id)}
-                        className={`relative flex items-center gap-3 px-4 py-3.5 rounded-xl text-left transition-all duration-300 bg-surface ${
-                          chosen ? "shadow-lg shadow-pink-vivid/10" : "shadow-sm hover:shadow-md"
-                        }`}
-                        style={{
-                          border: chosen ? "1px solid transparent" : "1px solid rgba(0, 0, 0, 0.05)",
-                          backgroundImage: chosen
-                            ? "linear-gradient(white, white), linear-gradient(to right, #8e44ad, #ff007f, #ff9f43)"
-                            : undefined,
-                          backgroundOrigin: "border-box",
-                          backgroundClip: chosen ? "padding-box, border-box" : undefined,
-                        }}
-                      >
-                        <span
-                          className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 transition-all ${
-                            chosen
-                              ? "bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm"
-                              : "border border-muted/30"
-                          }`}
-                        >
-                          {chosen && (
-                            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                            </svg>
-                          )}
-                        </span>
-                        <span className={`font-medium font-ui text-sm ${chosen ? "text-pink-vivid" : "text-ink"}`}>
-                          {fmt.label}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              );
-            })()}
+            {shownCategory ? (
+              <div className="pq-chip-row" role="group" aria-label="Format">
+                {shownFormats.map((fmt) => (
+                  <button key={fmt.id} type="button" onClick={() => handleSelectFormat(fmt.id)} className="pq-chip" aria-pressed={selectedType === fmt.id}>
+                    {selectedType === fmt.id && icons.check}
+                    {fmt.label}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="pq-panel__text">Choose one above to see its formats.</p>
+            )}
 
-            {/* "Add details" panel — revealed only for formats that carry extra
-                info, so it's obvious that picking a format lets you add more.
-                Formats with no extra info (Thought, Poem, Visual, Video, Story,
-                Letter) simply select cleanly with no panel. */}
-            {(selectedType === "audio" ||
-              selectedType === "quote" ||
-              selectedType === "essay" ||
-              selectedType === "blog" ||
-              selectedType === "journal") && (
-              <div className="mt-6 rounded-2xl border border-purple-primary/15 bg-purple-primary/[0.03] p-5 sm:p-6 animate-fadeIn">
-                <div className="flex items-center gap-2.5 mb-4">
-                  <span className="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-purple-primary to-pink-vivid text-white flex-shrink-0">
-                    <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                    </svg>
-                  </span>
-                  <div>
-                    <p className="font-ui text-sm font-semibold text-ink">Add details</p>
-                    <p className="font-ui text-[0.75rem] text-muted">
-                      Optional info to enrich your {getFormatSpec(selectedType).label.toLowerCase()}.
-                    </p>
-                  </div>
+            {hasFormatDetails && (
+              <div className="pq-panel pq-panel--tint grid gap-4">
+                <div>
+                  <p className="pq-panel__title">A few details</p>
+                  <p className="pq-panel__text">Optional. They help your {getFormatSpec(selectedType).label.toLowerCase()} read the way you mean it.</p>
                 </div>
 
-                {/* Music — info you'd fill in when publishing to Spotify. The
-                    audio itself is the sound attached on Page 1. NO link/embed. */}
                 {selectedType === "audio" && (
-                  <div className="space-y-4">
+                  <div className="grid gap-4">
                     {!audioItem && (
-                      <p className="rounded-xl border border-border-light bg-surface px-4 py-3 font-ui text-[0.8rem] text-muted">
-                        Tip: attach the track itself with “Add sound” up in the Media
-                        section. These details describe it.
-                      </p>
+                      <p className="pq-panel__text">Attach the track itself with “Add a sound” above. These details describe it.</p>
                     )}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="pq-field-grid pq-field-grid--2">
                       <div>
-                        <label className="block font-ui text-xs font-medium text-muted mb-1.5">
-                          Artist / creator
-                        </label>
-                        <input
-                          type="text"
-                          value={musicArtist}
-                          onChange={(e) => setMusicArtist(e.target.value)}
-                          placeholder="Who made it?"
-                          className="w-full px-4 py-2.5 rounded-xl border border-border-light bg-surface font-ui text-sm text-ink focus:outline-none focus:border-purple-primary transition-colors placeholder:text-muted/50"
-                        />
+                        <FieldLabel htmlFor="music-artist">Artist or creator</FieldLabel>
+                        <input id="music-artist" type="text" value={musicArtist} onChange={(e) => setMusicArtist(e.target.value)} placeholder="Who made it?" className="pq-field pq-field--ui" />
                       </div>
                       <div>
-                        <label className="block font-ui text-xs font-medium text-muted mb-1.5">
-                          Album / single <span className="font-normal text-muted/60">(optional)</span>
-                        </label>
-                        <input
-                          type="text"
-                          value={musicAlbum}
-                          onChange={(e) => setMusicAlbum(e.target.value)}
-                          placeholder="Release name"
-                          className="w-full px-4 py-2.5 rounded-xl border border-border-light bg-surface font-ui text-sm text-ink focus:outline-none focus:border-purple-primary transition-colors placeholder:text-muted/50"
-                        />
+                        <FieldLabel htmlFor="music-album" hint="(optional)">Album or single</FieldLabel>
+                        <input id="music-album" type="text" value={musicAlbum} onChange={(e) => setMusicAlbum(e.target.value)} placeholder="Release name" className="pq-field pq-field--ui" />
                       </div>
                       <div>
-                        <label className="block font-ui text-xs font-medium text-muted mb-1.5">
-                          Genre <span className="font-normal text-muted/60">(optional)</span>
-                        </label>
-                        <input
-                          type="text"
-                          value={musicGenre}
-                          onChange={(e) => setMusicGenre(e.target.value)}
-                          placeholder="e.g. Lo-fi, Jazz, Pop"
-                          className="w-full px-4 py-2.5 rounded-xl border border-border-light bg-surface font-ui text-sm text-ink focus:outline-none focus:border-purple-primary transition-colors placeholder:text-muted/50"
-                        />
+                        <FieldLabel htmlFor="music-genre" hint="(optional)">Genre</FieldLabel>
+                        <input id="music-genre" type="text" value={musicGenre} onChange={(e) => setMusicGenre(e.target.value)} placeholder="Lo-fi, jazz, pop…" className="pq-field pq-field--ui" />
                       </div>
                       <div>
-                        <label className="block font-ui text-xs font-medium text-muted mb-1.5">
-                          Release year <span className="font-normal text-muted/60">(optional)</span>
-                        </label>
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          value={musicYear}
-                          onChange={(e) => setMusicYear(e.target.value.replace(/[^0-9]/g, "").slice(0, 4))}
-                          placeholder="2026"
-                          className="w-full px-4 py-2.5 rounded-xl border border-border-light bg-surface font-ui text-sm text-ink focus:outline-none focus:border-purple-primary transition-colors placeholder:text-muted/50"
-                        />
+                        <FieldLabel htmlFor="music-year" hint="(optional)">Release year</FieldLabel>
+                        <input id="music-year" type="text" inputMode="numeric" value={musicYear} onChange={(e) => setMusicYear(e.target.value.replace(/[^0-9]/g, "").slice(0, 4))} placeholder="2026" className="pq-field pq-field--ui" />
                       </div>
                     </div>
-
-                    {/* Cover art */}
                     <div>
-                      <label className="block font-ui text-xs font-medium text-muted mb-1.5">
-                        Cover art <span className="font-normal text-muted/60">(optional)</span>
-                      </label>
-                      <input
-                        ref={musicCoverInputRef}
-                        type="file"
-                        accept="image/*"
-                        onChange={handleMusicCoverSelect}
-                        className="hidden"
-                      />
+                      <FieldLabel hint="(optional)">Cover art</FieldLabel>
+                      <input ref={musicCoverInputRef} type="file" accept="image/*" onChange={handleMusicCoverSelect} className="hidden" />
                       {musicCoverUrl ? (
                         <div className="flex items-center gap-3">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={musicCoverUrl}
-                            alt="Album cover art"
-                            className="w-16 h-16 rounded-xl object-cover border border-border-light flex-shrink-0"
-                          />
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => musicCoverInputRef.current?.click()}
-                              className="px-3 py-2 rounded-lg border border-border-light bg-surface font-ui text-xs font-medium text-muted hover:border-purple-primary hover:text-accent transition-colors"
-                            >
-                              Replace
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setMusicCoverUrl(null)}
-                              className="px-3 py-2 rounded-lg font-ui text-xs font-medium text-red-500 hover:bg-red-50 transition-colors"
-                            >
-                              Remove
-                            </button>
-                          </div>
+                          <img src={musicCoverUrl} alt="Album cover art" className="w-16 h-16 rounded-[0.75rem] object-cover border border-line" />
+                          <Button size="sm" variant="secondary" onClick={() => musicCoverInputRef.current?.click()}>Replace</Button>
+                          <Button size="sm" variant="ghost" onClick={() => setMusicCoverUrl(null)}>Remove</Button>
                         </div>
                       ) : (
-                        <button
-                          type="button"
-                          onClick={() => musicCoverInputRef.current?.click()}
-                          disabled={musicCoverUploading}
-                          className="flex items-center gap-2.5 px-4 py-3 rounded-xl border border-dashed border-border-light bg-surface font-ui text-sm text-muted hover:border-purple-primary/50 hover:text-purple-primary transition-colors disabled:opacity-60 disabled:cursor-wait"
-                        >
-                          {musicCoverUploading ? (
-                            <Spinner size="md" className="text-purple-primary" />
-                          ) : (
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                          )}
-                          {musicCoverUploading ? "Uploading…" : "Upload cover art"}
-                        </button>
+                        <Button size="sm" variant="outline" onClick={() => musicCoverInputRef.current?.click()} loading={musicCoverUploading} loadingText="Uploading…">
+                          Upload cover art
+                        </Button>
                       )}
                     </div>
                   </div>
                 )}
 
-                {/* Quote → attribution (who said it) */}
                 {selectedType === "quote" && (
                   <div>
-                    <label className="block font-ui text-xs font-medium text-muted mb-1.5">
-                      Attribution <span className="font-normal text-muted/60">(optional)</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={attribution}
-                      onChange={(e) => setAttribution(e.target.value)}
-                      placeholder="Who said it?"
-                      className="w-full px-4 py-2.5 rounded-xl border border-border-light bg-surface font-ui text-sm text-ink focus:outline-none focus:border-purple-primary transition-colors placeholder:text-muted/50"
-                    />
+                    <FieldLabel htmlFor="quote-attribution" hint="(optional)">Attribution</FieldLabel>
+                    <input id="quote-attribution" type="text" value={attribution} onChange={(e) => setAttribution(e.target.value)} placeholder="Who said it?" className="pq-field pq-field--ui" />
                   </div>
                 )}
 
-                {/* Essay & Blog → subtitle */}
                 {(selectedType === "essay" || selectedType === "blog") && (
                   <div>
-                    <label className="block font-ui text-xs font-medium text-muted mb-1.5">
-                      Subtitle <span className="font-normal text-muted/60">(optional)</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={subtitle}
-                      onChange={(e) => setSubtitle(e.target.value)}
-                      placeholder="A short subtitle or deck"
-                      className="w-full px-4 py-2.5 rounded-xl border border-border-light bg-surface font-ui text-sm text-ink focus:outline-none focus:border-purple-primary transition-colors placeholder:text-muted/50"
-                    />
+                    <FieldLabel htmlFor="post-subtitle" hint="(optional)">Subtitle</FieldLabel>
+                    <input id="post-subtitle" type="text" value={subtitle} onChange={(e) => setSubtitle(e.target.value)} placeholder="A short line under the title" className="pq-field pq-field--ui" />
                   </div>
                 )}
 
-                {/* Journal → mood · weather · entry date · location */}
                 {selectedType === "journal" && (
-                  <JournalMetadataPanel
-                    value={journalMetadata}
-                    onChange={setJournalMetadata}
-                    location={postLocation}
-                    onLocationChange={setPostLocation}
-                  />
+                  <JournalMetadataPanel value={journalMetadata} onChange={setJournalMetadata} location={postLocation} onLocationChange={setPostLocation} />
                 )}
               </div>
             )}
+          </section>
+        )}
+
+        {!isTakeMode && step === 2 && (
+          <section aria-labelledby="extras-title" className="grid gap-3">
+            <h2 id="extras-title" className="pq-panel__title">More, if you want it</h2>
+
+            <div>
+              <FieldLabel htmlFor="tag-input" hint={`(${tags.length}/20)`}>Tags</FieldLabel>
+              <div className="pq-field pq-tag-field">
+                {tags.map((tag) => (
+                  <span key={tag} className="pq-chip">
+                    #{tag}
+                    <button type="button" onClick={() => handleRemoveTag(tag)} className="pq-chip__remove" aria-label={`Remove tag ${tag}`}>{icons.x}</button>
+                  </span>
+                ))}
+                {tags.length < 20 && (
+                  <input id="tag-input" type="text" value={tagInput} onChange={(e) => setTagInput(e.target.value)} onKeyDown={handleTagKeyDown} onBlur={handleAddTag} placeholder={tags.length === 0 ? "Add tags, press Enter after each" : "Add another"} />
+                )}
+              </div>
+            </div>
+
+            <div>
+              {selectedType !== "audio" && (
+                <Disclosure
+                  id="soundtrack"
+                  icon={icons.spotify}
+                  label="Soundtrack"
+                  state={spotifyTrack ? "1 song" : undefined}
+                  open={expandedSections.has("soundtrack")}
+                  onToggle={() => toggleSection("soundtrack")}
+                >
+                  {spotifyTrack ? (
+                    <div className="pq-sound">
+                      {spotifyTrack.albumArt && <img src={spotifyTrack.albumArt} alt="" className="w-12 h-12 rounded-[0.625rem] object-cover" />}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-ui text-sm font-medium text-ink truncate">{spotifyTrack.name}</p>
+                        <p className="font-ui text-xs text-subdued truncate">{spotifyTrack.artist}</p>
+                      </div>
+                      <a href={spotifyTrack.externalUrl} target="_blank" rel="noopener noreferrer" className="pq-icon-button" aria-label="Open in Spotify">{icons.music}</a>
+                      <button type="button" onClick={() => setSpotifyTrack(null)} className="pq-icon-button" aria-label="Remove song">{icons.x}</button>
+                    </div>
+                  ) : showSpotifyPicker ? (
+                    <div className="grid gap-2">
+                      <div className="flex gap-2">
+                        <input
+                          type="url"
+                          value={spotifyUrl}
+                          onChange={(e) => setSpotifyUrl(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && spotifyUrl.trim()) {
+                              e.preventDefault();
+                              fetchSpotifyTrack(spotifyUrl.trim());
+                            }
+                          }}
+                          placeholder="Paste a Spotify track link"
+                          aria-label="Spotify track link"
+                          className="pq-field pq-field--ui flex-1"
+                          autoFocus
+                        />
+                        <Button onClick={() => spotifyUrl.trim() && fetchSpotifyTrack(spotifyUrl.trim())} disabled={loadingSpotify || !spotifyUrl.trim()} loading={loadingSpotify} loadingText="Adding…">Add</Button>
+                        <Button variant="secondary" onClick={() => { setShowSpotifyPicker(false); setSpotifyUrl(""); setSpotifyError(null); }}>Cancel</Button>
+                      </div>
+                      {spotifyError && <p className="pq-alert" role="alert">{spotifyError}</p>}
+                      <p className="pq-panel__text">Copy a track link from the Spotify app or web player.</p>
+                    </div>
+                  ) : (
+                    <div><Button variant="secondary" size="sm" onClick={() => setShowSpotifyPicker(true)}>Add a song</Button></div>
+                  )}
+                </Disclosure>
+              )}
+
+              {selectedType !== "journal" && (
+                <Disclosure id="location" icon={icons.location} label="Place" state={postLocation ? "Added" : undefined} open={expandedSections.has("location")} onToggle={() => toggleSection("location")}>
+                  <input type="text" value={postLocation} onChange={(e) => setPostLocation(e.target.value)} placeholder="Where are you writing from?" aria-label="Place" className="pq-field pq-field--ui" />
+                </Disclosure>
+              )}
+
+              <Disclosure id="collaborators" icon={icons.collaborators} label="Collaborators" state={collaborators.length > 0 ? String(collaborators.length) : undefined} open={expandedSections.has("collaborators")} onToggle={() => toggleSection("collaborators")}>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="pq-panel__text">People who made this with you. The post publishes once everyone accepts.</p>
+                  <Button size="sm" variant="secondary" onClick={() => setShowCollaboratorPicker(true)}>Add</Button>
+                </div>
+                {collaborators.length > 0 && (
+                  <div className="pq-chip-row">
+                    {collaborators.map((person) => (
+                      <span key={person.id} className="pq-person-chip">
+                        {person.avatar_url ? <img src={person.avatar_url} alt="" className="rounded-full object-cover" /> : <span className="pq-avatar">{(person.display_name || person.username)[0].toUpperCase()}</span>}
+                        <span>{person.display_name || person.username}</span>
+                        {person.role && <span className="pq-person-chip__role">{person.role}</span>}
+                        <button type="button" onClick={() => setCollaborators(collaborators.filter((c) => c.id !== person.id))} className="pq-chip__remove" aria-label={`Remove ${person.display_name || person.username}`}>{icons.x}</button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </Disclosure>
+
+              <Disclosure id="tag-people" icon={icons.userTag} label="Tag people" state={taggedPeople.length > 0 ? String(taggedPeople.length) : undefined} open={expandedSections.has("tagPeople")} onToggle={() => toggleSection("tagPeople")}>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="pq-panel__text">People mentioned in this post. They&rsquo;re notified.</p>
+                  <Button size="sm" variant="secondary" onClick={() => setShowTagPeoplePicker(true)}>Add</Button>
+                </div>
+                {taggedPeople.length > 0 && (
+                  <div className="pq-chip-row">
+                    {taggedPeople.map((person) => (
+                      <span key={person.id} className="pq-person-chip">
+                        {person.avatar_url ? <img src={person.avatar_url} alt="" className="rounded-full object-cover" /> : <span className="pq-avatar">{(person.display_name || person.username)[0].toUpperCase()}</span>}
+                        <span>@{person.username}</span>
+                        <button type="button" onClick={() => setTaggedPeople(taggedPeople.filter((t) => t.id !== person.id))} className="pq-chip__remove" aria-label={`Remove @${person.username}`}>{icons.x}</button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </Disclosure>
+
+              <Disclosure id="content-warning" icon={icons.warning} label="Content warning" state={hasContentWarning ? "On" : undefined} open={expandedSections.has("contentWarning")} onToggle={() => toggleSection("contentWarning")}>
+                <div className="pq-switch-row">
+                  <span id="cw-label">Blur this post until people choose to look</span>
+                  <Switch checked={hasContentWarning} onChange={setHasContentWarning} label="Mark as sensitive" />
+                </div>
+                {hasContentWarning && (
+                  <div className="grid gap-2">
+                    <input type="text" value={contentWarning} onChange={(e) => setContentWarning(e.target.value)} placeholder="What should people know first?" aria-label="Content warning text" className="pq-field pq-field--ui" />
+                    <div className="pq-chip-row">
+                      {contentWarningPresets.map((preset) => (
+                        <button key={preset} type="button" onClick={() => setContentWarning(preset)} className="pq-chip" aria-pressed={contentWarning === preset}>{preset}</button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </Disclosure>
+            </div>
+          </section>
+        )}
+
+        {(error || takeError) && <p className="pq-alert" role="alert">{error || takeError}</p>}
+
+        {isTakeMode && takeUploading && (
+          <div className="grid gap-1.5" role="status" aria-live="polite">
+            <div className="flex items-center justify-between font-ui text-sm text-subdued">
+              <span>Uploading your Take…</span>
+              <span>{Math.round(takeProgress)}%</span>
+            </div>
+            <div className="pq-progress"><span style={{ inlineSize: `${takeProgress}%` }} /></div>
           </div>
         )}
 
-        {/* Extras (Step 2) — format-specific + shared fields */}
-        {!isTakeMode && step === 2 && (
-        <div className="mb-8 border-t border-border-light pt-6">
-          <p className="text-sm font-ui text-muted mb-4">Extras</p>
-
-          {/* Soundtrack — optional for any non-Music post. The Music format
-              owns its own Spotify control inline above, so hide it there. */}
-          {selectedType !== "audio" && (
-          <div className="mb-2">
-            <button
-              onClick={() => toggleSection('soundtrack')}
-              className="w-full flex items-center justify-between py-3 hover:bg-subtle/50 rounded-lg px-2 -mx-2 transition-colors"
-            >
-              <div className="flex items-center gap-2.5">
-                <span className="text-[#1DB954]">{icons.spotify}</span>
-                <span className="font-ui text-sm font-medium text-ink">Soundtrack</span>
-                {spotifyTrack && <span className="w-2 h-2 rounded-full bg-[#1DB954]" />}
-              </div>
-              <svg className={`w-4 h-4 text-muted transition-transform ${expandedSections.has('soundtrack') ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg>
-            </button>
-
-          {expandedSections.has('soundtrack') && (
-          <div className="pb-3">
-          {spotifyTrack ? (
-            // Show selected track
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-[#1DB954]/5 to-[#191414]/5 border border-[#1DB954]/20">
-              {spotifyTrack.albumArt && (
-                <img
-                  src={spotifyTrack.albumArt}
-                  alt={spotifyTrack.album || spotifyTrack.name}
-                  className="w-14 h-14 rounded-lg shadow-lg object-cover"
-                />
-              )}
-              <div className="flex-1 min-w-0">
-                <p className="font-ui text-sm font-medium text-ink truncate">
-                  {spotifyTrack.name}
-                </p>
-                <p className="font-ui text-[0.8rem] text-muted truncate">
-                  {spotifyTrack.artist}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <a
-                  href={spotifyTrack.externalUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-8 h-8 rounded-full bg-[#1DB954] flex items-center justify-center text-white hover:scale-105 transition-transform"
-                >
-                  {icons.music}
-                </a>
-                <button
-                  onClick={() => setSpotifyTrack(null)}
-                  className="w-8 h-8 rounded-lg hover:bg-red-50 flex items-center justify-center text-muted hover:text-red-500 transition-colors"
-                >
-                  {icons.x}
-                </button>
-              </div>
-            </div>
-          ) : showSpotifyPicker ? (
-            // Show URL input
-            <div className="space-y-3">
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={spotifyUrl}
-                  onChange={(e) => setSpotifyUrl(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && spotifyUrl.trim()) {
-                      e.preventDefault();
-                      fetchSpotifyTrack(spotifyUrl.trim());
-                    }
-                  }}
-                  placeholder="Paste Spotify track URL..."
-                  className="flex-1 px-4 py-2.5 rounded-xl border border-[#1DB954]/30 bg-surface font-ui text-sm text-ink focus:outline-none focus:border-[#1DB954] focus:ring-1 focus:ring-[#1DB954]/30 transition-all placeholder:text-muted/50"
-                  autoFocus
-                />
-                <button
-                  onClick={() => spotifyUrl.trim() && fetchSpotifyTrack(spotifyUrl.trim())}
-                  disabled={loadingSpotify || !spotifyUrl.trim()}
-                  className="px-4 py-2.5 rounded-xl bg-[#1DB954] font-ui text-sm font-medium text-white hover:bg-[#1ed760] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {loadingSpotify ? <Spinner size="md" /> : "Add"}
-                </button>
-                <button
-                  onClick={() => {
-                    setShowSpotifyPicker(false);
-                    setSpotifyUrl("");
-                    setSpotifyError(null);
-                  }}
-                  className="px-3 py-2.5 rounded-xl border border-border-light font-ui text-sm text-muted hover:bg-subtle transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-              {spotifyError && (
-                <p className="font-ui text-sm text-red-500">{spotifyError}</p>
-              )}
-              <p className="font-ui text-[0.75rem] text-muted/70">
-                Copy a track link from Spotify app or web player
-              </p>
-            </div>
-          ) : (
-            // Show add button
-            <button
-              onClick={() => setShowSpotifyPicker(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[#1DB954]/20 bg-surface hover:border-[#1DB954]/50 hover:bg-[#1DB954]/5 transition-all"
-            >
-              <span className="text-[#1DB954]">{icons.music}</span>
-              <span className="font-ui text-sm text-ink">Add a song</span>
-            </button>
-          )}
-          </div>
-          )}
-          </div>
-          )}
-
-          {/* Location */}
-          {selectedType !== 'journal' && (
-          <div className="mb-2">
-            <button
-              onClick={() => toggleSection('location')}
-              className="w-full flex items-center justify-between py-3 hover:bg-subtle/50 rounded-lg px-2 -mx-2 transition-colors"
-            >
-              <div className="flex items-center gap-2.5">
-                <span className="text-pink-vivid">{icons.location}</span>
-                <span className="font-ui text-sm font-medium text-ink">Location</span>
-                {postLocation && <span className="w-2 h-2 rounded-full bg-pink-vivid" />}
-              </div>
-              <svg className={`w-4 h-4 text-muted transition-transform ${expandedSections.has('location') ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg>
-            </button>
-            {expandedSections.has('location') && (
-              <div className="pb-2 pl-1">
-                <input
-                  type="text"
-                  value={postLocation}
-                  onChange={(e) => setPostLocation(e.target.value)}
-                  placeholder="Where are you writing from?"
-                  className="w-full px-4 py-2.5 rounded-xl border border-border-light bg-surface font-ui text-sm text-ink focus:outline-none focus:border-pink-vivid transition-colors placeholder:text-muted/50"
-                />
-              </div>
+        <div className="pq-composer-foot">
+          <div className={`pq-composer-foot__audience ${isTakeMode || step === 2 ? "" : "hidden"}`}>
+            {isCommunityPost ? (
+              <span className="pq-chip" aria-disabled="true">{icons.users} Community (public)</span>
+            ) : (
+              <ActionMenu
+                items={visibilityMenuItems}
+                label="Who can see this"
+                buttonAriaLabel={`Who can see this: ${currentVisibility?.label ?? "Public"}`}
+                buttonClassName="pq-chip"
+                trigger={<>{icons[currentVisibility?.icon || "globe"]}<span>{currentVisibility?.label}</span>{icons.chevronDown}</>}
+                widthClassName="w-60"
+                placement="top"
+                align="start"
+                portal
+              />
             )}
-          </div>
-          )}
 
-        {/* Tags Section */}
-        <div className="mb-8">
-          <label className="block text-sm font-ui font-semibold text-ink mb-3">
-            Tags <span className="text-muted font-normal">({tags.length}/20)</span>
-          </label>
-          <div className="relative">
-            <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm p-[1px]">
-              <div className="w-full h-full rounded-xl bg-surface" />
-            </div>
-            <div className="relative flex flex-wrap gap-2 px-4 py-3 rounded-xl">
-              {tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-orange-warm/10 to-pink-vivid/10 text-pink-vivid rounded-full font-ui text-[0.85rem] font-medium"
-                >
-                  #{tag}
-                  <button onClick={() => handleRemoveTag(tag)} className="hover:text-red-500 transition-colors">
+            {!isEditing && (selectedCommunity || userCommunities.length > 0 || communitiesLoading || authLoading) && (
+              <div className="flex items-center gap-1">
+                <ActionMenu
+                  items={communityMenuItems}
+                  label="Post to"
+                  buttonAriaLabel={selectedCommunity ? `Posting to ${selectedCommunity.name}` : "Post to a community"}
+                  buttonDisabled={authLoading}
+                  buttonClassName="pq-chip"
+                  trigger={
+                    <>
+                      {communitiesLoading || authLoading ? <Spinner size="xs" /> : selectedCommunity?.avatar_url ? <img src={selectedCommunity.avatar_url} alt="" className="w-5 h-5 rounded-full object-cover" /> : icons.users}
+                      <span className="max-w-[9rem] truncate">{authLoading ? "Loading…" : selectedCommunity ? selectedCommunity.name : "Community"}</span>
+                      {!authLoading && icons.chevronDown}
+                    </>
+                  }
+                  widthClassName="w-64"
+                  placement="top"
+                  align="start"
+                  portal
+                />
+                {selectedCommunity && (
+                  <button type="button" onClick={() => setSelectedCommunity(null)} className="pq-icon-button" aria-label="Post to your personal feed instead">
                     {icons.x}
                   </button>
-                </span>
-              ))}
-              {tags.length < 20 && (
-                <input
-                  type="text"
-                  value={tagInput}
-                  onChange={(e) => setTagInput(e.target.value)}
-                  onKeyDown={handleTagKeyDown}
-                  onBlur={handleAddTag}
-                  placeholder="Add tags..."
-                  className="flex-1 min-w-[100px] font-ui text-sm bg-transparent border-none outline-none placeholder:text-muted/50"
-                />
-              )}
-            </div>
-          </div>
-        </div>
-
-          {/* Collaborators */}
-          <div className="mb-2">
-            <button
-              onClick={() => toggleSection('collaborators')}
-              className="w-full flex items-center justify-between py-3 hover:bg-subtle/50 rounded-lg px-2 -mx-2 transition-colors"
-            >
-              <div className="flex items-center gap-2.5">
-                <span className="text-purple-primary">{icons.collaborators}</span>
-                <span className="font-ui text-sm font-medium text-ink">Collaborators</span>
-                {collaborators.length > 0 && (
-                  <span className="px-1.5 py-0.5 rounded-full bg-gradient-to-r from-orange-warm/10 to-pink-vivid/10 text-pink-vivid font-ui text-[0.7rem] font-medium">
-                    {collaborators.length}
-                  </span>
-                )}
-              </div>
-              <svg className={`w-4 h-4 text-muted transition-transform ${expandedSections.has('collaborators') ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg>
-            </button>
-
-            {expandedSections.has('collaborators') && (
-            <div className="pb-2 pl-1">
-              <div className="flex items-center justify-end mb-2">
-                <button
-                  onClick={() => setShowCollaboratorPicker(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-primary text-white rounded-full font-ui text-[0.8rem] font-medium hover:bg-accent/90 transition-all"
-                >
-                  {icons.plus}
-                  Add
-                </button>
-              </div>
-
-              {collaborators.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {collaborators.map((user) => (
-                    <div
-                      key={user.id}
-                      className="inline-flex items-center gap-2 pl-1 pr-2 py-1 bg-surface rounded-full border border-border-light shadow-sm"
-                    >
-                      {user.avatar_url ? (
-                        <img src={user.avatar_url} alt={user.display_name || user.username} className="w-6 h-6 rounded-full object-cover" />
-                      ) : (
-                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center text-white text-xs font-medium">
-                          {(user.display_name || user.username)[0].toUpperCase()}
-                        </div>
-                      )}
-                      <span className="text-sm font-medium text-ink font-ui">{user.display_name || user.username}</span>
-                      {user.role && (
-                        <span className="text-xs px-2 py-0.5 bg-gradient-to-r from-orange-warm/10 to-pink-vivid/10 text-pink-vivid rounded-full font-ui font-medium">{user.role}</span>
-                      )}
-                      <button onClick={() => setCollaborators(collaborators.filter((c) => c.id !== user.id))} className="w-4 h-4 rounded-full bg-skeleton hover:bg-red-100 flex items-center justify-center transition-colors">{icons.x}</button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted font-body">Invite people to collaborate on this post</p>
-              )}
-
-              {collaborators.length > 0 && !isEditing && (
-                <p className="mt-2 text-xs text-muted font-ui">Post will publish after all collaborators accept</p>
-              )}
-            </div>
-            )}
-          </div>
-
-          {/* Tag People */}
-          <div className="mb-2">
-            <button
-              onClick={() => toggleSection('tagPeople')}
-              className="w-full flex items-center justify-between py-3 hover:bg-subtle/50 rounded-lg px-2 -mx-2 transition-colors"
-            >
-              <div className="flex items-center gap-2.5">
-                <span className="text-pink-vivid">{icons.userTag}</span>
-                <span className="font-ui text-sm font-medium text-ink">Tag People</span>
-                {taggedPeople.length > 0 && (
-                  <span className="px-1.5 py-0.5 rounded-full bg-gradient-to-r from-orange-warm/10 to-pink-vivid/10 text-pink-vivid font-ui text-[0.7rem] font-medium">
-                    {taggedPeople.length}
-                  </span>
-                )}
-              </div>
-              <svg className={`w-4 h-4 text-muted transition-transform ${expandedSections.has('tagPeople') ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg>
-            </button>
-
-            {expandedSections.has('tagPeople') && (
-            <div className="pb-2 pl-1">
-              <div className="flex items-center justify-end mb-2">
-                <button
-                  onClick={() => setShowTagPeoplePicker(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-primary text-white rounded-full font-ui text-[0.8rem] font-medium hover:bg-accent/90 transition-all"
-                >
-                  {icons.plus}
-                  Add
-                </button>
-              </div>
-
-              {taggedPeople.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {taggedPeople.map((user) => (
-                    <div key={user.id} className="inline-flex items-center gap-2 pl-1 pr-2 py-1 bg-surface rounded-full border border-border-light shadow-sm">
-                      {user.avatar_url ? (
-                        <img src={user.avatar_url} alt={user.display_name || user.username} className="w-6 h-6 rounded-full object-cover" />
-                      ) : (
-                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-pink-vivid to-purple-primary flex items-center justify-center text-white text-xs font-medium">
-                          {(user.display_name || user.username)[0].toUpperCase()}
-                        </div>
-                      )}
-                      <span className="text-sm font-medium text-ink font-ui">@{user.username}</span>
-                      <button onClick={() => setTaggedPeople(taggedPeople.filter((t) => t.id !== user.id))} className="w-4 h-4 rounded-full bg-skeleton hover:bg-red-100 flex items-center justify-center transition-colors">{icons.x}</button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted font-body">Tag people mentioned in this post</p>
-              )}
-            </div>
-            )}
-          </div>
-
-          {/* Content Warning */}
-          <div className="mb-2">
-            <button
-              onClick={() => toggleSection('contentWarning')}
-              className="w-full flex items-center justify-between py-3 hover:bg-subtle/50 rounded-lg px-2 -mx-2 transition-colors"
-            >
-              <div className="flex items-center gap-2.5">
-                <span className="text-red-500">{icons.warning}</span>
-                <span className="font-ui text-sm font-medium text-ink">Content Warning</span>
-                {hasContentWarning && <span className="w-2 h-2 rounded-full bg-red-500" />}
-              </div>
-              <svg className={`w-4 h-4 text-muted transition-transform ${expandedSections.has('contentWarning') ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg>
-            </button>
-
-            {expandedSections.has('contentWarning') && (
-            <div className="pb-2 pl-1">
-              <div className="flex items-center justify-between mb-3">
-                <span className="font-ui text-sm text-muted">Mark as sensitive</span>
-                <button
-                  onClick={() => setHasContentWarning(!hasContentWarning)}
-                  className={`w-11 h-6 rounded-full transition-all relative ${
-                    hasContentWarning ? "bg-gradient-to-r from-pink-vivid to-purple-primary" : "bg-gray-300"
-                  }`}
-                >
-                  <div className={`absolute top-0.5 w-5 h-5 bg-surface rounded-full shadow transition-all ${hasContentWarning ? "left-5" : "left-0.5"}`} />
-                </button>
-              </div>
-
-              {hasContentWarning && (
-                <div className="space-y-3">
-                  <input
-                    type="text"
-                    value={contentWarning}
-                    onChange={(e) => setContentWarning(e.target.value)}
-                    placeholder="Describe the sensitive content..."
-                    className="w-full px-4 py-2.5 rounded-xl border border-red-200 bg-surface font-body text-sm text-ink outline-none focus:border-red-400 transition-all placeholder:text-muted/50"
-                  />
-                  <div className="flex flex-wrap gap-2">
-                    {contentWarningPresets.map((preset) => (
-                      <button key={preset} onClick={() => setContentWarning(preset)} className="px-3 py-1.5 rounded-full border border-red-200 bg-surface font-ui text-[0.75rem] text-red-500 hover:bg-red-50 transition-all">{preset}</button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-            )}
-          </div>
-
-        </div>
-        )}
-
-        {/* Error Message */}
-        {(error || takeError) && (
-          <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-xl text-center">
-            <p className="text-sm text-red-600 font-body">{error || takeError}</p>
-          </div>
-        )}
-
-        {/* Take Upload Progress */}
-        {isTakeMode && takeUploading && (
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-2">
-              <span className="font-ui text-sm text-muted">Uploading your Take...</span>
-              <span className="font-ui text-sm font-medium text-pink-vivid">{Math.round(takeProgress)}%</span>
-            </div>
-            <div className="h-1.5 bg-skeleton rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm transition-all duration-500"
-                style={{ width: `${takeProgress}%` }}
-              />
-            </div>
-          </div>
-        )}
-
-      </div>
-
-        {/* Footer Actions */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-6 sm:pt-8 border-t border-border-light">
-          {/* Audience / community / flair — shown on Step 2 (or in Take mode) */}
-          <div className={`flex items-center gap-2.5 flex-wrap ${isTakeMode || step === 2 ? "" : "sm:opacity-0 sm:pointer-events-none hidden sm:flex"}`}>
-            {/* Visibility Dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => {
-                  if (isCommunityPost) return;
-                  setShowVisibilityMenu(!showVisibilityMenu);
-                }}
-                disabled={isCommunityPost}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full border bg-surface font-ui text-[0.85rem] transition-all ${
-                  isCommunityPost
-                    ? "border-purple-200 text-accent cursor-not-allowed"
-                    : "border-border-light text-muted hover:border-purple-primary hover:text-accent"
-                }`}
-              >
-                {icons[currentVisibility?.icon || "globe"]}
-                {isCommunityPost ? "Community (Public)" : currentVisibility?.label}
-                {!isCommunityPost && icons.chevronDown}
-              </button>
-
-              {showVisibilityMenu && !isCommunityPost && (
-                <div className="absolute bottom-full left-0 mb-2 w-48 bg-surface rounded-xl shadow-xl border border-border-light overflow-hidden z-10">
-                  {visibilityOptions.map((option) => (
-                    <button
-                      key={option.id}
-                      onClick={() => {
-                        setVisibility(option.id);
-                        setShowVisibilityMenu(false);
-                      }}
-                      className={`w-full flex items-center gap-3 px-4 py-3 font-ui text-[0.9rem] text-left transition-all ${
-                        visibility === option.id
-                          ? "bg-purple-100 text-accent"
-                          : "text-ink hover:bg-subtle"
-                      }`}
-                    >
-                      {icons[option.icon]}
-                      <div>
-                        <div className="font-medium">{option.label}</div>
-                        <div className="text-[0.75rem] text-muted">{option.desc}</div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Community Selector */}
-            {!isEditing && (selectedCommunity || userCommunities.length > 0 || communitiesLoading || authLoading) && (
-              <div className="relative">
-                {selectedCommunity ? (
-                  <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-purple-200 bg-purple-primary/5 text-accent font-ui text-[0.85rem]">
-                    <span
-                      onClick={() => setShowCommunityMenu(!showCommunityMenu)}
-                      className="flex items-center gap-2 cursor-pointer"
-                    >
-                      {selectedCommunity.avatar_url ? (
-                        <img
-                          src={selectedCommunity.avatar_url}
-                          alt=""
-                          className="w-5 h-5 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-5 h-5 rounded-full bg-gradient-to-br from-purple-primary to-purple-primary flex items-center justify-center text-white text-[0.5rem] font-bold">
-                          {selectedCommunity.name.charAt(0).toUpperCase()}
-                        </div>
-                      )}
-                      <span className="max-w-[100px] truncate">{selectedCommunity.name}</span>
-                    </span>
-                    <span
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedCommunity(null);
-                      }}
-                      className="ml-1 hover:text-red-500 cursor-pointer"
-                      role="button"
-                      tabIndex={0}
-                    >
-                      {icons.x}
-                    </span>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => !authLoading && setShowCommunityMenu(!showCommunityMenu)}
-                    disabled={authLoading}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-full border border-border-light bg-surface text-muted hover:border-purple-primary hover:text-accent font-ui text-[0.85rem] transition-all ${authLoading ? 'opacity-60 cursor-wait' : ''}`}
-                  >
-                    {(communitiesLoading || authLoading) ? (
-                      <Spinner size="xs" className="text-muted" />
-                    ) : (
-                      icons.users
-                    )}
-                    <span>{authLoading ? 'Loading...' : 'Community'}</span>
-                    {!authLoading && icons.chevronDown}
-                  </button>
-                )}
-
-                {showCommunityMenu && (
-                  <div className="absolute bottom-full left-0 mb-2 w-56 max-h-64 overflow-y-auto bg-surface rounded-xl shadow-xl border border-border-light overflow-hidden z-10">
-                    <div className="px-3 py-2 text-[0.75rem] font-ui text-muted border-b border-border-light">
-                      Post to community
-                    </div>
-                    <button
-                      onClick={() => {
-                        setSelectedCommunity(null);
-                        setShowCommunityMenu(false);
-                      }}
-                        className={`w-full flex items-center gap-3 px-4 py-3 font-ui text-[0.9rem] text-left transition-all ${
-                          !selectedCommunity
-                            ? "bg-purple-100 text-accent"
-                            : "text-ink hover:bg-subtle"
-                        }`}
-                    >
-                      {icons.globe}
-                      <span>Personal Feed</span>
-                    </button>
-                    {communitiesLoading && (
-                      <div className="flex items-center gap-3 px-4 py-3 font-ui text-[0.85rem] text-muted">
-                        <Spinner size="xs" className="text-muted" />
-                        <span>Loading communities...</span>
-                      </div>
-                    )}
-                    {!communitiesLoading && communitiesError && (
-                      <div className="px-4 py-3 font-ui text-[0.8rem] text-muted">
-                        Communities unavailable right now.
-                      </div>
-                    )}
-                    {!communitiesLoading && !communitiesError && userCommunities.length === 0 && (
-                      <div className="px-4 py-3 font-ui text-[0.8rem] text-muted">
-                        No joined communities yet.
-                      </div>
-                    )}
-                    {userCommunities.map((community) => (
-                      <button
-                        key={community.id}
-                        onClick={() => {
-                          setSelectedCommunity(community);
-                          setShowCommunityMenu(false);
-                        }}
-                        className={`w-full flex items-center gap-3 px-4 py-3 font-ui text-[0.9rem] text-left transition-all ${
-                          selectedCommunity?.id === community.id
-                            ? "bg-purple-100 text-accent"
-                            : "text-ink hover:bg-subtle"
-                        }`}
-                      >
-                        {community.avatar_url ? (
-                          <img
-                            src={community.avatar_url}
-                            alt=""
-                            className="w-6 h-6 rounded-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-primary to-purple-primary flex items-center justify-center text-white text-[0.6rem] font-bold">
-                            {community.name.charAt(0).toUpperCase()}
-                          </div>
-                        )}
-                        <span className="truncate">{community.name}</span>
-                      </button>
-                    ))}
-                  </div>
                 )}
               </div>
             )}
 
-            {/* Flair Picker (show for community posts, including edit mode) */}
             {flairCommunityId && (
-              <FlairPicker
-                communityId={flairCommunityId}
-                selectedFlairId={selectedFlair?.id || null}
-                onSelect={setSelectedFlair}
-              />
+              <FlairPicker communityId={flairCommunityId} selectedFlairId={selectedFlair?.id || null} onSelect={setSelectedFlair} />
             )}
           </div>
 
-          <div className="flex items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
-            {/* Back (Step 2, normal posts) */}
+          <div className="pq-composer-foot__actions">
             {!isTakeMode && step === 2 && (
-              <button
-                onClick={() => setStep(1)}
-                className="flex items-center justify-center gap-2 px-5 py-3 rounded-full border border-border-light bg-surface font-ui text-sm sm:text-base font-medium text-muted hover:border-purple-primary hover:text-accent transition-all"
-              >
+              <Button variant="secondary" onClick={() => setStep(1)}>
                 {icons.arrowLeft}
                 Back
-              </button>
+              </Button>
             )}
-
-            {/* Save Draft (normal posts, both steps) */}
             {!isTakeMode && (
-              <button
-                onClick={handleSaveDraft}
-                disabled={draftSaveStatus === "saving"}
-                className={`flex items-center justify-center gap-2 flex-1 sm:flex-initial px-5 sm:px-6 py-3 rounded-full font-ui text-sm sm:text-base font-semibold transition-all ${
-                  draftSaveStatus === "saved"
-                    ? "bg-green-500 text-white"
-                  : draftSaveStatus === "saving"
-                    ? "bg-purple-primary/70 text-white cursor-wait"
-                    : "bg-purple-primary text-white hover:bg-accent/90"
-                }`}
-              >
-                {draftSaveStatus === "saving" ? (
-                  <>
-                    <Spinner size="xs" />
-                    Saving...
-                  </>
-                ) : draftSaveStatus === "saved" ? (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    Draft Saved
-                  </>
-                ) : (
-                  "Save Draft"
-                )}
-              </button>
+              <Button variant="secondary" onClick={handleSaveDraft} disabled={draftSaveStatus === "saving"} loading={draftSaveStatus === "saving"} loadingText="Saving…">
+                {draftSaveStatus === "saved" ? <>{icons.check} Draft saved</> : "Save draft"}
+              </Button>
             )}
-
-            {/* Next (Step 1, normal posts) */}
             {!isTakeMode && step === 1 && (
-              <Button
-                variant="outline-gradient"
-                size="lg"
-                onClick={handleGoToFormatStep}
-                className="flex-1 sm:flex-initial"
-              >
+              <Button onClick={handleGoToFormatStep}>
                 Next
                 {icons.arrowRight}
               </Button>
             )}
-
-            {/* Publish (Step 2, normal posts) / Post Take (Take mode) */}
             {(isTakeMode || step === 2) && (
               <Button
-                variant="outline-gradient"
-                size="lg"
                 onClick={handlePublish}
                 disabled={isTakeMode && !takeVideoFile}
                 loading={loading || takeUploading}
-                loadingText={
-                  isTakeMode
-                    ? `Uploading... ${Math.round(takeProgress)}%`
-                    : isEditing
-                    ? "Updating..."
-                    : "Publishing..."
-                }
-                className="flex-1 sm:flex-initial"
+                loadingText={isTakeMode ? `Uploading… ${Math.round(takeProgress)}%` : isEditing ? "Updating…" : "Publishing…"}
               >
                 {isTakeMode ? "Post Take" : isEditing ? "Update" : "Publish"}
               </Button>
             )}
           </div>
         </div>
-
-      {/* Character Count - Hidden in Take mode */}
-      {!isTakeMode && (
-        <div className="flex justify-end mt-4">
-          <span
-            className={`font-ui text-[0.8rem] ${
-              charCount > 10000
-                ? "text-red-500"
-                : charCount > 8000
-                ? "text-orange-500"
-                : "text-muted"
-            }`}
-          >
-            {charCount.toLocaleString()} characters
-          </span>
-        </div>
-      )}
-
       </div>
 
-      {/* Collaborators Picker Modal */}
       {user && (
         <PeoplePickerModal
           isOpen={showCollaboratorPicker}
@@ -4570,7 +3455,6 @@ export default function CreatePost() {
         />
       )}
 
-      {/* Tag People Picker Modal */}
       {user && (
         <PeoplePickerModal
           isOpen={showTagPeoplePicker}
@@ -4584,7 +3468,6 @@ export default function CreatePost() {
         />
       )}
 
-      {/* Background Picker Modal */}
       {showBackgroundPicker && (
         <BackgroundPicker
           value={styling.background || null}
@@ -4592,6 +3475,6 @@ export default function CreatePost() {
           onClose={() => setShowBackgroundPicker(false)}
         />
       )}
-    </div>
+    </PageFrame>
   );
 }

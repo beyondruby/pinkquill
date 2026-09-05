@@ -6,6 +6,7 @@
 @import "../components/feed/feed.css"; /* home feed frame */
 @import "../components/ui/tabs.css"; /* tabs, chips and list rows */
 @import "../components/feed/post-detail.css"; /* post page + modal */
+@import "../components/create/composer.css"; /* composer */
 
 /* ============================================================================
    THEME TOKEN LAYER

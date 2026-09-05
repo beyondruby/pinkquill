@@ -98,6 +98,7 @@ Ratios compare normal text to its fill and border/focus to the existing surface 
 | Application frame, page widths | `components/layout/shell.css`, `AppShell`, `PageFrame`/`PageHeader`; section sidebars (settings, seller, insights, console) stay with their phases |
 | Navigation destinations | `components/layout/navigation.tsx`; add or gate a destination here, never in a component |
 | Tabs, chips, list rows | `components/ui/Tabs.tsx` (`TabRow`) + `components/ui/tabs.css` (`.pq-tabs`, `.pq-chip`, `.pq-list`); first consumers Explore and the tag page, next studio/community/order tabs |
+| Composer | `components/create/composer.css` + `components/create/pieces.tsx` (`ComposerSteps`, `Disclosure`, `Switch`, `FieldLabel`); `CreatePost.tsx` render only, logic untouched. Field, toolbar, dropzone, disclosure and switch classes are reusable by later forms (listing wizard, settings) |
 | Post detail (page + modal) | `components/feed/PostDetail/*` + `components/feed/post-detail.css`; both surfaces render only through these seams |
 | Post card (`.post`, header, actions), stream rows, gallery tiles | `app/globals.css` "POST CARDS" section, retuned on tokens in 3B; shared by feed, studio, community and detail. Home frame classes live in `components/feed/feed.css` |
 

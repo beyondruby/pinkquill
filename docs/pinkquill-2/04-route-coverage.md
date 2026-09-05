@@ -13,7 +13,7 @@ September 5 update: the four-screen proof and component reference live outside a
 | `/` | [app/(feed)/page.tsx](../../app/(feed)/page.tsx) | 3 | Redesigned in 3B (frame, toolbar, three views, states, right column); media-rich cards to verify in Phase 4 |
 | `/explore` | [app/(feed)/explore/page.tsx](../../app/(feed)/explore/page.tsx) | 3 | Redesigned in 3C (frame, tab row, type menu, topics list, states) |
 | `/tag/[tag]` | [app/tag/[tag]/page.tsx](../../app/tag/[tag]/page.tsx) | 3 | Redesigned in 3C (now inside AppShell; header, chips, states) |
-| `/create` | [app/(feed)/create/page.tsx](../../app/(feed)/create/page.tsx) | 4 | Not started |
+| `/create` | [app/(feed)/create/page.tsx](../../app/(feed)/create/page.tsx) | 4 | Redesigned in 4B (frame, steps, toolbar, media, format choice, extras, footer menus); Take editor inside it still old (4C) |
 | `/pending-collaborations` | [app/(feed)/pending-collaborations/page.tsx](../../app/(feed)/pending-collaborations/page.tsx) | 4 | Not started |
 | `/post/[id]` | [app/post/[id]/page.tsx](../../app/post/[id]/page.tsx) | 4 | Redesigned in 4A (shared PostDetail seams, conversation card, back contract); media-rich and commented posts to verify |
 | `/take/[id]` | [app/take/[id]/page.tsx](../../app/take/[id]/page.tsx) | 4 | Not started |

@@ -15,6 +15,8 @@ import {
 import { useUserSearch } from "@/lib/hooks.legacy";
 import type { SearchableUser } from "@/lib/hooks.legacy";
 import { getOptimizedAvatarUrl } from "@/lib/utils/image";
+import Sheet from "./Sheet";
+import Button from "./Button";
 
 // Extended user with role for collaborators
 export interface CollaboratorWithRole extends SearchableUser {
@@ -76,21 +78,6 @@ export default function PeoplePickerModal({
   }, [query, search]);
 
   // Close on escape
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-
-    if (isOpen) {
-      document.addEventListener("keydown", handleEscape);
-      document.body.style.overflow = "hidden";
-    }
-
-    return () => {
-      document.removeEventListener("keydown", handleEscape);
-      document.body.style.overflow = "auto";
-    };
-  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -149,49 +136,30 @@ export default function PeoplePickerModal({
   const icon = mode === "collaborators" ? faUsers : faUserTag;
 
   return (
-    <div
-      className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[2000] flex justify-center items-center animate-fadeIn"
-      onClick={onClose}
+    <Sheet
+      isOpen={isOpen}
+      onClose={onClose}
+      title={title}
+      subtitle={subtitle}
+      size="tall"
+      bodyClassName="pq-dialog__body--flush"
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button onClick={handleConfirm} disabled={selected.length === 0}>
+            {mode === "collaborators" ? "Add collaborators" : "Tag people"}
+            {selected.length > 0 && ` (${selected.length})`}
+          </Button>
+        </>
+      }
     >
-      <div
-        className="w-[95%] max-w-[500px] bg-surface rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-scaleIn"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="relative px-6 pt-6 pb-4 border-b border-gray-100">
-          {/* Decorative gradient line */}
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-primary via-pink-vivid to-warm-orange" />
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-primary/10 to-pink-vivid/10 flex items-center justify-center">
-                <FontAwesomeIcon
-                  icon={icon}
-                  className="text-purple-primary text-lg"
-                />
-              </div>
-              <div>
-                <h2 className="text-xl font-semibold text-ink font-display">
-                  {title}
-                </h2>
-                <p className="text-sm text-muted-text font-ui">{subtitle}</p>
-              </div>
-            </div>
-            <button
-              onClick={onClose}
-              className="w-8 h-8 rounded-full hover:bg-skeleton flex items-center justify-center transition-colors"
-            >
-              <FontAwesomeIcon icon={faTimes} className="text-gray-500" />
-            </button>
-          </div>
-        </div>
-
+      <div className="flex flex-col min-h-0">
         {/* Search Input */}
         <div className="px-6 py-4">
           <div className="relative">
             <FontAwesomeIcon
               icon={faSearch}
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-subdued"
             />
             <input
               ref={inputRef}
@@ -199,13 +167,13 @@ export default function PeoplePickerModal({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search people..."
-              className="w-full pl-11 pr-4 py-3 bg-subtle border border-gray-200 rounded-xl text-ink placeholder:text-gray-400 focus:outline-none focus:border-purple-primary focus:ring-2 focus:ring-purple-primary/20 transition-all font-ui"
+              className="pq-field pq-field--ui pl-11"
             />
             {loading && (
               <FontAwesomeIcon
                 icon={faSpinner}
                 spin
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-purple-primary"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-action-ink"
               />
             )}
           </div>
@@ -218,7 +186,7 @@ export default function PeoplePickerModal({
               <span className="text-sm font-medium text-ink font-ui">
                 Selected
               </span>
-              <span className="text-xs px-2 py-0.5 bg-purple-primary/10 text-purple-primary rounded-full font-ui">
+              <span className="text-xs px-2 py-0.5 bg-action-soft text-action-ink rounded-full font-ui">
                 {selected.length}/{maxSelections}
               </span>
             </div>
@@ -227,7 +195,7 @@ export default function PeoplePickerModal({
                 <div key={user.id} className="flex flex-col gap-2">
                   {/* User pill */}
                   <div className="flex items-center justify-between">
-                    <div className="inline-flex items-center gap-2 pl-1 pr-3 py-1 bg-gradient-to-r from-purple-primary/10 to-pink-vivid/10 rounded-full border border-purple-primary/20">
+                    <div className="inline-flex items-center gap-2 pl-1 pr-3 py-1 rounded-full border border-line bg-surface">
                       <div className="relative">
                         {user.avatar_url ? (
                           <img
@@ -237,12 +205,12 @@ export default function PeoplePickerModal({
                             loading="lazy"
                           />
                         ) : (
-                          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center text-white text-xs font-medium">
+                          <div className="w-6 h-6 rounded-full pq-avatar pq-avatar--sm">
                             {(user.display_name || user.username)[0].toUpperCase()}
                           </div>
                         )}
                         {user.is_verified && (
-                          <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-gradient-to-r from-purple-primary to-pink-vivid rounded-full flex items-center justify-center">
+                          <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-action rounded-full flex items-center justify-center">
                             <FontAwesomeIcon
                               icon={faCheck}
                               className="text-white text-[6px]"
@@ -254,7 +222,7 @@ export default function PeoplePickerModal({
                         {user.display_name || user.username}
                       </span>
                       {user.role && (
-                        <span className="text-xs px-2 py-0.5 bg-purple-primary/20 text-purple-primary rounded-full font-ui font-medium">
+                        <span className="text-xs px-2 py-0.5 bg-action-soft text-action-ink rounded-full font-ui font-medium">
                           {user.role}
                         </span>
                       )}
@@ -263,12 +231,12 @@ export default function PeoplePickerModal({
                       {mode === "collaborators" && (
                         <button
                           onClick={() => setEditingRoleFor(editingRoleFor === user.id ? null : user.id)}
-                          className="w-6 h-6 rounded-full hover:bg-purple-50 flex items-center justify-center transition-colors"
+                          className="w-6 h-6 rounded-full hover:bg-tint flex items-center justify-center transition-colors"
                           title="Edit role"
                         >
                           <FontAwesomeIcon
                             icon={faPen}
-                            className="text-purple-primary text-[10px]"
+                            className="text-action-ink text-[10px]"
                           />
                         </button>
                       )}
@@ -278,7 +246,7 @@ export default function PeoplePickerModal({
                       >
                         <FontAwesomeIcon
                           icon={faTimes}
-                          className="text-gray-400 hover:text-red-500 text-xs"
+                          className="text-subdued hover:text-red-500 text-xs"
                         />
                       </button>
                     </div>
@@ -286,8 +254,8 @@ export default function PeoplePickerModal({
 
                   {/* Role editor (for collaborators mode) */}
                   {mode === "collaborators" && editingRoleFor === user.id && (
-                    <div className="ml-8 flex flex-col gap-2 p-3 bg-subtle rounded-xl border border-gray-100 animate-fadeIn">
-                      <label className="text-xs font-medium text-muted-text font-ui">
+                    <div className="ml-8 flex flex-col gap-2 p-3 bg-subtle rounded-xl border border-line animate-fadeIn">
+                      <label className="text-xs font-medium text-subdued font-ui">
                         Role (optional)
                       </label>
                       <div className="flex flex-wrap gap-1.5">
@@ -300,8 +268,8 @@ export default function PeoplePickerModal({
                             }}
                             className={`px-2.5 py-1 text-xs font-medium rounded-full transition-all ${
                               user.role === role
-                                ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white"
-                                : "bg-surface border border-gray-200 text-gray-600 hover:border-accent hover:text-accent"
+                                ? "bg-action-soft text-action-ink"
+                                : "bg-surface border border-line text-subdued hover:border-accent hover:text-accent"
                             }`}
                           >
                             {role}
@@ -314,11 +282,11 @@ export default function PeoplePickerModal({
                           placeholder="Or type custom role..."
                           value={user.role || ""}
                           onChange={(e) => setUserRole(user.id, e.target.value)}
-                          className="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-purple-primary focus:ring-1 focus:ring-purple-primary/20 font-ui"
+                          className="flex-1 px-3 py-1.5 text-sm border border-line rounded-lg focus:outline-none focus:border-action focus:ring-[3px] focus:ring-action-soft font-ui"
                         />
                         <button
                           onClick={() => setEditingRoleFor(null)}
-                          className="px-3 py-1.5 text-xs font-medium text-purple-primary hover:bg-purple-50 rounded-lg transition-colors"
+                          className="px-3 py-1.5 text-xs font-medium text-action-ink hover:bg-tint rounded-lg transition-colors"
                         >
                           Done
                         </button>
@@ -354,11 +322,11 @@ export default function PeoplePickerModal({
                   <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-skeleton flex items-center justify-center">
                     <FontAwesomeIcon
                       icon={faSearch}
-                      className="text-gray-400 text-xl"
+                      className="text-subdued text-xl"
                     />
                   </div>
-                  <p className="text-gray-500 font-ui">No users found</p>
-                  <p className="text-sm text-gray-400 font-ui">
+                  <p className="text-subdued font-ui">No users found</p>
+                  <p className="text-sm text-subdued font-ui">
                     Try a different search term
                   </p>
                 </div>
@@ -371,7 +339,7 @@ export default function PeoplePickerModal({
                   <div className="flex items-center gap-2 mb-2">
                     <FontAwesomeIcon
                       icon={faUserPlus}
-                      className="text-purple-primary text-sm"
+                      className="text-action-ink text-sm"
                     />
                     <span className="text-sm font-medium text-ink font-ui">
                       Suggestions
@@ -397,10 +365,10 @@ export default function PeoplePickerModal({
                   <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-skeleton flex items-center justify-center">
                     <FontAwesomeIcon
                       icon={faSearch}
-                      className="text-gray-400 text-xl"
+                      className="text-subdued text-xl"
                     />
                   </div>
-                  <p className="text-gray-500 font-ui">
+                  <p className="text-subdued font-ui">
                     Search for people to{" "}
                     {mode === "collaborators" ? "collaborate with" : "tag"}
                   </p>
@@ -410,25 +378,8 @@ export default function PeoplePickerModal({
           )}
         </div>
 
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-100 bg-subtle/50 flex items-center justify-between">
-          <button
-            onClick={onClose}
-            className="px-5 py-2.5 text-gray-600 hover:text-ink font-medium font-ui transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleConfirm}
-            disabled={selected.length === 0}
-            className="px-6 py-2.5 bg-gradient-to-r from-purple-primary to-pink-vivid text-white font-medium rounded-full shadow-lg shadow-purple-primary/25 hover:shadow-xl hover:shadow-purple-primary/30 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-lg font-ui"
-          >
-            {mode === "collaborators" ? "Add Collaborators" : "Tag People"}
-            {selected.length > 0 && ` (${selected.length})`}
-          </button>
-        </div>
       </div>
-    </div>
+    </Sheet>
   );
 }
 
@@ -447,7 +398,7 @@ function UserRow({ user, isSelected, onClick, disabled }: UserRowProps) {
       disabled={disabled}
       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
         isSelected
-          ? "bg-gradient-to-r from-purple-primary/10 to-pink-vivid/10 border border-purple-primary/20"
+          ? "bg-action-soft"
           : disabled
           ? "opacity-50 cursor-not-allowed"
           : "hover:bg-subtle border border-transparent"
@@ -463,12 +414,12 @@ function UserRow({ user, isSelected, onClick, disabled }: UserRowProps) {
             loading="lazy"
           />
         ) : (
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center text-white font-medium">
+          <div className="w-10 h-10 rounded-full pq-avatar">
             {(user.display_name || user.username)[0].toUpperCase()}
           </div>
         )}
         {user.is_verified && (
-          <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-gradient-to-r from-purple-primary to-pink-vivid rounded-full flex items-center justify-center border-2 border-white">
+          <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-action rounded-full flex items-center justify-center border-2 border-white">
             <FontAwesomeIcon icon={faCheck} className="text-white text-[8px]" />
           </div>
         )}
@@ -479,14 +430,14 @@ function UserRow({ user, isSelected, onClick, disabled }: UserRowProps) {
         <div className="font-medium text-ink font-ui">
           {user.display_name || user.username}
         </div>
-        <div className="text-sm text-muted-text font-ui">@{user.username}</div>
+        <div className="text-sm text-subdued font-ui">@{user.username}</div>
       </div>
 
       {/* Selection indicator */}
       <div
         className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${
           isSelected
-            ? "bg-gradient-to-r from-purple-primary to-pink-vivid"
+            ? "bg-action"
             : "border-2 border-gray-300"
         }`}
       >
