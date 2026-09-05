@@ -212,7 +212,7 @@ function StreamRow({
       </div>
 
       {expanded && (
-        <div className="pq-stream-expanded home-feed-modern">
+        <div className="pq-stream-expanded">
           <PostCard post={post} onPostDeleted={onPostDeleted} disableRealtimeSubscriptions={true} />
         </div>
       )}

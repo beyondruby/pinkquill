@@ -12,7 +12,8 @@ import { isProtectedPath } from "@/lib/auth/protected-paths";
 export type NavIconName =
   | "home" | "compass" | "people" | "shop" | "takes" | "message" | "studio" | "orders"
   | "more" | "plus" | "search" | "bell" | "save" | "bag" | "collab" | "chart" | "seller"
-  | "settings" | "help" | "logout" | "quill" | "product" | "service" | "back" | "close";
+  | "settings" | "help" | "logout" | "quill" | "product" | "service" | "back" | "close"
+  | "image" | "video" | "music";
 
 const PATHS: Record<NavIconName, string> = {
   home: "M3 10.5 12 3l9 7.5M5 9v12h5v-7h4v7h5V9",
@@ -40,6 +41,9 @@ const PATHS: Record<NavIconName, string> = {
   service: "M9 7h8M9 11h5M9 15h6M21 17a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v8Z",
   back: "M19 12H5M11 6l-6 6 6 6",
   close: "M6 6l12 12M18 6 6 18",
+  image: "M3 3h18v18H3V3ZM3 16l5-5 4 4 4-5 5 6M8 7h.01",
+  video: "M3 5h13v14H3V5ZM16 9l6-4v14l-6-4",
+  music: "M9 18V5l12-3v13M9 18a3 3 0 1 1-3-3h3M21 15a3 3 0 1 1-3-3h3",
 };
 
 export function NavIcon({ name, className = "" }: { name: NavIconName; className?: string }): ReactElement {

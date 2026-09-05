@@ -303,7 +303,7 @@ export function GalleryFeed({ items }: { items: FeedItem[] }) {
   const distributed = useMemo(() => distribute(items, columns), [items, columns]);
 
   return (
-    <div className="pq-gallery" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
+    <div className="pq-gallery" data-columns={columns} style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
       {distributed.map((col, i) => (
         <div key={i} className="pq-gallery-col">
           {col.map(({ original, transformed }) => (
