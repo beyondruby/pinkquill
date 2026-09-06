@@ -4,6 +4,10 @@ import React, { useState } from "react";
 import { useCommunityFlairs, useManageFlairs } from "@/lib/hooks/useFlair";
 import FlairBadge from "./FlairBadge";
 import type { CommunityFlair } from "@/lib/types";
+import Button from "@/components/ui/Button";
+import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import { FieldLabel } from "@/components/create/pieces";
+import { Spinner } from "@/components/ui/Loading";
 
 interface FlairManagerProps {
   communityId: string;
@@ -122,294 +126,105 @@ export default function FlairManager({ communityId }: FlairManagerProps) {
   };
 
   if (loading) {
-    return (
-      <div className="p-4 text-center text-muted">Loading flairs...</div>
-    );
+    return <div className="pq-feed-state" role="status" aria-label="Loading flairs"><Spinner size="lg" /></div>;
   }
 
+  const pendingDelete = flairs.find((f) => f.id === deleteConfirm) || null;
+
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold font-display text-ink">
-            Post Flairs
-          </h3>
-          <p className="text-sm text-muted">
-            Create categories for posts in your community ({flairs.length}/
-            {MAX_FLAIRS})
-          </p>
-        </div>
+    <div className="grid gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-subdued">{flairs.length} of {MAX_FLAIRS} flairs.</p>
         {!showForm && flairs.length < MAX_FLAIRS && (
-          <button
-            onClick={() => setShowForm(true)}
-            className="px-4 py-2 bg-purple-primary text-white rounded-lg hover:bg-accent/90 transition-colors font-ui text-sm"
-          >
-            Add Flair
-          </button>
+          <Button variant="secondary" size="sm" onClick={() => setShowForm(true)}>Add a flair</Button>
         )}
       </div>
 
-      {/* Create/Edit Form */}
       {showForm && (
-        <form
-          onSubmit={handleSubmit}
-          className="bg-subtle rounded-lg p-4 space-y-4"
-        >
-          <div className="flex items-start gap-4">
-            {/* Emoji Input */}
+        <form onSubmit={handleSubmit} className="pq-panel grid gap-4">
+          <p className="pq-panel__title">{editingFlair ? "Edit flair" : "New flair"}</p>
+          <div className="grid gap-3 sm:grid-cols-[5rem_1fr]">
             <div>
-              <label className="block text-sm font-medium text-ink mb-1">
-                Emoji
-              </label>
-              <input
-                type="text"
-                value={formData.emoji}
-                onChange={(e) =>
-                  setFormData({ ...formData, emoji: e.target.value.slice(0, 2) })
-                }
-                placeholder="Optional"
-                className="w-16 px-3 py-2 rounded-lg border border-border-light focus:border-purple-primary focus:outline-none text-center"
-                maxLength={2}
-              />
+              <FieldLabel htmlFor="flair-emoji" hint="(optional)">Emoji</FieldLabel>
+              <input id="flair-emoji" type="text" className="pq-field pq-field--ui text-center" value={formData.emoji} onChange={(e) => setFormData({ ...formData, emoji: e.target.value.slice(0, 2) })} maxLength={2} />
             </div>
-
-            {/* Name Input */}
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-ink mb-1">
-                Name <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) =>
-                  setFormData({ ...formData, name: e.target.value })
-                }
-                placeholder="e.g., Discussion, Question, Announcement"
-                className="w-full px-3 py-2 rounded-lg border border-border-light focus:border-purple-primary focus:outline-none"
-                maxLength={30}
-                required
-              />
+            <div>
+              <FieldLabel htmlFor="flair-name">Name</FieldLabel>
+              <input id="flair-name" type="text" className="pq-field pq-field--ui" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Question, Work in progress, Finished piece" maxLength={30} required />
             </div>
           </div>
-
-          {/* Color Picker */}
           <div>
-            <label className="block text-sm font-medium text-ink mb-2">
-              Color
-            </label>
-            <div className="flex flex-wrap gap-2">
+            <p className="pq-label">Colour</p>
+            <div className="pq-swatches" role="radiogroup" aria-label="Colour">
               {DEFAULT_COLORS.map((color) => (
                 <button
                   key={color}
                   type="button"
+                  role="radio"
+                  aria-checked={formData.color === color}
+                  aria-label={color}
+                  className="pq-swatch"
+                  style={{ background: color, outline: formData.color === color ? "3px solid var(--color-action)" : undefined, outlineOffset: 2 }}
                   onClick={() => setFormData({ ...formData, color })}
-                  className={`w-8 h-8 rounded-full transition-transform ${
-                    formData.color === color
-                      ? "ring-2 ring-offset-2 ring-purple-primary scale-110"
-                      : "hover:scale-110"
-                  }`}
-                  style={{ backgroundColor: color }}
-                  title={color}
                 />
               ))}
-              {/* Custom color input */}
-              <input
-                type="color"
-                value={formData.color}
-                onChange={(e) =>
-                  setFormData({ ...formData, color: e.target.value })
-                }
-                className="w-8 h-8 rounded-full cursor-pointer border-0 p-0"
-                title="Custom color"
-              />
+              <input type="color" value={formData.color} onChange={(e) => setFormData({ ...formData, color: e.target.value })} className="pq-swatch p-0" aria-label="Custom colour" />
             </div>
           </div>
-
-          {/* Preview */}
-          <div>
-            <label className="block text-sm font-medium text-ink mb-2">
-              Preview
-            </label>
-            <FlairBadge
-              flair={{
-                id: "preview",
-                community_id: communityId,
-                name: formData.name || "Flair Name",
-                color: formData.color,
-                emoji: formData.emoji || null,
-                position: 0,
-                created_at: "",
-              }}
-              size="md"
-            />
+          <div className="flex items-center gap-3">
+            <span className="pq-label m-0">Preview</span>
+            <FlairBadge flair={{ id: "preview", community_id: communityId, name: formData.name || "Flair", color: formData.color, emoji: formData.emoji || null, position: 0, created_at: "" }} size="md" />
           </div>
-
-          {/* Actions */}
-          <div className="flex gap-2 justify-end">
-            <button
-              type="button"
-              onClick={resetForm}
-              className="px-4 py-2 text-muted hover:text-ink transition-colors font-ui text-sm"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={!formData.name.trim() || saving}
-              className="px-4 py-2 bg-purple-primary text-white rounded-lg hover:bg-accent/90 transition-colors font-ui text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {saving
-                ? "Saving..."
-                : editingFlair
-                  ? "Update Flair"
-                  : "Create Flair"}
-            </button>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button type="button" variant="ghost" size="sm" onClick={resetForm}>Cancel</Button>
+            <Button type="submit" variant="primary" size="sm" disabled={!formData.name.trim()} loading={saving} loadingText="Saving…">
+              {editingFlair ? "Save" : "Create flair"}
+            </Button>
           </div>
         </form>
       )}
 
-      {/* Flairs List */}
       {flairs.length > 0 ? (
-        <div className="space-y-2">
+        <ol className="pq-list list-none m-0 p-0" aria-label="Flairs">
           {flairs.map((flair, index) => (
-            <div
-              key={flair.id}
-              className="flex items-center gap-3 p-3 bg-surface rounded-lg border border-border-light"
-            >
-              {/* Reorder buttons */}
-              <div className="flex flex-col gap-0.5">
-                <button
-                  onClick={() => handleMoveUp(index)}
-                  disabled={index === 0 || saving}
-                  className="p-1 text-muted hover:text-ink disabled:opacity-30 disabled:cursor-not-allowed"
-                  title="Move up"
-                >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 15l7-7 7 7"
-                    />
-                  </svg>
-                </button>
-                <button
-                  onClick={() => handleMoveDown(index)}
-                  disabled={index === flairs.length - 1 || saving}
-                  className="p-1 text-muted hover:text-ink disabled:opacity-30 disabled:cursor-not-allowed"
-                  title="Move down"
-                >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </button>
-              </div>
-
-              {/* Flair badge */}
-              <FlairBadge flair={flair} size="md" />
-
-              {/* Spacer */}
-              <div className="flex-1" />
-
-              {/* Edit/Delete buttons */}
-              <button
-                onClick={() => handleEdit(flair)}
-                className="p-2 text-muted hover:text-accent transition-colors"
-                title="Edit flair"
-              >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                  />
-                </svg>
-              </button>
-
-              {deleteConfirm === flair.id ? (
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleDelete(flair.id)}
-                    className="px-2 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 transition-colors"
-                  >
-                    Confirm
+            <li key={flair.id} className="pq-person">
+              <div className="pq-person__row">
+                <div className="flex flex-col">
+                  <button type="button" className="pq-icon-button" style={{ inlineSize: "2rem", blockSize: "1.5rem" }} onClick={() => handleMoveUp(index)} disabled={index === 0 || saving} aria-label={`Move ${flair.name} up`}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="w-3.5 h-3.5"><path d="M6 15l6-6 6 6" /></svg>
                   </button>
-                  <button
-                    onClick={() => setDeleteConfirm(null)}
-                    className="px-2 py-1 text-muted text-xs hover:text-ink transition-colors"
-                  >
-                    Cancel
+                  <button type="button" className="pq-icon-button" style={{ inlineSize: "2rem", blockSize: "1.5rem" }} onClick={() => handleMoveDown(index)} disabled={index === flairs.length - 1 || saving} aria-label={`Move ${flair.name} down`}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="w-3.5 h-3.5"><path d="M6 9l6 6 6-6" /></svg>
                   </button>
                 </div>
-              ) : (
-                <button
-                  onClick={() => setDeleteConfirm(flair.id)}
-                  className="p-2 text-muted hover:text-red-500 transition-colors"
-                  title="Delete flair"
-                >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                    />
-                  </svg>
-                </button>
-              )}
-            </div>
+                <div className="pq-person__text"><FlairBadge flair={flair} size="md" /></div>
+                <div className="pq-person__trailing">
+                  <Button variant="ghost" size="sm" onClick={() => handleEdit(flair)}>Edit</Button>
+                  <Button variant="ghost" size="sm" onClick={() => setDeleteConfirm(flair.id)}>Delete</Button>
+                </div>
+              </div>
+            </li>
           ))}
-        </div>
+        </ol>
       ) : (
         !showForm && (
-          <div className="text-center py-8 text-muted">
-            <svg
-              className="w-12 h-12 mx-auto mb-3 text-muted/40"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
-              />
-            </svg>
-            <p>No flairs yet</p>
-            <p className="text-sm mt-1">
-              Create flairs to help categorize posts in your community
-            </p>
+          <div className="pq-feed-state pq-feed-state--card">
+            <p className="pq-feed-state__title">No flairs yet</p>
+            <p className="pq-feed-state__text">Flairs are optional labels members choose when they post here.</p>
           </div>
         )
       )}
+
+      <ConfirmationModal
+        isOpen={!!pendingDelete}
+        onClose={() => setDeleteConfirm(null)}
+        onConfirm={() => { if (pendingDelete) void handleDelete(pendingDelete.id); }}
+        title={`Delete the ${pendingDelete?.name || ""} flair?`}
+        description="Posts that carry it lose the label. Nothing else changes."
+        confirmText="Delete"
+        isDanger
+        loading={saving}
+      />
     </div>
   );
 }

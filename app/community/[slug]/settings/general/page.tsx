@@ -5,6 +5,12 @@ import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useCommunity, useUpdateCommunity } from "@/lib/hooks.legacy";
 import { supabase } from "@/lib/supabase";
+import Button from "@/components/ui/Button";
+import { FieldLabel } from "@/components/create/pieces";
+import { CommunitySettingsFrame, Notice } from "@/components/communities/pieces";
+import { CommunityMark } from "@/components/communities/CommunityCard";
+import "@/components/create/composer.css";
+import "@/components/communities/communities.css";
 
 export default function CommunityGeneralSettingsPage() {
   const params = useParams();
@@ -132,179 +138,69 @@ export default function CommunityGeneralSettingsPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <h2 className="font-display text-xl font-bold text-ink mb-6">General Settings</h2>
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Cover Image */}
+    <CommunitySettingsFrame community={community} title="General" lede="How the community introduces itself.">
+      <form onSubmit={handleSubmit} className="grid gap-5">
         <div>
-          <label className="block font-ui text-sm font-medium text-ink mb-2">
-            Cover Image
-          </label>
-          <div className="relative h-40 rounded-xl overflow-hidden bg-gradient-to-br from-purple-primary/20 to-pink-vivid/20 border border-border-light">
-            {coverPreview && (
-              <img
-                src={coverPreview}
-                alt=""
-                className="w-full h-full object-cover"
-              />
-            )}
-            <label className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 hover:opacity-100 transition-opacity cursor-pointer">
-              <span className="px-4 py-2 rounded-lg bg-surface/90 text-ink font-ui text-sm font-medium">
-                Change Cover
-              </span>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleCoverChange}
-                className="hidden"
-              />
+          <p className="pq-label">Cover</p>
+          <div className="pq-image-field">
+            {coverPreview ? <img src={coverPreview} alt="" className="pq-image-field__preview" /> : <div className="pq-image-field__preview" aria-hidden="true" />}
+            <label className="pq-button pq-button--sm pq-button--secondary cursor-pointer">
+              {coverPreview ? "Change cover" : "Add a cover"}
+              <input type="file" accept="image/*" onChange={handleCoverChange} className="sr-only" />
             </label>
+            <span className="pq-image-field__hint">Wide image, at least 1200×240. Shows as a low band above the name.</span>
           </div>
         </div>
 
-        {/* Avatar */}
         <div>
-          <label className="block font-ui text-sm font-medium text-ink mb-2">
-            Avatar
-          </label>
-          <div className="flex items-center gap-4">
-            <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-gradient-to-br from-purple-primary to-pink-vivid">
-              {avatarPreview ? (
-                <img
-                  src={avatarPreview}
-                  alt=""
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-white text-2xl font-bold">
-                  {formData.name.charAt(0).toUpperCase()}
-                </div>
-              )}
-              <label className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 hover:opacity-100 transition-opacity cursor-pointer">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleAvatarChange}
-                  className="hidden"
-                />
-              </label>
-            </div>
-            <p className="font-body text-sm text-muted">
-              Recommended: Square image, at least 200x200px
-            </p>
+          <p className="pq-label">Mark</p>
+          <div className="pq-image-field">
+            <CommunityMark community={{ name: formData.name || community.name, avatar_url: avatarPreview }} size="lg" />
+            <label className="pq-button pq-button--sm pq-button--secondary cursor-pointer">
+              {avatarPreview ? "Change mark" : "Add a mark"}
+              <input type="file" accept="image/*" onChange={handleAvatarChange} className="sr-only" />
+            </label>
+            <span className="pq-image-field__hint">Square, at least 200×200. Without one, the first letter is used.</span>
           </div>
         </div>
 
-        {/* Name */}
         <div>
-          <label className="block font-ui text-sm font-medium text-ink mb-2">
-            Community Name
-          </label>
-          <input
-            type="text"
-            value={formData.name}
-            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-            className="w-full px-4 py-3 rounded-xl bg-surface border border-border-light font-ui text-sm focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-200 transition-all"
-            maxLength={100}
-          />
+          <FieldLabel htmlFor="community-name">Name</FieldLabel>
+          <input id="community-name" type="text" className="pq-field" value={formData.name} onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))} maxLength={100} />
         </div>
 
-        {/* Description */}
         <div>
-          <label className="block font-ui text-sm font-medium text-ink mb-2">
-            Description
-          </label>
-          <textarea
-            value={formData.description}
-            onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-            rows={4}
-            className="w-full px-4 py-3 rounded-xl bg-surface border border-border-light font-ui text-sm focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-200 transition-all resize-none"
-            maxLength={500}
-          />
+          <FieldLabel htmlFor="community-description" hint={`${formData.description.length}/500`}>What it&rsquo;s for</FieldLabel>
+          <textarea id="community-description" className="pq-field" value={formData.description} onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))} rows={4} maxLength={500} />
         </div>
 
-        {/* Privacy (Admin Only) */}
         {isAdmin && (
           <div>
-            <label className="block font-ui text-sm font-medium text-ink mb-2">
-              Privacy
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setFormData(prev => ({ ...prev, privacy: 'public' }))}
-                className={`p-4 rounded-xl border text-left transition-all ${
-                  formData.privacy === 'public'
-                    ? 'border-purple-primary bg-purple-primary/5'
-                    : 'border-border-light hover:border-accent/30'
-                }`}
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <svg className="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064" />
-                  </svg>
-                  <span className="font-ui font-semibold text-ink">Public</span>
-                </div>
-                <p className="font-body text-xs text-muted">Anyone can join</p>
-              </button>
-              <button
-                type="button"
-                onClick={() => setFormData(prev => ({ ...prev, privacy: 'private' }))}
-                className={`p-4 rounded-xl border text-left transition-all ${
-                  formData.privacy === 'private'
-                    ? 'border-purple-primary bg-purple-primary/5'
-                    : 'border-border-light hover:border-accent/30'
-                }`}
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <svg className="w-5 h-5 text-purple-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                  <span className="font-ui font-semibold text-ink">Private</span>
-                </div>
-                <p className="font-body text-xs text-muted">Request to join</p>
-              </button>
+            <p className="pq-label">Who can join</p>
+            <div className="pq-choice-grid" role="radiogroup" aria-label="Who can join">
+              {[
+                { id: "public" as const, label: "Public", desc: "Anyone can join and see the posts." },
+                { id: "private" as const, label: "Private", desc: "People ask to join; admins approve." },
+              ].map((option) => (
+                <button key={option.id} type="button" role="radio" aria-checked={formData.privacy === option.id} className="pq-choice" onClick={() => setFormData((prev) => ({ ...prev, privacy: option.id }))}>
+                  <span>
+                    <strong className="block font-semibold">{option.label}</strong>
+                    <span className="text-sm text-subdued">{option.desc}</span>
+                  </span>
+                </button>
+              ))}
             </div>
           </div>
         )}
 
-        {error && (
-          <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-600 font-ui text-sm">
-            {error}
-          </div>
-        )}
+        {error && <Notice tone="danger">{error}</Notice>}
+        {success && <Notice>Saved.</Notice>}
 
-        {success && (
-          <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-600 font-ui text-sm flex items-center gap-2">
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-            </svg>
-            Settings saved successfully!
-          </div>
-        )}
-
-        <div className="flex justify-end gap-3">
-          <button
-            type="button"
-            onClick={() => router.push(`/community/${slug}/settings`)}
-            className="px-5 py-2.5 rounded-full bg-skeleton text-ink font-ui font-medium hover:bg-black/10 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={loading || uploading}
-            className="px-5 py-2.5 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white font-ui font-medium hover:shadow-lg hover:shadow-pink-vivid/30 transition-all disabled:opacity-50"
-          >
-            {loading || uploading ? 'Saving...' : 'Save Changes'}
-          </button>
+        <div className="pq-settings-foot">
+          <Button type="button" variant="ghost" onClick={() => router.push(`/community/${slug}/settings`)}>Cancel</Button>
+          <Button type="submit" variant="primary" loading={loading || uploading} loadingText="Saving…">Save</Button>
         </div>
       </form>
-    </div>
+    </CommunitySettingsFrame>
   );
 }

@@ -1,12 +1,14 @@
 "use client";
 
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useCommunity } from "@/lib/hooks.legacy";
 import FlairManager from "@/components/communities/FlairManager";
+import { CommunitySettingsFrame } from "@/components/communities/pieces";
 import { Spinner } from "@/components/ui/Loading";
+import "@/components/create/composer.css";
+import "@/components/communities/communities.css";
 
 export default function CommunityFlairsSettingsPage() {
   const params = useParams();
@@ -15,70 +17,17 @@ export default function CommunityFlairsSettingsPage() {
   const { user } = useAuth();
   const { community, loading } = useCommunity(slug, user?.id);
 
-  // Role gate: redirect from an effect (a router.push during render is a
-  // React error and can loop). The proxy already requires a session; the
-  // real authorization lives in RLS and the moderation RPCs.
+  // Role gate from an effect; RLS and the flair RPCs hold the real authority.
   useEffect(() => {
-    if (community && (community.user_role !== "admin")) {
-      router.replace(`/community/${slug}`);
-    }
+    if (community && community.user_role !== "admin") router.replace(`/community/${slug}`);
   }, [community, router, slug]);
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center py-12">
-        <Spinner size="xl" className="text-purple-primary" />
-      </div>
-    );
-  }
-
-  if (!community) {
-    return null;
-  }
-
-  // Only admins can manage flairs
-  if (community.user_role !== "admin") {
-    return null;
-  }
+  if (loading) return <div className="pq-feed-state" role="status" aria-label="Loading"><Spinner size="lg" /></div>;
+  if (!community || community.user_role !== "admin") return null;
 
   return (
-    <div className="max-w-2xl mx-auto">
-      {/* Back link */}
-      <Link
-        href={`/community/${slug}/settings`}
-        className="inline-flex items-center gap-2 text-muted hover:text-ink transition-colors mb-6"
-      >
-        <svg
-          className="w-4 h-4"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M15 19l-7-7 7-7"
-          />
-        </svg>
-        Back to Settings
-      </Link>
-
-      {/* Page Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-display font-bold text-ink mb-2">
-          Post Flairs
-        </h1>
-        <p className="text-muted">
-          Create categories to help organize posts in your community. Members
-          can add a flair when creating posts.
-        </p>
-      </div>
-
-      {/* Flair Manager */}
-      <div className="bg-surface rounded-xl border border-border-light p-6">
-        <FlairManager communityId={community.id} />
-      </div>
-    </div>
+    <CommunitySettingsFrame community={community} title="Flairs" lede="Labels members can put on a post so the feed sorts itself: Question, Work in progress, Finished piece.">
+      <FlairManager communityId={community.id} />
+    </CommunitySettingsFrame>
   );
 }

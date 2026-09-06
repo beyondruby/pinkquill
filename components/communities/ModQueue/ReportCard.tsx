@@ -1,9 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
-import { getTimeAgo as formatTimeAgo } from "@/lib/utils/time";
+import { useId, useState } from "react";
 import Link from "next/link";
+import { getTimeAgo as formatTimeAgo } from "@/lib/utils/time";
 import type { Report, ResolutionAction } from "@/lib/types";
+import Button from "@/components/ui/Button";
+import { FieldLabel } from "@/components/create/pieces";
+import { PersonAvatar, personName } from "@/components/communities/pieces";
 
 interface ReportCardProps {
   report: Report;
@@ -12,274 +15,129 @@ interface ReportCardProps {
   resolving?: boolean;
 }
 
-// Format date as relative time
-// Get status badge styles
-function getStatusStyles(status: string): string {
-  switch (status) {
-    case "pending":
-      return "bg-amber-100 text-amber-700";
-    case "reviewed":
-      return "bg-purple-primary/10 text-purple-primary";
-    case "resolved":
-      return "bg-emerald-100 text-emerald-700";
-    default:
-      return "bg-skeleton/70 text-ink/70";
-  }
+const STATUS_WORD: Record<string, string> = { pending: "Open", reviewed: "Reviewed", resolved: "Resolved" };
+
+const ACTIONS: { value: ResolutionAction; label: string; desc: string }[] = [
+  { value: "warning_sent", label: "Send a warning", desc: "They get a note pointing to the rules. Nothing is removed." },
+  { value: "content_deleted", label: "Remove the content", desc: "The post comes down and is logged." },
+  { value: "user_muted", label: "Mute for 7 days", desc: "They stay a member but can't post or comment." },
+  { value: "user_banned", label: "Ban", desc: "They're removed from the community." },
+];
+
+function plain(content: string): string {
+  return content.replace(/<[^>]*>/g, "");
 }
 
-// Truncate content
-function truncateContent(content: string, maxLength: number = 200): string {
-  const stripped = content.replace(/<[^>]*>/g, "");
-  if (stripped.length <= maxLength) return stripped;
-  return stripped.substring(0, maxLength) + "...";
-}
-
-export default function ReportCard({
-  report,
-  onResolve,
-  onDismiss,
-  resolving = false,
-}: ReportCardProps) {
+/**
+ * One report: who flagged what and why, the content, and a deliberate way to
+ * resolve it. Actions open in place with the lightest option first.
+ */
+export default function ReportCard({ report, onResolve, onDismiss, resolving = false }: ReportCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showActions, setShowActions] = useState(false);
   const [notes, setNotes] = useState("");
   const [selectedAction, setSelectedAction] = useState<ResolutionAction | null>(null);
+  const notesId = useId();
 
-  const handleAction = () => {
-    if (selectedAction) {
-      onResolve(selectedAction, notes || undefined);
-    }
+  const reset = () => {
     setShowActions(false);
     setNotes("");
     setSelectedAction(null);
   };
 
-  const handleDismiss = () => {
-    onDismiss(notes || undefined);
-    setShowActions(false);
-    setNotes("");
-  };
+  const target = report.type === "user" && report.reported_user
+    ? <Link href={`/studio/${report.reported_user.username}`} className="font-semibold">@{report.reported_user.username}</Link>
+    : report.type === "comment" ? "a comment" : "a post";
+
+  const content = report.reported_post?.content ? plain(report.reported_post.content) : "";
+  const isLong = content.length > 200;
 
   return (
-    <div className="bg-surface rounded-xl border border-border-light overflow-hidden">
-      {/* Header */}
-      <div className="p-4 border-b border-border-light">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            {/* Reporter Avatar */}
-            {report.reporter?.avatar_url ? (
-              <img
-                src={report.reporter.avatar_url}
-                alt=""
-                className="w-10 h-10 rounded-full object-cover"
-              />
-            ) : (
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center text-white font-bold text-sm">
-                {report.reporter?.username?.charAt(0).toUpperCase() || "?"}
-              </div>
-            )}
-
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-medium text-ink">
-                  {report.reporter?.display_name || report.reporter?.username || "Anonymous"}
-                </span>
-                <span className="text-xs text-muted">reported</span>
-                {report.type === "user" && report.reported_user && (
-                  <Link
-                    href={`/studio/${report.reported_user.username}`}
-                    className="font-medium text-purple-primary hover:underline"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    @{report.reported_user.username}
-                  </Link>
-                )}
-                {report.type === "post" && (
-                  <span className="text-muted">a post</span>
-                )}
-              </div>
-              <div className="flex items-center gap-2 text-xs text-muted mt-0.5">
-                <span>{formatTimeAgo(report.created_at)}</span>
-                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusStyles(report.status)}`}>
-                  {report.status}
-                </span>
-                <span className="px-2 py-0.5 rounded-full bg-skeleton/70 text-ink/60 text-xs">
-                  {report.type}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Expand/Collapse */}
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="p-2 text-muted hover:text-ink transition-colors"
-          >
-            <svg
-              className={`w-5 h-5 transition-transform ${isExpanded ? "rotate-180" : ""}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
+    <article className="pq-report" aria-label={`Report by ${personName(report.reporter)}`}>
+      <div className="flex items-start gap-3">
+        <PersonAvatar person={report.reporter} size="sm" />
+        <div className="min-w-0 flex-1">
+          <p className="pq-report__head">
+            <span className="font-semibold">{personName(report.reporter)}</span>
+            <span>reported</span>
+            <span>{target}</span>
+            <span className="pq-report__when">{formatTimeAgo(report.created_at)}</span>
+            <span aria-hidden="true">·</span>
+            <span className="pq-report__status">{STATUS_WORD[report.status] || report.status}</span>
+          </p>
         </div>
       </div>
 
-      {/* Report Content */}
-      <div className="p-4">
-        {/* Reason */}
-        <div className="mb-3">
-          <span className="text-xs text-muted">Reason</span>
-          <p className="text-ink font-medium mt-1">{report.reason}</p>
-        </div>
-
-        {/* Additional details */}
-        {report.details && (
-          <div className="mb-3">
-            <span className="text-xs text-muted">Details</span>
-            <p className="text-ink text-sm mt-1">{report.details}</p>
-          </div>
-        )}
-
-        {/* Reported content preview */}
-        {report.reported_post && (
-          <div className="mt-4 p-3 bg-subtle rounded-lg">
-            <span className="text-xs text-muted">Reported Content</span>
-            <div className="mt-2">
-              {report.reported_post.title && (
-                <p className="font-medium text-ink text-sm mb-1">{report.reported_post.title}</p>
-              )}
-              <p className="text-sm text-muted">
-                {isExpanded
-                  ? report.reported_post.content.replace(/<[^>]*>/g, "")
-                  : truncateContent(report.reported_post.content)}
-              </p>
-              {!isExpanded && report.reported_post.content.length > 200 && (
-                <button
-                  onClick={() => setIsExpanded(true)}
-                  className="text-purple-primary text-sm mt-1 hover:underline"
-                >
-                  Show more
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Resolution info if resolved */}
-        {report.status === "resolved" && report.resolver && (
-          <div className="mt-4 p-3 bg-emerald-50 rounded-lg">
-            <span className="text-xs text-emerald-700">Resolved</span>
-            <p className="text-sm text-emerald-800 mt-1">
-              {report.resolution_action?.replace(/_/g, " ")} by {report.resolver.display_name || report.resolver.username}
-              {report.resolved_at && ` • ${formatTimeAgo(report.resolved_at)}`}
-            </p>
-            {report.resolution_notes && (
-              <p className="text-sm text-emerald-700 mt-1 italic">{report.resolution_notes}</p>
-            )}
-          </div>
-        )}
+      <div>
+        <span className="pq-report__label">Reason</span>
+        <p className="pq-report__text">{report.reason}</p>
+        {report.details && <p className="pq-report__text text-subdued mt-1">{report.details}</p>}
       </div>
 
-      {/* Actions (only for pending/reviewed reports) */}
-      {report.status !== "resolved" && (
-        <div className="px-4 pb-4">
-          {!showActions ? (
-            <div className="flex gap-2">
-              <button
-                onClick={() => setShowActions(true)}
-                className="flex-1 px-4 py-2 bg-purple-primary text-white rounded-lg hover:bg-accent/90 transition-colors font-ui text-sm"
-              >
-                Take Action
+      {report.reported_post && (
+        <div className="pq-report__quote">
+          {report.reported_post.title && <strong>{report.reported_post.title}</strong>}
+          {isExpanded || !isLong ? content : `${content.slice(0, 200)}…`}
+          {isLong && (
+            <div className="mt-1">
+              <button type="button" className="pq-side-card__link" style={{ minBlockSize: "2rem" }} onClick={() => setIsExpanded((v) => !v)}>
+                {isExpanded ? "Show less" : "Show all"}
               </button>
-              <button
-                onClick={() => onDismiss()}
-                disabled={resolving}
-                className="px-4 py-2 text-muted hover:text-ink border border-border-light rounded-lg hover:border-border-strong transition-colors font-ui text-sm"
-              >
-                Dismiss
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {/* Action Selection */}
-              <div>
-                <label className="text-xs text-muted block mb-2">
-                  Select Action
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { value: "content_deleted" as ResolutionAction, label: "Delete Content", color: "red" },
-                    { value: "user_muted" as ResolutionAction, label: "Mute User", color: "amber" },
-                    { value: "user_banned" as ResolutionAction, label: "Ban User", color: "red" },
-                    { value: "warning_sent" as ResolutionAction, label: "Send Warning", color: "blue" },
-                  ].map((action) => (
-                    <button
-                      key={action.value}
-                      onClick={() => setSelectedAction(action.value)}
-                      className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        selectedAction === action.value
-                          ? action.color === "red"
-                            ? "bg-red-500 text-white"
-                            : action.color === "amber"
-                              ? "bg-amber-500 text-white"
-                              : "bg-purple-primary text-white"
-                          : "bg-skeleton/70 text-ink/70 hover:bg-skeleton"
-                      }`}
-                    >
-                      {action.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Notes */}
-              <div>
-                <label className="text-xs text-muted block mb-2">
-                  Notes (optional)
-                </label>
-                <textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Add any notes about this action..."
-                  className="w-full px-3 py-2 border border-border-light rounded-lg text-sm focus:border-purple-primary focus:outline-none resize-none"
-                  rows={2}
-                />
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-2">
-                <button
-                  onClick={handleAction}
-                  disabled={!selectedAction || resolving}
-                  className="flex-1 px-4 py-2 bg-purple-primary text-white rounded-lg hover:bg-accent/90 transition-colors font-ui text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {resolving ? "Processing..." : "Confirm Action"}
-                </button>
-                <button
-                  onClick={handleDismiss}
-                  disabled={resolving}
-                  className="px-4 py-2 text-muted hover:text-ink transition-colors font-ui text-sm"
-                >
-                  Dismiss
-                </button>
-                <button
-                  onClick={() => {
-                    setShowActions(false);
-                    setSelectedAction(null);
-                    setNotes("");
-                  }}
-                  className="px-4 py-2 text-muted hover:text-ink transition-colors font-ui text-sm"
-                >
-                  Cancel
-                </button>
-              </div>
             </div>
           )}
         </div>
       )}
-    </div>
+
+      {report.status === "resolved" && report.resolver && (
+        <p className="pq-report__text text-subdued">
+          {(report.resolution_action || "resolved").replace(/_/g, " ")} by {personName(report.resolver)}
+          {report.resolved_at ? `, ${formatTimeAgo(report.resolved_at)}` : ""}
+          {report.resolution_notes ? ` · ${report.resolution_notes}` : ""}
+        </p>
+      )}
+
+      {report.status !== "resolved" && (
+        !showActions ? (
+          <div className="pq-report__actions">
+            <Button variant="primary" size="sm" onClick={() => setShowActions(true)}>Decide</Button>
+            <Button variant="ghost" size="sm" onClick={() => onDismiss()} disabled={resolving}>Dismiss</Button>
+          </div>
+        ) : (
+          <div className="grid gap-3">
+            <div>
+              <p className="pq-label">What happens</p>
+              <div className="pq-choice-grid" role="radiogroup" aria-label="What happens">
+                {ACTIONS.map((action) => (
+                  <button key={action.value} type="button" role="radio" aria-checked={selectedAction === action.value} className="pq-choice" onClick={() => setSelectedAction(action.value)}>
+                    <span>
+                      <strong className="block font-semibold">{action.label}</strong>
+                      <span className="text-sm text-subdued">{action.desc}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <FieldLabel htmlFor={notesId} hint="(optional, shown to them where it applies)">Note</FieldLabel>
+              <textarea id={notesId} className="pq-field" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="What you saw and why this is the outcome." />
+            </div>
+            <div className="pq-report__actions">
+              <Button
+                variant={selectedAction === "user_banned" || selectedAction === "content_deleted" ? "danger" : "primary"}
+                size="sm"
+                onClick={() => { if (selectedAction) onResolve(selectedAction, notes || undefined); reset(); }}
+                disabled={!selectedAction}
+                loading={resolving}
+                loadingText="Applying…"
+              >
+                Confirm
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => { onDismiss(notes || undefined); reset(); }} disabled={resolving}>Dismiss instead</Button>
+              <Button variant="ghost" size="sm" onClick={reset} disabled={resolving}>Cancel</Button>
+            </div>
+          </div>
+        )
+      )}
+    </article>
   );
 }

@@ -57,7 +57,7 @@ export function useModQueue(communityId: string, filters?: ModQueueFilters) {
               display_name,
               avatar_url
             ),
-            reported_post:posts!reported_post_id (
+            reported_post:posts!post_id (
               id,
               title,
               content,
@@ -101,7 +101,7 @@ export function useModQueue(communityId: string, filters?: ModQueueFilters) {
           const result = await supabase
             .from("reports")
             .select("*")
-            .in("reported_post_id", postIds)
+            .in("post_id", postIds)
             .order("created_at", { ascending: false });
 
           if (result.error) throw result.error;
@@ -120,7 +120,7 @@ export function useModQueue(communityId: string, filters?: ModQueueFilters) {
         filtered = filtered.filter((r) => r.type === filters.type);
       }
 
-      setReports(filtered);
+      setReports(((filtered) || []).map((row) => ({ ...row, reported_post_id: row.reported_post_id ?? (row as unknown as { post_id?: string | null }).post_id ?? null })));
 
       // Calculate stats from unfiltered data
       const allReports = data || [];

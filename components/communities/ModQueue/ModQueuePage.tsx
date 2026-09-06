@@ -6,6 +6,8 @@ import { useModQueue, useResolveReport, useModerationActions } from "@/lib/hooks
 import { createNotification } from "@/lib/hooks/useNotifications";
 import ReportCard from "./ReportCard";
 import type { ReportStatus, ReportType, ResolutionAction } from "@/lib/types";
+import { Spinner } from "@/components/ui/Loading";
+import "@/components/communities/communities.css";
 
 interface ModQueuePageProps {
   communityId: string;
@@ -61,125 +63,65 @@ export default function ModQueuePage({ communityId }: ModQueuePageProps) {
     }
   };
 
-  return (
-    <div className="space-y-6">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="bg-surface rounded-xl border border-border-light p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
-              <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-ink">{stats.pending}</p>
-              <p className="text-sm text-muted">Pending Reports</p>
-            </div>
-          </div>
-        </div>
+  const statusOptions: { value: ReportStatus | undefined; label: string }[] = [
+    { value: "pending", label: "Open" },
+    { value: "reviewed", label: "Reviewed" },
+    { value: "resolved", label: "Resolved" },
+    { value: undefined, label: "All" },
+  ];
+  const typeOptions: { value: ReportType | undefined; label: string }[] = [
+    { value: undefined, label: "Everything" },
+    { value: "post", label: "Posts" },
+    { value: "comment", label: "Comments" },
+    { value: "user", label: "People" },
+  ];
 
-        <div className="bg-surface rounded-xl border border-border-light p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
-              <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-ink">{stats.resolvedThisWeek}</p>
-              <p className="text-sm text-muted">Resolved This Week</p>
-            </div>
-          </div>
-        </div>
+  return (
+    <div className="grid gap-5">
+      <div className="pq-stat-row">
+        <div className="pq-stat"><span className="pq-stat__value">{stats.pending}</span><span className="pq-stat__label">Open reports</span></div>
+        <div className="pq-stat"><span className="pq-stat__value">{stats.resolvedThisWeek}</span><span className="pq-stat__label">Resolved this week</span></div>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-1 p-1 bg-surface rounded-lg border border-border-light">
-          {[
-            { value: "pending" as ReportStatus, label: "Pending" },
-            { value: "reviewed" as ReportStatus, label: "Reviewed" },
-            { value: "resolved" as ReportStatus, label: "Resolved" },
-            { value: undefined, label: "All" },
-          ].map((option) => (
-            <button
-              key={option.label}
-              onClick={() => setStatusFilter(option.value)}
-              className={`px-3 py-1.5 rounded-md font-ui text-sm transition-colors ${
-                statusFilter === option.value
-                  ? "bg-purple-primary text-white"
-                  : "text-muted hover:text-ink hover:bg-subtle"
-              }`}
-            >
-              {option.label}
-            </button>
-          ))}
+      <div className="pq-community-sort">
+        <div className="pq-community-sort__left">
+          <div className="pq-segmented" role="radiogroup" aria-label="Status">
+            {statusOptions.map((option) => (
+              <button key={option.label} type="button" role="radio" aria-checked={statusFilter === option.value} className="pq-segmented__option" onClick={() => setStatusFilter(option.value)}>
+                {option.label}
+              </button>
+            ))}
+          </div>
+          <div className="pq-chip-row" role="group" aria-label="Kind">
+            {typeOptions.map((option) => (
+              <button key={option.label} type="button" className="pq-chip" aria-pressed={typeFilter === option.value} onClick={() => setTypeFilter(option.value)}>
+                {option.label}
+              </button>
+            ))}
+          </div>
         </div>
-
-        <div className="flex items-center gap-1 p-1 bg-surface rounded-lg border border-border-light">
-          {[
-            { value: undefined, label: "All Types" },
-            { value: "post" as ReportType, label: "Posts" },
-            { value: "comment" as ReportType, label: "Comments" },
-            { value: "user" as ReportType, label: "Users" },
-          ].map((option) => (
-            <button
-              key={option.label}
-              onClick={() => setTypeFilter(option.value)}
-              className={`px-3 py-1.5 rounded-md font-ui text-sm transition-colors ${
-                typeFilter === option.value
-                  ? "bg-purple-primary text-white"
-                  : "text-muted hover:text-ink hover:bg-subtle"
-              }`}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-
-        <button
-          onClick={() => refetch()}
-          className="ml-auto p-2 text-muted hover:text-accent hover:bg-accent/[0.04] rounded-lg transition-colors"
-          title="Refresh"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        <button type="button" className="pq-icon-button" onClick={() => refetch()} aria-label="Refresh reports" title="Refresh">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="w-[18px] h-[18px]">
+            <path d="M4 4v5h5M20 20v-5h-5" />
+            <path d="M19.4 9A8 8 0 0 0 5.6 6.2L4 9M4.6 15a8 8 0 0 0 13.8 2.8L20 15" />
           </svg>
         </button>
       </div>
 
-      {/* Reports List */}
       {loading ? (
-        <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-3 border-purple-primary/20 border-t-purple-primary" />
-        </div>
+        <div className="pq-feed-state" role="status" aria-label="Loading reports"><Spinner size="lg" /></div>
       ) : error ? (
-        <div className="text-center py-12 text-red-500">{error}</div>
+        <div className="pq-feed-state pq-feed-state--card" role="alert">
+          <p className="pq-feed-state__title">Reports didn&rsquo;t load</p>
+          <p className="pq-feed-state__text">{error}</p>
+        </div>
       ) : reports.length === 0 ? (
-        <div className="text-center py-12">
-          <svg
-            className="w-16 h-16 mx-auto text-muted/40 mb-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={1.5}
-              d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-            />
-          </svg>
-          <p className="text-muted text-lg">No reports found</p>
-          <p className="text-sm text-muted mt-1">
-            {statusFilter === "pending"
-              ? "All caught up! No pending reports."
-              : "No reports match your filters."}
-          </p>
+        <div className="pq-feed-state pq-feed-state--card">
+          <p className="pq-feed-state__title">{statusFilter === "pending" ? "Nothing waiting" : "No reports here"}</p>
+          <p className="pq-feed-state__text">{statusFilter === "pending" ? "Every report has been looked at." : "Nothing matches these filters."}</p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="grid gap-3">
           {reports.map((report) => (
             <ReportCard
               key={report.id}

@@ -75,7 +75,7 @@
   }
   @media (hover: hover) { .pq-chip:hover { background: var(--color-tint); border-color: var(--color-line-strong); } }
   .pq-chip:focus-visible { outline: 3px solid var(--color-action); outline-offset: 2px; }
-  .pq-chip[aria-pressed="true"], .pq-chip[aria-current="page"] { background: var(--color-action-soft); border-color: transparent; color: var(--color-action-ink); font-weight: 600; }
+  .pq-chip[aria-pressed="true"], .pq-chip[aria-checked="true"], .pq-chip[aria-current="page"] { background: var(--color-action-soft); border-color: transparent; color: var(--color-action-ink); font-weight: 600; }
   @media (pointer: coarse) { .pq-chip { min-block-size: 2.75rem; } }
 
   /* List rows: a topic, a person, a community, one per line, on one card. */

@@ -44,3 +44,24 @@ describe("CommunityCard", () => {
     expect(membershipWord({ ...base, is_member: true, user_role: "admin" })).toBe("You run this");
   });
 });
+
+describe("community settings pieces", () => {
+  it("lists the settings sections with admin-only ones marked", async () => {
+    const { settingsSections, roleWord } = await import("../pieces");
+    const sections = settingsSections("inkwell");
+    expect(sections[0]).toMatchObject({ href: "/community/inkwell/settings", exact: true });
+    expect(sections.filter((s) => s.adminOnly).map((s) => s.label)).toEqual(["Flairs", "Roles and requests"]);
+    expect(sections.at(-1)?.href).toBe("/community/inkwell/mod");
+    expect(roleWord("moderator")).toBe("Moderator");
+    expect(roleWord("member")).toBeNull();
+  });
+
+  it("renders a person row with name link, handle and word", async () => {
+    const { PersonRow } = await import("../pieces");
+    render(<PersonRow person={{ username: "lina", display_name: "Lina Reyes", avatar_url: null }} word="Muted" meta="Until Friday" />);
+    expect(screen.getByRole("link", { name: "Lina Reyes" })).toHaveAttribute("href", "/studio/lina");
+    expect(screen.getByText("@lina")).toBeInTheDocument();
+    expect(screen.getByText("Muted")).toBeInTheDocument();
+    expect(screen.getByText("Until Friday")).toBeInTheDocument();
+  });
+});
