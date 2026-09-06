@@ -6,6 +6,10 @@ import { useShareToDM } from "@/lib/hooks/useShareToDM";
 import type { Post } from "@/lib/types";
 import Avatar from "@/components/ui/Avatar";
 import { Spinner } from "@/components/ui/Loading";
+import Sheet from "@/components/ui/Sheet";
+import Button from "@/components/ui/Button";
+import { PersonRow } from "@/components/communities/pieces";
+import "@/components/create/composer.css";
 import { sanitizePostgrestSearchTerm } from "@/lib/utils/postgrest";
 
 interface SendToDMModalProps {
@@ -185,13 +189,6 @@ export default function SendToDMModal({
     };
   }, [searchQuery, searchUsers]);
 
-  // Focus search input when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      setTimeout(() => searchInputRef.current?.focus(), 100);
-    }
-  }, [isOpen]);
-
   // Reset state when modal closes
   useEffect(() => {
     if (!isOpen) {
@@ -238,246 +235,86 @@ export default function SendToDMModal({
   const displayList = searchQuery.trim() ? searchResults : recentRecipients;
 
   return (
-    <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000]"
-        onClick={onClose}
-      />
-
-      {/* Modal */}
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] max-w-[440px] bg-surface rounded-2xl shadow-2xl z-[1001] overflow-hidden max-h-[85vh] flex flex-col animate-scaleIn">
-        {success ? (
-          // Success state
-          <div className="p-8 text-center">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center mx-auto mb-4">
-              <svg
-                className="w-8 h-8 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-            </div>
-            <h3 className="font-display text-xl text-ink mb-2">Sent!</h3>
-            <p className="font-body text-sm text-muted">
-              Post shared to {selectedRecipients.length} {selectedRecipients.length === 1 ? "person" : "people"}
-            </p>
-          </div>
-        ) : (
-          <>
-            {/* Header */}
-            <div className="relative px-5 py-4 border-b border-border-light">
-              <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-purple-primary to-pink-vivid" />
-              <div className="flex items-center justify-between">
-                <h2 className="font-display text-lg text-ink">Send to</h2>
-                <button
-                  onClick={onClose}
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-skeleton/60 transition-all"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-
-              {/* Search */}
-              <div className="mt-3 relative">
-                <svg
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-                <input
-                  ref={searchInputRef}
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search people..."
-                  className="w-full pl-10 pr-4 py-2.5 bg-skeleton/60 rounded-full border-none outline-none font-ui text-sm text-ink placeholder:text-muted/60 focus:ring-2 focus:ring-purple-primary/20 transition-all"
-                />
-              </div>
-
-              {/* Selected recipients chips */}
-              {selectedRecipients.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {selectedRecipients.map((recipient) => (
-                    <button
-                      key={recipient.id}
-                      onClick={() => toggleRecipient(recipient)}
-                      className="flex items-center gap-1.5 pl-1 pr-2.5 py-1 bg-gradient-to-r from-purple-primary to-pink-vivid rounded-full text-white text-xs font-ui font-medium hover:opacity-90 transition-opacity"
-                    >
-                      <Avatar src={recipient.avatar_url} alt="" size={20} />
-                      <span>{recipient.display_name || recipient.username}</span>
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Recipients list */}
-            <div className="flex-1 overflow-y-auto min-h-0">
-              {loading ? (
-                <div className="p-8 flex justify-center">
-                  <Spinner size="md" className="text-purple-primary" />
-                </div>
-              ) : displayList.length === 0 ? (
-                <div className="p-8 text-center">
-                  <p className="font-ui text-sm text-muted">
-                    {searchQuery.trim()
-                      ? "No people found"
-                      : "Start a conversation to see recent chats"}
-                  </p>
-                </div>
-              ) : (
-                <div className="py-2">
-                  {!searchQuery.trim() && (
-                    <p className="px-5 py-2 font-ui text-xs text-muted">
-                      Recent
-                    </p>
-                  )}
-                  {displayList.map((recipient) => {
-                    const isSelected = selectedRecipients.some(
-                      (r) => r.id === recipient.id
-                    );
-                    return (
-                      <button
-                        key={recipient.id}
-                        onClick={() => toggleRecipient(recipient)}
-                        className={`w-full flex items-center gap-3 px-5 py-3 transition-colors ${
-                          isSelected
-                            ? "bg-purple-primary/[0.06]"
-                            : "hover:bg-subtle"
-                        }`}
-                      >
-                        <div className="relative">
-                          <Avatar src={recipient.avatar_url} alt="" size={44} />
-                          {recipient.is_verified && (
-                            <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-purple-primary rounded-full flex items-center justify-center">
-                              <svg
-                                className="w-2.5 h-2.5 text-white"
-                                fill="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
-                              </svg>
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 text-left min-w-0">
-                          <p className="font-ui text-sm font-medium text-ink truncate">
-                            {recipient.display_name || recipient.username}
-                          </p>
-                          <p className="font-ui text-xs text-muted truncate">
-                            @{recipient.username}
-                          </p>
-                        </div>
-                        <div
-                          className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                            isSelected
-                              ? "border-purple-primary bg-purple-primary"
-                              : "border-border-strong"
-                          }`}
-                        >
-                          {isSelected && (
-                            <svg
-                              className="w-3.5 h-3.5 text-white"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={3}
-                                d="M5 13l4 4L19 7"
-                              />
-                            </svg>
-                          )}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Footer with optional message and send button */}
-            <div className="border-t border-border-light p-4">
-              {/* Optional message input */}
-              <div className="mb-3">
-                <input
-                  type="text"
-                  value={optionalMessage}
-                  onChange={(e) => setOptionalMessage(e.target.value)}
-                  placeholder="Add a message... (optional)"
-                  className="w-full px-4 py-2.5 bg-skeleton/60 rounded-xl border-none outline-none font-body text-sm text-ink placeholder:text-muted/60 focus:ring-2 focus:ring-purple-primary/20 transition-all"
-                />
-              </div>
-
-              {/* Post preview mini */}
-              <div className="mb-3 p-2.5 bg-subtle rounded-xl flex items-center gap-2.5">
-                {post.media?.[0] && (
-                  <img
-                    src={post.media[0].media_url}
-                    alt=""
-                    className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
-                  />
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="font-ui text-xs text-muted">Sharing post by</p>
-                  <p className="font-ui text-sm font-medium text-ink truncate">
-                    @{post.author?.username}
-                  </p>
-                </div>
-                <svg
-                  className="w-5 h-5 text-purple-primary flex-shrink-0"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 6l-4-4-4 4" />
-                  <path strokeLinecap="round" strokeWidth={2} d="M12 2v13" />
-                </svg>
-              </div>
-
-              {/* Send button */}
-              <button
-                onClick={handleSend}
-                disabled={selectedRecipients.length === 0 || sharing}
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-primary to-pink-vivid text-white font-ui text-sm font-semibold shadow-lg shadow-purple-primary/25 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-              >
-                {sharing ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Sending ({progress.current}/{progress.total})
+    <Sheet
+      isOpen={isOpen}
+      onClose={onClose}
+      title={success ? "Sent" : "Send to"}
+      subtitle={success ? undefined : `Sharing a post by @${post.author?.username}`}
+      busy={sharing}
+      size="tall"
+      initialFocus={() => searchInputRef.current}
+      footer={success ? undefined : (
+        <>
+          <Button variant="ghost" onClick={onClose} disabled={sharing}>Cancel</Button>
+          <Button variant="primary" onClick={handleSend} disabled={selectedRecipients.length === 0} loading={sharing} loadingText={`Sending ${progress.current}/${progress.total}`}>
+            {selectedRecipients.length > 0 ? `Send to ${selectedRecipients.length}` : "Send"}
+          </Button>
+        </>
+      )}
+    >
+      {success ? (
+        <p className="pq-discussion__state">Shared with {selectedRecipients.length} {selectedRecipients.length === 1 ? "person" : "people"}.</p>
+      ) : (
+        <>
+          <input
+            ref={searchInputRef}
+            type="search"
+            className="pq-field pq-field--ui"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search people"
+            aria-label="Search people"
+          />
+          {selectedRecipients.length > 0 && (
+            <div className="pq-chip-row" aria-label="Sending to">
+              {selectedRecipients.map((recipient) => (
+                <button key={recipient.id} type="button" className="pq-chip" aria-pressed="true" onClick={() => toggleRecipient(recipient)} aria-label={`Remove ${recipient.display_name || recipient.username}`}>
+                  <Avatar src={recipient.avatar_url} alt="" size={18} />
+                  {recipient.display_name || recipient.username}
+                  <span className="pq-chip__remove" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
                   </span>
-                ) : (
-                  `Send${selectedRecipients.length > 0 ? ` to ${selectedRecipients.length}` : ""}`
-                )}
-              </button>
+                </button>
+              ))}
             </div>
-          </>
-        )}
-      </div>
-    </>
+          )}
+          {loading ? (
+            <div className="pq-discussion__state" role="status" aria-label="Loading"><Spinner size="md" /></div>
+          ) : displayList.length === 0 ? (
+            <p className="pq-discussion__state">{searchQuery.trim() ? "No one by that name." : "People you've messaged show up here."}</p>
+          ) : (
+            <div>
+              {!searchQuery.trim() && <p className="pq-msgs__section">Recent</p>}
+              <div className="pq-list">
+                {displayList.map((recipient) => {
+                  const isSelected = selectedRecipients.some((r) => r.id === recipient.id);
+                  return (
+                    <PersonRow
+                      key={recipient.id}
+                      person={recipient}
+                      trailing={
+                        <Button variant={isSelected ? "primary" : "secondary"} size="sm" onClick={() => toggleRecipient(recipient)} aria-pressed={isSelected}>
+                          {isSelected ? "Chosen" : "Choose"}
+                        </Button>
+                      }
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          <div>
+            <input
+              type="text"
+              className="pq-field"
+              value={optionalMessage}
+              onChange={(e) => setOptionalMessage(e.target.value)}
+              placeholder="Add a note (optional)"
+              aria-label="Note"
+            />
+          </div>
+        </>
+      )}
+    </Sheet>
   );
 }

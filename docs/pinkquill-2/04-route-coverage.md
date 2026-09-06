@@ -32,8 +32,8 @@ September 5 update: the four-screen proof and component reference live outside a
 | `/community/[slug]/settings/moderation` | [app/community/[slug]/settings/moderation/page.tsx](../../app/community/[slug]/settings/moderation/page.tsx) | 5 | Redesigned in 5B (log sentences, muted/banned rows) |
 | `/community/[slug]/settings/rules` | [app/community/[slug]/settings/rules/page.tsx](../../app/community/[slug]/settings/rules/page.tsx) | 5 | Redesigned in 5B (editable numbered rows, add panel) |
 | `/community/create` | [app/community/create/page.tsx](../../app/community/create/page.tsx) | 5 | Redesigned in 5A (three composer steps on the shared taxonomy) |
-| `/messages` | [app/(feed)/messages/page.tsx](../../app/(feed)/messages/page.tsx) | 5 | Not started |
-| `/messages/community` | [app/(feed)/messages/community/page.tsx](../../app/(feed)/messages/community/page.tsx) | 5 | Not started |
+| `/messages` | [app/(feed)/messages/page.tsx](../../app/(feed)/messages/page.tsx) | 5 | Redesigned in 5C (list, thread, composer, voice on `messages.css`; one phone pane state) |
+| `/messages/community` | [app/(feed)/messages/community/page.tsx](../../app/(feed)/messages/community/page.tsx) | 5 | Redesigned in 5C (three panes on the DM frame, announcements as labelled bubbles) |
 | `/saved` | [app/(feed)/saved/page.tsx](../../app/(feed)/saved/page.tsx) | 6 | Not started |
 | `/studio/[username]` | [app/studio/[username]/page.tsx](../../app/studio/[username]/page.tsx) | 6 | Not started |
 | `/studio/[username]/collections/[collection]/[item]` | [app/studio/[username]/collections/[collection]/[item]/page.tsx](../../app/studio/[username]/collections/[collection]/[item]/page.tsx) | 6 | Not started |
@@ -104,8 +104,8 @@ September 5 update: the four-screen proof and component reference live outside a
 | Desktop/mobile navigation, search, create/More menus | `components/layout/`, `components/search/` | 3 | Not started |
 | Post detail modal, reactions, comments, sharing, reporting, media lightbox | `components/feed/`, `components/comments/`, `components/ui/` | 4; shared mechanics in 2 | Not started |
 | Takes players, reactions, comments, creation controls | `components/takes/` | 4 | Redesigned in 4C (`TakeStage`, `TakeEditorPieces`, `takes.css`; `TakeComments.tsx` deleted) |
-| Membership/invite/role/flair/moderation overlays | `components/communities/` | 5 | Not started |
-| Notification panel, invitations, follow requests | `components/notifications/` | 5 | Not started |
+| Membership/invite/role/flair/moderation overlays | `components/communities/` | 5 | Redesigned in 5B (`ModerationSheet`, invite and permissions on `Sheet`, `FlairManager` on shared fields) |
+| Notification panel, invitations, follow requests | `components/notifications/` | 5 | Redesigned in 5C (`notifications.css`, monochrome kind marks, `PersonRow` cards) |
 | Studio follower dialogs and collection controls | `components/studio/`, `components/collections/` | 6 | Not started |
 | Product reviews, seller cards, commission intake/request sheet | `components/reviews/`, `components/store/`, `components/commissions/` | 7 | Not started |
 | Order sheets, downloads, activity, deliveries, messages, financial documents | `components/orders/`, `components/documents/`, `lib/invoice/` | 8 | Not started |

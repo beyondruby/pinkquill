@@ -1,83 +1,162 @@
-/* messages styles — moved out of app/globals.css (Phase 8) so they load only on the routes
-   that render these components. Class names are unchanged. */
+/* Messages — DMs and the community inbox. Loaded only by the messaging routes.
 
-/* Typing Indicator Animation */
-@keyframes typing-dot {
-  0%, 60%, 100% {
-    transform: translateY(0);
-    opacity: 0.4;
+   Two surfaces for two voices: what you sent sits on the action tint with ink
+   text; what arrived sits on the surface with a line. Time and read state are
+   quiet words, never colours. The composer is one row of 40px controls with
+   the send button as the only primary. */
+@layer components {
+
+  /* ---- Frame -------------------------------------------------------------- */
+  .pq-msgs { display: flex; block-size: 100dvh; background: var(--color-canvas); }
+  .pq-msgs__list {
+    display: flex; flex-direction: column; inline-size: 100%;
+    background: var(--color-surface); border-inline-end: 1px solid var(--color-line);
   }
-  30% {
-    transform: translateY(-4px);
-    opacity: 1;
+  .pq-msgs__thread { display: flex; flex-direction: column; flex: 1; min-inline-size: 0; }
+  @media (min-width: 768px) {
+    .pq-msgs__list { inline-size: 21.25rem; flex-shrink: 0; }
+    .pq-msgs__list--channels { inline-size: 17rem; }
+  }
+  @media (max-width: 767px) {
+    .pq-msgs[data-open="thread"] .pq-msgs__list { display: none; }
+    .pq-msgs[data-open="list"] .pq-msgs__thread { display: none; }
+  }
+  .pq-msgs__head {
+    display: flex; align-items: center; gap: 0.5rem; min-block-size: 3.5rem;
+    padding: calc(0.5rem + env(safe-area-inset-top, 0px)) 0.75rem 0.5rem 1rem;
+    background: var(--color-surface); border-block-end: 1px solid var(--color-line);
+  }
+  .pq-msgs__title { margin: 0; flex: 1; min-inline-size: 0; font-family: var(--font-display); font-size: 1.25rem; font-weight: 600; color: var(--color-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pq-msgs__sub { margin: 0; font-family: var(--font-ui); font-size: 0.75rem; color: var(--color-subdued); }
+  .pq-msgs__scroll { flex: 1; min-block-size: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .pq-msgs__count { position: absolute; top: -0.125rem; right: -0.125rem; min-inline-size: 1.125rem; block-size: 1.125rem; padding-inline: 0.25rem; border-radius: 999px; background: var(--color-action); color: var(--color-on-action); font-family: var(--font-ui); font-size: 0.625rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+  .pq-msgs__section { margin: 0; padding: 0.75rem 1rem 0.25rem; font-family: var(--font-ui); font-size: 0.75rem; font-weight: 600; color: var(--color-subdued); }
+
+  /* ---- Conversation and channel rows ------------------------------------- */
+  .pq-thread-row {
+    display: flex; align-items: center; gap: 0.75rem; inline-size: 100%;
+    min-block-size: 4.5rem; padding: 0.75rem 1rem; border: 0; border-block-end: 1px solid var(--color-line);
+    background: transparent; text-align: start; cursor: pointer; color: var(--color-ink);
+    transition: background-color 150ms;
+  }
+  @media (hover: hover) { .pq-thread-row:hover { background: var(--color-tint); } }
+  .pq-thread-row[aria-current="true"] { background: var(--color-action-soft); }
+  .pq-thread-row:focus-visible { outline: 3px solid var(--color-action); outline-offset: -3px; }
+  .pq-thread-row__text { flex: 1; min-inline-size: 0; }
+  .pq-thread-row__top { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; }
+  .pq-thread-row__name { font-family: var(--font-ui); font-size: 0.9375rem; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pq-thread-row--unread .pq-thread-row__name { font-weight: 700; }
+  .pq-thread-row__when { flex-shrink: 0; font-family: var(--font-ui); font-size: 0.75rem; color: var(--color-subdued); }
+  .pq-thread-row__preview { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-block-start: 0.125rem; font-family: var(--font-body); font-size: 0.875rem; color: var(--color-subdued); }
+  .pq-thread-row__preview > span:first-child { min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-flex; align-items: center; gap: 0.25rem; }
+  .pq-thread-row__preview svg { inline-size: 0.875rem; block-size: 0.875rem; flex-shrink: 0; }
+  .pq-thread-row--unread .pq-thread-row__preview { color: var(--color-ink); }
+  .pq-thread-row__unread { flex-shrink: 0; min-inline-size: 1.25rem; block-size: 1.25rem; padding-inline: 0.375rem; border-radius: 999px; background: var(--color-action); color: var(--color-on-action); font-family: var(--font-ui); font-size: 0.6875rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+  .pq-thread-row__mark { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; inline-size: 2.5rem; block-size: 2.5rem; border-radius: 999px; background: var(--color-action-soft); color: var(--color-action-ink); }
+  .pq-thread-row__mark svg { inline-size: 1.125rem; block-size: 1.125rem; }
+  .pq-thread-row__word { font-family: var(--font-ui); font-size: 0.75rem; color: var(--color-subdued); }
+
+  /* ---- Thread head ---------------------------------------------------------- */
+  .pq-chat-head { display: flex; align-items: center; gap: 0.625rem; padding: calc(0.5rem + env(safe-area-inset-top, 0px)) 0.75rem 0.5rem; min-block-size: 3.5rem; background: var(--color-surface); border-block-end: 1px solid var(--color-line); }
+  .pq-chat-head__who { display: flex; align-items: center; gap: 0.625rem; flex: 1; min-inline-size: 0; color: inherit; text-decoration: none; }
+  .pq-chat-head__name { margin: 0; font-family: var(--font-ui); font-size: 0.9375rem; font-weight: 600; color: var(--color-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pq-chat-head__meta { margin: 0; font-family: var(--font-ui); font-size: 0.75rem; color: var(--color-subdued); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  a.pq-chat-head__who:hover .pq-chat-head__name { text-decoration: underline; }
+
+  /* ---- Messages ------------------------------------------------------------- */
+  .pq-chat-log { flex: 1; min-block-size: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 1rem; display: flex; flex-direction: column; gap: 0.25rem; }
+  .pq-chat-day { display: flex; justify-content: center; margin: 0.75rem 0; }
+  .pq-chat-day span { padding: 0.25rem 0.625rem; border-radius: 999px; background: var(--color-surface); border: 1px solid var(--color-line); font-family: var(--font-ui); font-size: 0.75rem; color: var(--color-subdued); }
+  .pq-chat-line { display: flex; align-items: flex-end; gap: 0.375rem; margin-block-end: 0.125rem; }
+  .pq-chat-line--own { justify-content: flex-end; }
+  .pq-chat-line__stack { display: grid; gap: 0.125rem; max-inline-size: min(70%, 32rem); min-inline-size: 0; }
+  .pq-chat-line__sender { margin: 0 0 0 0.25rem; display: flex; align-items: center; gap: 0.375rem; font-family: var(--font-ui); font-size: 0.6875rem; color: var(--color-subdued); }
+  .pq-chat-line__avatar { flex-shrink: 0; inline-size: 1.75rem; block-size: 1.75rem; border-radius: 999px; overflow: hidden; background: var(--color-action-soft); color: var(--color-action-ink); display: inline-flex; align-items: center; justify-content: center; font-family: var(--font-ui); font-size: 0.75rem; font-weight: 600; }
+  .pq-chat-line__avatar img { inline-size: 100%; block-size: 100%; object-fit: cover; }
+  .pq-bubble {
+    position: relative; border-radius: 1.125rem; overflow: hidden;
+    background: var(--color-surface); border: 1px solid var(--color-line); color: var(--color-ink);
+  }
+  .pq-chat-line--own .pq-bubble { background: var(--color-action-soft); border-color: transparent; border-end-end-radius: 0.375rem; }
+  .pq-chat-line:not(.pq-chat-line--own) .pq-bubble { border-end-start-radius: 0.375rem; }
+  .pq-bubble__text { margin: 0; padding: 0.625rem 0.875rem 0.25rem; font-family: var(--font-body); font-size: 0.9375rem; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .pq-bubble__foot { display: flex; align-items: center; justify-content: flex-end; gap: 0.25rem; padding: 0 0.75rem 0.5rem; font-family: var(--font-ui); font-size: 0.6875rem; color: var(--color-subdued); }
+  .pq-bubble__foot svg { inline-size: 0.875rem; block-size: 0.875rem; }
+  .pq-bubble__foot--read { color: var(--color-action-ink); }
+  .pq-bubble__label { display: block; padding: 0.5rem 0.875rem 0; font-family: var(--font-ui); font-size: 0.6875rem; font-weight: 600; color: var(--color-action-ink); }
+  .pq-bubble--announcement { border-color: var(--color-action); }
+  .pq-bubble--wide { max-inline-size: 18rem; }
+  .pq-bubble__media img, .pq-bubble__media video { display: block; max-inline-size: 100%; max-block-size: 18rem; }
+  .pq-chat-reactions { position: absolute; inset-block-end: -0.625rem; z-index: 1; }
+  .pq-chat-line--own .pq-chat-reactions { inset-inline-end: 0.5rem; }
+  .pq-chat-line:not(.pq-chat-line--own) .pq-chat-reactions { inset-inline-start: 0.5rem; }
+  .pq-chat-line__stack--reacted { margin-block-end: 0.75rem; }
+  .pq-chat-more { display: flex; justify-content: center; margin-block-end: 0.5rem; }
+
+  /* System and welcome cards inside the log */
+  .pq-chat-note { align-self: center; max-inline-size: 85%; padding: 0.625rem 0.875rem; border-radius: var(--radius-card); background: var(--color-tint); font-family: var(--font-body); font-size: 0.875rem; color: var(--color-ink); white-space: pre-wrap; overflow-wrap: anywhere; }
+  .pq-chat-note strong { display: block; font-family: var(--font-ui); font-size: 0.75rem; font-weight: 600; color: var(--color-subdued); margin-block-end: 0.125rem; }
+
+  /* Empty thread */
+  .pq-chat-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem; padding: 2rem 1.5rem; text-align: center; }
+  .pq-chat-empty h2, .pq-chat-empty h3 { margin: 0; font-family: var(--font-display); font-size: 1.25rem; font-weight: 600; color: var(--color-ink); }
+  .pq-chat-empty p { margin: 0; max-inline-size: 22rem; font-family: var(--font-body); font-size: 0.9375rem; color: var(--color-subdued); }
+  .pq-chat-empty .pq-button { margin-block-start: 0.5rem; }
+
+  /* Typing */
+  .pq-typing { display: flex; align-items: center; gap: 0.5rem; padding: 0.25rem 0.25rem 0.5rem; font-family: var(--font-ui); font-size: 0.75rem; color: var(--color-subdued); }
+  .pq-typing__dots { display: inline-flex; gap: 3px; padding: 0.5rem 0.625rem; border-radius: 999px; background: var(--color-surface); border: 1px solid var(--color-line); }
+  .pq-typing__dots span { inline-size: 6px; block-size: 6px; border-radius: 50%; background: var(--color-subdued); animation: typing-dot 1.4s ease-in-out infinite; }
+  .pq-typing__dots span:nth-child(2) { animation-delay: 160ms; }
+  .pq-typing__dots span:nth-child(3) { animation-delay: 320ms; }
+  @keyframes typing-dot { 0%, 60%, 100% { transform: translateY(0); opacity: 0.4; } 30% { transform: translateY(-3px); opacity: 1; } }
+
+  /* ---- Composer -------------------------------------------------------------- */
+  .pq-chat-compose { display: grid; gap: 0.5rem; padding: 0.625rem 0.75rem calc(0.625rem + env(safe-area-inset-bottom, 0px)); background: var(--color-surface); border-block-start: 1px solid var(--color-line); }
+  .pq-chat-compose__row { display: flex; align-items: center; gap: 0.375rem; }
+  .pq-chat-compose__field {
+    flex: 1; min-inline-size: 0; display: flex; align-items: center; gap: 0.125rem;
+    min-block-size: 2.75rem; padding: 0 0.375rem 0 0.875rem; border-radius: 999px;
+    background: var(--color-tint); border: 1px solid transparent; transition: border-color 150ms, background-color 150ms;
+  }
+  .pq-chat-compose__field:focus-within { background: var(--color-surface); border-color: var(--color-action); box-shadow: 0 0 0 3px var(--color-action-soft); }
+  .pq-chat-compose__field input { flex: 1; min-inline-size: 0; border: 0; background: transparent; outline: none; font-family: var(--font-body); font-size: 0.9375rem; color: var(--color-ink); min-block-size: 2.5rem; }
+  .pq-chat-compose__field input::placeholder { color: var(--color-muted); }
+  .pq-chat-compose__send { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; inline-size: 2.75rem; block-size: 2.75rem; border: 0; border-radius: 999px; background: var(--color-action); color: var(--color-on-action); cursor: pointer; }
+  .pq-chat-compose__send svg { inline-size: 1.25rem; block-size: 1.25rem; }
+  .pq-chat-compose__send:disabled { opacity: 0.45; cursor: not-allowed; }
+  .pq-chat-compose__send:focus-visible { outline: 3px solid var(--color-action); outline-offset: 2px; }
+  .pq-chat-compose__hint { margin: 0; text-align: center; font-family: var(--font-ui); font-size: 0.75rem; color: var(--color-subdued); }
+  .pq-chat-compose__off { margin: 0; padding: 0.625rem 0.875rem; border-radius: var(--radius-control); background: var(--color-tint); text-align: center; font-family: var(--font-ui); font-size: 0.8125rem; color: var(--color-subdued); }
+  .pq-chat-preview { position: relative; inline-size: fit-content; border-radius: var(--radius-card); overflow: hidden; border: 1px solid var(--color-line); background: var(--color-tint); }
+  .pq-chat-preview img, .pq-chat-preview video { display: block; max-block-size: 12rem; max-inline-size: 18rem; }
+  .pq-chat-preview__remove { position: absolute; top: 0.375rem; right: 0.375rem; inline-size: 2rem; block-size: 2rem; border: 0; border-radius: 999px; background: rgba(0, 0, 0, 0.55); color: #fff; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+  .pq-chat-preview__remove svg { inline-size: 0.875rem; block-size: 0.875rem; }
+
+  /* ---- Voice notes ----------------------------------------------------------- */
+  .pq-voice { display: flex; align-items: center; gap: 0.625rem; padding: 0.5rem 0.5rem 0.25rem; min-inline-size: 11rem; }
+  .pq-voice__play { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; inline-size: 2.5rem; block-size: 2.5rem; border: 0; border-radius: 999px; background: var(--color-action); color: var(--color-on-action); cursor: pointer; }
+  .pq-voice__play:disabled { opacity: 0.6; cursor: wait; }
+  .pq-voice__play svg { inline-size: 1.125rem; block-size: 1.125rem; }
+  .pq-voice__body { flex: 1; min-inline-size: 0; display: grid; gap: 0.25rem; }
+  .pq-voice__meta { display: flex; align-items: center; justify-content: space-between; font-family: var(--font-ui); font-size: 0.6875rem; color: var(--color-subdued); }
+  .pq-voice__speed { border: 0; border-radius: 0.25rem; padding: 0.125rem 0.375rem; background: var(--color-tint); color: var(--color-ink); font-family: var(--font-ui); font-size: 0.6875rem; cursor: pointer; }
+  .pq-chat-line--own .pq-voice__speed { background: var(--color-surface); }
+  .pq-voice-rec { display: flex; align-items: center; gap: 0.5rem; inline-size: 100%; min-block-size: 2.5rem; }
+  .pq-voice-rec__dot { inline-size: 0.625rem; block-size: 0.625rem; border-radius: 50%; background: var(--color-danger-ink); animation: pulse 1.2s ease-in-out infinite; }
+  .pq-voice-rec__time { font-family: var(--font-ui); font-size: 0.8125rem; color: var(--color-subdued); min-inline-size: 2.5rem; text-align: end; font-variant-numeric: tabular-nums; }
+  .pq-voice-rec__time--limit { color: var(--color-danger-ink); font-weight: 600; }
+  .pq-voice-rec__stop { display: inline-flex; align-items: center; justify-content: center; inline-size: 2.25rem; block-size: 2.25rem; border: 0; border-radius: 999px; background: var(--color-action); color: var(--color-on-action); cursor: pointer; }
+  .pq-voice-rec__stop svg { inline-size: 1rem; block-size: 1rem; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+  /* Waveform bars keep their inline heights; only their colour is themed. */
+  .waveform-container { display: flex; align-items: center; justify-content: center; }
+  .waveform-bar { transition: height 0.1s ease; }
+  .waveform-bar.recording { animation: waveform-pulse 0.5s ease-in-out infinite alternate; }
+  @keyframes waveform-pulse { 0% { opacity: 0.6; } 100% { opacity: 1; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pq-typing__dots span, .pq-voice-rec__dot, .waveform-bar.recording { animation: none; }
   }
 }
-
-.animate-typing-dot {
-  animation: typing-dot 1.4s ease-in-out infinite;
-}
-
-
-/* Waveform Visualization */
-.waveform-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.waveform-bar {
-  transition: height 0.1s ease;
-}
-
-.waveform-bar.recording {
-  animation: waveform-pulse 0.5s ease-in-out infinite alternate;
-}
-
-@keyframes waveform-pulse {
-  0% { opacity: 0.6; }
-  100% { opacity: 1; }
-}
-
-
-/* Mobile messages container - full height accounting for safe areas */
-@media (max-width: 767px) {
-  .messages-container {
-    height: 100vh;
-    height: 100dvh;
-    padding-top: 0;
-    padding-bottom: 0;
-  }
-
-  .messages-sidebar {
-    height: 100vh;
-    height: 100dvh;
-  }
-
-  .messages-chat {
-    height: 100vh;
-    height: 100dvh;
-  }
-
-  .chat-view {
-    height: 100%;
-    max-height: 100vh;
-    max-height: 100dvh;
-  }
-
-  /* Messages area scroll */
-  .chat-view > div:nth-child(2) {
-    flex: 1;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  /* Conversation list items - better tap targets */
-  .messages-sidebar > div:last-child > div {
-    padding: 14px 16px;
-    min-height: 72px;
-  }
-
-  /* Active conversation item indicator on mobile — bg highlight already
-     conveys state; no accent border per brand guidelines. */
-}
-

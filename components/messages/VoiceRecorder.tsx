@@ -166,7 +166,7 @@ function PlaybackWaveform({
             style={{
               width: '3px',
               height: `${height}px`,
-              backgroundColor: isPlayed ? '#8e44ad' : 'rgba(142, 68, 173, 0.3)',
+              backgroundColor: isPlayed ? "var(--color-action)" : "var(--color-line-strong)",
             }}
           />
         );
@@ -235,40 +235,14 @@ export default function VoiceRecorder({
   // Recording state
   if (mode === "recording") {
     return (
-      <div className="flex items-center gap-3 py-2 w-full">
-        {/* Cancel button */}
-        <button
-          onClick={handleCancel}
-          className="w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-accent hover:bg-purple-50 transition-all"
-          title="Cancel"
-        >
-          {icons.close}
-        </button>
-
-        {/* Recording indicator - pulsing gradient dot */}
-        <div className="relative">
-          <div className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid animate-pulse" />
-          <div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid animate-ping opacity-50" />
-        </div>
-
-        {/* Live Waveform - moves with voice */}
+      <div className="pq-voice-rec">
+        <button type="button" onClick={handleCancel} className="pq-icon-button" aria-label="Cancel recording">{icons.close}</button>
+        <span className="pq-voice-rec__dot" aria-hidden="true" />
         <LiveWaveform data={recorder.waveformData} />
-
-        {/* Duration */}
-        <span className={`font-ui text-sm min-w-[40px] text-right ${
-          isNearLimit ? 'text-pink-vivid font-semibold' : 'text-muted'
-        }`}>
+        <span className={`pq-voice-rec__time ${isNearLimit ? "pq-voice-rec__time--limit" : ""}`} aria-live={isNearLimit ? "polite" : undefined}>
           {formatDuration(recorder.duration)}
         </span>
-
-        {/* Stop button - purple gradient */}
-        <button
-          onClick={handleStopRecording}
-          className="w-9 h-9 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white flex items-center justify-center hover:opacity-90 hover:scale-105 transition-all shadow-md"
-          title="Stop recording"
-        >
-          {icons.stop}
-        </button>
+        <button type="button" onClick={handleStopRecording} className="pq-voice-rec__stop" aria-label="Stop recording">{icons.stop}</button>
       </div>
     );
   }
@@ -276,57 +250,25 @@ export default function VoiceRecorder({
   // Preview state
   if (mode === "preview") {
     return (
-      <div className="flex items-center gap-3 py-2 w-full">
-        {/* Delete button */}
-        <button
-          onClick={handleCancel}
-          className="w-8 h-8 rounded-full flex items-center justify-center text-red-500 hover:bg-red-50 transition-all"
-          title="Delete"
-        >
-          {icons.trash}
-        </button>
-
-        {/* Play/Pause button */}
-        <button
-          onClick={player.toggle}
-          className="w-8 h-8 rounded-full bg-purple-primary text-white flex items-center justify-center hover:bg-accent/90 transition-all"
-          title={player.isPlaying ? "Pause" : "Play"}
-        >
+      <div className="pq-voice-rec">
+        <button type="button" onClick={handleCancel} className="pq-icon-button" aria-label="Discard voice note">{icons.trash}</button>
+        <button type="button" onClick={player.toggle} className="pq-voice__play" style={{ inlineSize: "2.25rem", blockSize: "2.25rem" }} aria-label={player.isPlaying ? "Pause" : "Play"}>
           {player.isPlaying ? icons.pause : icons.play}
         </button>
-
-        {/* Waveform with progress */}
-        <PlaybackWaveform
-          data={recorder.waveformData}
-          progress={progress}
-          onClick={handleSeek}
-        />
-
-        {/* Duration */}
-        <span className="font-ui text-sm text-muted min-w-[40px] text-right">
-          {player.isPlaying || player.currentTime > 0
-            ? formatDuration(Math.floor(player.currentTime))
-            : formatDuration(recorder.duration)}
+        <PlaybackWaveform data={recorder.waveformData} progress={progress} onClick={handleSeek} />
+        <span className="pq-voice-rec__time">
+          {player.isPlaying || player.currentTime > 0 ? formatDuration(Math.floor(player.currentTime)) : formatDuration(recorder.duration)}
         </span>
-
-        {/* Send button */}
-        <button
-          onClick={handleSend}
-          disabled={disabled}
-          className="w-9 h-9 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white flex items-center justify-center hover:scale-105 transition-all disabled:opacity-50"
-          title="Send voice note"
-        >
-          {icons.send}
-        </button>
+        <button type="button" onClick={handleSend} disabled={disabled} className="pq-voice-rec__stop" aria-label="Send voice note">{icons.send}</button>
       </div>
     );
   }
 
   // Loading/starting state
   return (
-    <div className="flex items-center gap-3 py-2 w-full">
-      <div className="w-5 h-5 border-2 border-purple-primary border-t-transparent rounded-full animate-spin" />
-      <span className="font-ui text-sm text-muted">Starting...</span>
+    <div className="pq-voice-rec">
+      <span className="pq-voice-rec__dot" aria-hidden="true" />
+      <span className="pq-voice-rec__time" style={{ textAlign: "start", minInlineSize: 0 }}>Starting…</span>
     </div>
   );
 }

@@ -4,8 +4,12 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { getOrCreateConversation } from "@/lib/messaging/conversations";
 import { sanitizePostgrestSearchTerm } from "@/lib/utils/postgrest";
-import Loading from "@/components/ui/Loading";
-import Avatar from "@/components/ui/Avatar";
+import Sheet from "@/components/ui/Sheet";
+import Button from "@/components/ui/Button";
+import { Spinner } from "@/components/ui/Loading";
+import { PersonRow } from "@/components/communities/pieces";
+import { Notice } from "@/components/communities/pieces";
+import "@/components/create/composer.css";
 
 interface User {
   id: string;
@@ -21,41 +25,8 @@ interface NewMessageModalProps {
   currentUserId: string;
 }
 
-const icons = {
-  back: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-    </svg>
-  ),
-  close: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-    </svg>
-  ),
-  search: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-    </svg>
-  ),
-  message: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-    </svg>
-  ),
-  spinner: (
-    <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-    </svg>
-  ),
-};
-
-export default function NewMessageModal({
-  isOpen,
-  onClose,
-  onConversationCreated,
-  currentUserId,
-}: NewMessageModalProps) {
+/** Find a person and open (or resume) the conversation with them. */
+export default function NewMessageModal({ isOpen, onClose, onConversationCreated, currentUserId }: NewMessageModalProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
@@ -64,27 +35,17 @@ export default function NewMessageModal({
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Focus input when modal opens
-  useEffect(() => {
-    if (isOpen && inputRef.current) {
-      setTimeout(() => inputRef.current?.focus(), 100);
-    }
-  }, [isOpen]);
-
-  // Search users
   useEffect(() => {
     const searchUsers = async () => {
       if (!searchQuery.trim()) {
         setUsers([]);
         return;
       }
-
       const sanitizedQuery = sanitizePostgrestSearchTerm(searchQuery);
       if (!sanitizedQuery) {
         setUsers([]);
         return;
       }
-
       setLoading(true);
       setError(null);
       try {
@@ -94,47 +55,40 @@ export default function NewMessageModal({
           .neq("id", currentUserId)
           .or(`username.ilike.%${sanitizedQuery}%,display_name.ilike.%${sanitizedQuery}%`)
           .limit(10);
-
         if (searchError) {
           console.error("Search error:", searchError);
-          setError("Failed to search users");
+          setError("Search didn't work. Try again.");
           return;
         }
-
         setUsers(data || []);
       } catch (err) {
         console.error("Failed to search users:", err);
-        setError("Failed to search users");
+        setError("Search didn't work. Try again.");
       } finally {
         setLoading(false);
       }
     };
-
     const debounce = setTimeout(searchUsers, 300);
     return () => clearTimeout(debounce);
   }, [searchQuery, currentUserId]);
 
   const handleSelectUser = async (selectedUser: User) => {
-    if (creating) return; // Prevent double-clicks
-
+    if (creating) return;
     setCreating(true);
     setSelectedUserId(selectedUser.id);
     setError(null);
-
     try {
-      // Atomic find-or-create on the server (blocks and duplicates handled there).
       const conversationId = await getOrCreateConversation(selectedUser.id);
       onConversationCreated(conversationId);
     } catch (err: unknown) {
       console.error("Failed to create conversation:", err);
-      const message = err instanceof Error ? err.message : "Failed to create conversation. Please try again.";
-      setError(message);
+      setError(err instanceof Error ? err.message : "That conversation couldn't be opened. Try again.");
       setCreating(false);
       setSelectedUserId(null);
     }
   };
 
-  // Reset state when modal closes
+  // Start clean each time the sheet closes.
   useEffect(() => {
     if (!isOpen) {
       setSearchQuery("");
@@ -145,170 +99,38 @@ export default function NewMessageModal({
     }
   }, [isOpen]);
 
-  // Lock body scroll when open
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-    }
-    return () => {
-      document.body.style.overflow = "auto";
-    };
-  }, [isOpen]);
-
-  // Handle escape key
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isOpen && !creating) {
-        onClose();
-      }
-    };
-    document.addEventListener("keydown", handleEscape);
-    return () => document.removeEventListener("keydown", handleEscape);
-  }, [isOpen, onClose, creating]);
-
-  if (!isOpen) return null;
-
   return (
-    <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000]"
-        onClick={() => !creating && onClose()}
+    <Sheet isOpen={isOpen} onClose={onClose} title="New message" subtitle="Find someone to write to." busy={creating} size="tall" initialFocus={() => inputRef.current}>
+      <input
+        ref={inputRef}
+        type="search"
+        className="pq-field pq-field--ui"
+        placeholder="Search by name or handle"
+        aria-label="Search people"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        disabled={creating}
       />
-
-      {/* Modal Container */}
-      <div
-        className="fixed inset-0 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2
-                   w-full h-full md:w-[480px] md:h-auto md:max-h-[600px]
-                   bg-surface md:rounded-2xl shadow-2xl z-[1001]
-                   flex flex-col overflow-hidden"
-      >
-        {/* Header */}
-        <div
-          className="flex items-center gap-3 px-4 py-3 md:p-5 border-b border-border-light bg-surface"
-          style={{ paddingTop: 'calc(12px + env(safe-area-inset-top, 0px))' }}
-        >
-          {/* Mobile back button */}
-          <button
-            onClick={() => !creating && onClose()}
-            disabled={creating}
-            className="md:hidden w-10 h-10 -ml-2 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-skeleton/60 transition-all disabled:opacity-50"
-          >
-            {icons.back}
-          </button>
-
-          <h2 className="flex-1 font-display text-[1.1rem] md:text-[1.3rem] text-ink">
-            New Message
-          </h2>
-
-          {/* Desktop close button */}
-          <button
-            onClick={() => !creating && onClose()}
-            disabled={creating}
-            className="hidden md:flex w-10 h-10 rounded-full bg-skeleton/70 items-center justify-center text-muted hover:text-ink hover:bg-skeleton transition-all hover:rotate-90 disabled:opacity-50"
-          >
-            {icons.close}
-          </button>
-        </div>
-
-        {/* Search */}
-        <div className="p-4 border-b border-border-light">
-          <div className="relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted">
-              {icons.search}
-            </span>
-            <input
-              ref={inputRef}
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search for someone..."
-              disabled={creating}
-              className="w-full pl-12 pr-4 py-3 rounded-xl border border-border-light bg-canvas font-ui text-[0.95rem] text-ink outline-none focus:border-purple-primary focus:bg-surface focus:ring-2 focus:ring-purple-primary/20 transition-all disabled:opacity-50"
+      {error && <Notice tone="danger">{error}</Notice>}
+      {loading ? (
+        <div className="pq-discussion__state" role="status" aria-label="Searching"><Spinner size="md" /></div>
+      ) : users.length === 0 ? (
+        <p className="pq-discussion__state">{searchQuery ? "No one by that name." : "Type a name or a handle."}</p>
+      ) : (
+        <div className="pq-list">
+          {users.map((user) => (
+            <PersonRow
+              key={user.id}
+              person={user}
+              trailing={
+                <Button variant="secondary" size="sm" onClick={() => handleSelectUser(user)} disabled={creating && selectedUserId !== user.id} loading={creating && selectedUserId === user.id} loadingText="Opening…">
+                  Message
+                </Button>
+              }
             />
-          </div>
+          ))}
         </div>
-
-        {/* Error Message */}
-        {error && (
-          <div className="mx-4 mt-4 px-4 py-3 bg-red-50 border border-red-200 rounded-xl">
-            <p className="font-ui text-sm text-red-600">{error}</p>
-          </div>
-        )}
-
-        {/* Results */}
-        <div
-          className="flex-1 overflow-y-auto p-4"
-          style={{ paddingBottom: 'calc(16px + env(safe-area-inset-bottom, 0px))' }}
-        >
-          {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loading size="small" text="" />
-            </div>
-          ) : users.length === 0 ? (
-            <div className="text-center py-8">
-              {searchQuery ? (
-                <p className="font-body text-muted">No users found</p>
-              ) : (
-                <>
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-purple-primary/10 flex items-center justify-center text-purple-primary">
-                    {icons.message}
-                  </div>
-                  <p className="font-body text-muted">
-                    Search for someone to start a conversation
-                  </p>
-                </>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {users.map((user) => {
-                const isSelected = selectedUserId === user.id;
-                const isDisabled = creating && !isSelected;
-
-                return (
-                  <button
-                    key={user.id}
-                    onClick={() => handleSelectUser(user)}
-                    disabled={creating}
-                    className={`w-full flex items-center gap-4 p-3 rounded-xl transition-all text-left group ${
-                      isSelected
-                        ? 'bg-purple-primary/10 ring-2 ring-purple-primary'
-                        : 'hover:bg-accent/5 active:bg-purple-primary/10'
-                    } ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    <Avatar
-                      src={user.avatar_url}
-                      alt={user.display_name || user.username}
-                      size={48}
-                      className={`transition-all ${
-                        isSelected ? 'ring-2 ring-purple-primary' : 'group-hover:ring-2 group-hover:ring-purple-primary/30'
-                      }`}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <h3 className={`font-ui text-[0.95rem] font-medium truncate transition-colors ${
-                        isSelected ? 'text-purple-primary' : 'text-ink group-hover:text-accent'
-                      }`}>
-                        {user.display_name || user.username}
-                      </h3>
-                      <p className="font-ui text-[0.85rem] text-muted truncate">
-                        @{user.username}
-                      </p>
-                    </div>
-                    <span className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
-                      isSelected
-                        ? 'bg-gradient-to-r from-purple-primary to-pink-vivid text-white'
-                        : 'bg-gradient-to-r from-purple-primary to-pink-vivid text-white opacity-0 group-hover:opacity-100'
-                    }`}>
-                      {isSelected && creating ? icons.spinner : icons.message}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-    </>
+      )}
+    </Sheet>
   );
 }

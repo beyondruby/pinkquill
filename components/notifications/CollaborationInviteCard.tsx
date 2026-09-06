@@ -2,15 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faCheck,
-  faTimes,
-  faSpinner,
-  faEye,
-} from "@fortawesome/free-solid-svg-icons";
 import type { CollaborationInvite } from "@/lib/hooks.legacy";
-import { getTimeAgo } from "@/lib/utils/time";
+import { getTimeAgoCompact } from "@/lib/utils/time";
+import { getPostTypePhrase } from "@/lib/feed-view/post-type-theme";
+import Button from "@/components/ui/Button";
+import { PersonRow } from "@/components/communities/pieces";
+import "./notifications.css";
 
 interface CollaborationInviteCardProps {
   invite: CollaborationInvite;
@@ -18,148 +15,38 @@ interface CollaborationInviteCardProps {
   onDecline: (postId: string, authorId: string) => Promise<void>;
 }
 
-// Helper to get post type label
-function getPostTypeLabel(type: string): string {
-  const labels: Record<string, string> = {
-    poem: "poem",
-    journal: "journal entry",
-    thought: "thought",
-    essay: "essay",
-    story: "story",
-    letter: "letter",
-    quote: "quote",
-    visual: "visual post",
-    audio: "voice note",
-    video: "video",
-    blog: "blog post",
-  };
-  return labels[type] || "post";
+function getExcerpt(content: string, maxLength = 120): string {
+  const text = content.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim();
+  return text.length <= maxLength ? text : `${text.substring(0, maxLength)}…`;
 }
 
-// Helper to get excerpt from HTML content
-function getExcerpt(content: string, maxLength: number = 100): string {
-  const text = content.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ");
-  if (text.length <= maxLength) return text;
-  return text.substring(0, maxLength) + "...";
-}
-
-
-export default function CollaborationInviteCard({
-  invite,
-  onAccept,
-  onDecline,
-}: CollaborationInviteCardProps) {
-  const [responding, setResponding] = useState(false);
-  const [responseType, setResponseType] = useState<"accept" | "decline" | null>(null);
-
-  const handleAccept = async () => {
-    setResponding(true);
-    setResponseType("accept");
-    try {
-      await onAccept(invite.post_id, invite.post.author.id);
-    } finally {
-      setResponding(false);
-    }
-  };
-
-  const handleDecline = async () => {
-    setResponding(true);
-    setResponseType("decline");
-    try {
-      await onDecline(invite.post_id, invite.post.author.id);
-    } finally {
-      setResponding(false);
-    }
-  };
-
+/** An invitation to be named on someone's work: who, what, a preview, and two answers. */
+export default function CollaborationInviteCard({ invite, onAccept, onDecline }: CollaborationInviteCardProps) {
+  const [busy, setBusy] = useState<"accept" | "decline" | null>(null);
   const author = invite.post.author;
-  const postTypeLabel = getPostTypeLabel(invite.post.type);
-  const excerpt = getExcerpt(invite.post.content);
+  const phrase = getPostTypePhrase(invite.post.type).replace(/^(wrote|shared|recorded|published)\s(a|an|in their)\s?/, "");
+
+  const answer = async (kind: "accept" | "decline") => {
+    setBusy(kind);
+    try {
+      if (kind === "accept") await onAccept(invite.post_id, author.id);
+      else await onDecline(invite.post_id, author.id);
+    } finally {
+      setBusy(null);
+    }
+  };
 
   return (
-    <div className="collab-invite-card">
-      {/* Header */}
-      <div className="collab-invite-header">
-        <div className="collab-invite-icon">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-          </svg>
-        </div>
-        <span className="collab-invite-title">Collaboration Invite</span>
-        <span className="collab-invite-time">{getTimeAgo(invite.invited_at)}</span>
+    <div className="pq-notif-card">
+      <PersonRow person={author} meta={`Invited you to collaborate on their ${phrase || "post"} · ${getTimeAgoCompact(invite.invited_at)}`} />
+      <div className="pq-notif-card__quote">
+        {invite.post.title && <strong>{invite.post.title}</strong>}
+        {getExcerpt(invite.post.content)}
       </div>
-
-      {/* Content */}
-      <div className="collab-invite-content">
-        <div className="collab-invite-author">
-          <Link href={`/studio/${author.username}`} className="collab-invite-avatar-link">
-            {author.avatar_url ? (
-              <img
-                src={author.avatar_url}
-                alt={author.display_name || author.username}
-                className="collab-invite-avatar"
-              />
-            ) : (
-              <div className="collab-invite-avatar collab-invite-avatar-placeholder">
-                {(author.display_name || author.username)[0].toUpperCase()}
-              </div>
-            )}
-          </Link>
-          <div className="collab-invite-author-info">
-            <Link href={`/studio/${author.username}`} className="collab-invite-author-name">
-              {author.display_name || author.username}
-            </Link>
-            <span className="collab-invite-action-text">
-              invited you to collaborate on their {postTypeLabel}
-            </span>
-          </div>
-        </div>
-
-        {/* Post Preview */}
-        <div className="collab-invite-preview">
-          {invite.post.title && (
-            <h4 className="collab-invite-preview-title">{invite.post.title}</h4>
-          )}
-          <p className="collab-invite-preview-text">{excerpt}</p>
-        </div>
-
-        {/* Preview Link */}
-        <Link href={`/post/${invite.post_id}?preview=true`} className="collab-invite-preview-link">
-          <FontAwesomeIcon icon={faEye} className="w-3.5 h-3.5" />
-          Preview Post
-        </Link>
-      </div>
-
-      {/* Actions */}
-      <div className="collab-invite-actions">
-        <button
-          onClick={handleAccept}
-          disabled={responding}
-          className="collab-invite-btn collab-invite-btn-accept"
-        >
-          {responding && responseType === "accept" ? (
-            <FontAwesomeIcon icon={faSpinner} spin className="w-4 h-4" />
-          ) : (
-            <>
-              <FontAwesomeIcon icon={faCheck} className="w-4 h-4" />
-              Accept
-            </>
-          )}
-        </button>
-        <button
-          onClick={handleDecline}
-          disabled={responding}
-          className="collab-invite-btn collab-invite-btn-decline"
-        >
-          {responding && responseType === "decline" ? (
-            <FontAwesomeIcon icon={faSpinner} spin className="w-4 h-4" />
-          ) : (
-            <>
-              <FontAwesomeIcon icon={faTimes} className="w-4 h-4" />
-              Decline
-            </>
-          )}
-        </button>
+      <div className="pq-notif-card__actions">
+        <Button variant="primary" size="sm" onClick={() => answer("accept")} disabled={busy !== null} loading={busy === "accept"} loadingText="Accepting…">Accept</Button>
+        <Button variant="ghost" size="sm" onClick={() => answer("decline")} disabled={busy !== null} loading={busy === "decline"} loadingText="Declining…">Decline</Button>
+        <Link href={`/post/${invite.post_id}?preview=true`} className="pq-button pq-button--sm pq-button--ghost">Preview</Link>
       </div>
     </div>
   );

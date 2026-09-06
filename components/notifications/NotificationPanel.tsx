@@ -9,11 +9,13 @@ import { useFollowRequests } from "@/lib/hooks/useProfile";
 import type { Notification } from "@/lib/types";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { NotificationSkeleton } from "@/components/ui/Skeleton";
+import { DEFAULT_AVATAR } from "@/lib/utils/image";
+import "./notifications.css";
 import Sheet from "@/components/ui/Sheet";
 import { setRequestMetricsScope } from "@/lib/utils/requestMetrics";
 import CollaborationInviteCard from "./CollaborationInviteCard";
 import FollowRequestCard from "./FollowRequestCard";
-import { CommentIcon } from "@/components/ui/Icons";
+import { CommentIcon, HeartIcon, RelayIcon, BookmarkIcon, icons as uiIcons } from "@/components/ui/Icons";
 import { getTimeAgoCompact } from "@/lib/utils/time";
 import { getMutedNotificationTypes } from "@/lib/utils/notificationCategories";
 import { formatCurrency } from "@/lib/utils/currency";
@@ -23,733 +25,37 @@ interface NotificationPanelProps {
   onClose: () => void;
 }
 
-// Brand-consistent icons using purple, pink, and orange gradients
-const icons = {
-  close: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-    </svg>
-  ),
-  admire: (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-      <defs>
-        <linearGradient id="admireGradN" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#ff007f" />
-          <stop offset="100%" stopColor="#ff9f43" />
-        </linearGradient>
-      </defs>
-      <path
-        d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
-        fill="url(#admireGradN)"
-      />
-    </svg>
-  ),
-  snap: (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-      <defs>
-        <linearGradient id="snapGradN" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#8e44ad" />
-          <stop offset="100%" stopColor="#ff007f" />
-        </linearGradient>
-      </defs>
-      <path d="M12 2C12 2 10 4 10 6C10 8 12 8 12 8" stroke="url(#snapGradN)" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-      <path d="M8.5 8C8.5 7 9 6 10 6C11 6 11.5 7 11.5 8V12" stroke="url(#snapGradN)" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-      <path d="M11.5 9C11.5 8 12 7 13 7C14 7 14.5 8 14.5 9V12" stroke="url(#snapGradN)" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-      <path d="M14.5 10C14.5 9 15 8 16 8C17 8 17.5 9 17.5 10V14C17.5 17 15.5 20 12 21C8.5 20 6.5 17 6.5 14V11C6.5 10 7 9 8 9C9 9 9.5 10 9.5 11" stroke="url(#snapGradN)" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-      <path d="M4 4L6 6M20 4L18 6M12 1V3" stroke="url(#snapGradN)" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  ),
-  ovation: (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-      <defs>
-        <linearGradient id="ovationGradN" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#ff9f43" />
-          <stop offset="100%" stopColor="#ff007f" />
-        </linearGradient>
-      </defs>
-      <circle cx="12" cy="4" r="2.5" fill="url(#ovationGradN)" />
-      <path d="M12 7V14M12 14L8 20M12 14L16 20" stroke="url(#ovationGradN)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M12 9L7 5M12 9L17 5" stroke="url(#ovationGradN)" strokeWidth="2" strokeLinecap="round" />
-      <path d="M4 3L5 4M20 3L19 4M4 7H5M19 7H20" stroke="url(#ovationGradN)" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  ),
-  support: (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-      <defs>
-        <linearGradient id="supportGradN" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#8e44ad" />
-          <stop offset="50%" stopColor="#ff007f" />
-          <stop offset="100%" stopColor="#ff9f43" />
-        </linearGradient>
-      </defs>
-      <path d="M7 13C5.5 13 4 14.5 4 16C4 17.5 5 19 7 20H11C13 20 14.5 18.5 14.5 17" stroke="url(#supportGradN)" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-      <path d="M17 13C18.5 13 20 14.5 20 16C20 17.5 19 19 17 20H13C11 20 9.5 18.5 9.5 17" stroke="url(#supportGradN)" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-      <path d="M12 11l-.725-.66C9.4 8.736 8 7.64 8 6.25 8 5.06 8.92 4 10.25 4c.74 0 1.46.405 1.75 1.045C12.29 4.405 13.01 4 13.75 4 15.08 4 16 5.06 16 6.25c0 1.39-1.4 2.486-3.275 4.09L12 11z" fill="url(#supportGradN)" />
-    </svg>
-  ),
-  inspired: (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-      <defs>
-        <linearGradient id="inspiredGradN" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#ff007f" />
-          <stop offset="50%" stopColor="#8e44ad" />
-          <stop offset="100%" stopColor="#ff9f43" />
-        </linearGradient>
-      </defs>
-      <path d="M12 2C8.69 2 6 4.69 6 8C6 10.22 7.21 12.16 9 13.19V15C9 15.55 9.45 16 10 16H14C14.55 16 15 15.55 15 15V13.19C16.79 12.16 18 10.22 18 8C18 4.69 15.31 2 12 2Z" fill="url(#inspiredGradN)" />
-      <path d="M10 18H14M10 20H14M11 16V18M13 16V18" stroke="url(#inspiredGradN)" strokeWidth="1.5" strokeLinecap="round" />
-      <path d="M3 8H4M20 8H21M5.5 3.5L6.5 4.5M18.5 3.5L17.5 4.5" stroke="url(#inspiredGradN)" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  ),
-  applaud: (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-      <defs>
-        <linearGradient id="applaudGradN" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#8e44ad" />
-          <stop offset="100%" stopColor="#ff9f43" />
-        </linearGradient>
-      </defs>
-      <path d="M6 12C4.5 12 3 13.5 3 15.5C3 17.5 4.5 19 6 19L10 19C10 19 11 17 10 15L8 13C7.5 12.5 7 12 6 12Z" fill="url(#applaudGradN)" opacity="0.9" />
-      <path d="M18 12C19.5 12 21 13.5 21 15.5C21 17.5 19.5 19 18 19L14 19C14 19 13 17 14 15L16 13C16.5 12.5 17 12 18 12Z" fill="url(#applaudGradN)" opacity="0.9" />
-      <path d="M12 8V6M9 9L7.5 7.5M15 9L16.5 7.5M12 4V3" stroke="url(#applaudGradN)" strokeWidth="1.5" strokeLinecap="round" />
-      <path d="M10.5 13L12 11L13.5 13" stroke="url(#applaudGradN)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  ),
-  comment: (
-    <CommentIcon />
-  ),
-  relay: (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-      <defs>
-        <linearGradient id="relayGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#8e44ad" />
-          <stop offset="100%" stopColor="#ff9f43" />
-        </linearGradient>
-      </defs>
-      <path
-        d="M17 1l4 4-4 4"
-        stroke="url(#relayGrad)"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M3 11V9a4 4 0 0 1 4-4h14"
-        stroke="url(#relayGrad)"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M7 23l-4-4 4-4"
-        stroke="url(#relayGrad)"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M21 13v2a4 4 0 0 1-4 4H3"
-        stroke="url(#relayGrad)"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  ),
-  save: (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-      <defs>
-        <linearGradient id="saveGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#8e44ad" />
-          <stop offset="100%" stopColor="#ff007f" />
-        </linearGradient>
-      </defs>
-      <path
-        d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"
-        fill="url(#saveGrad)"
-      />
-    </svg>
-  ),
-  follow: (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-      <defs>
-        <linearGradient id="followGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#ff007f" />
-          <stop offset="100%" stopColor="#8e44ad" />
-        </linearGradient>
-      </defs>
-      <circle cx="9" cy="7" r="4" fill="url(#followGrad)" />
-      <path
-        d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"
-        stroke="url(#followGrad)"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M16 11h6m-3-3v6"
-        stroke="url(#followGrad)"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-    </svg>
-  ),
-  followRequest: (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-      <defs>
-        <linearGradient id="followReqGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#8e44ad" />
-          <stop offset="100%" stopColor="#ff007f" />
-        </linearGradient>
-      </defs>
-      <circle cx="9" cy="7" r="4" fill="url(#followReqGrad)" />
-      <path
-        d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"
-        stroke="url(#followReqGrad)"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <circle cx="18" cy="10" r="5" fill="url(#followReqGrad)" />
-      <text x="18" y="13" textAnchor="middle" fill="white" fontSize="8" fontWeight="bold">?</text>
-    </svg>
-  ),
-  followRequestAccepted: (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-      <defs>
-        <linearGradient id="followAcceptGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#27ae60" />
-          <stop offset="100%" stopColor="#2ecc71" />
-        </linearGradient>
-      </defs>
-      <circle cx="9" cy="7" r="4" fill="url(#followAcceptGrad)" />
-      <path
-        d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"
-        stroke="url(#followAcceptGrad)"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <circle cx="18" cy="10" r="5" fill="url(#followAcceptGrad)" />
-      <path d="M16 10l1.5 1.5 3-3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  ),
-  reply: (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-      <defs>
-        <linearGradient id="replyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#ff9f43" />
-          <stop offset="100%" stopColor="#ff007f" />
-        </linearGradient>
-      </defs>
-      <path
-        d="M9 17l-5-5 5-5"
-        stroke="url(#replyGrad)"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M4 12h12a4 4 0 0 1 4 4v1"
-        stroke="url(#replyGrad)"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  ),
-  commentLike: (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-      <defs>
-        <linearGradient id="commentLikeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#ff007f" />
-          <stop offset="100%" stopColor="#ff9f43" />
-        </linearGradient>
-      </defs>
-      <path
-        d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"
-        fill="url(#commentLikeGrad)"
-      />
-    </svg>
-  ),
-  community: (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-      <defs>
-        <linearGradient id="communityGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#8e44ad" />
-          <stop offset="50%" stopColor="#ff007f" />
-          <stop offset="100%" stopColor="#ff9f43" />
-        </linearGradient>
-      </defs>
-      <circle cx="9" cy="7" r="3" fill="url(#communityGrad)" />
-      <circle cx="15" cy="7" r="3" fill="url(#communityGrad)" opacity="0.7" />
-      <path
-        d="M5.5 21v-1a4 4 0 0 1 4-4h5a4 4 0 0 1 4 4v1"
-        stroke="url(#communityGrad)"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-    </svg>
-  ),
-  invite: (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-      <defs>
-        <linearGradient id="inviteGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#8e44ad" />
-          <stop offset="100%" stopColor="#ff007f" />
-        </linearGradient>
-      </defs>
-      <path
-        d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"
-        stroke="url(#inviteGrad)"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  ),
-  approved: (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-      <defs>
-        <linearGradient id="approvedGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#8e44ad" />
-          <stop offset="100%" stopColor="#ff9f43" />
-        </linearGradient>
-      </defs>
-      <circle cx="12" cy="12" r="10" fill="url(#approvedGrad)" />
-      <path
-        d="M9 12l2 2 4-4"
-        stroke="white"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  ),
-  muted: (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-      <defs>
-        <linearGradient id="mutedGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#ff9f43" />
-          <stop offset="100%" stopColor="#ff007f" />
-        </linearGradient>
-      </defs>
-      <path
-        d="M11 5L6 9H2v6h4l5 4V5zM23 9l-6 6M17 9l6 6"
-        stroke="url(#mutedGrad)"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  ),
-  banned: (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-      <defs>
-        <linearGradient id="bannedGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#ff007f" />
-          <stop offset="100%" stopColor="#ff9f43" />
-        </linearGradient>
-      </defs>
-      <circle cx="12" cy="12" r="10" stroke="url(#bannedGrad)" strokeWidth="2" />
-      <path d="M4.93 4.93l14.14 14.14" stroke="url(#bannedGrad)" strokeWidth="2" />
-    </svg>
-  ),
-  warning: (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-      <defs>
-        <linearGradient id="warningGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#8e44ad" />
-          <stop offset="50%" stopColor="#ff007f" />
-          <stop offset="100%" stopColor="#ff9f43" />
-        </linearGradient>
-      </defs>
-      <path
-        d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
-        stroke="url(#warningGrad)"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  ),
-  joinRequest: (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-      <defs>
-        <linearGradient id="joinReqGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#ff9f43" />
-          <stop offset="100%" stopColor="#8e44ad" />
-        </linearGradient>
-      </defs>
-      <circle cx="9" cy="7" r="4" fill="url(#joinReqGrad)" />
-      <path
-        d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"
-        stroke="url(#joinReqGrad)"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <circle cx="18" cy="12" r="5" stroke="url(#joinReqGrad)" strokeWidth="2" fill="none" />
-      <path d="M18 10v4M16 12h4" stroke="url(#joinReqGrad)" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  ),
-  collaborationInvite: (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-      <defs>
-        <linearGradient id="collabInviteGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#8e44ad" />
-          <stop offset="50%" stopColor="#ff007f" />
-          <stop offset="100%" stopColor="#ff9f43" />
-        </linearGradient>
-      </defs>
-      <circle cx="9" cy="7" r="3" fill="url(#collabInviteGrad)" />
-      <circle cx="15" cy="7" r="3" fill="url(#collabInviteGrad)" opacity="0.7" />
-      <path d="M5.5 21v-1a4 4 0 0 1 4-4h5a4 4 0 0 1 4 4v1" stroke="url(#collabInviteGrad)" strokeWidth="2" strokeLinecap="round" />
-      <path d="M12 2l1 2-1 1-1-1 1-2z" fill="url(#collabInviteGrad)" opacity="0.8" />
-      <path d="M8 3l.5 1.5-.5.5-.5-.5.5-1.5z" fill="url(#collabInviteGrad)" opacity="0.6" />
-      <path d="M16 3l.5 1.5-.5.5-.5-.5.5-1.5z" fill="url(#collabInviteGrad)" opacity="0.6" />
-    </svg>
-  ),
-  collaborationAccepted: (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-      <defs>
-        <linearGradient id="collabAcceptGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#27ae60" />
-          <stop offset="100%" stopColor="#2ecc71" />
-        </linearGradient>
-      </defs>
-      <circle cx="9" cy="7" r="3" fill="url(#collabAcceptGrad)" />
-      <circle cx="15" cy="7" r="3" fill="url(#collabAcceptGrad)" opacity="0.7" />
-      <path d="M5.5 21v-1a4 4 0 0 1 4-4h5a4 4 0 0 1 4 4v1" stroke="url(#collabAcceptGrad)" strokeWidth="2" strokeLinecap="round" />
-      <circle cx="18" cy="16" r="4" fill="url(#collabAcceptGrad)" />
-      <path d="M16.5 16l1 1 2-2" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  ),
-  collaborationDeclined: (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-      <defs>
-        <linearGradient id="collabDeclineGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#e74c3c" />
-          <stop offset="100%" stopColor="#c0392b" />
-        </linearGradient>
-      </defs>
-      <circle cx="9" cy="7" r="3" fill="url(#collabDeclineGrad)" opacity="0.5" />
-      <circle cx="15" cy="7" r="3" fill="url(#collabDeclineGrad)" opacity="0.3" />
-      <path d="M5.5 21v-1a4 4 0 0 1 4-4h5a4 4 0 0 1 4 4v1" stroke="url(#collabDeclineGrad)" strokeWidth="2" strokeLinecap="round" opacity="0.5" />
-      <circle cx="18" cy="16" r="4" fill="url(#collabDeclineGrad)" />
-      <path d="M16.5 14.5l3 3M19.5 14.5l-3 3" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  ),
-  collaborationRemoved: (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-      <defs>
-        <linearGradient id="collabRemoveGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#777777" />
-          <stop offset="100%" stopColor="#c0392b" />
-        </linearGradient>
-      </defs>
-      <circle cx="9" cy="7" r="3" fill="url(#collabRemoveGrad)" opacity="0.6" />
-      <circle cx="15" cy="7" r="3" fill="url(#collabRemoveGrad)" opacity="0.35" />
-      <path d="M5.5 21v-1a4 4 0 0 1 4-4h5a4 4 0 0 1 4 4v1" stroke="url(#collabRemoveGrad)" strokeWidth="2" strokeLinecap="round" opacity="0.55" />
-      <circle cx="18" cy="16" r="4" fill="url(#collabRemoveGrad)" />
-      <path d="M15.5 16h5" stroke="white" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
-  ),
-  mention: (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-      <defs>
-        <linearGradient id="mentionGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#8e44ad" />
-          <stop offset="100%" stopColor="#ff007f" />
-        </linearGradient>
-      </defs>
-      <circle cx="12" cy="12" r="3" stroke="url(#mentionGrad)" strokeWidth="2" />
-      <path d="M12 5a7 7 0 1 0 7 7v-1a3 3 0 0 0-6 0v1" stroke="url(#mentionGrad)" strokeWidth="2" strokeLinecap="round" />
-      <circle cx="12" cy="7" r="1.5" fill="url(#mentionGrad)" />
-    </svg>
-  ),
-  orderPlaced: (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-      <defs>
-        <linearGradient id="orderPlacedGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#8e44ad" />
-          <stop offset="100%" stopColor="#ff9f43" />
-        </linearGradient>
-      </defs>
-      <rect x="3" y="6" width="18" height="14" rx="2" stroke="url(#orderPlacedGrad)" strokeWidth="2" />
-      <path d="M3 10h18" stroke="url(#orderPlacedGrad)" strokeWidth="2" />
-      <path d="M7 14h4M7 17h2" stroke="url(#orderPlacedGrad)" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  ),
-  orderPaid: (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-      <defs>
-        <linearGradient id="orderPaidGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#27ae60" />
-          <stop offset="100%" stopColor="#2ecc71" />
-        </linearGradient>
-      </defs>
-      <circle cx="12" cy="12" r="10" stroke="url(#orderPaidGrad)" strokeWidth="2" />
-      <path d="M12 6v2m0 8v2m-4-6h1.5a2.5 2.5 0 010 5H9m6-5h-1.5a2.5 2.5 0 000-5H15" stroke="url(#orderPaidGrad)" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  ),
-  orderStarted: (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-      <defs>
-        <linearGradient id="orderStartedGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#8e44ad" />
-          <stop offset="100%" stopColor="#ff007f" />
-        </linearGradient>
-      </defs>
-      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" stroke="url(#orderStartedGrad)" strokeWidth="2" />
-      <path d="M10 8l6 4-6 4V8z" fill="url(#orderStartedGrad)" />
-    </svg>
-  ),
-  orderDelivered: (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-      <defs>
-        <linearGradient id="orderDeliveredGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#ff007f" />
-          <stop offset="100%" stopColor="#ff9f43" />
-        </linearGradient>
-      </defs>
-      <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4M4 7l8 4M4 7v10l8 4m0-10v10" stroke="url(#orderDeliveredGrad)" strokeWidth="2" strokeLinejoin="round" />
-    </svg>
-  ),
-  orderCompleted: (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-      <defs>
-        <linearGradient id="orderCompletedGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#27ae60" />
-          <stop offset="100%" stopColor="#2ecc71" />
-        </linearGradient>
-      </defs>
-      <circle cx="12" cy="12" r="10" fill="url(#orderCompletedGrad)" />
-      <path d="M8 12l3 3 5-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  ),
-  revisionRequested: (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-      <defs>
-        <linearGradient id="revisionGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#ff9f43" />
-          <stop offset="100%" stopColor="#ff007f" />
-        </linearGradient>
-      </defs>
-      <path d="M1 4v6h6M23 20v-6h-6" stroke="url(#revisionGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15" stroke="url(#revisionGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  ),
-  orderCancelled: (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-      <defs>
-        <linearGradient id="orderCancelledGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#e74c3c" />
-          <stop offset="100%" stopColor="#c0392b" />
-        </linearGradient>
-      </defs>
-      <circle cx="12" cy="12" r="10" stroke="url(#orderCancelledGrad)" strokeWidth="2" />
-      <path d="M15 9l-6 6M9 9l6 6" stroke="url(#orderCancelledGrad)" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  ),
-  reviewReceived: (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-      <defs>
-        <linearGradient id="reviewGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#ff9f43" />
-          <stop offset="100%" stopColor="#ff007f" />
-        </linearGradient>
-      </defs>
-      <path d="M4 20l1.5-4.8 8.7-8.7a2 2 0 012.8 0l1.2 1.2a2 2 0 010 2.8l-8.7 8.7L4 20z" stroke="url(#reviewGrad)" strokeWidth="1.8" strokeLinejoin="round" />
-      <path d="M13.5 7.5l3 3" stroke="url(#reviewGrad)" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
-  ),
-  orderMessage: (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-      <defs>
-        <linearGradient id="orderMsgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#8e44ad" />
-          <stop offset="100%" stopColor="#ff9f43" />
-        </linearGradient>
-      </defs>
-      <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z" stroke="url(#orderMsgGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M8 10h8M8 14h4" stroke="url(#orderMsgGrad)" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  ),
-  orderDisputed: (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-      <defs>
-        <linearGradient id="disputeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#e74c3c" />
-          <stop offset="100%" stopColor="#e67e22" />
-        </linearGradient>
-      </defs>
-      <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" stroke="url(#disputeGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  ),
-  disputeResolved: (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-      <defs>
-        <linearGradient id="resolvedGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#27ae60" />
-          <stop offset="100%" stopColor="#2ecc71" />
-        </linearGradient>
-      </defs>
-      <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke="url(#resolvedGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  ),
-  refundRequested: (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-      <defs>
-        <linearGradient id="refundReqGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#e67e22" />
-          <stop offset="100%" stopColor="#f39c12" />
-        </linearGradient>
-      </defs>
-      <path d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" stroke="url(#refundReqGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  ),
-  orderRefunded: (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-      <defs>
-        <linearGradient id="refundedGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#27ae60" />
-          <stop offset="100%" stopColor="#2ecc71" />
-        </linearGradient>
-      </defs>
-      <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" stroke="url(#refundedGrad)" strokeWidth="2" strokeLinecap="round" />
-      <circle cx="12" cy="12" r="4" stroke="url(#refundedGrad)" strokeWidth="2" />
-    </svg>
-  ),
-  checkAll: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-    </svg>
-  ),
-  bell: (
-    <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none">
-      <defs>
-        <linearGradient id="bellGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#8e44ad" />
-          <stop offset="50%" stopColor="#ff007f" />
-          <stop offset="100%" stopColor="#ff9f43" />
-        </linearGradient>
-      </defs>
-      <path
-        d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"
-        stroke="url(#bellGrad)"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-      />
-    </svg>
-  ),
+/* One small monochrome mark per kind of event; the sentence carries the meaning. */
+const stroke = { fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+const kindIcons = {
+  reaction: <HeartIcon size="sm" filled />,
+  comment: <CommentIcon size="sm" />,
+  relay: <RelayIcon size="sm" />,
+  save: <BookmarkIcon size="sm" filled />,
+  follow: <svg viewBox="0 0 24 24" {...stroke} aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM19 8v6M22 11h-6" /></svg>,
+  community: <svg viewBox="0 0 24 24" {...stroke} aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></svg>,
+  mention: <svg viewBox="0 0 24 24" {...stroke} aria-hidden="true"><circle cx="12" cy="12" r="3" /><path d="M15 12v1.5a2.5 2.5 0 0 0 5 0V12a8 8 0 1 0-3.5 6.6" /></svg>,
+  order: <svg viewBox="0 0 24 24" {...stroke} aria-hidden="true"><path d="M6 2h12l3 5v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7l3-5zM3 7h18M9 11a3 3 0 0 0 6 0" /></svg>,
+  warning: <svg viewBox="0 0 24 24" {...stroke} aria-hidden="true"><path d="M12 9v4M12 17h.01M10.3 3.9 2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" /></svg>,
+  check: <svg viewBox="0 0 24 24" {...stroke} aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg>,
+  clock: <svg viewBox="0 0 24 24" {...stroke} aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>,
 };
 
 function getNotificationIcon(type: string) {
-  switch (type) {
-    case 'admire':
-      return icons.admire;
-    case 'snap':
-      return icons.snap;
-    case 'ovation':
-      return icons.ovation;
-    case 'support':
-      return icons.support;
-    case 'inspired':
-      return icons.inspired;
-    case 'applaud':
-      return icons.applaud;
-    case 'comment':
-      return icons.comment;
-    case 'reply':
-      return icons.reply;
-    case 'comment_like':
-      return icons.commentLike;
-    case 'relay':
-      return icons.relay;
-    case 'save':
-      return icons.save;
-    case 'follow':
-      return icons.follow;
-    case 'follow_request':
-      return icons.followRequest;
-    case 'follow_request_accepted':
-      return icons.followRequestAccepted;
-    case 'community_invite':
-      return icons.invite;
-    case 'community_join_request':
-      return icons.joinRequest;
-    case 'community_join_approved':
-      return icons.approved;
-    case 'community_muted':
-      return icons.muted;
-    case 'community_banned':
-      return icons.banned;
-    case 'community_warning':
-      return icons.warning;
-    case 'collaboration_invite':
-      return icons.collaborationInvite;
-    case 'collaboration_accepted':
-      return icons.collaborationAccepted;
-    case 'collaboration_declined':
-      return icons.collaborationDeclined;
-    case 'collaboration_removed':
-      return icons.collaborationRemoved;
-    case 'mention':
-      return icons.mention;
-    case 'order_pending_acceptance':
-      return icons.orderPlaced;
-    case 'order_accepted':
-      return icons.orderPaid;
-    case 'order_declined':
-      return icons.orderCancelled;
-    case 'order_placed':
-      return icons.orderPlaced;
-    case 'order_paid':
-      return icons.orderPaid;
-    case 'order_started':
-      return icons.orderStarted;
-    case 'order_delivered':
-      return icons.orderDelivered;
-    case 'order_completed':
-      return icons.orderCompleted;
-    case 'revision_requested':
-      return icons.revisionRequested;
-    case 'order_cancelled':
-      return icons.orderCancelled;
-    case 'review_received':
-      return icons.reviewReceived;
-    case 'order_message':
-      return icons.orderMessage;
-    case 'order_disputed':
-      return icons.orderDisputed;
-    case 'dispute_resolved':
-      return icons.disputeResolved;
-    case 'refund_requested':
-      return icons.refundRequested;
-    case 'order_refunded':
-    case 'refund_approved':
-      return icons.orderRefunded;
-    case 'refund_declined':
-    case 'order_expired':
-    case 'order_payment_failed':
-    case 'order_cancel_requested':
-    case 'chargeback_closed':
-      return icons.orderCancelled;
-    case 'order_transfer_failed':
-    case 'chargeback_opened':
-      return icons.orderDisputed;
-    case 'order_due_soon':
-    case 'order_due':
-    case 'order_late':
-      return icons.warning;
-    case 'extension_requested':
-      return icons.revisionRequested;
-    case 'extension_accepted':
-      return icons.approved;
-    case 'extension_declined':
-      return icons.orderCancelled;
-    default:
-      return icons.warning;
-  }
+  if (["admire", "snap", "ovation", "support", "inspired", "applaud", "comment_like"].includes(type)) return kindIcons.reaction;
+  if (type === "comment" || type === "reply") return kindIcons.comment;
+  if (type === "relay") return kindIcons.relay;
+  if (type === "save") return kindIcons.save;
+  if (type.startsWith("follow")) return kindIcons.follow;
+  if (type.startsWith("collaboration_")) return kindIcons.community;
+  if (type === "mention") return kindIcons.mention;
+  if (type === "community_muted" || type === "community_banned" || type === "community_warning") return kindIcons.warning;
+  if (type.startsWith("community_")) return kindIcons.community;
+  if (["order_completed", "order_paid", "order_accepted", "refund_approved", "order_refunded", "dispute_resolved", "extension_accepted"].includes(type)) return kindIcons.check;
+  if (["order_due_soon", "order_due", "order_late", "extension_requested", "revision_requested"].includes(type)) return kindIcons.clock;
+  if (["order_disputed", "chargeback_opened", "order_transfer_failed", "order_payment_failed", "refund_requested"].includes(type)) return kindIcons.warning;
+  if (type.startsWith("order_") || type.startsWith("refund_") || type.startsWith("chargeback_") || type === "review_received") return kindIcons.order;
+  return kindIcons.warning;
 }
 
 function getNotificationMessage(notification: Notification): { actor: string; action: string } {
@@ -940,162 +246,63 @@ function NotificationItem({
   };
 
   const message = getNotificationMessage(notification);
+  const isCommunityWarning = notification.type === "community_muted" || notification.type === "community_banned" || notification.type === "community_warning";
+  const showPreview =
+    ((notification.type === "comment" || notification.type === "reply" || notification.type === "comment_like") && notification.content) ||
+    (isCommunityWarning && notification.content) ||
+    (notification.type === "community_join_request" && notification.content) ||
+    (notification.order_id && notification.content);
+  const postPreview = notification.post && notification.type !== "follow" && !notification.type.startsWith("community_") && !notification.order_id && !notification.content
+    ? (notification.post.title || notification.post.content?.substring(0, 80) || "")
+    : "";
 
   return (
-    <Link
-      href={notificationLink}
-      onClick={handleClick}
-      className={`group relative flex gap-3 p-3 rounded-2xl cursor-pointer transition-all duration-300 block ${
-        notification.read
-          ? "hover:bg-subtle"
-          : "bg-gradient-to-r from-purple-primary/[0.04] via-pink-vivid/[0.03] to-orange-warm/[0.02]"
-      }`}
-    >
-      {/* Unread indicator line */}
-      {!notification.read && (
-        <div className="absolute left-0 top-3 bottom-3 w-[3px] rounded-full bg-gradient-to-b from-purple-primary via-pink-vivid to-orange-warm" />
-      )}
-
-      {/* Avatar with icon overlay */}
-      <div className="relative flex-shrink-0">
-        <img
-          src={notification.actor?.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"}
-          alt=""
-          className="w-11 h-11 rounded-full object-cover ring-2 ring-border-light shadow-sm group-hover:ring-accent/20 transition-all"
-        />
-        <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-surface shadow-md flex items-center justify-center ring-2 ring-border-light">
-          {getNotificationIcon(notification.type)}
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 min-w-0 py-0.5">
-        <p className="font-ui text-[0.88rem] text-ink leading-relaxed">
-          <span className="font-semibold">{message.actor}</span>{" "}
-          <span className="text-muted">{message.action}</span>
-        </p>
-
-        {/* Content preview for comments */}
-        {(notification.type === 'comment' || notification.type === 'reply' || notification.type === 'comment_like') && notification.content && (
-          <p className="font-body text-[0.82rem] text-muted/80 mt-1.5 line-clamp-2 italic">
-            {notification.content}
-          </p>
-        )}
-
-        {/* Content preview for mute/ban/warning/join request notifications */}
-        {(notification.type === 'community_muted' || notification.type === 'community_banned' || notification.type === 'community_warning' || notification.type === 'community_join_request') && notification.content && (
-          <p className={`font-body text-[0.82rem] mt-1.5 line-clamp-3 ${
-            notification.type === 'community_banned'
-              ? 'text-red-600/80'
-              : notification.type === 'community_muted' || notification.type === 'community_warning'
-              ? 'text-yellow-600/80'
-              : 'text-muted/80'
-          }`}>
-            {notification.content}
-          </p>
-        )}
-
-        {/* Order facts (2d): number · listing · the recipient's own amount */}
+    <Link href={notificationLink} onClick={handleClick} className={`pq-notif ${notification.read ? "" : "pq-notif--unread"}`}>
+      <span className="pq-notif__avatar" aria-hidden="true">
+        <img src={notification.actor?.avatar_url || DEFAULT_AVATAR} alt="" />
+        <span className="pq-notif__kind">{getNotificationIcon(notification.type)}</span>
+      </span>
+      <div className="pq-notif__text">
+        <p className="pq-notif__line"><strong>{message.actor}</strong> {message.action}{notification.type.startsWith("community_") && notification.community ? "" : ""}</p>
+        {showPreview && <p className="pq-notif__preview">{notification.content}</p>}
         {notification.order_id && notification.metadata && (notification.metadata.order_number || notification.metadata.title) && (
-          <p className="font-ui text-[0.72rem] text-muted mt-1 truncate tabular-nums">
-            {[notification.metadata.order_number, notification.metadata.amount != null ? formatCurrency(Number(notification.metadata.amount), notification.metadata.currency ?? undefined) : null, notification.metadata.title].filter(Boolean).join(' · ')}
+          <p className="pq-notif__facts">
+            {[notification.metadata.order_number, notification.metadata.amount != null ? formatCurrency(Number(notification.metadata.amount), notification.metadata.currency ?? undefined) : null, notification.metadata.title].filter(Boolean).join(" · ")}
           </p>
         )}
-
-        {/* Order notification content */}
-        {notification.content && notification.order_id && (
-          <p className="font-body text-[0.82rem] text-muted/80 mt-1.5 line-clamp-2">
-            {notification.content}
-          </p>
-        )}
-
-        {/* Post preview */}
-        {notification.post && notification.type !== 'follow' && !notification.type.startsWith('community_') && !notification.order_id && !notification.content && (
-          <p className="font-body text-[0.78rem] text-muted/60 mt-1 line-clamp-1 truncate">
-            {notification.post.title || notification.post.content?.substring(0, 60)}...
-          </p>
-        )}
-
-        {/* Community badge */}
-        {notification.type.startsWith('community_') && notification.community && (
-          <div className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 bg-gradient-to-r from-purple-primary/[0.08] to-pink-vivid/[0.05] rounded-full">
-            {notification.community.avatar_url ? (
-              <img
-                src={notification.community.avatar_url}
-                alt=""
-                className="w-4 h-4 rounded-full object-cover"
-              />
-            ) : (
-              <div className="w-4 h-4 rounded-full bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center">
-                <span className="text-white text-[0.5rem] font-bold">
-                  {notification.community.name.charAt(0)}
-                </span>
-              </div>
-            )}
-            <span className="font-ui text-[0.7rem] font-medium bg-gradient-to-r from-purple-primary to-pink-vivid bg-clip-text text-transparent">
-              {notification.community.name}
-            </span>
-          </div>
-        )}
-
-        {/* Timestamp */}
-        <span className="font-ui text-[0.72rem] text-muted mt-1.5 block">
+        {postPreview && <p className="pq-notif__preview">{postPreview}</p>}
+        <p className="pq-notif__when">
           {getTimeAgoCompact(notification.created_at)}
-        </span>
+          {notification.type.startsWith("community_") && notification.community ? ` · ${notification.community.name}` : ""}
+          {!notification.read ? " · New" : ""}
+        </p>
       </div>
     </Link>
   );
 }
 
 export default function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
-  if (!isOpen) {
-    return null;
-  }
-
+  if (!isOpen) return null;
   return <NotificationPanelContent onClose={onClose} />;
 }
 
 function NotificationPanelContent({ onClose }: { onClose: () => void }) {
   const { user, profile } = useAuth();
-  const mutedNotificationTypes = useMemo(
-    () => getMutedNotificationTypes(profile?.notification_preferences),
-    [profile?.notification_preferences]
-  );
+  const mutedNotificationTypes = useMemo(() => getMutedNotificationTypes(profile?.notification_preferences), [profile?.notification_preferences]);
   const { notifications, loading } = useNotifications(user?.id, mutedNotificationTypes);
   const { markAsRead, markAllAsRead } = useMarkAsRead();
   const { invites: rawInvites, accept: acceptInvite, decline: declineInvite } = useCollaborationInvites(user?.id || "");
-  // Filter out invites where post or author is null (e.g., deleted posts)
-  const invites = rawInvites.filter(invite => invite.post && invite.post.author);
+  const invites = rawInvites.filter((invite) => invite.post && invite.post.author);
   const { requests: followRequests, accept: acceptFollowRequest, decline: declineFollowRequest } = useFollowRequests(user?.id);
-  const regularNotifications = notifications.filter(
-    (n) => n.type !== "collaboration_invite" && n.type !== "follow_request"
-  );
+  const regularNotifications = notifications.filter((n) => n.type !== "collaboration_invite" && n.type !== "follow_request");
   const regularUnreadCount = regularNotifications.filter((n) => !n.read).length;
-
-  const handleAcceptFollowRequest = async (requesterId: string) => {
-    await acceptFollowRequest(requesterId);
-  };
-
-  const handleDeclineFollowRequest = async (requesterId: string) => {
-    await declineFollowRequest(requesterId);
-  };
-
-  const handleAcceptInvite = async (postId: string, authorId: string) => {
-    await acceptInvite(postId, authorId);
-  };
-
-  const handleDeclineInvite = async (postId: string, authorId: string) => {
-    await declineInvite(postId, authorId);
-  };
 
   useEffect(() => {
     setRequestMetricsScope("notifications");
     return () => setRequestMetricsScope(null);
   }, []);
 
-  // Auto-clear the unread badge as soon as the panel opens — the user has now
-  // seen the list, so we mark every regular notification as read. Invites and
-  // follow requests are also cleared so the badge drops to zero.
+  // Opening the panel counts as seeing everything: the badge clears, the "New" words stay until the next open.
   useEffect(() => {
     if (!user?.id) return;
     void markAllAsRead(user.id);
@@ -1110,92 +317,47 @@ function NotificationPanelContent({ onClose }: { onClose: () => void }) {
       onClose={onClose}
       presentation="panel"
       title="Notifications"
-      subtitle={unreadCount > 0 ? `${unreadCount} new since you last looked` : hasContent ? "Your recent activity" : undefined}
+      subtitle={unreadCount > 0 ? `${unreadCount} new since you last looked` : hasContent ? "Recent activity around your work" : undefined}
       bodyClassName="pq-dialog__body--flush"
+      footer={
+        <Link href="/settings/notifications" onClick={onClose} className="pq-button pq-button--sm pq-button--ghost">
+          Notification settings
+        </Link>
+      }
     >
       {loading ? (
-        <div className="p-3 space-y-1">
-          {[...Array(5)].map((_, i) => (
-            <NotificationSkeleton key={i} />
-          ))}
+        <div className="p-3 grid gap-1" aria-busy="true">
+          {[...Array(5)].map((_, i) => <NotificationSkeleton key={i} />)}
         </div>
       ) : !hasContent ? (
-        <div className="flex flex-col items-center justify-center py-20 px-8 text-center">
-          <div className="relative mb-6">
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-purple-primary/10 via-pink-vivid/10 to-orange-warm/10 flex items-center justify-center">
-              {icons.bell}
-            </div>
-            <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-surface shadow-lg flex items-center justify-center">
-              <svg className="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-          </div>
-          <h3 className="font-display text-lg font-semibold text-ink mb-2">All caught up!</h3>
-          <p className="font-body text-muted text-[0.9rem] leading-relaxed max-w-[240px]">
-            No new whispers from the creative cosmos. Check back later.
-          </p>
+        <div className="pq-chat-empty">
+          <span className="pq-thread-row__mark" aria-hidden="true">{uiIcons.heart}</span>
+          <h3>Nothing new</h3>
+          <p>When someone reacts, replies, follows or orders, it shows up here.</p>
         </div>
       ) : (
-        <div className="p-3 space-y-1">
-          {/* Follow Requests Section */}
+        <div className="pq-notifs">
           {followRequests.length > 0 && (
-            <div className="mb-4">
-              <div className="flex items-center gap-2 px-3 py-2 mb-2">
-                {icons.followRequest}
-                <span className="font-ui text-sm font-medium text-ink">
-                  Follow Requests
-                </span>
-                <span className="text-xs px-2 py-0.5 bg-gradient-to-r from-purple-primary/10 to-pink-vivid/10 text-purple-primary rounded-full font-ui">
-                  {followRequests.length}
-                </span>
-              </div>
-              <div className="space-y-3">
-                {followRequests.map((request) => (
-                  <FollowRequestCard
-                    key={request.follower_id}
-                    request={request}
-                    onAccept={handleAcceptFollowRequest}
-                    onDecline={handleDeclineFollowRequest}
-                  />
-                ))}
-              </div>
-            </div>
+            <section aria-labelledby="notifs-follow">
+              <h3 id="notifs-follow" className="pq-notifs__section">Asking to follow you <span className="pq-tab__count">{followRequests.length}</span></h3>
+              {followRequests.map((request) => (
+                <FollowRequestCard key={request.follower_id} request={request} onAccept={acceptFollowRequest} onDecline={declineFollowRequest} />
+              ))}
+            </section>
           )}
-
-          {/* Collaboration Invites Section */}
           {invites.length > 0 && (
-            <div className="mb-4">
-              <div className="flex items-center gap-2 px-3 py-2 mb-2">
-                {icons.collaborationInvite}
-                <span className="font-ui text-sm font-medium text-ink">
-                  Collaboration Invites
-                </span>
-                <span className="text-xs px-2 py-0.5 bg-gradient-to-r from-purple-primary/10 to-pink-vivid/10 text-purple-primary rounded-full font-ui">
-                  {invites.length}
-                </span>
-              </div>
-              <div className="space-y-3">
-                {invites.map((invite) => (
-                  <CollaborationInviteCard
-                    key={invite.id}
-                    invite={invite}
-                    onAccept={handleAcceptInvite}
-                    onDecline={handleDeclineInvite}
-                  />
-                ))}
-              </div>
-            </div>
+            <section aria-labelledby="notifs-collab">
+              <h3 id="notifs-collab" className="pq-notifs__section">Collaboration invites <span className="pq-tab__count">{invites.length}</span></h3>
+              {invites.map((invite) => (
+                <CollaborationInviteCard key={invite.id} invite={invite} onAccept={async (postId, authorId) => { await acceptInvite(postId, authorId); }} onDecline={async (postId, authorId) => { await declineInvite(postId, authorId); }} />
+              ))}
+            </section>
           )}
-
-          {/* Regular Notifications */}
+          {regularNotifications.length > 0 && (followRequests.length > 0 || invites.length > 0) && (
+            <h3 className="pq-notifs__section">Activity</h3>
+          )}
           {regularNotifications.map((notification) => (
-            <NotificationItem
-              key={notification.id}
-              notification={notification}
-              onMarkAsRead={markAsRead}
-              onClose={onClose}
-            />
+            <NotificationItem key={notification.id} notification={notification} onMarkAsRead={markAsRead} onClose={onClose} />
           ))}
         </div>
       )}

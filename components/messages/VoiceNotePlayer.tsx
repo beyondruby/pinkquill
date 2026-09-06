@@ -103,13 +103,7 @@ function ChatWaveform({
             style={{
               width: '2.5px',
               height: `${height}px`,
-              background: isOwn
-                ? isPlayed
-                  ? 'rgba(255, 255, 255, 1)'
-                  : 'rgba(255, 255, 255, 0.4)'
-                : isPlayed
-                  ? 'linear-gradient(180deg, #ff007f, #8e44ad)'
-                  : 'rgba(142, 68, 173, 0.25)',
+              background: isPlayed ? "var(--color-action)" : "var(--color-line-strong)",
             }}
           />
         );
@@ -148,45 +142,15 @@ export default function VoiceNotePlayer({
   }
 
   return (
-    <div className="flex items-center gap-2.5 p-2 min-w-[180px]">
-      {/* Play button */}
-      <button
-        className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
-          isOwn
-            ? 'bg-surface/20 hover:bg-surface/30 text-white'
-            : 'bg-purple-primary hover:bg-accent/90 text-white'
-        }`}
-        onClick={player.toggle}
-        disabled={player.isLoading}
-      >
+    <div className="pq-voice">
+      <button type="button" className="pq-voice__play" onClick={player.toggle} disabled={player.isLoading} aria-label={player.isPlaying ? "Pause voice note" : "Play voice note"}>
         {player.isLoading ? icons.loading : player.isPlaying ? icons.pause : icons.play}
       </button>
-
-      {/* Waveform and info */}
-      <div className="flex-1 flex flex-col gap-1">
-        <ChatWaveform
-          data={waveformData}
-          progress={progress}
-          isOwn={isOwn}
-          onClick={handleSeek}
-        />
-
-        <div className="flex items-center justify-between">
-          <span className={`font-ui text-[0.7rem] ${isOwn ? 'text-white/70' : 'text-muted'}`}>
-            {player.isPlaying || player.currentTime > 0
-              ? formatDuration(player.currentTime)
-              : formatDuration(duration)}
-          </span>
-
-          <button
-            className={`font-ui text-[0.65rem] px-1.5 py-0.5 rounded transition-all ${
-              isOwn
-                ? 'bg-surface/15 hover:bg-surface/25 text-white/80'
-                : 'bg-skeleton hover:bg-black/10 text-muted'
-            }`}
-            onClick={handlePlaybackSpeedChange}
-            title="Change speed"
-          >
+      <div className="pq-voice__body">
+        <ChatWaveform data={waveformData} progress={progress} isOwn={isOwn} onClick={handleSeek} />
+        <div className="pq-voice__meta">
+          <span>{player.isPlaying || player.currentTime > 0 ? formatDuration(player.currentTime) : formatDuration(duration)}</span>
+          <button type="button" className="pq-voice__speed" onClick={handlePlaybackSpeedChange} aria-label={`Playback speed ${playbackSpeed}x`}>
             {playbackSpeed}x
           </button>
         </div>

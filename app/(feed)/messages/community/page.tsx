@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { Spinner } from "@/components/ui/Loading";
 import RequireAuth from "@/components/auth/RequireAuth";
 import CommunityInboxView from "@/components/messages/community/CommunityInboxView";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
@@ -6,8 +7,8 @@ import { MessagesErrorFallback } from "@/components/ui/ErrorFallbacks";
 
 function CommunityInboxLoading() {
   return (
-    <div className="flex items-center justify-center h-screen">
-      <div className="animate-pulse text-muted">Loading community inbox...</div>
+    <div className="flex items-center justify-center min-h-[60vh]" role="status" aria-label="Loading community inbox">
+      <Spinner size="lg" />
     </div>
   );
 }
