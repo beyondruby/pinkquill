@@ -34,7 +34,7 @@ September 5 update: the four-screen proof and component reference live outside a
 | `/community/create` | [app/community/create/page.tsx](../../app/community/create/page.tsx) | 5 | Redesigned in 5A (three composer steps on the shared taxonomy) |
 | `/messages` | [app/(feed)/messages/page.tsx](../../app/(feed)/messages/page.tsx) | 5 | Redesigned in 5C (list, thread, composer, voice on `messages.css`; one phone pane state) |
 | `/messages/community` | [app/(feed)/messages/community/page.tsx](../../app/(feed)/messages/community/page.tsx) | 5 | Redesigned in 5C (three panes on the DM frame, announcements as labelled bubbles) |
-| `/saved` | [app/(feed)/saved/page.tsx](../../app/(feed)/saved/page.tsx) | 6 | Not started |
+| `/saved` | [app/(feed)/saved/page.tsx](../../app/(feed)/saved/page.tsx) | 6 | Redesigned in 6C (`SavedLibrary`: gallery wall for posts, takes grid, product tiles, one remove behaviour) |
 | `/studio/[username]` | [app/studio/[username]/page.tsx](../../app/studio/[username]/page.tsx) | 6 | Redesigned in 6A (head, counts, About, tabs, sheets) and 6B (posts on the gallery wall and stream rows, pin sheet, relays, collections) |
 | `/studio/[username]/collections/[collection]/[item]` | [app/studio/[username]/collections/[collection]/[item]/page.tsx](../../app/studio/[username]/collections/[collection]/[item]/page.tsx) | 6 | Redesigned in 6B (reading page: breadcrumb, cover and name, posts as classic cards) |
 | `/commissions/[id]` | [app/commissions/[id]/page.tsx](../../app/commissions/[id]/page.tsx) | 7 | Not started |

@@ -1,0 +1,31 @@
+/* Saved library (/saved). Posts are the shared gallery wall (.pq-tile in
+   globals), takes the takes grid (takes.css); only the page frame, the take
+   and product tiles' remove control and the product tile live here. */
+@layer components {
+  .pq-saved__tabs { margin-block-end: 1.25rem; }
+  .pq-saved__section + .pq-saved__section { margin-block-start: 2rem; }
+  .pq-saved__subhead { margin: 0 0 0.75rem; font-family: var(--font-ui); font-size: 0.8125rem; font-weight: 600; color: var(--color-subdued); }
+
+  .pq-saved-takes { gap: 0.5rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @media (min-width: 640px) { .pq-saved-takes { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (min-width: 1024px) { .pq-saved-takes { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+
+  .pq-saved-products { display: grid; gap: 1rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @media (min-width: 640px) { .pq-saved-products { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (min-width: 1024px) { .pq-saved-products { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+  .pq-saved-tile { position: relative; min-inline-size: 0; }
+  .pq-saved-tile__remove { position: absolute; top: 0.5rem; right: 0.5rem; z-index: 1; inline-size: 2.25rem; block-size: 2.25rem; min-inline-size: 2.25rem; border: 1px solid var(--color-line); }
+  .pq-saved-tile__remove svg { inline-size: 1rem; block-size: 1rem; }
+
+  .pq-saved-product { display: grid; gap: 0.125rem; text-decoration: none; color: inherit; min-inline-size: 0; }
+  .pq-saved-product__image { display: block; aspect-ratio: 1; border-radius: var(--radius-card); overflow: hidden; background: var(--color-tint); border: 1px solid var(--color-line); }
+  .pq-saved-product__image img { inline-size: 100%; block-size: 100%; object-fit: cover; display: block; }
+  .pq-saved-product__blank { inline-size: 100%; block-size: 100%; display: grid; place-items: center; color: var(--color-subdued); }
+  .pq-saved-product__blank svg { inline-size: 1.75rem; block-size: 1.75rem; }
+  .pq-saved-product:hover .pq-saved-product__image { border-color: var(--color-line-strong); }
+  .pq-saved-product:focus-visible { outline: 3px solid var(--color-action); outline-offset: 2px; border-radius: var(--radius-card); }
+  .pq-saved-product__title { margin-block-start: 0.5rem; font-family: var(--font-ui); font-size: 0.9375rem; font-weight: 500; color: var(--color-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pq-saved-product__meta { font-family: var(--font-ui); font-size: 0.8125rem; color: var(--color-subdued); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pq-saved-product__price { font-weight: 600; color: var(--color-ink); }
+}
