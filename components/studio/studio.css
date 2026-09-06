@@ -1,6 +1,7 @@
-/* Studio (public profile). Owned by Phase 6: 6A wrote the top (cover, identity,
-   actions, counts, About, private note, tabs, filters, loading); the content
-   views below the tabs keep their older classes until 6B retunes them. */
+/* Studio (public profile). Owned by Phase 6: the top (cover, identity,
+   actions, counts, About, private note, tabs, loading), the works bar, the
+   pin sheet rows, collections and the collection item page. The post tiles
+   and rows themselves are the shared feed treatments (.pq-tile, .pq-stream-*). */
 
 @layer components {
   .pq-studio { padding-block-end: 3rem; }
@@ -88,380 +89,60 @@
   .pq-studio-loading__line { block-size: 0.875rem; max-inline-size: 100%; }
   @keyframes pq-studio-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
   @media (prefers-reduced-motion: reduce) { .pq-studio-loading > * { animation: none; } }
+
+  /* ---- Works bar, pinned section, pin sheet ------------------------------- */
+  .pq-studio-works__bar { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-block-end: 1.25rem; }
+  .pq-studio-works__bar .pq-chip-scroll { min-inline-size: 0; flex: 1 1 auto; }
+  .pq-studio-subhead { margin: 0 0 0.75rem; font-family: var(--font-ui); font-size: 0.8125rem; font-weight: 600; color: var(--color-subdued); }
+  .pq-studio-pinned { margin-block-end: 1.5rem; }
+  .pq-pin-row { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border-block-end: 1px solid var(--color-line); }
+  .pq-pin-row:last-child { border-block-end: 0; }
+  .pq-pin-row__text { min-inline-size: 0; flex: 1; display: grid; gap: 0.125rem; }
+  .pq-pin-row__title { font-family: var(--font-ui); font-size: 0.9375rem; font-weight: 500; color: var(--color-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pq-pin-row__meta { display: inline-flex; align-items: center; gap: 0.35rem; font-family: var(--font-ui); font-size: 0.75rem; color: var(--color-subdued); }
+
+  /* ---- Collections --------------------------------------------------------- */
+  .pq-collections { display: grid; gap: 1rem; }
+  .pq-collection { background: var(--color-surface); border: 1px solid var(--color-line); border-radius: var(--radius-card); padding: 1rem 1.25rem; }
+  .pq-collection__head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 0.5rem 0.875rem; align-items: start; }
+  .pq-collection__mark { inline-size: 2.75rem; block-size: 2.75rem; border-radius: var(--radius-control); background: var(--color-tint); color: var(--color-ink); display: inline-flex; align-items: center; justify-content: center; overflow: hidden; flex: none; }
+  .pq-collection__mark svg { inline-size: 1.375rem; block-size: 1.375rem; }
+  .pq-collection__mark img { inline-size: 100%; block-size: 100%; object-fit: cover; }
+  .pq-collection__mark--emoji { font-size: 1.5rem; }
+  .pq-collection__text { min-inline-size: 0; display: grid; gap: 0.125rem; }
+  .pq-collection__name { margin: 0; font-family: var(--font-display); font-size: 1.125rem; font-weight: 600; color: var(--color-ink); overflow-wrap: anywhere; }
+  .pq-collection__meta { margin: 0; font-family: var(--font-ui); font-size: 0.8125rem; color: var(--color-subdued); }
+  .pq-collection__desc { margin: 0.25rem 0 0; font-family: var(--font-body); font-size: 0.9375rem; line-height: 1.5; color: var(--color-ink); max-inline-size: 40rem; }
+  .pq-collection__actions { display: flex; align-items: center; gap: 0.125rem; }
+  .pq-collection__toggle svg { transition: transform 150ms; }
+  .pq-collection__toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
+  @media (prefers-reduced-motion: reduce) { .pq-collection__toggle svg { transition: none; } }
+  .pq-collection__items { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-block-start: 1rem; }
+  @media (min-width: 640px) { .pq-collection__items { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (min-width: 1024px) { .pq-collection__items { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  .pq-collection-item { position: relative; display: grid; gap: 0.25rem; min-inline-size: 0; }
+  .pq-collection-item__tile { display: block; aspect-ratio: 1; border-radius: var(--radius-card); overflow: hidden; background: var(--color-tint); border: 1px solid var(--color-line); }
+  .pq-collection-item__tile:hover { border-color: var(--color-line-strong); }
+  .pq-collection-item__tile:focus-visible { outline: 3px solid var(--color-action); outline-offset: 2px; }
+  .pq-collection-item__tile img { inline-size: 100%; block-size: 100%; object-fit: cover; display: block; }
+  .pq-collection-item__blank { inline-size: 100%; block-size: 100%; display: grid; place-items: center; color: var(--color-subdued); }
+  .pq-collection-item__blank svg { inline-size: 1.75rem; block-size: 1.75rem; }
+  .pq-collection-item__remove { position: absolute; top: 0.375rem; right: 0.375rem; inline-size: 2rem; block-size: 2rem; min-inline-size: 2rem; background: var(--color-surface); border: 1px solid var(--color-line); }
+  .pq-collection-item__remove svg { inline-size: 0.875rem; block-size: 0.875rem; }
+  .pq-collection-item__name { font-family: var(--font-ui); font-size: 0.875rem; font-weight: 500; color: var(--color-ink); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-block-start: 0.25rem; }
+  .pq-collection-item__name:hover { text-decoration: underline; }
+  .pq-collection-item__meta { font-family: var(--font-ui); font-size: 0.75rem; color: var(--color-subdued); }
+  .pq-collection__empty { margin: 1rem 0 0; padding: 1.25rem; text-align: center; font-family: var(--font-body); font-size: 0.9375rem; color: var(--color-subdued); background: var(--color-tint); border-radius: var(--radius-control); }
+
+  /* ---- Collection item page --------------------------------------------- */
+  .pq-crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 0.375rem; margin-block-end: 1.25rem; font-family: var(--font-ui); font-size: 0.8125rem; color: var(--color-subdued); }
+  .pq-crumbs a { color: inherit; text-decoration: none; }
+  .pq-crumbs a:hover { color: var(--color-ink); text-decoration: underline; }
+  .pq-collection-item-head { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; margin-block-end: 1.5rem; }
+  @media (min-width: 640px) { .pq-collection-item-head:has(.pq-collection-item-head__cover) { grid-template-columns: 10rem minmax(0, 1fr); align-items: start; } }
+  .pq-collection-item-head__cover { inline-size: 100%; max-inline-size: 10rem; aspect-ratio: 1; object-fit: cover; border-radius: var(--radius-card); background: var(--color-tint); }
+  .pq-collection-item-head__text { display: grid; gap: 0.375rem; }
+  .pq-collection-item-head__name { margin: 0; font-family: var(--font-display); font-size: clamp(1.5rem, 1.1rem + 1.4vw, 2rem); font-weight: 600; letter-spacing: -0.01em; color: var(--color-ink); }
+  .pq-collection-item-head__desc { margin: 0; font-family: var(--font-body); font-size: 1rem; line-height: 1.55; color: var(--color-ink); max-inline-size: 40rem; }
+  .pq-collection-item-head__meta { margin: 0; font-family: var(--font-ui); font-size: 0.875rem; color: var(--color-subdued); }
 }
-
-/* ---- Content views kept from the old page; 6B owns these ------------------ */
-
-/* Masonry Layout */
-.studio-works-grid { columns: 3; column-gap: 1.5rem; }
-@media (max-width: 900px) { .studio-works-grid { columns: 2; column-gap: 1.25rem; } }
-@media (max-width: 600px) { .studio-works-grid { columns: 1; } }
-
-/* Relay Badge */
-.studio-relay-badge {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--color-purple-primary) 90%, transparent) 0%, color-mix(in srgb, var(--color-pink-vivid) 85%, transparent) 100%);
-  border-radius: 20px;
-  color: var(--color-on-accent);
-  font-family: var(--font-ui);
-  font-size: 0.7rem;
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  z-index: 10;
-  backdrop-filter: blur(8px);
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--color-purple-primary) 30%, transparent);
-}
-
-.studio-relay-badge svg {
-  width: 12px;
-  height: 12px;
-}
-
-
-/* Relay Footer */
-.studio-relay-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem 1.5rem;
-  border-top: 1px solid rgba(0, 0, 0, 0.04);
-  background: rgba(255, 255, 255, 0.5);
-}
-
-.studio-relay-author {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.studio-relay-author-avatar {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid color-mix(in srgb, var(--color-purple-primary) 10%, transparent);
-}
-
-.studio-relay-author-name {
-  font-family: var(--font-ui);
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: var(--ink);
-}
-
-.studio-relay-stats {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.studio-relay-stat {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-family: var(--font-ui);
-  font-size: 0.75rem;
-  color: var(--muted-text);
-}
-
-.studio-relay-stat svg {
-  width: 14px;
-  height: 14px;
-}
-
-
-/* ============================================
-   JOURNALS GRID VIEW - Minimalist Creative Design
-   ============================================ */
-.studio-journals-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-}
-
-/* Date Section */
-.journals-date-section {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.journals-date-label {
-  font-family: var(--font-ui);
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--primary-purple);
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid color-mix(in srgb, var(--color-purple-primary) 10%, transparent);
-}
-
-/* Journal Entries Grid */
-.journals-entries {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1rem;
-}
-
-/* Individual Journal Card - Clean & Minimal */
-.journal-card {
-  display: flex;
-  flex-direction: column;
-  background: var(--color-surface);
-  border-radius: 12px;
-  overflow: hidden;
-  cursor: pointer;
-  transition: all 0.25s ease;
-  border: 1px solid rgba(0, 0, 0, 0.06);
-}
-
-.journal-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 12px 32px color-mix(in srgb, var(--color-purple-primary) 12%, transparent);
-  border-color: color-mix(in srgb, var(--color-purple-primary) 15%, transparent);
-}
-
-/* Journal Card Image */
-.journal-card-image {
-  position: relative;
-  width: 100%;
-  height: 140px;
-  overflow: hidden;
-  background: var(--color-subtle);
-}
-
-.journal-card-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.4s ease;
-}
-
-.journal-card:hover .journal-card-image img {
-  transform: scale(1.05);
-}
-
-.journal-card-image-count {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  background: rgba(0, 0, 0, 0.6);
-  color: var(--color-on-accent);
-  font-family: var(--font-ui);
-  font-size: 0.65rem;
-  font-weight: 600;
-  padding: 4px 8px;
-  border-radius: 6px;
-  backdrop-filter: blur(4px);
-}
-
-/* Journal Card Body */
-.journal-card-body {
-  padding: 1rem 1.25rem 1.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.journal-card-time {
-  font-family: var(--font-ui);
-  font-size: 0.7rem;
-  font-weight: 500;
-  color: var(--primary-purple);
-  letter-spacing: 0.02em;
-}
-
-.journal-card-title {
-  font-family: var(--font-display);
-  font-size: 1.05rem;
-  font-weight: 500;
-  color: var(--ink);
-  line-height: 1.35;
-  margin: 0;
-}
-
-.journal-card-excerpt {
-  font-family: var(--font-body);
-  font-size: 0.85rem;
-  line-height: 1.55;
-  color: var(--color-muted);
-  margin: 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .journals-entries {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 480px) {
-  .studio-journals-grid {
-    gap: 1.5rem;
-  }
-
-  .journal-card-body {
-    padding: 0.875rem 1rem 1rem;
-  }
-
-  .journal-card-title {
-    font-size: 1rem;
-  }
-
-  .journal-card-excerpt {
-    font-size: 0.8rem;
-  }
-}
-
-/* Like Button */
-
-/* ========== STUDIO RELAY CARDS ========== */
-
-.studio-relay-card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  background: linear-gradient(135deg, #fdfcff 0%, #f8f6fc 100%);
-  border-radius: 20px;
-  overflow: hidden;
-  cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow:
-    0 4px 16px color-mix(in srgb, var(--color-purple-primary) 6%, transparent),
-    0 2px 8px rgba(0, 0, 0, 0.03);
-  border: 1px solid color-mix(in srgb, var(--color-purple-primary) 8%, transparent);
-  min-height: 280px;
-}
-
-.studio-relay-card:hover {
-  transform: translateY(-6px);
-  box-shadow:
-    0 16px 40px color-mix(in srgb, var(--color-purple-primary) 12%, transparent),
-    0 8px 20px rgba(0, 0, 0, 0.04);
-  border-color: color-mix(in srgb, var(--color-purple-primary) 15%, transparent);
-}
-
-/* Relay Content */
-.studio-relay-content {
-  padding: 3rem 1.5rem 1rem;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.studio-relay-type {
-  font-family: var(--font-ui);
-  font-size: 0.75rem;
-  font-weight: 600;
-  background: linear-gradient(135deg, var(--primary-purple) 0%, var(--vivid-pink) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.studio-relay-title {
-  font-family: var(--font-display);
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--ink);
-  line-height: 1.3;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.studio-relay-preview {
-  font-family: var(--font-body);
-  font-size: 0.9rem;
-  color: var(--color-subdued);
-  line-height: 1.6;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  flex: 1;
-}
-
-/* Relay Image */
-.studio-relay-image-wrap {
-  position: relative;
-  height: 140px;
-  margin: 0 1rem;
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.studio-relay-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.5s ease;
-}
-
-.studio-relay-card:hover .studio-relay-image {
-  transform: scale(1.05);
-}
-
-/* Card with image adjustments */
-.studio-relay-card.has-image .studio-relay-preview {
-  -webkit-line-clamp: 2;
-}
-
-/* Type-specific styling for relay cards */
-.studio-relay-card[data-type="poem"] {
-  background:
-    radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--color-accent-2) 10%, transparent) 0%, transparent 60%),
-    linear-gradient(135deg, var(--color-surface) 0%, color-mix(in srgb, var(--color-accent-2) 5%, var(--color-surface)) 100%);
-}
-
-.studio-relay-card[data-type="poem"] .studio-relay-preview {
-  font-style: italic;
-  text-align: center;
-}
-
-.studio-relay-card[data-type="journal"] {
-  background: linear-gradient(135deg, var(--color-surface) 0%, color-mix(in srgb, var(--color-orange-warm) 6%, var(--color-surface)) 100%);
-  border-color: color-mix(in srgb, var(--color-orange-warm) 12%, transparent);
-}
-
-.studio-relay-card[data-type="thought"] {
-  background:
-    radial-gradient(ellipse at 30% 20%, color-mix(in srgb, var(--color-accent) 9%, transparent) 0%, transparent 50%),
-    linear-gradient(135deg, var(--color-surface) 0%, color-mix(in srgb, var(--color-accent) 5%, var(--color-surface)) 100%);
-}
-
-.studio-relay-card[data-type="visual"] {
-  background: var(--color-surface);
-}
-
-.studio-relay-card[data-type="visual"] .studio-relay-preview {
-  display: none;
-}
-
-.studio-relay-card[data-type="visual"] .studio-relay-image-wrap {
-  flex: 1;
-  height: auto;
-  min-height: 180px;
-  margin: 0 0.8rem;
-}
-
-.studio-relay-card[data-type="quote"] {
-  background: linear-gradient(135deg, var(--color-surface) 0%, color-mix(in srgb, var(--color-accent) 4%, var(--color-surface)) 100%);
-}
-
-.studio-relay-card[data-type="quote"] .studio-relay-preview {
-  font-style: italic;
-}
-
-/* Floating Petals/Botanicals */

@@ -10,7 +10,7 @@ import PostCard from "./PostCard";
 import PostSkeleton from "./PostSkeleton";
 import { StreamFeed } from "./StreamView";
 import { GalleryFeed } from "./GalleryView";
-import { getPostTypePhrase } from "@/lib/feed-view/post-type-theme";
+import { transformPostForCard } from "@/lib/feed-view/transform";
 import { FeedViewSwitch } from "./FeedViewSwitch";
 import ComposerPrompt from "./ComposerPrompt";
 import { PageFrame } from "@/components/layout/PageFrame";
@@ -19,61 +19,7 @@ import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { PostCardErrorFallback } from "@/components/ui/ErrorFallbacks";
 import type { Post } from "@/lib/types";
 import type { FeedViewId } from "@/lib/feed-view/registry";
-import { getTimeAgo } from "@/lib/utils/time";
 import { Spinner } from "@/components/ui/Loading";
-
-// Conversational phrase ("wrote a poem") — used by the DM share card. Single
-// source of truth: lib/feed-view/post-type-theme.ts.
-function getTypeLabel(type: string): string {
-  return getPostTypePhrase(type);
-}
-
-// PERFORMANCE: Transform post data once, memoized by post ID
-function transformPostForCard(post: Post) {
-  return {
-    id: post.id,
-    authorId: post.author_id,
-    author: {
-      name: post.author.display_name || post.author.username,
-      handle: `@${post.author.username}`,
-      avatar: post.author.avatar_url || "/defaultprofile.png",
-    },
-    type: post.type,
-    typeLabel: getTypeLabel(post.type),
-    timeAgo: getTimeAgo(post.created_at),
-    createdAt: post.created_at,
-    title: post.title || undefined,
-    content: post.content,
-    contentWarning: post.content_warning || undefined,
-    media: post.media || [],
-    stats: {
-      admires: post.admires_count,
-      reactions: post.reactions_count,
-      comments: post.comments_count,
-      relays: post.relays_count,
-    },
-    isAdmired: post.user_has_admired,
-    reactionType: post.user_reaction_type,
-    isSaved: post.user_has_saved,
-    isRelayed: post.user_has_relayed,
-    community: post.community ? {
-      slug: post.community.slug,
-      name: post.community.name,
-      avatar_url: post.community.avatar_url,
-    } : undefined,
-    flair: post.flair || undefined,
-    collaborators: (post.collaborators || []).map(c => ({
-      ...c,
-      status: c.status as 'pending' | 'accepted' | 'declined',
-    })),
-    mentions: post.mentions || [],
-    hashtags: post.hashtags || [],
-    styling: post.styling || null,
-    post_location: post.post_location || null,
-    metadata: post.metadata || null,
-    spotify_track: post.spotify_track || null,
-  };
-}
 
 // Width per view: Classic reads best in one 690px column, Stream in a wider
 // list, Gallery uses the full 1216px region. Gutters come from the shell.

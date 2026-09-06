@@ -1,63 +1,54 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { getTimeAgoCompact as getTimeAgo } from "@/lib/utils/time";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useProfile } from "@/lib/hooks/useProfile";
 import { useCollectionItem } from "@/lib/hooks/useCollections";
-import Loading from "@/components/ui/Loading";
+import { PageFrame } from "@/components/layout/PageFrame";
+import { Spinner } from "@/components/ui/Loading";
 import PostCard from "@/components/feed/PostCard";
+import { getPostTypePhrase } from "@/lib/feed-view/post-type-theme";
+import { getTimeAgoCompact } from "@/lib/utils/time";
+import "@/components/studio/studio.css";
 
+/** One item inside a collection (an album, a book, a series) and the posts filed under it. */
 export default function CollectionItemPage() {
   const params = useParams();
   const { user } = useAuth();
-
   const username = params?.username as string;
   const collectionSlug = params?.collection as string;
   const itemSlug = params?.item as string;
 
-  // Get profile for user ID
   const { profile, loading: profileLoading } = useProfile(username, user?.id);
-
-  // Get collection item
-  const { item, loading: itemLoading, error } = useCollectionItem(
-    profile?.id,
-    collectionSlug,
-    itemSlug
-  );
-
+  const { item, loading: itemLoading, error } = useCollectionItem(profile?.id, collectionSlug, itemSlug);
   const loading = profileLoading || itemLoading;
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loading />
-      </div>
+      <PageFrame width="reading" className="pq-studio">
+        <div className="pq-feed-state" role="status" aria-label="Loading"><Spinner size="lg" /></div>
+      </PageFrame>
     );
   }
 
   if (error || !item) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="font-display text-2xl text-ink mb-2">Item Not Found</h1>
-          <p className="font-body text-muted mb-4">This collection item doesn&apos;t exist or has been removed.</p>
-          <Link
-            href={`/studio/${username}`}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white font-ui text-sm font-medium hover:-translate-y-0.5 transition-transform"
-          >
-            Back to Profile
-          </Link>
+      <PageFrame width="reading" className="pq-studio">
+        <div className="pq-feed-state pq-feed-state--card">
+          <p className="pq-feed-state__title">Nothing here</p>
+          <p className="pq-feed-state__text">This item isn&rsquo;t in the collection any more, or never was.</p>
+          <div className="pq-feed-state__actions">
+            <Link href={`/studio/${username}?tab=collections`} className="pq-button pq-button--md pq-button--secondary">Back to the studio</Link>
+          </div>
         </div>
-      </div>
+      </PageFrame>
     );
   }
 
-  // Transform posts for PostCard
-  const transformedPosts = (item.posts || [])
-    .filter(p => p.post)
-    .map(p => {
+  const posts = (item.posts || [])
+    .filter((p) => p.post)
+    .map((p) => {
       const post = p.post!;
       return {
         id: post.id,
@@ -70,127 +61,51 @@ export default function CollectionItemPage() {
           isVerified: post.author?.is_verified,
         },
         type: post.type as "poem" | "journal" | "thought" | "visual" | "audio" | "video" | "essay" | "blog" | "story" | "letter" | "quote",
-        typeLabel: getTypeLabel(post.type),
-        timeAgo: getTimeAgo(post.created_at),
+        typeLabel: getPostTypePhrase(post.type),
+        timeAgo: getTimeAgoCompact(post.created_at),
         title: post.title || undefined,
         content: post.content,
-        media: post.media?.map((m, index) => ({
-          id: m.id,
-          media_url: m.media_url,
-          media_type: m.media_type,
-          caption: m.caption || null,
-          position: index,
-        })),
-        stats: {
-          admires: 0,
-          reactions: 0,
-          comments: 0,
-          relays: 0,
-        },
+        media: post.media?.map((m, index) => ({ id: m.id, media_url: m.media_url, media_type: m.media_type, caption: m.caption || null, position: index })),
+        stats: { admires: 0, reactions: 0, comments: 0, relays: 0 },
         isAdmired: false,
         isSaved: false,
         isRelayed: false,
       };
     });
+  const postWord = `${item.posts_count || 0} ${item.posts_count === 1 ? "post" : "posts"}`;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      {/* Breadcrumb */}
-      <nav className="flex items-center gap-2 text-sm text-muted mb-6">
-        <Link href={`/studio/${username}`} className="hover:text-accent transition-colors">
-          @{username}
-        </Link>
-        <span>/</span>
-        <Link href={`/studio/${username}?tab=collections`} className="hover:text-accent transition-colors">
-          Collections
-        </Link>
-        <span>/</span>
-        <span className="text-ink">{item.collection?.name || collectionSlug}</span>
-        <span>/</span>
-        <span className="text-ink font-medium">{item.name}</span>
+    <PageFrame width="reading" className="pq-studio">
+      <nav className="pq-crumbs" aria-label="You are here">
+        <Link href={`/studio/${username}`}>@{username}</Link>
+        <span aria-hidden="true">/</span>
+        <Link href={`/studio/${username}?tab=collections`}>Collections</Link>
+        <span aria-hidden="true">/</span>
+        <span>{item.collection?.name || collectionSlug}</span>
       </nav>
 
-      {/* Header */}
-      <div className="flex flex-col md:flex-row gap-6 mb-8">
-        {/* Cover Image */}
-        {item.cover_url && (
-          <div className="w-full md:w-48 h-48 rounded-2xl overflow-hidden flex-shrink-0">
-            <img
-              src={item.cover_url}
-              alt={item.name}
-              className="w-full h-full object-cover"
-            />
-          </div>
-        )}
-
-        {/* Info */}
-        <div className="flex-1">
-          <h1 className="font-display text-2xl md:text-3xl font-semibold text-ink mb-2">
-            {item.name}
-          </h1>
-          {item.description && (
-            <p className="font-body text-muted mb-4">{item.description}</p>
-          )}
-          <div className="flex items-center gap-4 text-sm text-muted">
-            <span className="flex items-center gap-1.5">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              {item.posts_count || 0} posts
-            </span>
-            {item.collection && (
-              <span className="flex items-center gap-1.5">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                </svg>
-                {item.collection.name}
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Posts */}
-      {transformedPosts.length === 0 ? (
-        <div className="py-16 text-center bg-subtle rounded-2xl">
-          <svg className="w-12 h-12 mx-auto text-muted/30 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          <h3 className="font-display text-lg text-ink mb-2">No Posts Yet</h3>
-          <p className="font-body text-sm text-muted">
-            This collection item doesn&apos;t have any posts yet.
+      <header className="pq-collection-item-head">
+        {item.cover_url && <img src={item.cover_url} alt="" className="pq-collection-item-head__cover" />}
+        <div className="pq-collection-item-head__text">
+          <h1 className="pq-collection-item-head__name">{item.name}</h1>
+          {item.description && <p className="pq-collection-item-head__desc">{item.description}</p>}
+          <p className="pq-collection-item-head__meta">
+            {postWord}
+            {item.collection && <> · in {item.collection.name}</>}
           </p>
         </div>
+      </header>
+
+      {posts.length === 0 ? (
+        <div className="pq-feed-state pq-feed-state--card">
+          <p className="pq-feed-state__title">No posts in here yet</p>
+          <p className="pq-feed-state__text">Posts filed under this item will show up here.</p>
+        </div>
       ) : (
-        <div className="space-y-4">
-          {transformedPosts.map((post) => (
-            <PostCard
-              key={post.id}
-              post={post}
-              disableRealtimeSubscriptions={true}
-            />
-          ))}
+        <div className="pq-feed pq-feed--classic">
+          {posts.map((post) => <PostCard key={post.id} post={post} disableRealtimeSubscriptions />)}
         </div>
       )}
-    </div>
+    </PageFrame>
   );
-}
-
-// Helper function for time ago
-// Helper function for type labels
-function getTypeLabel(type: string): string {
-  const labels: Record<string, string> = {
-    poem: "wrote a poem",
-    journal: "wrote in their journal",
-    thought: "shared a thought",
-    visual: "shared a visual story",
-    audio: "recorded a voice note",
-    video: "shared a video",
-    essay: "wrote an essay",
-    blog: "published a blog post",
-    story: "shared a story",
-    letter: "wrote a letter",
-    quote: "shared a quote",
-  };
-  return labels[type] || "shared something";
 }

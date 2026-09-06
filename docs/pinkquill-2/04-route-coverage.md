@@ -35,8 +35,8 @@ September 5 update: the four-screen proof and component reference live outside a
 | `/messages` | [app/(feed)/messages/page.tsx](../../app/(feed)/messages/page.tsx) | 5 | Redesigned in 5C (list, thread, composer, voice on `messages.css`; one phone pane state) |
 | `/messages/community` | [app/(feed)/messages/community/page.tsx](../../app/(feed)/messages/community/page.tsx) | 5 | Redesigned in 5C (three panes on the DM frame, announcements as labelled bubbles) |
 | `/saved` | [app/(feed)/saved/page.tsx](../../app/(feed)/saved/page.tsx) | 6 | Not started |
-| `/studio/[username]` | [app/studio/[username]/page.tsx](../../app/studio/[username]/page.tsx) | 6 | Redesigned in 6A (head, counts, About, tabs, sheets on `studio.css`); content views wait for 6B |
-| `/studio/[username]/collections/[collection]/[item]` | [app/studio/[username]/collections/[collection]/[item]/page.tsx](../../app/studio/[username]/collections/[collection]/[item]/page.tsx) | 6 | Not started |
+| `/studio/[username]` | [app/studio/[username]/page.tsx](../../app/studio/[username]/page.tsx) | 6 | Redesigned in 6A (head, counts, About, tabs, sheets) and 6B (posts on the gallery wall and stream rows, pin sheet, relays, collections) |
+| `/studio/[username]/collections/[collection]/[item]` | [app/studio/[username]/collections/[collection]/[item]/page.tsx](../../app/studio/[username]/collections/[collection]/[item]/page.tsx) | 6 | Redesigned in 6B (reading page: breadcrumb, cover and name, posts as classic cards) |
 | `/commissions/[id]` | [app/commissions/[id]/page.tsx](../../app/commissions/[id]/page.tsx) | 7 | Not started |
 | `/product/[id]` | [app/product/[id]/page.tsx](../../app/product/[id]/page.tsx) | 7 | Not started |
 | `/sell` | [app/sell/page.tsx](../../app/sell/page.tsx) | 7 | Not started |
@@ -106,7 +106,7 @@ September 5 update: the four-screen proof and component reference live outside a
 | Takes players, reactions, comments, creation controls | `components/takes/` | 4 | Redesigned in 4C (`TakeStage`, `TakeEditorPieces`, `takes.css`; `TakeComments.tsx` deleted) |
 | Membership/invite/role/flair/moderation overlays | `components/communities/` | 5 | Redesigned in 5B (`ModerationSheet`, invite and permissions on `Sheet`, `FlairManager` on shared fields) |
 | Notification panel, invitations, follow requests | `components/notifications/` | 5 | Redesigned in 5C (`notifications.css`, monochrome kind marks, `PersonRow` cards) |
-| Studio follower dialogs and collection controls | `components/studio/`, `components/collections/` | 6 | Not started |
+| Studio follower dialogs and collection controls | `components/studio/`, `components/collections/` | 6 | Followers/following, communities and pin sheets on `Sheet` (6A/6B); `CollectionCard` on shared icon buttons, menu and confirmations (6B). The `components/collections/` create/edit dialogs are untouched |
 | Product reviews, seller cards, commission intake/request sheet | `components/reviews/`, `components/store/`, `components/commissions/` | 7 | Not started |
 | Order sheets, downloads, activity, deliveries, messages, financial documents | `components/orders/`, `components/documents/`, `lib/invoice/` | 8 | Not started |
 | Payout statement and seller/admin supporting controls | `components/seller/`, `components/admin/` where present | 9 | Not started |
