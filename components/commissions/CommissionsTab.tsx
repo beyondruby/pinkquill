@@ -33,7 +33,6 @@ import RequestSheet from "./RequestSheet";
 interface CommissionsTabProps {
   userId: string;
   isOwnProfile: boolean;
-  pageLoaded: boolean;
 }
 
 type StatusFilter = "all" | "active" | "inactive";
@@ -102,7 +101,7 @@ function rollUpAvailability(listings: Product[], sellerAccepting: boolean): { la
   return { label: "Closed", tone: "closed" };
 }
 
-export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: CommissionsTabProps) {
+export default function CommissionsTab({ userId, isOwnProfile }: CommissionsTabProps) {
   const { user } = useAuth();
   const { commissions, loading, error, refetch } = useSellerCommissions(userId);
   const { stats } = useSellerStats(userId);
@@ -183,7 +182,7 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
 
   if (loading) {
     return (
-      <div className={`studio-works-section studio-section-animated ${pageLoaded ? "loaded delay-5" : ""}`}>
+      <div className="pq-studio-section">
         <div className="h-40 rounded-2xl bg-skeleton/60 animate-pulse mb-5" />
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">{[1, 2, 3].map((i) => <div key={i} className="h-64 rounded-2xl bg-skeleton/60 animate-pulse" />)}</div>
       </div>
@@ -192,7 +191,7 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
 
   if (error) {
     return (
-      <div className={`studio-works-section studio-section-animated ${pageLoaded ? "loaded delay-5" : ""}`}>
+      <div className="pq-studio-section">
         <div className="rounded-2xl border border-red-200 bg-red-50/60 p-8 text-center">
           <p className="font-ui text-red-700">Failed to load commissions</p>
           <p className="text-sm font-body text-red-600/90 mt-1">{error}</p>
@@ -214,7 +213,7 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
   const canRequest = hasActive && sellerAccepting && !isOwnProfile;
 
   return (
-    <div className={`studio-works-section studio-section-animated ${pageLoaded ? "loaded delay-5" : ""}`}>
+    <div className="pq-studio-section">
       {/* Header card: only when the profile sells */}
       {hasActive ? (
         <section className="rounded-2xl border border-border-light bg-surface p-5">

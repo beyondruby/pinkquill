@@ -15,10 +15,9 @@ import { showToast } from "@/lib/utils/toast";
 interface StoreTabProps {
   userId: string;
   isOwnProfile: boolean;
-  pageLoaded: boolean;
 }
 
-export default function StoreTab({ userId, isOwnProfile, pageLoaded }: StoreTabProps) {
+export default function StoreTab({ userId, isOwnProfile }: StoreTabProps) {
   const { products, loading, error, refetch } = useSellerProducts(userId, { listingType: "product" });
   const [filter, setFilter] = useState<"all" | "active" | "inactive">("all");
 
@@ -38,7 +37,7 @@ export default function StoreTab({ userId, isOwnProfile, pageLoaded }: StoreTabP
 
   if (loading) {
     return (
-      <div className={`studio-works-section studio-section-animated ${pageLoaded ? "loaded delay-5" : ""}`}>
+      <div className="pq-studio-section">
         <div className="flex items-center justify-center py-16">
           <Loading text="Opening the store" />
         </div>
@@ -48,7 +47,7 @@ export default function StoreTab({ userId, isOwnProfile, pageLoaded }: StoreTabP
 
   if (error) {
     return (
-      <div className={`studio-works-section studio-section-animated ${pageLoaded ? "loaded delay-5" : ""}`}>
+      <div className="pq-studio-section">
         <div className="text-center py-12">
           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-50 flex items-center justify-center">
             <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -65,7 +64,7 @@ export default function StoreTab({ userId, isOwnProfile, pageLoaded }: StoreTabP
   // Empty state
   if (products.length === 0) {
     return (
-      <div className={`studio-works-section studio-section-animated ${pageLoaded ? "loaded delay-5" : ""}`}>
+      <div className="pq-studio-section">
         <div className="rounded-3xl border border-border-light bg-subtle/40 px-6 py-14 md:py-16 text-center">
           <div className="w-12 h-12 mx-auto mb-5 rounded-full bg-surface border border-border-light flex items-center justify-center">
             <svg className="w-5 h-5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -100,7 +99,7 @@ export default function StoreTab({ userId, isOwnProfile, pageLoaded }: StoreTabP
   }
 
   return (
-    <div className={`studio-works-section studio-section-animated ${pageLoaded ? "loaded delay-5" : ""}`}>
+    <div className="pq-studio-section">
       {showFilters && (
         <div className="flex items-center gap-1.5 mb-8 overflow-x-auto scrollbar-hide">
           {[

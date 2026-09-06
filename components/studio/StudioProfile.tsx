@@ -16,7 +16,6 @@ import type { FollowStatus } from "@/lib/types";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import { CommentIcon } from "@/components/ui/Icons";
 import { getTimeAgo } from "@/lib/utils/time";
-import { parseSocialLinks, getSocialUrl } from "@/lib/utils/social";
 
 // Type for follows table real-time payload
 import { useUserTakes, useRelayedTakes } from "@/lib/hooks/useTakes";
@@ -29,12 +28,17 @@ import Link from "next/link";
 import Image from "next/image";
 import FollowersModal from "./FollowersModal";
 import ShareModal from "@/components/ui/ShareModal";
+import ActionMenu from "@/components/ui/ActionMenu";
 import TakePostCard from "@/components/takes/TakePostCard";
-import Loading from "@/components/ui/Loading";
+import { Spinner } from "@/components/ui/Loading";
+import { TabRow } from "@/components/ui/Tabs";
+import { PageFrame } from "@/components/layout/PageFrame";
+import ReportModal from "@/components/ui/ReportModal";
+import Sheet from "@/components/ui/Sheet";
+import StudioHeader from "./StudioHeader";
 import StoreTab from "@/components/store/StoreTab";
 import CommissionsTab from "@/components/commissions/CommissionsTab";
 import { useHasCommissions } from "@/lib/hooks/useCommissions";
-import ActionMenu from "@/components/ui/ActionMenu";
 import type { Collection, Post } from "@/lib/types";
 import { getInteractionCount } from "@/lib/types";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
@@ -93,145 +97,6 @@ function useScrollReveal() {
 
 
 // Social platform icons (using brand colors)
-const socialIcons: Record<string, { icon: React.ReactNode; color: string }> = {
-  twitter: {
-    color: "#1DA1F2",
-    icon: (
-      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-      </svg>
-    ),
-  },
-  instagram: {
-    color: "#E4405F",
-    icon: (
-      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" />
-      </svg>
-    ),
-  },
-  github: {
-    color: "var(--color-ink)",
-    icon: (
-      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z" />
-      </svg>
-    ),
-  },
-  linkedin: {
-    color: "#0A66C2",
-    icon: (
-      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
-      </svg>
-    ),
-  },
-  youtube: {
-    color: "#FF0000",
-    icon: (
-      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
-      </svg>
-    ),
-  },
-  tiktok: {
-    color: "var(--color-ink)",
-    icon: (
-      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z" />
-      </svg>
-    ),
-  },
-  threads: {
-    color: "var(--color-ink)",
-    icon: (
-      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.35 18.44 1.5 15.586 1.472 12.01v-.017c.03-3.579.879-6.43 2.525-8.482C5.845 1.205 8.6.024 12.18 0h.014c2.746.02 5.043.725 6.826 2.098 1.677 1.29 2.858 3.13 3.509 5.467l-2.04.569c-1.104-3.96-3.898-5.984-8.304-6.015-2.91.022-5.11.936-6.54 2.717C4.307 6.504 3.616 8.914 3.589 12c.027 3.086.718 5.496 2.057 7.164 1.43 1.783 3.631 2.698 6.54 2.717 2.623-.02 4.358-.631 5.8-2.045 1.647-1.613 1.618-3.593 1.09-4.798-.31-.71-.873-1.3-1.634-1.75-.192 1.352-.622 2.446-1.284 3.272-.886 1.102-2.14 1.704-3.73 1.79-1.202.065-2.361-.218-3.259-.801-1.063-.689-1.685-1.74-1.752-2.96-.065-1.182.408-2.256 1.333-3.022.812-.672 1.927-1.073 3.222-1.158 1.009-.066 1.955.024 2.822.268l.028-.988c-.49-.065-1.003-.098-1.528-.098-1.918 0-3.61.463-4.763 1.306-1.362 1-2.09 2.48-2.001 4.065.09 1.593.894 2.984 2.265 3.918 1.187.81 2.699 1.16 4.247 1.063.91-.05 2.338-.34 3.364-1.677.704-.92 1.163-2.2 1.296-3.823a9.05 9.05 0 011.308.627c1.03.557 1.794 1.26 2.336 2.143 1.06 1.73 1.089 4.72-1.193 6.96-1.908 1.875-4.245 2.735-7.512 2.76zm1.828-11.883c-.86-.081-1.65-.026-2.37.16l-.082 2.896c.614.14 1.312.195 2.065.143 1.113-.077 1.75-.527 2.059-.982.35-.522.368-1.162-.036-1.733-.33-.466-.915-.41-1.636-.484z" />
-      </svg>
-    ),
-  },
-  facebook: {
-    color: "#1877F2",
-    icon: (
-      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-      </svg>
-    ),
-  },
-  behance: {
-    color: "#1769FF",
-    icon: (
-      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M6.938 4.503c.702 0 1.34.06 1.92.188.577.13 1.07.33 1.485.61.41.28.733.65.96 1.12.225.47.34 1.05.34 1.73 0 .74-.17 1.36-.507 1.86-.338.5-.837.9-1.502 1.22.906.26 1.576.72 2.022 1.37.448.66.665 1.45.665 2.36 0 .75-.13 1.39-.41 1.93-.28.55-.67 1-1.16 1.35-.48.348-1.05.6-1.67.767-.61.165-1.252.254-1.91.254H0V4.51h6.938v-.007zM6.545 9.64c.56 0 1.01-.13 1.36-.397.35-.27.52-.678.52-1.224 0-.31-.06-.566-.17-.77-.11-.2-.26-.36-.45-.47-.188-.11-.4-.187-.66-.23-.25-.043-.52-.066-.81-.066H3.277v3.157h3.268zm.19 5.412c.306 0 .6-.033.876-.1.277-.066.517-.174.72-.32.206-.145.37-.343.49-.593.12-.25.177-.56.177-.93 0-.75-.222-1.296-.666-1.64-.445-.343-1.033-.52-1.767-.52H3.277v4.103h3.458zM14.5 14.03c.24.49.66.86 1.25 1.11.26.11.55.17.87.17.39 0 .74-.07 1.03-.21.28-.14.47-.29.56-.44.09-.15.15-.27.18-.36h2.36c-.16.76-.62 1.39-1.38 1.9-.76.5-1.61.75-2.55.75-.58 0-1.13-.09-1.65-.27-.52-.18-.97-.45-1.36-.8-.39-.36-.69-.81-.91-1.35-.22-.54-.33-1.17-.33-1.87 0-.68.11-1.3.33-1.85.22-.55.52-1.02.91-1.4.39-.38.85-.67 1.38-.88.52-.21 1.1-.32 1.71-.32.69 0 1.3.13 1.84.39.53.26.97.62 1.31 1.07.34.45.6.98.77 1.58.17.6.23 1.25.17 1.93h-6.02c.02.64.19 1.23.43 1.72zm2.97-4.1c-.48-.4-1.08-.6-1.79-.6-.45 0-.84.08-1.16.23-.32.16-.58.36-.78.6-.2.24-.35.51-.45.79-.1.28-.16.55-.19.79h4.96c-.08-.75-.32-1.4-.6-1.8zM13.338 6.01h5.316V7.4h-5.316z" />
-      </svg>
-    ),
-  },
-  dribbble: {
-    color: "#EA4C89",
-    icon: (
-      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M12 24C5.385 24 0 18.615 0 12S5.385 0 12 0s12 5.385 12 12-5.385 12-12 12zm10.12-10.358c-.35-.11-3.17-.953-6.384-.438 1.34 3.684 1.887 6.684 1.992 7.308 2.3-1.555 3.936-4.02 4.395-6.87zm-6.115 7.808c-.153-.9-.75-4.032-2.19-7.77l-.066.02c-5.79 2.015-7.86 6.025-8.04 6.4 1.73 1.358 3.92 2.166 6.29 2.166 1.42 0 2.77-.29 4-.814zm-11.62-2.58c.232-.4 3.045-5.055 8.332-6.765.135-.045.27-.084.405-.12-.26-.585-.54-1.167-.832-1.74C7.17 11.775 2.206 11.71 1.756 11.7l-.004.312c0 2.633.998 5.037 2.634 6.855zm-2.42-8.955c.46.008 4.683.026 9.477-1.248-1.698-3.018-3.53-5.558-3.8-5.928-2.868 1.35-5.01 3.99-5.676 7.17zM9.6 2.052c.282.38 2.145 2.914 3.822 6 3.645-1.365 5.19-3.44 5.373-3.702-1.81-1.61-4.19-2.586-6.795-2.586-.825 0-1.63.1-2.4.285zm10.335 3.483c-.218.29-1.935 2.493-5.724 4.04.24.49.47.985.68 1.486.08.18.15.36.22.53 3.41-.43 6.8.26 7.14.33-.02-2.42-.88-4.64-2.31-6.38z" />
-      </svg>
-    ),
-  },
-  spotify: {
-    color: "#1DB954",
-    icon: (
-      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
-      </svg>
-    ),
-  },
-  soundcloud: {
-    color: "#FF5500",
-    icon: (
-      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M1.175 12.225c-.051 0-.094.046-.101.1l-.233 2.154.233 2.105c.007.058.05.098.101.098.05 0 .09-.04.099-.098l.255-2.105-.27-2.154c-.009-.06-.05-.1-.1-.1m-.899.828c-.06 0-.091.037-.104.094L0 14.479l.165 1.308c.014.057.045.094.09.094.051 0 .089-.037.099-.094l.21-1.308-.21-1.334c-.01-.057-.045-.09-.09-.09m1.83-1.229c-.061 0-.12.045-.12.104l-.21 2.563.225 2.458c0 .06.045.12.12.12.06 0 .105-.061.12-.12l.24-2.458-.24-2.563c-.015-.06-.06-.104-.12-.104m.945-.089c-.075 0-.135.06-.15.135l-.193 2.64.21 2.544c.016.077.075.138.149.138.075 0 .135-.061.15-.138l.24-2.544-.24-2.64c-.015-.074-.074-.135-.15-.135m1.064.094c-.09 0-.164.075-.164.165l-.196 2.382.211 2.484c0 .09.075.15.164.15.091 0 .166-.061.18-.15l.24-2.484-.24-2.382c-.015-.09-.089-.165-.18-.165m1.05-.207c-.104 0-.194.089-.194.194l-.18 2.595.195 2.453c0 .12.09.194.194.194.105 0 .18-.074.195-.195l.21-2.453-.21-2.595c-.015-.105-.09-.194-.195-.194m1.215-.39c-.12 0-.21.09-.225.209l-.165 2.79.18 2.392c.016.12.105.21.225.21.12 0 .21-.09.225-.21l.195-2.392-.195-2.79c-.016-.12-.105-.21-.225-.21m1.186.39c-.135 0-.24.105-.24.24l-.15 2.399.15 2.334c0 .135.104.24.24.24.135 0 .24-.105.24-.24l.166-2.334-.166-2.4c0-.135-.105-.24-.24-.24m1.125-1.065c-.15 0-.255.12-.255.27l-.166 3.466.166 2.303c0 .15.105.27.255.27.15 0 .255-.12.27-.27l.18-2.303-.18-3.466c-.015-.15-.12-.27-.27-.27m1.185-.256c-.165 0-.285.12-.285.284l-.165 3.721.165 2.24c0 .166.12.286.285.286.165 0 .285-.12.3-.286l.18-2.24-.18-3.72c-.015-.166-.135-.286-.3-.286m1.185-.21c-.18 0-.315.135-.315.315l-.15 3.915.15 2.175c0 .181.135.316.315.316.18 0 .315-.135.33-.316l.165-2.175-.166-3.915c-.015-.18-.15-.315-.33-.315m1.245-.15c-.195 0-.345.149-.345.344l-.135 4.051.135 2.1c0 .195.15.344.345.344.195 0 .345-.149.36-.345l.15-2.1-.15-4.05c-.015-.195-.165-.344-.36-.344m1.245-.045c-.21 0-.375.165-.375.375l-.12 4.11.12 2.04c.015.21.165.375.375.375.21 0 .375-.165.39-.375l.135-2.04-.135-4.11c-.015-.21-.18-.375-.39-.375m1.275.015c-.225 0-.405.18-.405.405l-.12 4.095.12 1.98c.015.225.18.405.405.405.225 0 .405-.18.42-.405l.12-1.98-.12-4.095c-.015-.225-.195-.405-.42-.405m1.365.27c-.24 0-.435.195-.435.434l-.09 3.81.09 1.921c0 .24.195.435.435.435.24 0 .435-.195.45-.435l.105-1.92-.105-3.81c-.015-.24-.21-.435-.45-.435m1.274.405c-.24 0-.435.195-.435.42l-.09 3.404.09 1.846c0 .255.195.449.435.449.255 0 .45-.194.465-.449l.105-1.846-.105-3.405c-.015-.225-.21-.42-.465-.42m1.335.315c-.255 0-.465.21-.465.465l-.075 3.09.075 1.77c0 .256.21.466.465.466.256 0 .465-.21.48-.466l.09-1.77-.09-3.09c-.015-.255-.224-.465-.48-.465m4.335 2.415c-.735 0-1.395.315-1.875.809a5.01 5.01 0 00-4.905-3.99c-.54 0-1.065.105-1.53.285-.18.075-.225.15-.225.3v7.875c0 .15.12.285.27.3h8.265c1.38 0 2.49-1.11 2.49-2.49 0-1.38-1.11-2.49-2.49-2.49" />
-      </svg>
-    ),
-  },
-  medium: {
-    color: "var(--color-ink)",
-    icon: (
-      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M13.54 12a6.8 6.8 0 01-6.77 6.82A6.8 6.8 0 010 12a6.8 6.8 0 016.77-6.82A6.8 6.8 0 0113.54 12zM20.96 12c0 3.54-1.51 6.42-3.38 6.42-1.87 0-3.39-2.88-3.39-6.42s1.52-6.42 3.39-6.42 3.38 2.88 3.38 6.42M24 12c0 3.17-.53 5.75-1.19 5.75-.66 0-1.19-2.58-1.19-5.75s.53-5.75 1.19-5.75C23.47 6.25 24 8.83 24 12z" />
-      </svg>
-    ),
-  },
-  substack: {
-    color: "#FF6719",
-    icon: (
-      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M22.539 8.242H1.46V5.406h21.08v2.836zM1.46 10.812V24L12 18.11 22.54 24V10.812H1.46zM22.54 0H1.46v2.836h21.08V0z" />
-      </svg>
-    ),
-  },
-  patreon: {
-    color: "#FF424D",
-    icon: (
-      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M15.386.524c-4.764 0-8.64 3.876-8.64 8.64 0 4.75 3.876 8.613 8.64 8.613 4.75 0 8.614-3.864 8.614-8.613C24 4.4 20.136.524 15.386.524M.003 23.537h4.22V.524H.003" />
-      </svg>
-    ),
-  },
-  ko_fi: {
-    color: "#29ABE0",
-    icon: (
-      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M23.881 8.948c-.773-4.085-4.859-4.593-4.859-4.593H.723c-.604 0-.679.798-.679.798s-.082 7.324-.022 11.822c.164 2.424 2.586 2.672 2.586 2.672s8.267-.023 11.966-.049c2.438-.426 2.683-2.566 2.658-3.734 4.352.24 7.422-2.831 6.649-6.916zm-11.062 3.511c-1.246 1.453-4.011 3.976-4.011 3.976s-.121.119-.31.023c-.076-.057-.108-.09-.108-.09-.443-.441-3.368-3.049-4.034-3.954-.709-.965-1.041-2.7-.091-3.71.951-1.01 3.005-1.086 4.363.407 0 0 1.565-1.782 3.468-.963 1.904.82 1.832 3.011.723 4.311zm6.173.478c-.928.116-1.682.028-1.682.028V7.284h1.77s1.971.551 1.971 2.638c0 1.913-.985 2.667-2.059 3.015z" />
-      </svg>
-    ),
-  },
-  website: {
-    color: "var(--color-accent)",
-    icon: (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-      </svg>
-    ),
-  },
-};
-
 // Icons
 const icons = {
   verified: (
@@ -719,71 +584,15 @@ function CollectionCard({
   );
 }
 
-function formatCount(num: number | null): string {
-  if (num === null) return "-";
-  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}m`;
-  if (num >= 1000) return `${(num / 1000).toFixed(1)}k`;
-  return num.toString();
-}
-
-function StudioTabButton({
-  label,
-  icon,
-  active,
-  onClick,
-}: {
-  label: string;
-  icon: React.ReactNode;
-  active: boolean;
-  onClick: () => void;
-}) {
+function StudioSubTabButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
-    <button
-      onClick={onClick}
-      aria-label={label}
-      className={`flex-1 min-w-0 relative flex items-center justify-center gap-2 py-3 md:py-3 font-ui text-[13px] font-medium transition-colors duration-200 ${
-        active
-          ? "text-accent-2"
-          : "text-subdued hover:text-ink"
-      }`}
-    >
-      <span className="shrink-0">{icon}</span>
-      <span className="hidden md:inline truncate">{label}</span>
-      <span className={`absolute bottom-0 inset-x-0 h-[2px] rounded-full transition-colors duration-200 ${
-        active ? "bg-accent-2" : "bg-transparent"
-      }`} />
-    </button>
-  );
-}
-
-function StudioSubTabButton({
-  label,
-  active,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-  accentClass?: string;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`shrink-0 px-3.5 py-1.5 rounded-full font-ui text-xs font-medium transition-all duration-200 whitespace-nowrap ${
-        active
-          ? "bg-accent/15 text-accent"
-          : "text-subdued hover:text-ink hover:bg-subtle"
-      }`}
-    >
+    <button type="button" className="pq-chip" aria-pressed={active} onClick={onClick}>
       {label}
     </button>
   );
 }
 
-function formatMonthYear(dateString: string): string {
-  const date = new Date(dateString);
-  return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
-}
+type StudioTab = "posts" | "takes" | "relays" | "store" | "commissions" | "collections";
 
 interface StudioProfileProps {
   username: string;
@@ -794,7 +603,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
   const searchParams = useSearchParams();
   const { user } = useAuth();
   const { openPostModal } = useModal();
-  const [activeTab, setActiveTab] = useState<"posts" | "takes" | "relays" | "store" | "commissions" | "collections">("posts");
+  const [activeTab, setActiveTab] = useState<StudioTab>("posts");
   const [relaySubTab, setRelaySubTab] = useState<"posts" | "takes">("posts");
   const shouldLoadTakes = activeTab === "takes";
   const shouldLoadRelayPosts = activeTab === "relays";
@@ -812,7 +621,6 @@ export default function StudioProfile({ username }: StudioProfileProps) {
   const { reorderCollections } = useReorderCollections();
   const { pinnedPostIds, isPinned, canPin, pinPost, unpinPost } = usePinnedPosts(profile?.id);
   const { revealedCards, observeCard } = useScrollReveal();
-  const [pageLoaded, setPageLoaded] = useState(false);
   const [showCommunitiesModal, setShowCommunitiesModal] = useState(false);
   const [followStatus, setFollowStatus] = useState<FollowStatus>(null);
   const [followLoading, setFollowLoading] = useState(false);
@@ -824,18 +632,9 @@ export default function StudioProfile({ username }: StudioProfileProps) {
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
   const [blockLoading, setBlockLoading] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
-  const [reportReason, setReportReason] = useState("");
   const [reportLoading, setReportLoading] = useState(false);
   const [reportSuccess, setReportSuccess] = useState(false);
   const [collaboratedPosts, setCollaboratedPosts] = useState<Post[]>([]);
-
-  // Trigger page load animation
-  useEffect(() => {
-    if (!loading && profile) {
-      const timer = setTimeout(() => setPageLoaded(true), 100);
-      return () => clearTimeout(timer);
-    }
-  }, [loading, profile]);
 
   useEffect(() => {
     const tab = searchParams?.get("tab");
@@ -951,19 +750,17 @@ export default function StudioProfile({ username }: StudioProfileProps) {
     setBlockLoading(false);
   };
 
-  const handleReport = async () => {
-    if (!user || !profile || !reportReason.trim()) return;
-
+  const handleReport = async (reason: string, details?: string) => {
+    if (!user || !profile) return;
     setReportLoading(true);
     try {
       await supabase.from("reports").insert({
         reporter_id: user.id,
         reported_user_id: profile.id,
-        reason: reportReason.trim(),
+        reason: details?.trim() ? `${reason}: ${details.trim()}` : reason,
         type: "user",
       });
       setReportSuccess(true);
-      setReportReason("");
       setTimeout(() => {
         setShowReportModal(false);
         setReportSuccess(false);
@@ -972,6 +769,18 @@ export default function StudioProfile({ username }: StudioProfileProps) {
       console.error("Failed to submit report:", err);
     } finally {
       setReportLoading(false);
+    }
+  };
+
+  const handleMessage = async () => {
+    if (!user || !profile || messageLoading) return;
+    setMessageLoading(true);
+    try {
+      const conversationId = await getOrCreateConversation(profile.id);
+      router.push(`/messages?conversation=${conversationId}`);
+    } catch (err) {
+      console.error("Failed to start conversation:", err);
+      setMessageLoading(false);
     }
   };
 
@@ -995,7 +804,6 @@ export default function StudioProfile({ username }: StudioProfileProps) {
 
   // Derived state for easier rendering
   const isFollowing = followStatus === 'accepted';
-  const isPendingRequest = followStatus === 'pending';
 
   // Refetch profile when follow status changes to 'accepted' (to get full profile data)
   useEffect(() => {
@@ -1007,495 +815,72 @@ export default function StudioProfile({ username }: StudioProfileProps) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-canvas flex items-center justify-center">
-        <Loading text="Loading profile" size="large" />
-      </div>
+      <PageFrame width="wide" className="pq-studio">
+        <div className="pq-feed-state" role="status" aria-label="Loading studio"><Spinner size="lg" /></div>
+      </PageFrame>
     );
   }
 
   if (error || !profile || isBlockedByUser) {
     return (
-      <div className="min-h-screen bg-canvas flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="font-display text-2xl text-ink mb-4">User not found</h1>
-          <p className="font-body text-muted">This user doesn&apos;t exist or is unavailable.</p>
+      <PageFrame width="wide" className="pq-studio">
+        <div className="pq-feed-state pq-feed-state--card">
+          <p className="pq-feed-state__title">No studio here</p>
+          <p className="pq-feed-state__text">This person doesn&rsquo;t exist, or their studio isn&rsquo;t available to you.</p>
+          <div className="pq-feed-state__actions">
+            <Link href="/explore" className="pq-button pq-button--md pq-button--secondary">Explore instead</Link>
+          </div>
         </div>
-      </div>
+      </PageFrame>
     );
   }
 
   return (
-    <div className="min-h-screen bg-canvas">
-      {/* Cover Section - Soft Watercolor Aesthetic */}
-      <div className="relative h-[200px] md:h-[320px] overflow-hidden">
-        {/* Base watercolor background */}
-        <div className="studio-cover-watercolor" />
-
-        {/* Floating petals */}
-        <div className="studio-cover-decorations">
-          <div className="studio-floating-petal petal-1" style={{"--rotation": "-25deg"} as React.CSSProperties} />
-          <div className="studio-floating-petal petal-2" style={{"--rotation": "15deg"} as React.CSSProperties} />
-          <div className="studio-floating-petal petal-3" style={{"--rotation": "-40deg"} as React.CSSProperties} />
-        </div>
-
-        {/* Ink splash accents */}
-        <div className="studio-ink-splash splash-1" />
-        <div className="studio-ink-splash splash-2" />
-
-        {profile.cover_url && (
-          <img
-            src={profile.cover_url}
-            alt="Cover"
-            className="absolute inset-0 w-full h-full object-cover opacity-30"
-          />
-        )}
-
-        {/* Paper texture */}
-        <div className="studio-cover-paper" />
-
-        {/* Bottom Fade */}
-        <div className="absolute bottom-0 left-0 right-0 h-[150px] bg-gradient-to-t from-canvas to-transparent" />
-      </div>
-
-      {/* Profile Section */}
-      <div className="relative max-w-[1100px] mx-auto px-4 md:px-8 -mt-[60px] md:-mt-[100px] pb-12">
-        {/* Profile Header */}
-        <div className={`flex flex-col md:flex-row md:items-end gap-4 md:gap-8 mb-6 md:mb-8 studio-section-animated ${pageLoaded ? 'loaded delay-1' : ''}`}>
-          {/* Avatar with Glow */}
-          <div className="studio-avatar-wrapper flex-shrink-0 mx-auto md:mx-0">
-            <div className="studio-avatar-glow" />
-            <img
-              src={profile.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80"}
-              alt={profile.display_name || profile.username}
-              className="studio-avatar w-24 h-24 md:w-40 md:h-40 rounded-full object-cover border-[4px] md:border-[5px] border-surface shadow-xl"
-            />
-          </div>
-
-          {/* Info */}
-          <div className="flex-1 pb-2 md:pb-4 text-center md:text-left">
-            {/* Name */}
-            <div className="flex items-center justify-center md:justify-start gap-2 md:gap-3 mb-1 md:mb-2">
-              <h1 className="font-display text-[1.6rem] md:text-[2.6rem] tracking-tight leading-none text-ink font-medium">
-                {profile.display_name || profile.username}
-              </h1>
-              {profile.is_verified && (
-                <span className="w-5 h-5 md:w-7 md:h-7 bg-gradient-to-br from-purple-primary via-pink-vivid to-orange-warm rounded-full flex items-center justify-center text-on-accent shadow-lg shadow-pink-vivid/25">
-                  {icons.verified}
-                </span>
-              )}
-            </div>
-
-            {/* Username */}
-            <p className="font-ui text-[0.8rem] md:text-[0.85rem] text-muted/70 tracking-wider mb-2 md:mb-3">@{profile.username}</p>
-
-            {/* Tagline */}
-            {profile.tagline && (
-              <p className="font-body text-[0.9rem] md:text-[1.05rem] italic text-muted">
-                {profile.tagline}
-              </p>
-            )}
-          </div>
-
-          {/* Actions */}
-          <div className="flex flex-wrap justify-center md:justify-end gap-2 md:gap-3 pb-2 md:pb-4">
-            {!isOwnProfile && user && (
-              <>
-                <button
-                  onClick={handleFollow}
-                  disabled={followLoading}
-                  className={`px-5 py-2 md:px-8 md:py-3 rounded-full font-ui text-[0.85rem] md:text-[0.95rem] font-medium transition-all ${
-                    isFollowing
-                      ? "bg-surface border-2 border-accent text-accent hover:bg-accent/5"
-                      : isPendingRequest
-                        ? "bg-surface border-2 border-muted text-muted hover:border-red-400 hover:text-red-400"
-                        : "bg-gradient-to-r from-purple-primary to-pink-vivid text-on-accent shadow-lg shadow-purple-primary/30 hover:-translate-y-0.5 hover:shadow-xl"
-                  }`}
-                >
-                  {followLoading
-                    ? "..."
-                    : isFollowing
-                      ? "Following"
-                      : isPendingRequest
-                        ? "Requested"
-                        : profile?.is_private
-                          ? "Request to Follow"
-                          : "Follow"
-                  }
-                </button>
-                <button
-                  onClick={async () => {
-                    if (!user || !profile || messageLoading) return;
-                    setMessageLoading(true);
-
-                    try {
-                      const conversationId = await getOrCreateConversation(profile.id);
-                      router.push(`/messages?conversation=${conversationId}`);
-                    } catch (err) {
-                      console.error("Failed to start conversation:", err);
-                      setMessageLoading(false);
-                    }
-                  }}
-                  disabled={messageLoading}
-                  className="px-4 py-2 md:px-6 md:py-3 rounded-full border-2 border-border-light bg-surface font-ui text-[0.85rem] md:text-[0.95rem] font-medium text-ink flex items-center gap-2 hover:border-accent hover:text-accent transition-all disabled:opacity-50"
-                >
-                  {icons.message}
-                  <span className="hidden md:inline">{messageLoading ? "..." : "Message"}</span>
-                </button>
-              </>
-            )}
-
-            {isOwnProfile && (
-              <Link href="/settings" className="px-5 py-2 md:px-8 md:py-3 rounded-full border-2 border-border-light bg-surface font-ui text-[0.85rem] md:text-[0.95rem] font-medium text-ink hover:border-accent hover:text-accent transition-all">
-                Edit Profile
-              </Link>
-            )}
-
-            <ActionMenu
-              widthClassName="w-52"
-              buttonAriaLabel="Profile actions"
-              portal
-              buttonClassName="w-10 h-10 md:w-12 md:h-12 rounded-full border-2 border-border-light bg-surface flex items-center justify-center text-ink hover:border-accent hover:text-accent transition-all"
-              items={[
-                {
-                  label: "Share",
-                  onSelect: () => setShowShareModal(true),
-                  icon: icons.share,
-                },
-                {
-                  label: "Copy link",
-                  onSelect: () => navigator.clipboard.writeText(profileUrl),
-                  icon: (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                    </svg>
-                  ),
-                },
-                {
-                  label: "Appearance",
-                  href: "/settings/appearance",
-                  hidden: !isOwnProfile,
-                  sectionLabel: "Settings",
-                  icon: (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 3l1.6 4.9L18.7 7l-3.5 3.8 1 5.1L12 13.3 7.8 15.9l1-5.1L5.3 7l5.1.9L12 3z" />
-                    </svg>
-                  ),
-                },
-                {
-                  label: `${isBlocked ? "Unblock" : "Block"} @${profile.username}`,
-                  onSelect: () => {
-                    if (isBlocked) {
-                      handleBlock();
-                    } else {
-                      setShowBlockConfirm(true);
-                    }
-                  },
-                  hidden: isOwnProfile || !user,
-                  tone: "warning",
-                  dividerBefore: true,
-                  sectionLabel: "Safety",
-                  icon: (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                    </svg>
-                  ),
-                },
-                {
-                  label: `Report @${profile.username}`,
-                  onSelect: () => setShowReportModal(true),
-                  hidden: isOwnProfile || !user,
-                  tone: "danger",
-                  icon: (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                  ),
-                },
-              ]}
-            />
-          </div>
-        </div>
-
-        {/* Private Account Notice */}
-        {isPrivateAccount && !isOwnProfile && !isFollowing && (
-          <div className={`mb-8 studio-section-animated ${pageLoaded ? 'loaded delay-2' : ''}`}>
-            <div className="relative rounded-3xl bg-gradient-to-br from-surface via-surface to-accent/10 p-10 border border-accent/15 shadow-lg shadow-accent/10 text-center">
-              {/* Lock Icon */}
-              <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-accent/10 to-accent-2/10 flex items-center justify-center">
-                <svg className="w-10 h-10 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-              </div>
-
-              <h3 className="font-display text-xl text-ink mb-3">This Account is Private</h3>
-              <p className="font-body text-muted text-[0.95rem] max-w-md mx-auto mb-6">
-                {isPendingRequest
-                  ? "Your follow request is pending. Once approved, you'll be able to see their posts and profile."
-                  : "Follow this account to see their posts, takes, and profile information."
-                }
-              </p>
-
-              {/* Minimal Stats - only show if counts are available */}
-              {(profile.followers_count !== null || profile.following_count !== null) && (
-              <div className="flex items-center justify-center gap-8 pt-6 border-t border-purple-primary/10">
-                {profile.followers_count !== null && (
-                <div className="text-center">
-                  <span className="font-display text-xl text-ink block">{formatCount(profile.followers_count)}</span>
-                  <span className="font-ui text-xs text-muted">Followers</span>
-                </div>
-                )}
-                {profile.following_count !== null && (
-                <div className="text-center">
-                  <span className="font-display text-xl text-ink block">{formatCount(profile.following_count)}</span>
-                  <span className="font-ui text-xs text-muted">Following</span>
-                </div>
-                )}
-              </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Stats - Enhanced (only show for public accounts or if following) */}
-        {(!isPrivateAccount || isOwnProfile || isFollowing) && (
-        <div className={`studio-stats-enhanced mb-8 studio-section-animated ${pageLoaded ? 'loaded delay-2' : ''}`}>
-          <div className="studio-stat-item">
-            <span className="studio-stat-value">{profile.works_count}</span>
-            <span className="studio-stat-label">Posts</span>
-          </div>
-          <div
-            className="studio-stat-item"
-            onClick={() => {
-              setFollowersModalTab("followers");
-              setShowFollowersModal(true);
-            }}
-          >
-            <span className="studio-stat-value">{formatCount(profile.followers_count)}</span>
-            <span className="studio-stat-label">Followers</span>
-          </div>
-          <div
-            className="studio-stat-item"
-            onClick={() => {
-              setFollowersModalTab("following");
-              setShowFollowersModal(true);
-            }}
-          >
-            <span className="studio-stat-value">{formatCount(profile.following_count)}</span>
-            <span className="studio-stat-label">Following</span>
-          </div>
-          <div className="studio-stat-item">
-            <span className="studio-stat-value">{formatCount(profile.admires_count)}</span>
-            <span className="studio-stat-label">Admires</span>
-          </div>
-        </div>
-        )}
-
-        {/* About the Artist — Refined Design (only show for public accounts or if following) */}
-        {(!isPrivateAccount || isOwnProfile || isFollowing) && (profile.bio || profile.role || profile.location || profile.education || profile.languages) && (
-          <div className={`relative mb-8 md:mb-12 studio-section-animated ${pageLoaded ? 'loaded delay-3' : ''}`}>
-
-            {/* The Box */}
-            <div className="relative rounded-2xl md:rounded-3xl bg-gradient-to-br from-surface via-surface to-accent/10 p-5 md:p-8 lg:p-10 border border-accent/15 shadow-lg shadow-accent/10">
-
-              {/* Subtle top accent line */}
-              <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-accent/30 to-transparent" />
-
-              {/* Header */}
-              <div className="mb-4 md:mb-8">
-                <h3 className="font-display text-base md:text-lg text-ink/80 tracking-wide font-medium">About the Artist</h3>
-              </div>
-
-              {/* Bio */}
-              {profile.bio && (
-                <p className="font-body text-[0.95rem] md:text-[1.12rem] leading-[1.8] md:leading-[1.95] text-ink/75 mb-6 md:mb-8 max-w-2xl">
-                  {profile.bio}
-                </p>
-              )}
-
-              {/* Details with subtle separators */}
-              <div className="flex flex-wrap items-center gap-y-2 md:gap-y-3 text-[0.82rem] md:text-[0.88rem] text-ink/60 mb-6 md:mb-8">
-                {profile.role && (
-                  <>
-                    <div className="flex items-center gap-2 pr-5">
-                      <span className="text-accent/70">{icons.briefcase}</span>
-                      <span className="font-body">{profile.role}</span>
-                    </div>
-                    {(profile.location || profile.education || profile.languages) && (
-                      <span className="text-accent/25 pr-5">•</span>
-                    )}
-                  </>
-                )}
-                {profile.location && (
-                  <>
-                    <div className="flex items-center gap-2 pr-5">
-                      <span className="text-accent/70">{icons.location}</span>
-                      <span className="font-body">{profile.location}</span>
-                    </div>
-                    {(profile.education || profile.languages) && (
-                      <span className="text-accent/25 pr-5">•</span>
-                    )}
-                  </>
-                )}
-                {profile.education && (
-                  <>
-                    <div className="flex items-center gap-2 pr-5">
-                      <span className="text-accent/70">{icons.education}</span>
-                      <span className="font-body">{profile.education}</span>
-                    </div>
-                    {profile.languages && (
-                      <span className="text-accent/25 pr-5">•</span>
-                    )}
-                  </>
-                )}
-                {profile.languages && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-accent/70">{icons.languages}</span>
-                    <span className="font-body">{profile.languages}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Footer */}
-              <div className="flex flex-wrap items-center justify-between gap-4 pt-6 border-t border-accent/10">
-                {/* Social Links */}
-                {profile.website && parseSocialLinks(profile.website).length > 0 ? (
-                  <div className="flex items-center gap-1">
-                    {parseSocialLinks(profile.website).map((link, index) => {
-                      const platformIcon = socialIcons[link.platform] || socialIcons.website;
-                      return (
-                        <a
-                          key={index}
-                          href={getSocialUrl(link)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="group flex items-center justify-center w-9 h-9 rounded-xl hover:bg-accent/10 transition-all duration-300"
-                          title={link.url}
-                        >
-                          <span
-                            className="text-sm opacity-60 group-hover:opacity-100 transition-all duration-300 group-hover:scale-110"
-                            style={{ color: platformIcon.color }}
-                          >
-                            {platformIcon.icon}
-                          </span>
-                        </a>
-                      );
-                    })}
-                  </div>
-                ) : <div />}
-
-                {/* Communities - stacked circle avatars */}
-                {userCommunities && userCommunities.length > 0 && (
-                  <button
-                    onClick={() => setShowCommunitiesModal(true)}
-                    className="group flex items-center gap-1 py-1.5 rounded-full hover:bg-accent/[0.04] transition-all duration-300 px-1"
-                  >
-                    {/* Stacked Community Avatars */}
-                    <div className="flex items-center">
-                      {userCommunities.slice(0, userCommunities.length > 4 ? 3 : 4).map((community, index) => (
-                        <div
-                          key={community.id}
-                          className="relative w-7 h-7 rounded-full border-2 border-surface overflow-hidden shadow-sm transition-all duration-300 group-hover:shadow-md"
-                          style={{
-                            marginLeft: index === 0 ? 0 : '-8px',
-                            zIndex: 10 - index,
-                          }}
-                        >
-                          {community.avatar_url ? (
-                            <img
-                              src={community.avatar_url}
-                              alt={community.name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full bg-gradient-to-br from-accent/40 to-accent-2/40 flex items-center justify-center">
-                              <span className="text-[9px] font-ui text-on-accent font-semibold">
-                                {community.name?.charAt(0).toUpperCase()}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-
-                      {/* +X more indicator */}
-                      {userCommunities.length > 4 && (
-                        <div
-                          className="relative w-7 h-7 rounded-full border-2 border-surface overflow-hidden shadow-sm bg-gradient-to-br from-accent to-accent-2 flex items-center justify-center transition-all duration-300 group-hover:shadow-md"
-                          style={{ marginLeft: '-8px', zIndex: 6 }}
-                        >
-                          <span className="text-[9px] font-ui text-on-accent font-bold">
-                            +{userCommunities.length - 3}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </button>
-                )}
-
-                {/* Joined */}
-                <div className="flex items-center gap-2 text-ink/30">
-                  <span className="text-accent/50">{icons.calendar}</span>
-                  <span className="font-ui text-xs">Joined {formatMonthYear(profile.created_at)}</span>
-                </div>
-              </div>
-
-            </div>
-          </div>
-        )}
+    <div className="pq-studio">
+      <PageFrame width="wide">
+        <StudioHeader
+          profile={profile}
+          isOwnProfile={isOwnProfile}
+          signedIn={!!user}
+          followStatus={followStatus}
+          followLoading={followLoading}
+          onFollow={handleFollow}
+          messageLoading={messageLoading}
+          onMessage={handleMessage}
+          isBlocked={isBlocked}
+          onBlock={() => { if (isBlocked) void handleBlock(); else setShowBlockConfirm(true); }}
+          onReport={() => setShowReportModal(true)}
+          onShare={() => setShowShareModal(true)}
+          onCopyLink={() => { void navigator.clipboard.writeText(profileUrl); }}
+          onOpenFollowers={(type) => { setFollowersModalTab(type); setShowFollowersModal(true); }}
+          communities={userCommunities || []}
+          onOpenCommunities={() => setShowCommunitiesModal(true)}
+          gated={isPrivateAccount && !isOwnProfile && !isFollowing}
+        />
 
         {/* Tabs and Content - Only show for public accounts or if following */}
         {(!isPrivateAccount || isOwnProfile || isFollowing) && (
           <>
-        {/* Tabs */}
-        <div className={`mb-8 studio-section-animated ${pageLoaded ? 'loaded delay-4' : ''}`}>
-          <div>
-            <div className="flex items-stretch overflow-x-auto scrollbar-hide border-b border-border-light">
-              <StudioTabButton
-                label="Posts"
-                icon={icons.feather}
-                active={activeTab === "posts"}
-                onClick={() => setActiveTab("posts")}
-              />
-              <StudioTabButton
-                label="Takes"
-                icon={icons.take}
-                active={activeTab === "takes"}
-                onClick={() => setActiveTab("takes")}
-              />
-              <StudioTabButton
-                label="Relays"
-                icon={icons.relay}
-                active={activeTab === "relays"}
-                onClick={() => setActiveTab("relays")}
-              />
-              <StudioTabButton
-                label="Store"
-                icon={icons.store}
-                active={activeTab === "store"}
-                onClick={() => setActiveTab("store")}
-              />
-              {showCommissionsTab && (
-                <StudioTabButton
-                  label="Commissions"
-                  icon={icons.briefcase}
-                  active={activeTab === "commissions"}
-                  onClick={() => setActiveTab("commissions")}
-                />
-              )}
-              <StudioTabButton
-                label="Collections"
-                icon={icons.collection}
-                active={activeTab === "collections"}
-                onClick={() => setActiveTab("collections")}
-              />
-            </div>
-          </div>
-        </div>
+        <TabRow<StudioTab>
+          className="pq-studio-tabs"
+          ariaLabel="Studio sections"
+          items={[
+            { id: "posts", label: "Posts" },
+            { id: "takes", label: "Takes" },
+            { id: "relays", label: "Relays" },
+            { id: "store", label: "Store" },
+            ...(showCommissionsTab ? [{ id: "commissions" as StudioTab, label: "Commissions" }] : []),
+            { id: "collections", label: "Collections" },
+          ]}
+          value={activeTab}
+          onChange={setActiveTab}
+        />
 
         {/* Posts Section */}
         {activeTab === "posts" && (
-          <div className={`studio-works-section studio-section-animated ${pageLoaded ? 'loaded delay-5' : ''}`}>
+          <div className="pq-studio-section" role="tabpanel">
             {/* View Mode Tabs */}
-            <div className="flex items-center gap-1.5 mb-8 overflow-x-auto scrollbar-hide">
+            <div className="pq-chip-scroll pq-studio-filters" role="group" aria-label="Kind of post">
               <StudioSubTabButton
                 label="All"
                 active={postViewMode === "all"}
@@ -1587,7 +972,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                         <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
                       </svg>
                     ),
-                    text: "No posts yet..."
+                    text: "No posts yet"
                   },
                   blog: {
                     icon: (
@@ -1595,7 +980,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                         <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
                       </svg>
                     ),
-                    text: "No posts yet..."
+                    text: "No posts yet"
                   },
                   gallery: {
                     icon: (
@@ -1603,7 +988,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                         <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
                       </svg>
                     ),
-                    text: "No visual posts yet..."
+                    text: "No visual posts yet"
                   },
                   poems: {
                     icon: (
@@ -1611,7 +996,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                         <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                       </svg>
                     ),
-                    text: "No poems yet..."
+                    text: "No poems yet"
                   },
                   journals: {
                     icon: (
@@ -1619,7 +1004,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
                       </svg>
                     ),
-                    text: "No journal entries yet..."
+                    text: "No journal entries yet"
                   },
                   communities: {
                     icon: (
@@ -1627,16 +1012,13 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                         <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                       </svg>
                     ),
-                    text: "No community posts yet..."
+                    text: "No community posts yet"
                   }
                 };
 
-                const { icon, text } = emptyMessages[postViewMode];
+                const { text } = emptyMessages[postViewMode];
                 return (
-                  <div className="studio-works-empty">
-                    <div className="studio-works-empty-icon">{icon}</div>
-                    <p className="studio-works-empty-text">{text}</p>
-                  </div>
+                  <div className="pq-feed-state pq-feed-state--card"><p className="pq-feed-state__title">{text}</p></div>
                 );
               }
 
@@ -2326,18 +1708,11 @@ export default function StudioProfile({ username }: StudioProfileProps) {
 
         {/* Takes Section */}
         {activeTab === "takes" && (
-          <div className={`studio-works-section studio-section-animated ${pageLoaded ? 'loaded delay-5' : ''}`}>
+          <div className="pq-studio-section" role="tabpanel">
             {takesLoading ? (
-              <div className="py-12">
-                <Loading text="Loading takes" size="medium" />
-              </div>
+              <div className="pq-feed-state" role="status" aria-label="Loading"><Spinner size="lg" /></div>
             ) : userTakes.length === 0 ? (
-              <div className="studio-works-empty">
-                <div className="studio-works-empty-icon">
-                  {icons.take}
-                </div>
-                <p className="studio-works-empty-text">No takes yet...</p>
-              </div>
+              <div className="pq-feed-state pq-feed-state--card"><p className="pq-feed-state__title">No takes yet</p></div>
             ) : (
               <div className="takes-grid">
                 {userTakes.map((take) => (
@@ -2350,9 +1725,9 @@ export default function StudioProfile({ username }: StudioProfileProps) {
 
         {/* Relays Section */}
         {activeTab === "relays" && (
-          <div className={`studio-works-section studio-section-animated ${pageLoaded ? 'loaded delay-5' : ''}`}>
+          <div className="pq-studio-section" role="tabpanel">
             {/* Relay Type Tabs */}
-            <div className="flex items-center gap-1.5 mb-8 overflow-x-auto scrollbar-hide">
+            <div className="pq-chip-scroll pq-studio-filters" role="group" aria-label="Kind of relay">
               <StudioSubTabButton
                 label="Posts"
                 active={relaySubTab === "posts"}
@@ -2369,16 +1744,9 @@ export default function StudioProfile({ username }: StudioProfileProps) {
             {relaySubTab === "posts" && (
               <>
                 {relaysLoading ? (
-                  <div className="py-12">
-                    <Loading text="Loading relays" size="medium" />
-                  </div>
+                  <div className="pq-feed-state" role="status" aria-label="Loading"><Spinner size="lg" /></div>
                 ) : relays.length === 0 ? (
-                  <div className="studio-works-empty">
-                    <div className="studio-works-empty-icon">
-                      {icons.relay}
-                    </div>
-                    <p className="studio-works-empty-text">No relayed posts yet...</p>
-                  </div>
+                  <div className="pq-feed-state pq-feed-state--card"><p className="pq-feed-state__title">No relayed posts yet</p></div>
                 ) : (
                   <div className="studio-works-grid">
                     {relays.map((relay) => {
@@ -2505,16 +1873,9 @@ export default function StudioProfile({ username }: StudioProfileProps) {
             {relaySubTab === "takes" && (
               <>
                 {relayedTakesLoading ? (
-                  <div className="py-12">
-                    <Loading text="Loading relayed takes" size="medium" />
-                  </div>
+                  <div className="pq-feed-state" role="status" aria-label="Loading"><Spinner size="lg" /></div>
                 ) : relayedTakes.length === 0 ? (
-                  <div className="studio-works-empty">
-                    <div className="studio-works-empty-icon">
-                      {icons.take}
-                    </div>
-                    <p className="studio-works-empty-text">No relayed takes yet...</p>
-                  </div>
+                  <div className="pq-feed-state pq-feed-state--card"><p className="pq-feed-state__title">No relayed takes yet</p></div>
                 ) : (
                   <div className="takes-grid">
                     {relayedTakes.map((take) => (
@@ -2541,7 +1902,6 @@ export default function StudioProfile({ username }: StudioProfileProps) {
           <StoreTab
             userId={profile.id}
             isOwnProfile={isOwnProfile}
-            pageLoaded={pageLoaded}
           />
         )}
 
@@ -2550,47 +1910,22 @@ export default function StudioProfile({ username }: StudioProfileProps) {
           <CommissionsTab
             userId={profile.id}
             isOwnProfile={isOwnProfile}
-            pageLoaded={pageLoaded}
           />
         )}
 
         {/* Collections Section */}
         {activeTab === "collections" && (
-          <div className={`studio-works-section studio-section-animated ${pageLoaded ? 'loaded delay-5' : ''}`}>
+          <div className="pq-studio-section" role="tabpanel">
             {collectionsLoading ? (
-              <div className="flex items-center justify-center py-16">
-                <Loading />
-              </div>
+              <div className="pq-feed-state" role="status" aria-label="Loading"><Spinner size="lg" /></div>
             ) : collections.length === 0 ? (
-              /* Empty State - Glass Card */
-              <div className="relative rounded-3xl overflow-hidden">
-                {/* Glass background */}
-                <div className="absolute inset-0 bg-gradient-to-br from-purple-primary/5 via-surface/80 to-pink-vivid/5 backdrop-blur-xl" />
-                <div className="absolute inset-0 bg-surface/40" />
-
-                {/* Content */}
-                <div className="relative p-10 md:p-16 text-center">
-                  {/* Decorative circles */}
-                  <div className="absolute top-8 left-8 w-24 h-24 rounded-full bg-gradient-to-br from-purple-primary/10 to-pink-vivid/10 blur-2xl" />
-                  <div className="absolute bottom-8 right-8 w-32 h-32 rounded-full bg-gradient-to-br from-pink-vivid/10 to-orange-warm/10 blur-2xl" />
-
-                  <div className="relative">
-                    <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-purple-primary/20 to-pink-vivid/20 flex items-center justify-center backdrop-blur-sm border border-surface/50">
-                      <svg className="w-10 h-10 text-purple-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                      </svg>
-                    </div>
-                    <h3 className="font-display text-2xl md:text-3xl text-ink mb-3">No Collections Yet</h3>
-                    <p className="font-body text-muted max-w-md mx-auto">
-                      {isOwnProfile
-                        ? "Create a collection to organize your works. Go to Create Post and select a collection to get started!"
-                        : `${profile?.display_name || profile?.username} hasn't created any collections yet.`}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Border */}
-                <div className="absolute inset-0 rounded-3xl border border-surface/60 pointer-events-none" />
+              <div className="pq-feed-state pq-feed-state--card">
+                <p className="pq-feed-state__title">No collections yet</p>
+                <p className="pq-feed-state__text">
+                  {isOwnProfile
+                    ? "Collections group your work. Pick one when you post, and it shows up here."
+                    : `${profile?.display_name || profile?.username} hasn't put anything into a collection yet.`}
+                </p>
               </div>
             ) : (
               <div className="space-y-6">
@@ -2638,7 +1973,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
           </>
         )}
 
-      </div>
+      </PageFrame>
 
       {/* Followers Modal */}
       <FollowersModal
@@ -2660,233 +1995,50 @@ export default function StudioProfile({ username }: StudioProfileProps) {
         authorName={profile.display_name || profile.username}
       />
 
-      {/* Block Confirmation Modal */}
-      {showBlockConfirm && (
-        <>
-          <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] animate-fadeIn"
-            onClick={() => !blockLoading && setShowBlockConfirm(false)}
-          />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[440px] max-w-[90vw] bg-surface rounded-3xl shadow-2xl border border-border-light z-[1001] p-7 animate-scaleIn">
-            <h3 className="font-display text-xl text-ink mb-3">
-              Close the door on @{profile.username}?
-            </h3>
-            <p className="font-body text-[0.95rem] text-muted leading-relaxed mb-7">
-              Their posts vanish from your feed and yours from theirs. They won&apos;t be able to follow you, message you, or knock again — and we won&apos;t tell them.
-            </p>
-            <div className="flex justify-end gap-2.5">
-              <button
-                onClick={() => setShowBlockConfirm(false)}
-                disabled={blockLoading}
-                className="px-5 py-2.5 rounded-full font-ui text-sm font-medium text-ink bg-subtle hover:bg-skeleton/80 transition-all disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleBlock}
-                disabled={blockLoading}
-                className="px-5 py-2.5 rounded-full font-ui text-sm font-medium text-white bg-red-500 hover:bg-red-600 transition-all disabled:opacity-70 flex items-center gap-2 shadow-sm hover:shadow-md hover:shadow-red-500/20"
-              >
-                {blockLoading ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Closing...
-                  </>
-                ) : (
-                  "Block"
-                )}
-              </button>
-            </div>
-          </div>
-        </>
-      )}
+      <ConfirmationModal
+        isOpen={showBlockConfirm}
+        onClose={() => setShowBlockConfirm(false)}
+        onConfirm={handleBlock}
+        title={`Block @${profile.username}?`}
+        description="Their posts leave your feed and yours leave theirs. They can't follow or message you, and we don't tell them."
+        confirmText="Block"
+        isDanger
+        loading={blockLoading}
+      />
 
-      {/* Report Modal */}
-      {showReportModal && (
-        <>
-          <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000]"
-            onClick={() => !reportLoading && setShowReportModal(false)}
-          />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[480px] bg-elevated rounded-2xl shadow-2xl z-[1001] overflow-hidden">
-            {reportSuccess ? (
-              <div className="p-8 text-center">
-                <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                <h3 className="font-display text-xl text-ink mb-2">Report Submitted</h3>
-                <p className="font-body text-sm text-muted">
-                  Thank you for helping keep PinkQuill safe. We&apos;ll review this report.
-                </p>
-              </div>
-            ) : (
-              <>
-                <div className="p-6 border-b border-border-light">
-                  <h3 className="font-display text-xl text-ink">
-                    Report @{profile.username}
-                  </h3>
-                  <p className="font-body text-sm text-muted mt-1">
-                    Help us understand what&apos;s happening with this account.
-                  </p>
-                </div>
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        onSubmit={handleReport}
+        submitting={reportLoading}
+        submitted={reportSuccess}
+        title={`Report @${profile.username}`}
+        placeholder="What's going on with this account?"
+      />
 
-                <div className="p-6">
-                  <label className="block font-ui text-sm text-ink mb-2">
-                    Why are you reporting this user?
-                  </label>
-                  <textarea
-                    value={reportReason}
-                    onChange={(e) => setReportReason(e.target.value)}
-                    placeholder="Please describe the issue..."
-                    rows={4}
-                    className="w-full px-4 py-3 rounded-xl bg-skeleton/60 border-none outline-none font-body text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-purple-primary/20 transition-all resize-none"
-                  />
-
-                  <div className="mt-4 space-y-2">
-                    <p className="font-ui text-xs text-muted">Quick select:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {["Spam", "Harassment", "Impersonation", "Inappropriate content", "Other"].map((reason) => (
-                        <button
-                          key={reason}
-                          onClick={() => setReportReason(reason)}
-                          className={`px-3 py-1.5 rounded-full font-ui text-xs transition-all ${
-                            reportReason === reason
-                              ? "bg-accent text-on-accent"
-                              : "bg-skeleton/60 text-muted hover:bg-skeleton"
-                          }`}
-                        >
-                          {reason}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-6 border-t border-border-light flex justify-end gap-3">
-                  <button
-                    onClick={() => {
-                      setShowReportModal(false);
-                      setReportReason("");
-                    }}
-                    disabled={reportLoading}
-                    className="px-5 py-2.5 rounded-full font-ui text-sm text-muted bg-skeleton/70 hover:bg-skeleton transition-colors disabled:opacity-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleReport}
-                    disabled={reportLoading || !reportReason.trim()}
-                    className="px-5 py-2.5 rounded-full font-ui text-sm text-white bg-red-500 hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center gap-2"
-                  >
-                    {reportLoading ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        Submitting...
-                      </>
-                    ) : (
-                      "Submit Report"
-                    )}
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </>
-      )}
-
-      {/* Communities Modal */}
-      {showCommunitiesModal && userCommunities && userCommunities.length > 0 && (
-        <>
-          <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000]"
-            onClick={() => setShowCommunitiesModal(false)}
-          />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] max-w-[400px] max-h-[80vh] bg-elevated rounded-2xl shadow-2xl z-[1001] overflow-hidden">
-            {/* Header */}
-            <div className="p-5 border-b border-border-light flex items-center justify-between">
-              <h3 className="font-display text-lg text-ink">Communities</h3>
-              <button
-                onClick={() => setShowCommunitiesModal(false)}
-                className="w-8 h-8 rounded-full hover:bg-skeleton/60 flex items-center justify-center text-muted transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            {/* Community List */}
-            <div className="overflow-y-auto max-h-[calc(80vh-80px)]">
-              {userCommunities.map((community) => (
-                <a
-                  key={community.id}
-                  href={`/community/${community.slug || community.id}`}
-                  onClick={() => setShowCommunitiesModal(false)}
-                  className="flex items-center gap-3 p-4 hover:bg-subtle transition-colors border-b border-border-light last:border-b-0"
-                >
-                  {/* Community Avatar */}
-                  <div className="relative w-12 h-12 rounded-full overflow-hidden flex-shrink-0">
-                    {community.avatar_url ? (
-                      <img
-                        src={community.avatar_url}
-                        alt={community.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-purple-primary/20 to-pink-vivid/20 flex items-center justify-center">
-                        <span className="text-lg font-ui text-purple-primary font-medium">
-                          {community.name?.charAt(0).toUpperCase()}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Community Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-ui text-sm font-medium text-ink truncate">{community.name}</h4>
-                      {/* Admin/Moderator Badge */}
-                      {community.user_role === 'admin' && (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white text-xs font-ui font-semibold">
-                          <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
-                          </svg>
-                          Admin
-                        </span>
-                      )}
-                      {community.user_role === 'moderator' && (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-xs font-ui font-semibold">
-                          <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/>
-                          </svg>
-                          Mod
-                        </span>
-                      )}
-                    </div>
-                    {community.description && (
-                      <p className="font-body text-xs text-muted line-clamp-1 mt-0.5">
-                        {community.description}
-                      </p>
-                    )}
-                    <div className="flex items-center gap-3 mt-1">
-                      <span className="font-ui text-[10px] text-ink/40">
-                        {community.member_count || 0} {community.member_count === 1 ? "member" : "members"}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Arrow */}
-                  <svg className="w-4 h-4 text-muted/30 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </a>
-              ))}
-            </div>
-          </div>
-        </>
-      )}
+      <Sheet
+        isOpen={showCommunitiesModal && !!userCommunities && userCommunities.length > 0}
+        onClose={() => setShowCommunitiesModal(false)}
+        title="Communities"
+        subtitle={`${profile.display_name || profile.username} is part of ${userCommunities?.length === 1 ? "one community" : `${userCommunities?.length ?? 0} communities`}.`}
+        bodyClassName="pq-dialog__body--flush"
+      >
+        {(userCommunities || []).map((community) => {
+          const role = community.user_role === "admin" ? "Admin" : community.user_role === "moderator" ? "Moderator" : null;
+          const members = `${community.member_count || 0} ${community.member_count === 1 ? "member" : "members"}`;
+          return (
+            <Link key={community.id} href={`/community/${community.slug || community.id}`} className="pq-studio-community" onClick={() => setShowCommunitiesModal(false)}>
+              <span className="pq-studio-community__mark" aria-hidden="true">
+                {community.avatar_url ? <img src={community.avatar_url} alt="" /> : community.name?.charAt(0).toUpperCase()}
+              </span>
+              <span className="pq-studio-community__text">
+                <span className="pq-studio-community__name">{community.name}</span>
+                <span className="pq-studio-community__meta">{role ? `${members} · ${role}` : members}</span>
+              </span>
+            </Link>
+          );
+        })}
+      </Sheet>
     </div>
   );
 }

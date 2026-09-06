@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
+import { useState } from "react";
 import { useFollowList } from "@/lib/hooks/useProfile";
-import type { FollowUser } from "@/lib/types";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/lib/supabase";
-import { getOptimizedAvatarUrl, DEFAULT_AVATAR } from "@/lib/utils/image";
-import Loading from "@/components/ui/Loading";
+import Sheet from "@/components/ui/Sheet";
+import Button from "@/components/ui/Button";
+import { Spinner } from "@/components/ui/Loading";
+import { PersonRow } from "@/components/communities/pieces";
 
 interface FollowersModalProps {
   isOpen: boolean;
@@ -17,184 +17,69 @@ interface FollowersModalProps {
   isOwnProfile: boolean;
 }
 
-const icons = {
-  close: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-    </svg>
-  ),
-  verified: (
-    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
-    </svg>
-  ),
-};
-
-function UserCard({
-  user,
-  isOwnProfile,
-  currentUserId,
-  onUnfollow
-}: {
-  user: FollowUser;
-  isOwnProfile: boolean;
-  currentUserId?: string;
-  onUnfollow: (userId: string) => void;
-}) {
-  const [unfollowLoading, setUnfollowLoading] = useState(false);
-
-  const handleUnfollow = async () => {
-    if (!currentUserId) return;
-    setUnfollowLoading(true);
+function UnfollowButton({ userId, onDone }: { userId: string; onDone: () => void }) {
+  const { user } = useAuth();
+  const [busy, setBusy] = useState(false);
+  const unfollow = async () => {
+    if (!user?.id) return;
+    setBusy(true);
     try {
-      await supabase
-        .from("follows")
-        .delete()
-        .eq("follower_id", currentUserId)
-        .eq("following_id", user.id);
-      onUnfollow(user.id);
+      await supabase.from("follows").delete().eq("follower_id", user.id).eq("following_id", userId);
+      onDone();
     } catch (err) {
       console.error("Failed to unfollow:", err);
     } finally {
-      setUnfollowLoading(false);
+      setBusy(false);
     }
   };
+  return <Button variant="ghost" size="sm" onClick={unfollow} loading={busy} loadingText="Unfollowing…">Unfollow</Button>;
+}
 
-  return (
-    <div className="flex items-center gap-4 p-4 hover:bg-subtle rounded-xl transition-all">
-      <Link href={`/studio/${user.username}`} className="flex-shrink-0">
-        <img
-          src={getOptimizedAvatarUrl(user.avatar_url) || DEFAULT_AVATAR}
-          alt={user.display_name || user.username}
-          className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-md"
-          loading="lazy"
-        />
-      </Link>
+function FollowList({ userId, type, canUnfollow, onClose }: { userId: string; type: "followers" | "following"; canUnfollow: boolean; onClose: () => void }) {
+  const { users, loading, hasMore, loadMore } = useFollowList(userId, type);
+  const [removed, setRemoved] = useState<Set<string>>(new Set());
+  const shown = users.filter((u) => !removed.has(u.id));
 
-      <div className="flex-1 min-w-0">
-        <Link href={`/studio/${user.username}`} className="block">
-          <div className="flex items-center gap-2">
-            <span className="font-ui text-[0.95rem] font-medium text-ink truncate">
-              {user.display_name || user.username}
-            </span>
-            {user.is_verified && (
-              <span className="w-4 h-4 bg-gradient-to-r from-purple-primary to-pink-vivid rounded-full flex items-center justify-center text-white flex-shrink-0">
-                {icons.verified}
-              </span>
-            )}
-          </div>
-          <span className="font-ui text-[0.85rem] text-muted block">
-            @{user.username}
-          </span>
-        </Link>
-        {user.bio && (
-          <p className="font-body text-[0.85rem] text-muted/80 mt-1 line-clamp-1">
-            {user.bio}
-          </p>
-        )}
+  if (loading && users.length === 0) {
+    return <div className="pq-feed-state" role="status" aria-label="Loading"><Spinner size="lg" /></div>;
+  }
+  if (shown.length === 0) {
+    return (
+      <div className="pq-feed-state">
+        <p className="pq-feed-state__title">{type === "followers" ? "No followers yet" : "Not following anyone yet"}</p>
       </div>
-
-      {isOwnProfile && (
-        <button
-          onClick={handleUnfollow}
-          disabled={unfollowLoading}
-          className="px-4 py-2 rounded-full border border-border-light bg-surface font-ui text-[0.85rem] text-muted hover:border-red-400 hover:text-red-500 hover:bg-red-50 transition-all disabled:opacity-50"
-        >
-          {unfollowLoading ? "..." : "Unfollow"}
-        </button>
+    );
+  }
+  return (
+    <div
+      className="pq-list"
+      onClickCapture={(event) => {
+        if ((event.target as HTMLElement).closest("a")) onClose();
+      }}
+    >
+      {shown.map((person) => (
+        <PersonRow
+          key={person.id}
+          person={person}
+          meta={person.bio || undefined}
+          trailing={canUnfollow ? <UnfollowButton userId={person.id} onDone={() => setRemoved((prev) => new Set([...prev, person.id]))} /> : undefined}
+        />
+      ))}
+      {hasMore && (
+        <div className="flex justify-center p-3">
+          <Button variant="secondary" size="sm" onClick={loadMore} loading={loading} loadingText="Loading…">Show more</Button>
+        </div>
       )}
     </div>
   );
 }
 
-export default function FollowersModal({
-  isOpen,
-  onClose,
-  userId,
-  type,
-  isOwnProfile,
-}: FollowersModalProps) {
-  const { user } = useAuth();
-  const { users, loading, hasMore, loadMore } = useFollowList(userId, type);
-  const [removedIds, setRemovedIds] = useState<Set<string>>(new Set());
-
-  // Reset removed IDs when modal closes or type changes
-  /* eslint-disable react-hooks/set-state-in-effect */
-  useEffect(() => {
-    if (!isOpen) {
-      setRemovedIds(new Set());
-    }
-  }, [isOpen]);
-  /* eslint-enable react-hooks/set-state-in-effect */
-
-  const handleUnfollow = (unfollowedUserId: string) => {
-    setRemovedIds((prev) => new Set([...prev, unfollowedUserId]));
-  };
-
+/** Followers or following as a sheet of people; the owner can unfollow from the following list. */
+export default function FollowersModal({ isOpen, onClose, userId, type, isOwnProfile }: FollowersModalProps) {
   if (!isOpen) return null;
-
-  const displayUsers = users.filter((u) => !removedIds.has(u.id));
-
   return (
-    <div
-      className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[2000] flex justify-center items-center animate-fadeIn"
-      onClick={onClose}
-    >
-      <div
-        className="w-[95%] max-w-[480px] max-h-[70vh] bg-surface rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-scaleIn"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-border-light">
-          <h2 className="font-display text-[1.3rem] text-ink capitalize">
-            {type}
-          </h2>
-          <button
-            onClick={onClose}
-            className="w-9 h-9 rounded-full bg-skeleton/70 flex items-center justify-center text-muted hover:text-ink hover:bg-skeleton transition-all hover:rotate-90"
-          >
-            {icons.close}
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto">
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loading size="small" text="" />
-            </div>
-          ) : displayUsers.length === 0 ? (
-            <div className="text-center py-12 px-6">
-              <p className="font-body text-muted italic">
-                {type === "followers"
-                  ? "No followers yet"
-                  : "Not following anyone yet"}
-              </p>
-            </div>
-          ) : (
-            <div className="p-2">
-              {displayUsers.map((followUser) => (
-                <UserCard
-                  key={followUser.id}
-                  user={followUser}
-                  isOwnProfile={isOwnProfile && type === "following"}
-                  currentUserId={user?.id}
-                  onUnfollow={handleUnfollow}
-                />
-              ))}
-              {hasMore && (
-                <button
-                  onClick={loadMore}
-                  disabled={loading}
-                  className="w-full py-3 text-purple-primary hover:underline font-ui text-sm disabled:opacity-50"
-                >
-                  {loading ? "Loading..." : "Load more"}
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+    <Sheet isOpen onClose={onClose} title={type === "followers" ? "Followers" : "Following"} bodyClassName="pq-dialog__body--flush">
+      <FollowList key={type} userId={userId} type={type} canUnfollow={isOwnProfile && type === "following"} onClose={onClose} />
+    </Sheet>
   );
 }

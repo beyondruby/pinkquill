@@ -35,7 +35,7 @@ September 5 update: the four-screen proof and component reference live outside a
 | `/messages` | [app/(feed)/messages/page.tsx](../../app/(feed)/messages/page.tsx) | 5 | Redesigned in 5C (list, thread, composer, voice on `messages.css`; one phone pane state) |
 | `/messages/community` | [app/(feed)/messages/community/page.tsx](../../app/(feed)/messages/community/page.tsx) | 5 | Redesigned in 5C (three panes on the DM frame, announcements as labelled bubbles) |
 | `/saved` | [app/(feed)/saved/page.tsx](../../app/(feed)/saved/page.tsx) | 6 | Not started |
-| `/studio/[username]` | [app/studio/[username]/page.tsx](../../app/studio/[username]/page.tsx) | 6 | Not started |
+| `/studio/[username]` | [app/studio/[username]/page.tsx](../../app/studio/[username]/page.tsx) | 6 | Redesigned in 6A (head, counts, About, tabs, sheets on `studio.css`); content views wait for 6B |
 | `/studio/[username]/collections/[collection]/[item]` | [app/studio/[username]/collections/[collection]/[item]/page.tsx](../../app/studio/[username]/collections/[collection]/[item]/page.tsx) | 6 | Not started |
 | `/commissions/[id]` | [app/commissions/[id]/page.tsx](../../app/commissions/[id]/page.tsx) | 7 | Not started |
 | `/product/[id]` | [app/product/[id]/page.tsx](../../app/product/[id]/page.tsx) | 7 | Not started |
