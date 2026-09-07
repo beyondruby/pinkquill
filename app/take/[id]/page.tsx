@@ -592,7 +592,7 @@ export default function SingleTakePage({ params }: PageProps) {
                 {!isOwner && user && (
                   <button
                     onClick={handleFollow}
-                    className={`px-4 py-1.5 rounded-full font-ui text-sm font-medium transition-all ${
+                    className={`px-4 py-1.5 rounded-full font-ui text-sm font-medium transition-colors ${
                       isFollowing
                         ? "bg-skeleton/70 text-ink hover:bg-skeleton"
                         : "bg-gradient-to-r from-purple-primary to-pink-vivid text-white hover:scale-105"
@@ -605,7 +605,7 @@ export default function SingleTakePage({ params }: PageProps) {
                 {(isOwner || user) && (
                   <ActionMenu
                     items={takeMenuItems}
-                    buttonClassName="w-9 h-9 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-skeleton/60 transition-all"
+                    buttonClassName="w-9 h-9 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-skeleton/60 transition-colors"
                     widthClassName="w-40"
                     buttonAriaLabel="Take options menu"
                   />
@@ -716,24 +716,24 @@ export default function SingleTakePage({ params }: PageProps) {
                 />
 
                 <button
-                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-skeleton/70 text-muted hover:bg-purple-50 hover:text-accent transition-all"
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-ink hover:bg-subtle transition-colors"
                 >
                   <CommentIcon className="shrink-0" />
-                  {commentsCount > 0 && <span className="text-sm font-medium">{commentsCount}</span>}
                 </button>
 
                 {!isOwner && (
                   <button
                     onClick={handleRelay}
                     disabled={!user}
-                    className={`flex items-center gap-1.5 px-4 py-2.5 rounded-full transition-all ${
+                    aria-label={isRelayed ? `Remove relay (${relaysCount} relays)` : `Relay take (${relaysCount} relays)`}
+                    aria-pressed={isRelayed}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
                       isRelayed
-                        ? "bg-green-500/10 text-green-600"
-                        : "bg-skeleton/70 text-muted hover:bg-purple-50 hover:text-accent"
+                        ? "text-green-600"
+                        : "text-ink hover:bg-subtle"
                     } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
                   >
                     {icons.relay}
-                    {relaysCount > 0 && <span className="text-sm font-medium">{relaysCount}</span>}
                   </button>
                 )}
 
@@ -741,7 +741,7 @@ export default function SingleTakePage({ params }: PageProps) {
 
                 <button
                   onClick={() => setShowShareModal(true)}
-                  className="w-10 h-10 rounded-full bg-skeleton/70 flex items-center justify-center text-muted hover:bg-purple-50 hover:text-accent transition-all"
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-ink hover:bg-subtle transition-colors"
                 >
                   {icons.share}
                 </button>
@@ -749,10 +749,10 @@ export default function SingleTakePage({ params }: PageProps) {
                 <button
                   onClick={handleSave}
                   disabled={!user}
-                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
                     isSaved
-                      ? "bg-amber-500/10 text-amber-600"
-                      : "bg-skeleton/70 text-muted hover:bg-purple-50 hover:text-accent"
+                      ? "text-ink"
+                      : "text-ink hover:bg-subtle"
                   } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   {isSaved ? icons.bookmarkFilled : icons.bookmark}

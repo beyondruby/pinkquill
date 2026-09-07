@@ -1,16 +1,16 @@
 "use client";
 
 /**
- * ReactionSummary — the card line under the actions: the top reaction
- * icons plus "poet and 12 others reacted". Tapping opens the Reactions
- * sheet. Bound to the shared engagement store, so it moves with the
- * picker and with live events.
+ * ReactionSummary — the Instagram-style line under the action row: a
+ * facepile of up to three reactors (people you follow first) and
+ * "poet and 12 others reacted" with the names in bold. Tapping opens the
+ * Reactions sheet. Bound to the shared engagement store, so it moves with
+ * the picker and with live events.
  */
 
 import { useState } from "react";
 import { useReaction } from "@/lib/engagement/reactions";
 import type { EngagementKind } from "@/lib/engagement/store";
-import { getReactionIcon, REACTION_OPTIONS } from "./ReactionPicker";
 import ReactionsSheet from "./ReactionsSheet";
 
 interface ReactionSummaryProps {
@@ -34,15 +34,17 @@ export function describeReactors(total: number, mine: boolean, topName: string |
   const rest = total - names.length;
   const parts: ReactorLine["parts"] = [];
   if (names.length === 0) {
-    parts.push({ text: `${total}`, strong: true }, { text: ` reaction${total === 1 ? "" : "s"}`, strong: false });
+    parts.push({ text: `${total.toLocaleString()} reaction${total === 1 ? "" : "s"}`, strong: true });
   } else {
     parts.push({ text: names[0], strong: true });
     if (names.length === 2) parts.push({ text: rest > 0 ? ", " : " and ", strong: false }, { text: names[1], strong: true });
-    if (rest > 0) parts.push({ text: " and ", strong: false }, { text: `${rest} other${rest === 1 ? "" : "s"}`, strong: true });
+    if (rest > 0) parts.push({ text: " and ", strong: false }, { text: `${rest.toLocaleString()} other${rest === 1 ? "" : "s"}`, strong: true });
     parts.push({ text: " reacted", strong: false });
   }
   return { parts, text: parts.map((p) => p.text).join("") };
 }
+
+const DEFAULT_AVATAR = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100";
 
 export default function ReactionSummary({ kind = "post", id, className = "", dark = false }: ReactionSummaryProps) {
   const r = useReaction(kind, id, { loadSummary: true });
@@ -50,13 +52,9 @@ export default function ReactionSummary({ kind = "post", id, className = "", dar
   const total = r.counts.total;
   if (!id || total <= 0) return null;
 
-  const top = r.countsLoaded
-    ? REACTION_OPTIONS.filter((o) => r.counts[o.type] > 0)
-        .sort((a, b) => r.counts[b.type] - r.counts[a.type])
-        .slice(0, 3)
-    : [];
-  const topName = r.topReactor ? r.topReactor.display_name || r.topReactor.username : null;
-  const line = describeReactors(total, !!r.mine, r.summaryLoaded ? topName : null);
+  const faces = r.topReactors.slice(0, 3);
+  const first = faces[0];
+  const line = describeReactors(total, !!r.mine, first ? first.display_name || first.username : null);
 
   return (
     <>
@@ -67,33 +65,34 @@ export default function ReactionSummary({ kind = "post", id, className = "", dar
           setOpen(true);
         }}
         aria-label={`${line.text}. See who reacted`}
-        className={`group/summary flex items-center gap-2 min-w-0 font-ui text-[0.8rem] leading-none text-left transition-colors ${
-          dark ? "text-white/75 hover:text-white" : "text-muted hover:text-ink"
+        className={`reaction-summary group/summary flex items-center gap-2 min-w-0 font-ui text-[0.85rem] leading-tight text-left ${
+          dark ? "text-white/85" : "text-ink"
         } ${className}`}
       >
-        {top.length > 0 && (
-          <span className="flex -space-x-1.5 flex-shrink-0" aria-hidden="true">
-            {top.map((o, i) => (
-              <span
-                key={o.type}
-                className={`w-[18px] h-[18px] rounded-full flex items-center justify-center ring-2 ${
-                  dark ? "bg-black/60 ring-black/40" : "bg-surface ring-surface"
-                }`}
-                style={{ zIndex: top.length - i }}
-              >
-                <span className="w-[13px] h-[13px]">{getReactionIcon(o.type)}</span>
-              </span>
+        {faces.length > 0 && (
+          <span className="flex -space-x-2 flex-shrink-0" aria-hidden="true">
+            {faces.map((f, i) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={f.username}
+                src={f.avatar_url || DEFAULT_AVATAR}
+                alt=""
+                className={`w-5 h-5 rounded-full object-cover ring-2 ${dark ? "ring-black/60" : "ring-surface"}`}
+                style={{ zIndex: faces.length - i }}
+              />
             ))}
           </span>
         )}
         <span className="truncate">
           {line.parts.map((part, i) =>
             part.strong ? (
-              <span key={i} className={`font-medium ${dark ? "text-white" : "text-ink"} group-hover/summary:underline`}>
+              <span key={i} className="font-semibold">
                 {part.text}
               </span>
             ) : (
-              <span key={i}>{part.text}</span>
+              <span key={i} className={dark ? "text-white/70" : "text-ink/80"}>
+                {part.text}
+              </span>
             )
           )}
         </span>

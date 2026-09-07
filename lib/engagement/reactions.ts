@@ -73,8 +73,8 @@ export interface UseReactionResult {
   /** Comment count (all rows); trustworthy when `commentsLoaded`. */
   comments: number;
   commentsLoaded: boolean;
-  /** Someone to name on the card line (null = nobody else reacted). */
-  topReactor: TopReactor | null;
+  /** Up to three people for the card line / facepile. */
+  topReactors: TopReactor[];
   summaryLoaded: boolean;
   isAuthenticated: boolean;
   /** Set this reaction; same type as `mine` removes it. Opens the auth modal
@@ -199,7 +199,7 @@ export function useReaction(kind: EngagementKind, id: string, options: UseReacti
     pending: entry.pending,
     comments: entry.comments,
     commentsLoaded: entry.commentsLoaded,
-    topReactor: entry.topReactor,
+    topReactors: entry.topReactors,
     summaryLoaded: entry.summaryLoaded,
     isAuthenticated: !!user,
     react,

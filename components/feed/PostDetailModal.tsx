@@ -591,7 +591,7 @@ function PostDetailModalComponent({
               <button
                 onClick={onClose}
                 aria-label="Close post"
-                className={`md:hidden w-10 h-10 -ml-1 rounded-full flex items-center justify-center transition-all ${
+                className={`md:hidden w-10 h-10 -ml-1 rounded-full flex items-center justify-center transition-colors ${
                   hasBackground
                     ? hasDarkBg
                       ? 'text-white hover:bg-white/10'
@@ -657,7 +657,7 @@ function PostDetailModalComponent({
               {(isOwner || user) && (
                 <ActionMenu
                   items={postMenuItems}
-                  buttonClassName={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                  buttonClassName={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
                     hasBackground
                       ? hasDarkBg
                         ? "text-white/70 hover:text-white hover:bg-white/10"
@@ -874,7 +874,7 @@ function PostDetailModalComponent({
                         <button
                           onClick={() => setCurrentMediaIndex((prev) => (prev === 0 ? media.length - 1 : prev - 1))}
                           aria-label="Previous media"
-                          className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-surface/90 shadow-md flex items-center justify-center text-ink/70 opacity-0 group-hover:opacity-100 hover:bg-surface hover:text-ink transition-all duration-200 z-10"
+                          className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-surface/90 shadow-md flex items-center justify-center text-ink/70 opacity-0 group-hover:opacity-100 hover:bg-surface hover:text-ink transition-colors duration-200 z-10"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -883,7 +883,7 @@ function PostDetailModalComponent({
                         <button
                           onClick={() => setCurrentMediaIndex((prev) => (prev === media.length - 1 ? 0 : prev + 1))}
                           aria-label="Next media"
-                          className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-surface/90 shadow-md flex items-center justify-center text-ink/70 opacity-0 group-hover:opacity-100 hover:bg-surface hover:text-ink transition-all duration-200 z-10"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-surface/90 shadow-md flex items-center justify-center text-ink/70 opacity-0 group-hover:opacity-100 hover:bg-surface hover:text-ink transition-colors duration-200 z-10"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -907,7 +907,7 @@ function PostDetailModalComponent({
                         <button
                           key={item.id || idx}
                           onClick={() => setCurrentMediaIndex(idx)}
-                          className={`relative w-14 h-14 md:w-16 md:h-16 rounded-lg overflow-hidden transition-all duration-200 ${
+                          className={`relative w-14 h-14 md:w-16 md:h-16 rounded-lg overflow-hidden transition-colors duration-200 ${
                             idx === currentMediaIndex
                               ? "ring-2 ring-purple-primary/60 ring-offset-2"
                               : "opacity-50 hover:opacity-80"
@@ -1008,44 +1008,44 @@ function PostDetailModalComponent({
             <button
               onClick={() => setShowComments(true)}
               aria-label="Show comments"
-              className={`flex items-center gap-1.5 px-3 md:px-4 py-2 md:py-2.5 rounded-full transition-all ${
+              className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
                 hasDarkBg
-                  ? 'bg-surface/15 text-white/90 hover:bg-surface/25 hover:text-white'
-                  : 'bg-skeleton/70 text-muted hover:bg-purple-50 hover:text-accent'
+                  ? 'text-white hover:bg-white/10'
+                  : 'text-ink hover:bg-subtle'
               }`}
             >
               {icons.comment}
-              {commentsCount > 0 && <span className="text-xs md:text-sm font-medium">{commentsCount}</span>}
             </button>
 
             {/* Relay Button - hidden for own posts */}
             {user?.id !== post.authorId && (
               <button
                 onClick={handleRelay}
-                aria-label={isRelayed ? "Remove relay" : "Relay post"}
+                aria-label={isRelayed ? `Remove relay (${relayCount} relays)` : `Relay post (${relayCount} relays)`}
                 aria-pressed={isRelayed}
                 disabled={!user}
-                className={`flex items-center gap-1.5 px-3 md:px-4 py-2 md:py-2.5 rounded-full transition-all ${
+                className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
                   isRelayed
-                    ? "bg-green-500/30 text-green-400"
+                    ? "text-green-400"
                     : hasDarkBg
-                      ? 'bg-surface/15 text-white/90 hover:bg-surface/25 hover:text-white'
-                      : 'bg-skeleton/70 text-muted hover:bg-purple-50 hover:text-accent'
+                      ? 'text-white hover:bg-white/10'
+                      : 'text-ink hover:bg-subtle'
                 } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 {icons.relay}
-                {relayCount > 0 && <span className="text-xs md:text-sm font-medium">{relayCount}</span>}
               </button>
             )}
+
+            <div className="flex-1" />
 
             {/* Share Button */}
             <button
               onClick={() => setShowShareModal(true)}
               aria-label="Share post"
-              className={`w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-all ${
+              className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
                 hasDarkBg
-                  ? 'bg-surface/15 text-white/90 hover:bg-surface/25 hover:text-white'
-                  : 'bg-skeleton/70 text-muted hover:bg-purple-50 hover:text-accent'
+                  ? 'text-white hover:bg-white/10'
+                  : 'text-ink hover:bg-subtle'
               }`}
             >
               {icons.share}
@@ -1057,12 +1057,12 @@ function PostDetailModalComponent({
               aria-label={isSaved ? "Unsave post" : "Save post"}
               aria-pressed={isSaved}
               disabled={!user}
-              className={`w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-all ${
+              className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
                 isSaved
-                  ? "bg-amber-500/30 text-amber-400"
+                  ? "text-white"
                   : hasDarkBg
-                    ? 'bg-surface/15 text-white/90 hover:bg-surface/25 hover:text-white'
-                    : 'bg-skeleton/70 text-muted hover:bg-purple-50 hover:text-accent'
+                    ? 'text-white hover:bg-white/10'
+                    : 'text-ink hover:bg-subtle'
               } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               {isSaved ? (
@@ -1089,7 +1089,7 @@ function PostDetailModalComponent({
                 <button
                   onClick={() => setShowComments(false)}
                   aria-label="Close comments"
-                  className="md:hidden w-9 h-9 rounded-full flex items-center justify-center text-muted hover:text-ink transition-all"
+                  className="md:hidden w-9 h-9 rounded-full flex items-center justify-center text-muted hover:text-ink transition-colors"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -1102,7 +1102,7 @@ function PostDetailModalComponent({
               <button
                 onClick={() => setShowComments(false)}
                   aria-label="Close comments"
-                className="hidden md:flex w-9 h-9 rounded-full items-center justify-center text-muted hover:text-accent-2 hover:rotate-90 transition-all"
+                className="hidden md:flex w-9 h-9 rounded-full items-center justify-center text-muted hover:text-accent-2 hover:rotate-90 transition-colors"
               >
                 {icons.close}
               </button>

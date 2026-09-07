@@ -125,8 +125,7 @@ export type ReactionPickerVariant = "card" | "pill" | "overlay";
 interface ReactionPickerProps {
   currentReaction: ReactionType | null;
   reactionCounts: ReactionCounts;
-  /** False while only the total is known (list rows); per-type numbers are
-   *  hidden until `onOpen` has loaded them. */
+  /** Kept for callers; per-type numbers now live in the Reactions sheet. */
   countsLoaded?: boolean;
   onReact: (type: ReactionType) => void;
   onRemoveReaction: () => void;
@@ -155,7 +154,6 @@ export function getReactionLabel(type: ReactionType): string {
 export default function ReactionPicker({
   currentReaction,
   reactionCounts,
-  countsLoaded = true,
   onReact,
   onRemoveReaction,
   onOpen,
@@ -485,11 +483,6 @@ export default function ReactionPicker({
   // Get the display icon (current reaction or outline heart)
   const displayIcon = currentReaction ? reactionIcons[currentReaction] : outlineHeart;
 
-  // Get reactions that have counts > 0, sorted by count
-  const activeReactions = reactions
-    .filter(r => reactionCounts[r.type] > 0)
-    .sort((a, b) => reactionCounts[b.type] - reactionCounts[a.type]);
-
   return (
     <div
       ref={containerRef}
@@ -514,19 +507,16 @@ export default function ReactionPicker({
           aria-haspopup="listbox"
           aria-expanded={isOpen}
         >
-          <span className={`w-[1.1rem] h-[1.1rem] transition-transform duration-200 ${currentReaction ? 'scale-110' : 'group-hover/reaction:scale-110'} ${bump ? 'animate-pop' : ''}`}>
+          <span className={`w-6 h-6 transition-transform duration-200 ${currentReaction ? '' : 'group-hover/reaction:scale-110'} ${bump ? 'animate-pop' : ''}`}>
             {displayIcon}
           </span>
-          <span className={`action-count ${bump ? 'animate-pop' : ''}`}>{reactionCounts.total}</span>
         </button>
       )}
       {variant === "pill" && (
         <button
           ref={buttonRef}
-          className={`reaction-picker-trigger flex items-center gap-1.5 px-4 py-2.5 rounded-full transition-all ${
-            currentReaction
-              ? 'bg-pink-vivid/10 text-pink-vivid'
-              : 'bg-skeleton/70 text-muted hover:bg-purple-50 hover:text-accent'
+          className={`reaction-picker-trigger w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+            currentReaction ? 'text-pink-vivid' : 'text-ink hover:bg-subtle'
           } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
           onClick={handleMainClick}
           onKeyDown={handleMainButtonKeyDown}
@@ -535,12 +525,9 @@ export default function ReactionPicker({
           aria-haspopup="listbox"
           aria-expanded={isOpen}
         >
-          <span className={`w-5 h-5 transition-transform duration-200 ${currentReaction ? 'scale-110' : ''} ${bump ? 'animate-pop' : ''}`}>
+          <span className={`w-6 h-6 transition-transform duration-200 ${bump ? 'animate-pop' : ''}`}>
             {displayIcon}
           </span>
-          {reactionCounts.total > 0 && (
-            <span className={`text-sm font-medium ${bump ? 'animate-pop' : ''}`}>{reactionCounts.total}</span>
-          )}
         </button>
       )}
       {variant === "overlay" && (
@@ -605,11 +592,10 @@ export default function ReactionPicker({
           aria-activedescendant={focusedIndex >= 0 ? `reaction-option-${reactions[focusedIndex].type}` : undefined}
         >
           {/* Picker Container */}
-          <div className="bg-surface rounded-2xl shadow-xl border border-border-light backdrop-blur-xl overflow-hidden">
+          <div className="bg-surface rounded-full shadow-xl border border-border-light backdrop-blur-xl">
             {/* Reaction buttons row */}
-            <div className="flex items-center gap-0.5 px-2 py-2">
+            <div className="flex items-center gap-1 px-2 py-1.5">
               {reactions.map((reaction, index) => {
-                const count = reactionCounts[reaction.type];
                 const isSelected = currentReaction === reaction.type;
                 const isHovered = hoveredReaction === reaction.type;
                 const isFocused = focusedIndex === index;
@@ -635,58 +621,20 @@ export default function ReactionPicker({
                       setHoveredReaction(reaction.type);
                     }}
                     onBlur={() => setHoveredReaction(null)}
-                    className={`relative flex flex-col items-center justify-center w-12 h-14 rounded-xl transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-primary focus-visible:ring-offset-1 ${
-                      isSelected
-                        ? 'bg-gradient-to-b from-purple-primary/15 to-pink-vivid/10 scale-105'
-                        : 'hover:bg-skeleton/60'
-                    } ${isHovered || isFocused ? 'scale-110' : ''}`}
+                    className={`relative flex items-center justify-center w-11 h-11 rounded-full transition-transform duration-150 focus:outline-none ${
+                      isSelected ? 'bg-pink-vivid/10' : ''
+                    } ${isHovered || isFocused ? 'scale-125 -translate-y-1' : ''}`}
                     role="option"
                     aria-selected={isSelected}
-                    aria-label={countsLoaded ? `${reaction.label} (${count} reactions)` : reaction.label}
+                    aria-label={reaction.label}
                     tabIndex={isFocused ? 0 : -1}
                   >
-                    {/* Icon */}
-                    <span className={`w-6 h-6 transition-transform duration-150 ${isHovered || isFocused ? 'scale-110' : ''}`}>
-                      {reaction.icon}
-                    </span>
-
-                    {/* Count (blank until the real per-type split is loaded) */}
-                    <span className={`text-[0.65rem] font-ui font-semibold mt-0.5 min-h-[0.9rem] ${
-                      isSelected ? 'text-purple-primary' : count > 0 ? 'text-ink' : 'text-muted'
-                    }`}>
-                      {countsLoaded ? count : ""}
-                    </span>
-
-
-                    {/* Selected indicator */}
-                    {isSelected && (
-                      <div className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid" />
-                    )}
+                    <span className="w-8 h-8">{reaction.icon}</span>
                   </button>
                 );
               })}
             </div>
 
-            {/* Active reactions summary (only once the real split is known) */}
-            {countsLoaded && activeReactions.length > 0 && (
-              <div className="px-3 py-2 border-t border-border-light bg-gradient-to-r from-purple-primary/[0.02] to-pink-vivid/[0.02]">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {activeReactions.slice(0, 4).map((reaction) => (
-                    <div key={reaction.type} className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-surface shadow-sm">
-                      <span className="w-3.5 h-3.5">{reaction.icon}</span>
-                      <span className="text-[0.6rem] font-ui font-semibold text-muted">
-                        {reactionCounts[reaction.type]}
-                      </span>
-                    </div>
-                  ))}
-                  {activeReactions.length > 4 && (
-                    <span className="text-[0.6rem] font-ui text-muted/70">
-                      +{activeReactions.length - 4} more
-                    </span>
-                  )}
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Arrow */}

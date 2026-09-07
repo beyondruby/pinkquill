@@ -810,7 +810,7 @@ export default function PostPage() {
                   label="Post actions"
                   description={post?.title || "Share, manage, or report this post"}
                   items={postMenuItems}
-                  buttonClassName="w-9 h-9 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-skeleton/60 transition-all"
+                  buttonClassName="w-9 h-9 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-skeleton/60 transition-colors"
                   widthClassName="w-72"
                   buttonAriaLabel="Post actions"
                 />
@@ -1015,13 +1015,13 @@ export default function PostPage() {
                       <>
                         <button
                           onClick={() => setCurrentMediaIndex((prev) => (prev === 0 ? visualMedia.length - 1 : prev - 1))}
-                          className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-surface/90 backdrop-blur-sm shadow-lg flex items-center justify-center text-ink hover:bg-surface transition-all"
+                          className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-surface/90 backdrop-blur-sm shadow-lg flex items-center justify-center text-ink hover:bg-surface transition-colors"
                         >
                           {icons.chevronLeft}
                         </button>
                         <button
                           onClick={() => setCurrentMediaIndex((prev) => (prev === visualMedia.length - 1 ? 0 : prev + 1))}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-surface/90 backdrop-blur-sm shadow-lg flex items-center justify-center text-ink hover:bg-surface transition-all"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-surface/90 backdrop-blur-sm shadow-lg flex items-center justify-center text-ink hover:bg-surface transition-colors"
                         >
                           {icons.chevronRight}
                         </button>
@@ -1041,7 +1041,7 @@ export default function PostPage() {
                         <button
                           key={item.id}
                           onClick={() => setCurrentMediaIndex(idx)}
-                          className={`w-14 h-14 rounded-lg overflow-hidden transition-all ${
+                          className={`w-14 h-14 rounded-lg overflow-hidden transition-colors ${
                             idx === currentMediaIndex
                               ? "ring-2 ring-purple-primary ring-offset-2"
                               : "opacity-60 hover:opacity-100"
@@ -1113,24 +1113,25 @@ export default function PostPage() {
               />
 
               <button
-                className="flex items-center gap-1.5 px-3 md:px-4 py-2 md:py-2.5 rounded-full bg-skeleton/70 text-muted hover:bg-purple-50 hover:text-accent transition-all"
+                aria-label="Comments"
+                className="w-10 h-10 rounded-full flex items-center justify-center text-ink hover:bg-subtle transition-colors"
               >
                 {icons.comment}
-                {commentsCount > 0 && <span className="text-xs md:text-sm font-medium">{commentsCount}</span>}
               </button>
 
               {!isOwner && (
                 <button
                   onClick={handleRelay}
                   disabled={!user}
-                  className={`flex items-center gap-1.5 px-3 md:px-4 py-2 md:py-2.5 rounded-full transition-all ${
+                  aria-label={isRelayed ? `Remove relay (${relayCount} relays)` : `Relay post (${relayCount} relays)`}
+                  aria-pressed={isRelayed}
+                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
                     isRelayed
-                      ? "bg-green-500/10 text-green-600"
-                      : "bg-skeleton/70 text-muted hover:bg-purple-50 hover:text-accent"
+                      ? "text-green-600"
+                      : "text-ink hover:bg-subtle"
                   } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   {icons.relay}
-                  {relayCount > 0 && <span className="text-xs md:text-sm font-medium">{relayCount}</span>}
                 </button>
               )}
 
@@ -1138,7 +1139,7 @@ export default function PostPage() {
 
               <button
                 onClick={() => setShowShareModal(true)}
-                className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-skeleton/70 flex items-center justify-center text-muted hover:bg-purple-50 hover:text-accent transition-all"
+                className="w-10 h-10 rounded-full flex items-center justify-center text-ink hover:bg-subtle transition-colors"
               >
                 {icons.share}
               </button>
@@ -1146,10 +1147,10 @@ export default function PostPage() {
               <button
                 onClick={handleSave}
                 disabled={!user}
-                className={`w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all ${
+                className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
                   isSaved
-                    ? "bg-amber-500/10 text-amber-600"
-                    : "bg-skeleton/70 text-muted hover:bg-purple-50 hover:text-accent"
+                    ? "text-ink"
+                    : "text-ink hover:bg-subtle"
                 } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 {isSaved ? icons.bookmarkFilled : icons.bookmark}

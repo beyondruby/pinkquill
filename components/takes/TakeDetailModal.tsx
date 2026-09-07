@@ -412,7 +412,7 @@ export default function TakeDetailModal({
               {(isOwner || user) && (
                 <ActionMenu
                   items={takeMenuItems}
-                  buttonClassName="w-10 h-10 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-skeleton/60 transition-all"
+                  buttonClassName="w-10 h-10 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-skeleton/60 transition-colors"
                   widthClassName="w-40"
                   buttonAriaLabel="Take options menu"
                 />
@@ -532,30 +532,32 @@ export default function TakeDetailModal({
               {/* Comment Button */}
               <button
                 onClick={() => setShowComments(true)}
-                className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-skeleton/70 text-muted hover:bg-purple-50 hover:text-accent transition-all"
+                className="w-10 h-10 rounded-full flex items-center justify-center text-ink hover:bg-subtle transition-colors"
               >
                 <CommentIcon className="shrink-0" />
-                {commentsCount > 0 && <span className="text-sm font-medium">{commentsCount}</span>}
               </button>
 
               {/* Relay Button */}
               <button
                 onClick={handleRelay}
                 disabled={!user || take.author_id === user?.id}
-                className={`flex items-center gap-1.5 px-4 py-2.5 rounded-full transition-all ${
+                aria-label={isRelayed ? `Remove relay (${relayCount} relays)` : `Relay take (${relayCount} relays)`}
+                aria-pressed={isRelayed}
+                className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
                   isRelayed
-                    ? "bg-green-500/10 text-green-600"
-                    : "bg-skeleton/70 text-muted hover:bg-purple-50 hover:text-accent"
+                    ? "text-green-600"
+                    : "text-ink hover:bg-subtle"
                 } ${(!user || take.author_id === user?.id) ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 {icons.relay}
-                {relayCount > 0 && <span className="text-sm font-medium">{relayCount}</span>}
               </button>
+
+              <div className="flex-1" />
 
               {/* Share Button */}
               <button
                 onClick={() => setShowShareModal(true)}
-                className="w-11 h-11 rounded-full bg-skeleton/70 flex items-center justify-center text-muted hover:bg-purple-50 hover:text-accent transition-all"
+                className="w-10 h-10 rounded-full flex items-center justify-center text-ink hover:bg-subtle transition-colors"
               >
                 {icons.share}
               </button>
@@ -564,10 +566,10 @@ export default function TakeDetailModal({
               <button
                 onClick={handleSave}
                 disabled={!user}
-                className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${
+                className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
                   isSaved
-                    ? "bg-amber-500/10 text-amber-600"
-                    : "bg-skeleton/70 text-muted hover:bg-purple-50 hover:text-accent"
+                    ? "text-ink"
+                    : "text-ink hover:bg-subtle"
                 } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 {isSaved ? (
@@ -593,7 +595,7 @@ export default function TakeDetailModal({
                 </span>
                 <button
                   onClick={() => setShowComments(false)}
-                  className="w-9 h-9 rounded-full flex items-center justify-center text-muted hover:text-pink-vivid hover:rotate-90 transition-all"
+                  className="w-9 h-9 rounded-full flex items-center justify-center text-muted hover:text-pink-vivid hover:rotate-90 transition-colors"
                 >
                   {icons.close}
                 </button>

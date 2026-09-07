@@ -52,9 +52,9 @@ export interface ReactionEntry {
   /** Comment count over every row (top-level + replies). */
   comments: number;
   commentsLoaded: boolean;
-  /** One reactor to name on the card line (someone the viewer follows,
-   *  else the latest); null = nobody else has reacted. */
-  topReactor: TopReactor | null;
+  /** Up to three reactors for the card line / facepile (people the viewer
+   *  follows first, then the latest; never the viewer). */
+  topReactors: TopReactor[];
   /** The batched summary has been applied at least once. */
   summaryLoaded: boolean;
 }
@@ -62,6 +62,7 @@ export interface ReactionEntry {
 export interface TopReactor {
   username: string;
   display_name: string | null;
+  avatar_url?: string | null;
 }
 
 export interface ReactionSeed {
@@ -103,7 +104,7 @@ const DEFAULT_ENTRY: ReactionEntry = Object.freeze({
   writtenAt: 0,
   comments: 0,
   commentsLoaded: false,
-  topReactor: null,
+  topReactors: [],
   summaryLoaded: false,
 }) as ReactionEntry;
 
@@ -237,7 +238,7 @@ interface SummaryRow {
   total: number;
   mine: string | null;
   comments: number;
-  top_reactor?: TopReactor | null;
+  top_reactors?: TopReactor[] | null;
 }
 
 const queues: Record<EngagementKind, Set<string>> = { post: new Set(), take: new Set() };
@@ -271,7 +272,7 @@ function applySummary(kind: EngagementKind, rows: SummaryRow[], viewerId: string
       mineFor: viewerId,
       comments: typeof row.comments === "number" ? row.comments : prev.comments,
       commentsLoaded: typeof row.comments === "number" ? true : prev.commentsLoaded,
-      topReactor: row.top_reactor && typeof row.top_reactor.username === "string" ? row.top_reactor : null,
+      topReactors: Array.isArray(row.top_reactors) ? row.top_reactors.filter((t) => t && typeof t.username === "string") : [],
       summaryLoaded: true,
     });
   }

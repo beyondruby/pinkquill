@@ -25,8 +25,8 @@ import { Spinner } from "@/components/ui/Loading";
 import CommunityBadge from "@/components/communities/CommunityBadge";
 import FlairBadge from "@/components/communities/FlairBadge";
 import ReactionSummary from "@/components/feed/ReactionSummary";
+import ViewCommentsLink from "@/components/feed/ViewCommentsLink";
 import ReactionPicker from "@/components/feed/ReactionPicker";
-import CommentCount from "@/components/feed/CommentCount";
 import { AudioPlayer } from "@/components/feed/AudioPlayer";
 import { supabase } from "@/lib/supabase";
 import { PostType } from "@/lib/types";
@@ -459,7 +459,6 @@ function PostCardComponent({
         />
         <button className="action-btn" aria-label="Comments" onClick={readOnly ? undefined : handleOpenModal} disabled={readOnly} style={readOnly ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}>
           <CommentIcon />
-          <span className="action-count"><CommentCount id={post.id} total={post.stats?.comments} /></span>
         </button>
         {(!user || user.id !== post.authorId) && (
           <button
@@ -471,7 +470,6 @@ function PostCardComponent({
             disabled={readOnly}
           >
             <RelayIcon />
-            <span className="action-count">{relayCount}</span>
           </button>
         )}
       </div>
@@ -489,7 +487,10 @@ function PostCardComponent({
         </button>
       </div>
       </div>
-      <ReactionSummary id={post.id} className="px-1 pt-1" />
+      <div className="px-1 pt-2 space-y-1">
+        <ReactionSummary id={post.id} />
+        <ViewCommentsLink id={post.id} total={post.stats?.comments} onClick={handleOpenModal} disabled={readOnly} />
+      </div>
     </div>
   );
 

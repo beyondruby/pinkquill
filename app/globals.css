@@ -2060,31 +2060,45 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 .actions-left {
   display: flex;
   align-items: center;
-  gap: 0.15rem;
+  gap: 0.25rem;
+  margin-left: -8px;
 }
 .actions-right {
   display: flex;
   align-items: center;
-  gap: 0.15rem;
+  gap: 0.25rem;
+  margin-right: -8px;
 }
 .action-btn {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  border-radius: 20px;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: 999px;
   border: none;
   background: transparent;
   cursor: pointer;
-  color: var(--color-muted);
+  color: var(--color-ink);
   font-family: var(--font-body);
   font-size: 0.85rem;
-  transition: all 0.25s ease;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
+}
+.action-btn svg {
+  width: 24px;
+  height: 24px;
 }
 .action-btn:hover {
-  background: color-mix(in srgb, var(--color-purple-primary) 8%, transparent);
-  color: var(--primary-purple);
+  background: var(--color-subtle);
+}
+.action-btn:active {
+  transform: scale(0.9);
+}
+/* Counts live in the lines under the row (reactions line, "View all N comments") */
+.action-count {
+  display: none;
 }
 .action-btn.active {
   color: var(--vivid-pink);
@@ -2095,10 +2109,6 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 }
 .action-btn.saved {
   color: var(--primary-purple);
-}
-.action-count {
-  font-weight: 500;
-  color: inherit;
 }
 
 /* ========== MODAL ========== */
@@ -2764,6 +2774,12 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
     background: rgba(25, 25, 25, 0.98) !important;
     border-top-color: rgba(255, 255, 255, 0.1) !important;
     backdrop-filter: blur(20px) !important;
+  }
+
+  /* The who-reacted line does not fit the fixed bottom bar; the card line
+     above the comments already carries it on phones. */
+  .post-actions-bar .reaction-summary {
+    display: none !important;
   }
 
   /* Mobile action buttons - Large touch targets */

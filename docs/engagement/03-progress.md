@@ -576,6 +576,25 @@ exercised (no touch emulation available in this session).
 - The deep-link highlight is applied to the comment bubble, not the whole
   row with the avatar.
 
+### Follow-up 2 (2026-09-07): Instagram-style action row
+
+- Action rows are plain 24 px icons with no numbers on them (cards, post
+  page, post modal, take page, take modal): reaction, comment, relay on
+  the left; share, save on the right. Hover is a soft circle; no pills.
+- Under the row: a facepile of up to three reactors (people you follow
+  first) and "**You** and **poet** reacted" / "**poet** and **12 others**
+  reacted" / "**12 reactions**". Migration
+  `20260912_engagement_phase6b_top_reactors.sql`: the summaries return
+  `top_reactors` (username, display_name, avatar_url ×3) instead of
+  `top_reactor`.
+- Cards show "View all N comments" under that line
+  (`components/feed/ViewCommentsLink.tsx`), which opens the post.
+- The picker is a Facebook-style pill of six 32 px icons that scale up on
+  hover, with the label as tooltip; per-type counts and the chip row are
+  gone (the Reactions sheet tabs carry the per-type numbers).
+- Relay counts are no longer shown on the row (Instagram shows no numbers
+  on icons); they remain in insights.
+
 ### Known gaps left
 
 - Wording: the card line says "… reacted" rather than the plan's "Liked
