@@ -429,6 +429,9 @@ export default function TakeDetailModal({
                 hashtags={hashtags}
                 collaborators={collaborators}
                 mentions={mentions}
+                kind="take"
+                contentId={take.id}
+                currentUserId={user?.id}
                 onNavigate={onClose}
               />
 

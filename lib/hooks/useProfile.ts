@@ -5,7 +5,6 @@ import { supabase } from "../supabase";
 import { enrichPost, fetchUserPostFlags } from "@/lib/posts/enrich";
 import type { Profile, Post, FollowUser, FollowStatus, FollowRequest, AggregateCount } from "../types";
 import { getAggregateCount } from "../types";
-import { createNotification } from "./useNotifications";
 import { useUserEvent } from "@/components/providers/UserEventsProvider";
 import { isAbortError } from "../utils/retry";
 
@@ -288,7 +287,7 @@ export async function followUserRecord(followerId: string, followingId: string):
     throw new Error(`Failed to follow: ${error.message}`);
   }
 
-  await createNotification(followingId, followerId, isPrivate ? "follow_request" : "follow");
+  // The follows trigger notifies the target (follow / follow_request).
   return status;
 }
 
@@ -349,7 +348,7 @@ export function useFollow() {
       throw error;
     }
 
-    await createNotification(requesterId, ownerId, "follow_request_accepted");
+    // The follows trigger notifies the requester (follow_request_accepted).
   };
 
   const declineRequest = async (ownerId: string, requesterId: string): Promise<void> => {
@@ -617,8 +616,6 @@ export function useFollowRequests(userId?: string) {
         });
         if (insertError) throw insertError;
       }
-
-      await createNotification(requesterId, userId, "follow_request_accepted");
 
       const { error: markReadError } = await supabase
         .from("notifications")

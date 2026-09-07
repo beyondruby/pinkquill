@@ -13,7 +13,6 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "./supabase";
-import { createNotification } from "./hooks/useNotifications";
 import { useUserEvent } from "@/components/providers/UserEventsProvider";
 import { useCommunityContext } from "@/components/communities/CommunityContext";
 import { enrichPost, fetchUserPostFlags } from "@/lib/posts/enrich";
@@ -1452,19 +1451,7 @@ export function useCommunityModeration(communityId: string) {
 
       if (error) throw error;
 
-      // Build notification content
-      let notificationContent = `Your role has been changed to ${role}`;
-      if (role === 'moderator' && permissions) {
-        const enabledPermissions = Object.entries(permissions)
-          .filter(([, enabled]) => enabled)
-          .map(([key]) => key.replace('can_', '').replace(/_/g, ' '));
-        if (enabledPermissions.length > 0) {
-          notificationContent += `. You can: ${enabledPermissions.join(', ')}`;
-        }
-      }
-
-      // Notify the user of role change
-      await createNotification(userId, actorId, 'community_role_change', undefined, notificationContent, communityId);
+      // The community_members trigger notifies the member.
 
       return { success: true };
     } catch (err) {
@@ -1625,39 +1612,7 @@ export function useCommunityModeration(communityId: string) {
 
       if (error) throw error;
 
-      // Build notification content with duration/reason info
-      let notificationContent: string | undefined;
-      if (status === 'muted') {
-        const parts: string[] = [];
-        if (options?.mutedUntil) {
-          const duration = formatDuration(options.mutedUntil);
-          parts.push(`You have been muted for ${duration}`);
-        } else {
-          parts.push("You have been muted indefinitely");
-        }
-        if (options?.muteReason) {
-          parts.push(`Reason: ${options.muteReason}`);
-        }
-        notificationContent = parts.join(". ");
-      } else if (status === 'banned') {
-        const parts: string[] = [];
-        if (options?.bannedUntil) {
-          const duration = formatDuration(options.bannedUntil);
-          parts.push(`You have been banned for ${duration}`);
-        } else {
-          parts.push("You have been permanently banned");
-        }
-        if (options?.banReason) {
-          parts.push(`Reason: ${options.banReason}`);
-        }
-        notificationContent = parts.join(". ");
-      }
-
-      // Notify the user
-      const notificationType = status === 'muted' ? 'community_muted' : status === 'banned' ? 'community_banned' : undefined;
-      if (notificationType) {
-        await createNotification(userId, actorId, notificationType, undefined, notificationContent, communityId);
-      }
+      // The community_members trigger notifies the member (with duration/reason).
 
       return { success: true };
     } catch (err) {
@@ -2104,7 +2059,7 @@ export function useCollaborationInvites(userId?: string) {
     try {
       const { error } = await supabase.from('post_collaborators').update({ status: 'accepted', responded_at: new Date().toISOString() }).eq('post_id', postId).eq('user_id', userId);
       if (error) throw error;
-      await createNotification(authorId, userId, 'collaboration_accepted', postId);
+      // The post_collaborators trigger notifies the author.
 
       const { error: markReadError } = await supabase
         .from("notifications")
@@ -2132,7 +2087,7 @@ export function useCollaborationInvites(userId?: string) {
     try {
       const { error } = await supabase.from('post_collaborators').update({ status: 'declined', responded_at: new Date().toISOString() }).eq('post_id', postId).eq('user_id', userId);
       if (error) throw error;
-      await createNotification(authorId, userId, 'collaboration_declined', postId);
+      // The post_collaborators trigger notifies the author.
 
       const { error: markReadError } = await supabase
         .from("notifications")
@@ -2306,14 +2261,7 @@ export async function removeSelfAsCollaborator(
 
     if (error) throw error;
 
-    if (authorId && authorId !== userId) {
-      try {
-        await createNotification(authorId, userId, 'collaboration_removed', postId);
-      } catch (notifyErr) {
-        // Notification is best-effort; the removal itself succeeded.
-        console.warn('[removeSelfAsCollaborator] Failed to notify author:', notifyErr);
-      }
-    }
+    // The post_collaborators trigger notifies the author.
 
     if (typeof window !== 'undefined') {
       window.dispatchEvent(

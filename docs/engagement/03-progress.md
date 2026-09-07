@@ -9,9 +9,9 @@ Read `00-system-map.md` (what existed), `01-findings.md` (root causes),
 |---|---|---|
 | 1 — Reactions save, sync, count, display correctly | **done** (merged to `main`) | 2026-09-07 |
 | 2 — Comments, likes, replies | **done** (merged to `main`) | 2026-09-07 |
-| 3 — Notifications via DB triggers | **done** (branch `fix/engagement-phase3`, merged to `main`) | 2026-09-07 |
-| 4 — Security | next | |
-| 5 — Load / live events | | |
+| 3 — Notifications via DB triggers | **done** (merged to `main`) | 2026-09-07 |
+| 4 — Security | **done** (branch `fix/engagement-phase4`, merged to `main`) | 2026-09-07 |
+| 5 — Load / live events | next | |
 | 6 — UI/UX | | |
 
 Decisions taken: D1 one reaction per user per post/take; D2 retire `admires`
@@ -295,12 +295,88 @@ Chrome as A.
   follow state (Phase 4 privacy rules).
 - Grouped rows show one avatar and a text count; stacked avatars are Phase 6.
 
+---
+
+## Phase 4 — what changed (2026-09-07)
+
+### Database (`20260910_engagement_phase4_security.sql` + `20260910_engagement_phase4b_hardening.sql`, applied to prod)
+
+- Visibility and block rules as SECURITY DEFINER helpers that only answer
+  about the caller: `engagement_blocked`, `engagement_can_view_post` (mirrors
+  `posts_select_policy`), `engagement_can_view_take`, `engagement_can_engage`,
+  `engagement_can_tag` (no self, no block, private accounts only if they
+  already follow the author), `engagement_rate_limit` (on top of
+  `enforce_api_rate_limit`).
+- **Clients can no longer write engagement tables directly.** INSERT/UPDATE/
+  DELETE on `reactions`, `take_reactions` and INSERT/UPDATE on `comments`,
+  `take_comments`, INSERT/UPDATE/DELETE on `comment_likes`,
+  `take_comment_likes` revoked from `anon`/`authenticated`. All writes go
+  through SECURITY DEFINER RPCs with explicit checks + rate limits:
+  `set_/clear_post_reaction`, `set_/clear_take_reaction` (60/min),
+  `add_post_/take_comment` (20/min), `set_post_/take_comment_like` (60/min);
+  `delete_*_comment` stays SECURITY INVOKER on the owner/author policies.
+- **Reads respect visibility and blocks:** SELECT policies on reactions,
+  comments, take_reactions, take_comments require the post/take to be
+  visible to the viewer and hide rows from anyone blocked either way;
+  comment likes are visible only where the comment is. Anonymous viewers see
+  nothing on non-public posts (counts included).
+- **Tagging:** restrictive INSERT policies on `post_mentions`/`take_mentions`
+  and the same rule inside `create_post_with_relations` (which now also
+  skips blocked collaborators); `remove_self_mention(kind, id)` plus
+  self-delete policies so tagged people can untag themselves.
+- **Notifications are server-only:** the `notifications` INSERT policy is
+  dropped and INSERT revoked. Follows (`trg_follows_notify`: follow,
+  follow_request, follow_request_accepted; deleted on unfollow/decline),
+  collaborations (`trg_post_collaborators_notify`: invite, accepted/declined
+  + invite marked read, removed on self-removal), community role/mute/ban
+  (`trg_community_members_notify`, content built in SQL) are triggers;
+  moderator warnings go through `send_community_warning`.
+- `block_user(p_blocked)` RPC: block row, follows both ways, both users'
+  reactions/likes/tags on each other's content, and every notification
+  between them, in one transaction.
+- Mentions in a comment capped at 10. Trigger bodies and internal helpers
+  are not executable through the API.
+
+### Client
+
+- Removed the last client-side notification inserts and the
+  `createNotification` helper itself (`lib/hooks/useNotifications.ts`,
+  `useProfile.ts`, `hooks.legacy.ts`, `CreatePost.tsx`, `ModQueuePage.tsx`
+  → `send_community_warning` RPC).
+- `useBlock.blockUser` calls `block_user`.
+- `PostTags` shows "Remove me" to a tagged viewer (`kind`, `contentId`,
+  `currentUserId` props; wired on the post page, post modal, take page,
+  take modal).
+- Tests: 212 passed; `tsc` clean; `next build` clean.
+
+### Tested (2026-09-07, as hadi / poet / hii through the RPCs, plus Chrome as hadi)
+
+| Check | Result |
+|---|---|
+| Insert a forged notification as a user | rejected (42501) |
+| Insert directly into reactions / comments / comment_likes | rejected (42501) |
+| Comment or react on a post made private, as a non-follower | `POST_NOT_FOUND`; the user and anonymous viewers see 0 comments and a 0 reaction total; public again → visible |
+| poet blocks hadi via `block_user` | hadi's reaction on poet's post removed, notifications between them gone, poet no longer sees hadi's comments, hadi cannot comment (`POST_NOT_FOUND`) |
+| 61 reactions in one minute | 61st rejected with `RATE_LIMITED` |
+| Tag a private account that does not follow you (RPC and direct insert) | 0 added / rejected; a private account that already follows you can be tagged |
+| Ask the visibility helper about another viewer | false (helpers only answer for the caller) |
+| Follow / unfollow | `follow` row appears then disappears |
+| Collaboration invite → accept | invite row for the invitee, `collaboration_accepted` for the author, invite marked read |
+| Tagged viewer clicks "Remove me" | tag row and its `mention` notification gone, chip disappears |
+| React + comment on a post after the grant changes (Chrome) | works, no console errors |
+| Security advisor | no engagement-table findings after 4b |
+
+### Known gaps left for later phases
+
+- SELECT policies call a definer function per row; fine at today's volume,
+  Phase 5 replaces per-row counts with counter columns.
+- Community invite / join-request / join-approved notifications still come
+  from the membership RPCs (server-side already, unchanged).
+- Rate limits are per user per minute; there is no per-IP limit for
+  anonymous traffic (nothing anonymous can write).
+
 ## Next session
 
-Phase 4 (security). Start from `02-plan.md` §Phase 4. Migration name:
-`20260910_engagement_phase4_security.sql`. Remaining client notification
-inserts to move server-side: `lib/hooks.legacy.ts` (community role/mute/ban,
-collaboration accept/decline/remove), `lib/hooks/useProfile.ts` (follow,
-follow_request, follow_request_accepted),
-`components/communities/ModQueue/ModQueuePage.tsx` (warning),
-`components/create/CreatePost.tsx` (collaboration_invite).
+Phase 5 (load, concurrency, live freshness). Start from `02-plan.md`
+§Phase 5. Migration name: `20260911_engagement_phase5_load.sql`. Drop
+`get_reaction_counts`, `get_total_reactions` and the `admires` table there.

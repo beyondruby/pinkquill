@@ -3,6 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { getOptimizedAvatarUrl } from "@/lib/utils/image";
+import { supabase } from "@/lib/supabase";
+import { actionToast } from "@/lib/utils/toast";
+import type { EngagementKind } from "@/lib/engagement/store";
 
 interface TaggedUser {
   id: string;
@@ -27,10 +30,42 @@ interface PostTagsProps {
   collaborators?: Collaborator[];
   className?: string;
   onNavigate?: () => void;
+  /** With `contentId` + `currentUserId`, a tagged viewer gets "Remove me". */
+  kind?: EngagementKind;
+  contentId?: string;
+  currentUserId?: string | null;
 }
 
-export default function PostTags({ hashtags = [], mentions = [], collaborators = [], className = "", onNavigate }: PostTagsProps) {
+export default function PostTags({
+  hashtags = [],
+  mentions: mentionsProp = [],
+  collaborators = [],
+  className = "",
+  onNavigate,
+  kind = "post",
+  contentId,
+  currentUserId,
+}: PostTagsProps) {
   const [expanded, setExpanded] = useState(false);
+  const [removedSelf, setRemovedSelf] = useState(false);
+  const [removing, setRemoving] = useState(false);
+
+  const mentions = removedSelf && currentUserId ? mentionsProp.filter((m) => m.id !== currentUserId) : mentionsProp;
+  const taggedSelf = !!currentUserId && !!contentId && mentions.some((m) => m.id === currentUserId);
+
+  const removeSelf = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!contentId || removing) return;
+    setRemoving(true);
+    const { error } = await supabase.rpc("remove_self_mention", { p_kind: kind, p_content_id: contentId });
+    setRemoving(false);
+    if (error) {
+      actionToast.genericError("remove tag");
+      return;
+    }
+    setRemovedSelf(true);
+  };
 
   const hasHashtags = hashtags.length > 0;
   const hasMentions = mentions.length > 0;
@@ -97,6 +132,16 @@ export default function PostTags({ hashtags = [], mentions = [], collaborators =
             {!expanded && mentions.length > 3 && (
               <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setExpanded(true); }} className="tagged-more">
                 +{mentions.length - 3}
+              </button>
+            )}
+            {taggedSelf && (
+              <button
+                type="button"
+                onClick={removeSelf}
+                disabled={removing}
+                className="ml-2 font-ui text-[0.72rem] text-muted hover:text-pink-vivid transition-colors disabled:opacity-50"
+              >
+                {removing ? "Removing…" : "Remove me"}
               </button>
             )}
           </span>

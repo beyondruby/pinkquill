@@ -141,23 +141,12 @@ describe("useBlock", () => {
     });
   });
 
-  it("should block user and remove follows", async () => {
-    mockInsert.mockResolvedValue({ error: null });
-    mockEq.mockReturnValue({
-      eq: vi.fn().mockResolvedValue({ error: null }),
-    });
-
+  it("should block through the block_user RPC", async () => {
+    mockRpc.mockResolvedValue({ data: { blocked: true }, error: null });
     const { result } = renderHook(() => useBlock());
-
-    await act(async () => {
-      const response = await result.current.blockUser("blocker-1", "blocked-1");
-      expect(response.success).toBe(true);
-    });
-
-    expect(mockInsert).toHaveBeenCalledWith({
-      blocker_id: "blocker-1",
-      blocked_id: "blocked-1",
-    });
+    const res = await result.current.blockUser("user-1", "user-2");
+    expect(mockRpc).toHaveBeenCalledWith("block_user", { p_blocked: "user-2" });
+    expect(res.success).toBe(true);
   });
 
   it("should unblock user", async () => {

@@ -980,6 +980,9 @@ function PostDetailModalComponent({
           <PostTags
             collaborators={post.collaborators}
             mentions={post.mentions}
+            kind="post"
+            contentId={post.id}
+            currentUserId={user?.id}
             hashtags={post.hashtags}
             onNavigate={onClose}
           />

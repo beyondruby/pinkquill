@@ -7,52 +7,8 @@ import { isRetryableError, retryWithBackoff } from "../utils/retry";
 import { useUserEvent } from "@/components/providers/UserEventsProvider";
 import { usePollOnFocus } from "./usePollOnFocus";
 
-// ============================================================================
-// createNotification - Helper to create notifications
-// ============================================================================
-
-export async function createNotification(
-  userId: string,
-  actorId: string,
-  type: NotificationType,
-  postId?: string,
-  content?: string,
-  communityId?: string,
-  commentId?: string
-): Promise<boolean> {
-  // Don't notify yourself
-  if (userId === actorId) return true;
-
-  try {
-    const { error } = await supabase.from("notifications").insert({
-      user_id: userId,
-      actor_id: actorId,
-      type,
-      post_id: postId || null,
-      content: content || null,
-      community_id: communityId || null,
-      comment_id: commentId || null,
-    });
-
-    if (error) {
-      // Log error but don't throw - notifications are non-critical
-      console.error("[createNotification] Failed to create notification:", {
-        type,
-        userId,
-        actorId,
-        error: error.message,
-      });
-      return false;
-    }
-
-    return true;
-  } catch (err: unknown) {
-    // Catch network errors etc.
-    const message = err instanceof Error ? err.message : String(err);
-    console.error("[createNotification] Unexpected error:", message);
-    return false;
-  }
-}
+// Notifications are created by database triggers and RPCs (Phase 3/4);
+// there is no client-side insert path any more.
 
 // ============================================================================
 // useNotifications - Fetch and subscribe to notifications

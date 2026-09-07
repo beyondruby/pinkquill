@@ -8,7 +8,6 @@ import { useCommunities } from "@/lib/hooks.legacy";
 import type { SearchableUser } from "@/lib/hooks.legacy";
 import { useDrafts, useAutoSave } from "@/lib/hooks/useDrafts";
 import type { PostDraft } from "@/lib/hooks/useDrafts";
-import { createNotification } from "@/lib/hooks/useNotifications";
 import type { Community } from "@/lib/types";
 import { useAudioUpload } from "@/lib/hooks/useAudioUpload";
 import {
@@ -2274,26 +2273,9 @@ export default function CreatePost() {
           } catch (mentionErr) {
             console.warn("Could not update mentions:", mentionErr);
           }
-        } else {
-          // New post relations are already saved by RPC; fire notifications as a best-effort side effect.
-          try {
-            if (collaborators.length > 0) {
-              await Promise.all(
-                collaborators.map((collab) =>
-                  createNotification(
-                    collab.id,
-                    user.id,
-                    "collaboration_invite",
-                    postId
-                  )
-                )
-              );
-            }
-            // Mention notifications are created by the post_mentions trigger.
-          } catch (notificationErr) {
-            console.warn("Could not create collaboration/mention notifications:", notificationErr);
-          }
         }
+        // New-post relations are saved by the RPC; collaboration invites and
+        // mention notifications come from database triggers.
       } else if (isEditing) {
         // If editing and no collaborators/mentions, clear existing ones
         try {

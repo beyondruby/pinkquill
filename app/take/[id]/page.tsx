@@ -572,6 +572,9 @@ export default function SingleTakePage({ params }: PageProps) {
                   hashtags={hashtags}
                   collaborators={collaborators}
                   mentions={mentions}
+                  kind="take"
+                  contentId={id}
+                  currentUserId={user?.id}
                   className="mb-4"
                 />
 

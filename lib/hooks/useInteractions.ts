@@ -112,51 +112,16 @@ export function useBlock() {
     }
   };
 
+  // One RPC does the whole cleanup (block row, follows both ways, their
+  // engagement on my content and mine on theirs, pending notifications).
   const blockUser = async (blockerId: string, blockedId: string) => {
     try {
-      // Insert the block record
-      const { error: blockError } = await supabase.from("blocks").insert({
-        blocker_id: blockerId,
-        blocked_id: blockedId,
-      });
-
+      const { error: blockError } = await supabase.rpc("block_user", { p_blocked: blockedId });
       if (blockError) {
         console.error("Failed to block user:", blockError);
         return { success: false, error: blockError };
       }
-
-      // Remove mutual follows - retry once if failed
-      const removeFollows = async (attempt: number = 1): Promise<{ success: boolean; errors: string[] }> => {
-        const errors: string[] = [];
-        const [followRemove1, followRemove2] = await Promise.all([
-          supabase.from("follows").delete().eq("follower_id", blockerId).eq("following_id", blockedId),
-          supabase.from("follows").delete().eq("follower_id", blockedId).eq("following_id", blockerId),
-        ]);
-
-        if (followRemove1.error) {
-          errors.push(`blocker->blocked: ${followRemove1.error.message}`);
-        }
-        if (followRemove2.error) {
-          errors.push(`blocked->blocker: ${followRemove2.error.message}`);
-        }
-
-        // Retry once if there were errors
-        if (errors.length > 0 && attempt === 1) {
-          console.warn("Follow removal failed, retrying:", errors);
-          return removeFollows(2);
-        }
-
-        return { success: errors.length === 0, errors };
-      };
-
-      const followResult = await removeFollows();
-      if (!followResult.success) {
-        console.warn("Failed to remove follows after retry:", followResult.errors);
-        // Still return success for block - follows can be cleaned up later
-        // But include warning in result
-      }
-
-      return { success: true, followsRemoved: followResult.success };
+      return { success: true, followsRemoved: true };
     } catch (err) {
       console.error("Unexpected error in blockUser:", err);
       return { success: false, error: err };

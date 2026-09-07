@@ -1,9 +1,10 @@
 "use client";
 
+import { supabase } from "@/lib/supabase";
+
 import React, { useState } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useModQueue, useResolveReport, useModerationActions } from "@/lib/hooks/useModQueue";
-import { createNotification } from "@/lib/hooks/useNotifications";
 import ReportCard from "./ReportCard";
 import type { ReportStatus, ReportType, ResolutionAction } from "@/lib/types";
 
@@ -39,14 +40,13 @@ export default function ModQueuePage({ communityId }: ModQueuePageProps) {
         } else if (action === "user_banned" && report.reported_user_id) {
           await banUser(report.reported_user_id, notes || "Violated community guidelines");
         } else if (action === "warning_sent" && report.reported_user_id) {
-          await createNotification(
-            report.reported_user_id,
-            user.id,
-            "community_warning",
-            report.reported_post_id || undefined,
-            notes || "Your content was reported and reviewed by a moderator. Please review the community guidelines.",
-            communityId
-          );
+          const { error } = await supabase.rpc("send_community_warning", {
+            p_community_id: communityId,
+            p_user_id: report.reported_user_id,
+            p_post_id: report.reported_post_id || null,
+            p_note: notes || null,
+          });
+          if (error) console.error("[ModQueue] warning failed:", error.message);
         }
       }
       refetch();

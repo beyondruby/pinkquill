@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import {
-  createNotification,
   useNotifications,
   useUnreadCount,
   useMarkAsRead,
@@ -101,44 +100,6 @@ const mockNotifications = [
     post: null,
   },
 ];
-
-describe("createNotification", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    const insertMock = vi.fn().mockResolvedValue({ error: null });
-    mockFromImplementation = () => {
-      const chain = createChainableMock();
-      chain.insert = insertMock;
-      return chain;
-    };
-  });
-
-  it("should not create notification when actor is user (self-notification)", async () => {
-    const insertMock = vi.fn();
-    mockFromImplementation = () => {
-      const chain = createChainableMock();
-      chain.insert = insertMock;
-      return chain;
-    };
-
-    await createNotification("user-1", "user-1", "admire", "post-1");
-
-    expect(insertMock).not.toHaveBeenCalled();
-  });
-
-  it("should create a notification for different user", async () => {
-    const insertMock = vi.fn().mockResolvedValue({ error: null });
-    mockFromImplementation = () => {
-      const chain = createChainableMock();
-      chain.insert = insertMock;
-      return chain;
-    };
-
-    await createNotification("user-1", "actor-1", "admire", "post-1");
-
-    expect(insertMock).toHaveBeenCalled();
-  });
-});
 
 describe("useNotifications", () => {
   beforeEach(() => {
