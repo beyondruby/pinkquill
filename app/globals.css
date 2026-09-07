@@ -1021,11 +1021,6 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 
 /* ========== POST CARDS ========== */
 .post {
-  /* The card keeps the reference typography (quill-v6): Libre Baskerville
-     for display, Crimson Pro for reading, Josefin Sans for the small UI. */
-  --font-display: var(--font-libre-baskerville), Georgia, serif;
-  --font-body: var(--font-crimson-pro), Georgia, serif;
-  --font-ui: var(--font-josefin-sans), sans-serif;
   position: relative;
   margin-bottom: 1.75rem;
   cursor: pointer;
@@ -1033,7 +1028,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   border-radius: 20px;
   padding: 1.75rem;
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.04);
-  border: 1px solid rgba(0, 0, 0, 0.04);
+  border: 1px solid var(--color-border-light);
   transition: all 0.3s ease;
   overflow: visible;
   word-wrap: break-word;
@@ -1559,38 +1554,6 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   color: var(--ink);
   font-weight: 400;
   padding: 1rem 0;
-  white-space: pre-line;
-}
-@media (max-width: 640px) {
-  .thought-content { font-size: 1.45rem; }
-}
-/* Reading text inside a card: the reference body size (17px Crimson Pro) */
-.post .post-content-text {
-  font-size: 1.08rem;
-  line-height: 1.7;
-}
-.post .carousel-description {
-  font-family: var(--font-body);
-  font-size: 1rem;
-  color: var(--muted-text);
-  line-height: 1.6;
-}
-.actions.actions-centered {
-  justify-content: center;
-  gap: 1.5rem;
-}
-.carousel-media {
-  display: block;
-  width: 100%;
-  height: 380px;
-  object-fit: cover;
-  background: #000;
-}
-.carousel-container.has-captions .carousel-dots { bottom: 70px; }
-.carousel-container:not(.has-captions) .carousel-dots { bottom: 16px; }
-.carousel-nav svg { width: 18px; height: 18px; }
-@media (max-width: 640px) {
-  .carousel-media { height: 260px; }
 }
 .highlight {
   background: linear-gradient(120deg, color-mix(in srgb, var(--color-pink-vivid) 10%, transparent) 0%, color-mix(in srgb, var(--color-orange-warm) 10%, transparent) 100%);
@@ -1618,13 +1581,10 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 
 .poem-title {
   font-family: var(--font-ui);
-  font-size: 0.7rem;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
+  font-size: 0.75rem;
   color: var(--primary-purple);
   margin-bottom: 1.5rem;
   font-weight: 500;
-  text-align: center;
 }
 .poem-body {
   font-family: var(--font-body);
@@ -1643,29 +1603,12 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 }
 .journal-date {
   font-family: var(--font-ui);
-  font-size: 0.7rem;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
+  font-size: 0.75rem;
   color: var(--primary-purple);
   margin-bottom: 1rem;
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
   gap: 8px;
-}
-.journal-date > span {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  white-space: nowrap;
-}
-.journal-date > span + span::before {
-  content: "·";
-  opacity: 0.5;
-}
-.journal-date svg {
-  width: 0.85rem;
-  height: 0.85rem;
 }
 .journal-date::after {
   content: '';
@@ -1738,14 +1681,8 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   left: 0;
   right: 12px;
   height: 40px;
-  background: linear-gradient(to top, var(--color-surface), transparent);
+  background: linear-gradient(to top, white, transparent);
   pointer-events: none;
-}
-.longform-content::-webkit-scrollbar { width: 5px; }
-.longform-content::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.02); border-radius: 10px; }
-.longform-content::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--color-purple-primary) 40%, transparent), color-mix(in srgb, var(--color-pink-vivid) 30%, transparent));
-  border-radius: 10px;
 }
 
 /* Audio Post */

@@ -94,18 +94,23 @@ function FeedFrame({
       {children}
       <style jsx global>{`
         .home-feed-modern .post {
-          border-radius: 20px;
-          border: 1px solid rgba(0, 0, 0, 0.04);
-          background: var(--color-surface);
-          box-shadow: 0 2px 20px rgba(0, 0, 0, 0.04);
-          margin-bottom: 1.75rem;
-          transition: box-shadow 0.3s ease, border-color 0.3s ease, transform 0.3s ease;
+          border-radius: 22px;
+          border: 1px solid var(--color-border-light);
+          background: linear-gradient(
+            180deg,
+            var(--color-surface) 0%,
+            var(--color-surface) 72%,
+            color-mix(in oklab, var(--color-surface) 94%, var(--color-accent) 6%) 100%
+          );
+          box-shadow: 0 8px 22px rgba(15, 15, 15, 0.04);
+          margin-bottom: 1.3rem;
+          transition: box-shadow 0.22s ease, border-color 0.22s ease, transform 0.22s ease;
         }
 
         .home-feed-modern .post:hover {
-          border-color: color-mix(in srgb, var(--color-purple-primary) 10%, transparent);
-          box-shadow: 0 8px 40px color-mix(in srgb, var(--color-purple-primary) 10%, transparent);
-          transform: translateY(-2px);
+          border-color: color-mix(in oklab, var(--color-accent) 24%, transparent);
+          box-shadow: 0 16px 34px color-mix(in oklab, var(--color-accent) 14%, transparent);
+          transform: translateY(-1px);
         }
 
         .home-feed-modern .author-header {
