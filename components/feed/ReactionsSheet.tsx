@@ -1,24 +1,26 @@
 "use client";
 
 /**
- * ReactionsSheet — "who reacted" for a post or take (Phase 6). A tab per
- * reaction type with its count, people listed newest first with a follow
- * button. Reads `get_<kind>_reactors`; the Phase 4 read policies decide
- * what the viewer may see.
+ * ReactionsSheet — everyone who reacted to a post or take. A chip per
+ * reaction type with its count filters the list; people are listed newest
+ * first with their reaction, when they reacted and a follow button. Reads
+ * `get_<kind>_reactors`; the Phase 4 read policies decide what the viewer
+ * may see.
  */
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import Sheet from "@/components/ui/Sheet";
-import { Spinner } from "@/components/ui/Loading";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useAuthModal } from "@/components/providers/AuthModalProvider";
 import { useFollow } from "@/lib/hooks/useProfile";
 import { actionToast } from "@/lib/utils/toast";
+import { getTimeAgoCompact } from "@/lib/utils/time";
+import { DEFAULT_AVATAR } from "@/lib/utils/image";
 import type { EngagementKind } from "@/lib/engagement/store";
 import type { ReactionType, ReactionCounts, FollowStatus } from "@/lib/types";
-import { getReactionIcon, REACTION_OPTIONS } from "./ReactionPicker";
+import { getReactionIcon, getReactionLabel, REACTION_OPTIONS } from "./ReactionPicker";
 
 interface Reactor {
   user_id: string;
@@ -41,7 +43,6 @@ interface ReactionsSheetProps {
 }
 
 const PAGE = 30;
-const DEFAULT_AVATAR = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100";
 
 export default function ReactionsSheet({ kind, id, isOpen, onClose, counts }: ReactionsSheetProps) {
   const { user } = useAuth();
@@ -83,7 +84,6 @@ export default function ReactionsSheet({ kind, id, isOpen, onClose, counts }: Re
     [rpc, idArg, id]
   );
 
-  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!isOpen) return;
     setRows([]);
@@ -94,12 +94,13 @@ export default function ReactionsSheet({ kind, id, isOpen, onClose, counts }: Re
   useEffect(() => {
     if (!isOpen) setTab("all");
   }, [isOpen]);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
-  const tabs: Array<{ key: ReactionType | "all"; label: string; count: number }> = [
-    { key: "all", label: "All", count: counts.total },
+  const total = counts.total;
+  const chips: Array<{ key: ReactionType | "all"; label: string; count: number }> = [
+    { key: "all", label: "All", count: total },
     ...REACTION_OPTIONS.filter((o) => counts[o.type] > 0).map((o) => ({ key: o.type, label: o.label, count: counts[o.type] })),
   ];
+  const showChips = chips.length > 2;
 
   const toggleFollow = async (r: Reactor) => {
     if (!user) {
@@ -131,46 +132,64 @@ export default function ReactionsSheet({ kind, id, isOpen, onClose, counts }: Re
     }
   };
 
+  const subtitle = total > 0 ? `${total.toLocaleString()} ${total === 1 ? "person" : "people"} reacted` : undefined;
+  const initial = loading && rows.length === 0;
+
   return (
-    <Sheet isOpen={isOpen} onClose={onClose} title="Reactions" ariaLabel="People who reacted">
-      {tabs.length > 2 && (
-        <div className="flex gap-1.5 overflow-x-auto -mx-1 px-1 pb-1" role="tablist">
-          {tabs.map((t) => (
-            <button
-              key={t.key}
-              role="tab"
-              aria-selected={tab === t.key}
-              onClick={() => setTab(t.key)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full font-ui text-[0.8rem] whitespace-nowrap transition-colors ${
-                tab === t.key ? "bg-purple-primary/10 text-purple-primary" : "bg-subtle text-muted hover:text-ink"
-              }`}
-            >
-              {t.key !== "all" && <span className="w-4 h-4">{getReactionIcon(t.key)}</span>}
-              {t.label}
-              <span className="tabular-nums opacity-80">{t.count}</span>
-            </button>
-          ))}
+    <Sheet isOpen={isOpen} onClose={onClose} title="Reactions" subtitle={subtitle} ariaLabel="People who reacted">
+      {showChips && (
+        <div className="flex gap-1.5 overflow-x-auto -mx-5 px-5 pb-1 scrollbar-none" role="tablist" aria-label="Filter by reaction">
+          {chips.map((c) => {
+            const selected = tab === c.key;
+            return (
+              <button
+                key={c.key}
+                type="button"
+                role="tab"
+                aria-selected={selected}
+                aria-label={`${c.label}, ${c.count.toLocaleString()}`}
+                onClick={() => setTab(c.key)}
+                className={`flex items-center gap-1.5 h-9 px-3 rounded-full font-ui text-[0.8rem] whitespace-nowrap border transition-colors ${
+                  selected
+                    ? "bg-purple-primary/10 border-purple-primary/20 text-purple-primary"
+                    : "bg-subtle border-transparent text-muted hover:text-ink"
+                }`}
+              >
+                {c.key !== "all" && <span className="w-5 h-5 flex-shrink-0">{getReactionIcon(c.key)}</span>}
+                {(c.key === "all" || selected) && <span className="font-medium">{c.label}</span>}
+                <span className="tabular-nums">{c.count.toLocaleString()}</span>
+              </button>
+            );
+          })}
         </div>
       )}
 
-      <ul className="-mx-1">
+      <ul className="-mx-2" aria-busy={loading}>
         {rows.map((r) => {
           const name = r.display_name || r.username;
           const following = r.follow_status === "accepted";
           const requested = r.follow_status === "pending";
+          const reactionLabel = getReactionLabel(r.reaction_type);
           return (
-            <li key={r.user_id} className="flex items-center gap-3 px-1 py-2">
-              <Link href={`/studio/${r.username}`} onClick={onClose} className="flex items-center gap-3 min-w-0 flex-1">
+            <li key={r.user_id} className="flex items-center gap-3 px-2 py-2 rounded-2xl hover:bg-subtle/70 transition-colors">
+              <Link href={`/studio/${r.username}`} onClick={onClose} className="flex items-center gap-3 min-w-0 flex-1 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-primary/40">
                 <span className="relative flex-shrink-0">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={r.avatar_url || DEFAULT_AVATAR} alt="" className="w-10 h-10 rounded-full object-cover" />
-                  <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-surface shadow flex items-center justify-center">
-                    <span className="w-3.5 h-3.5">{getReactionIcon(r.reaction_type)}</span>
+                  <img src={r.avatar_url || DEFAULT_AVATAR} alt="" className="w-11 h-11 rounded-full object-cover" />
+                  <span
+                    className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-elevated shadow-md ring-2 ring-elevated flex items-center justify-center"
+                    title={reactionLabel}
+                  >
+                    <span className="w-4 h-4">{getReactionIcon(r.reaction_type)}</span>
                   </span>
                 </span>
                 <span className="min-w-0">
-                  <span className="block font-ui text-[0.9rem] font-medium text-ink truncate">{name}</span>
-                  <span className="block font-ui text-[0.75rem] text-muted truncate">@{r.username}</span>
+                  <span className="block font-ui text-[0.92rem] font-medium text-ink truncate">
+                    {r.is_me ? "You" : name}
+                  </span>
+                  <span className="block font-ui text-[0.75rem] text-muted truncate">
+                    {reactionLabel} · {getTimeAgoCompact(r.created_at)}
+                  </span>
                 </span>
               </Link>
               {!r.is_me && (
@@ -179,7 +198,8 @@ export default function ReactionsSheet({ kind, id, isOpen, onClose, counts }: Re
                   onClick={() => void toggleFollow(r)}
                   disabled={busy.has(r.user_id)}
                   aria-pressed={following || requested}
-                  className={`flex-shrink-0 px-3.5 py-1.5 rounded-full font-ui text-[0.78rem] font-medium transition-colors disabled:opacity-60 ${
+                  aria-label={`${following ? "Unfollow" : requested ? "Cancel request to follow" : "Follow"} ${name}`}
+                  className={`flex-shrink-0 h-8 px-3.5 rounded-full font-ui text-[0.78rem] font-medium transition-colors disabled:opacity-60 ${
                     following || requested
                       ? "bg-subtle text-ink hover:bg-skeleton"
                       : "bg-gradient-to-r from-purple-primary to-pink-vivid text-white hover:opacity-90"
@@ -191,24 +211,46 @@ export default function ReactionsSheet({ kind, id, isOpen, onClose, counts }: Re
             </li>
           );
         })}
+        {initial &&
+          Array.from({ length: Math.min(Math.max(total, 1), 4) }).map((_, i) => (
+            <li key={`skeleton-${i}`} className="flex items-center gap-3 px-2 py-2" aria-hidden="true">
+              <span className="w-11 h-11 rounded-full bg-skeleton animate-pulse flex-shrink-0" />
+              <span className="flex-1 space-y-1.5">
+                <span className="block h-3 w-1/3 rounded-full bg-skeleton animate-pulse" />
+                <span className="block h-2.5 w-1/4 rounded-full bg-skeleton/70 animate-pulse" />
+              </span>
+              <span className="w-16 h-8 rounded-full bg-skeleton/70 animate-pulse" />
+            </li>
+          ))}
       </ul>
 
-      {loading && (
-        <div className="flex justify-center py-4">
-          <Spinner size="sm" className="text-purple-primary" />
-        </div>
-      )}
       {!loading && rows.length === 0 && (
-        <p className="text-center font-body text-sm text-muted py-6">No reactions yet.</p>
+        <div className="flex flex-col items-center gap-2 py-8 text-center">
+          <span className="w-10 h-10 text-muted/50" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" className="w-full h-full">
+              <path
+                d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
+                stroke="currentColor"
+                strokeWidth="1.5"
+              />
+            </svg>
+          </span>
+          <p className="font-body text-sm text-muted">No reactions yet.</p>
+        </div>
       )}
       {!loading && hasMore && (
         <button
           type="button"
           onClick={() => void load(tab, rows[rows.length - 1]?.created_at ?? null)}
-          className="w-full py-2 rounded-full font-ui text-[0.8rem] text-purple-primary hover:bg-purple-primary/5 transition-colors"
+          className="w-full h-10 rounded-full font-ui text-[0.8rem] font-medium text-purple-primary hover:bg-purple-primary/5 transition-colors"
         >
           Show more
         </button>
+      )}
+      {loading && rows.length > 0 && (
+        <p className="text-center font-ui text-[0.75rem] text-muted py-2" role="status">
+          Loading…
+        </p>
       )}
     </Sheet>
   );

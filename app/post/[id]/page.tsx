@@ -17,7 +17,6 @@ import ReportModal from "@/components/ui/ReportModal";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import CommentItem from "@/components/feed/CommentItem";
 import CommentComposer from "@/components/feed/CommentComposer";
-import ReactionSummary from "@/components/feed/ReactionSummary";
 import { CommentSkeleton } from "@/components/ui/Skeleton";
 import ReactionPicker from "@/components/feed/ReactionPicker";
 import { AudioPlayer } from "@/components/feed/AudioPlayer";
@@ -1103,6 +1102,8 @@ export default function PostPage() {
             <div className="flex items-center gap-1.5 md:gap-2 px-4 md:px-6 py-3 md:py-4 border-t border-border-light flex-wrap">
               {/* Reaction Picker */}
               <ReactionPicker
+                kind="post"
+                id={postId}
                 currentReaction={reaction.mine}
                 reactionCounts={reaction.counts}
                 countsLoaded={reaction.countsLoaded}
@@ -1113,10 +1114,11 @@ export default function PostPage() {
               />
 
               <button
-                aria-label="Comments"
-                className="w-10 h-10 rounded-full flex items-center justify-center text-ink hover:bg-subtle transition-colors"
+                aria-label={commentsCount > 0 ? `Comments, ${commentsCount.toLocaleString()}` : "Comments"}
+                className="engage-pill text-ink hover:bg-subtle transition-colors"
               >
                 {icons.comment}
+                {commentsCount > 0 && <span className="engage-pill-count">{commentsCount.toLocaleString()}</span>}
               </button>
 
               {!isOwner && (
@@ -1125,13 +1127,14 @@ export default function PostPage() {
                   disabled={!user}
                   aria-label={isRelayed ? `Remove relay (${relayCount} relays)` : `Relay post (${relayCount} relays)`}
                   aria-pressed={isRelayed}
-                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                  className={`engage-pill transition-colors ${
                     isRelayed
                       ? "text-green-600"
                       : "text-ink hover:bg-subtle"
                   } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   {icons.relay}
+                  {relayCount > 0 && <span className="engage-pill-count">{relayCount.toLocaleString()}</span>}
                 </button>
               )}
 
@@ -1155,8 +1158,6 @@ export default function PostPage() {
               >
                 {isSaved ? icons.bookmarkFilled : icons.bookmark}
               </button>
-              {/* Who reacted (Phase 6) */}
-              <ReactionSummary id={postId} className="basis-full mt-1" />
             </div>
           </article>
           </div>

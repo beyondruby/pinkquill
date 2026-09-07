@@ -20,7 +20,6 @@ import { showToast, actionToast } from "@/lib/utils/toast";
 import type { PostUpdate } from "@/components/providers/ModalProvider";
 import CommentItem from "@/components/feed/CommentItem";
 import CommentComposer from "@/components/feed/CommentComposer";
-import ReactionSummary from "@/components/feed/ReactionSummary";
 import { CommentSkeleton } from "@/components/ui/Skeleton";
 import ReactionPicker from "@/components/feed/ReactionPicker";
 
@@ -996,6 +995,8 @@ function PostDetailModalComponent({
           <div className={`post-actions-bar flex items-center gap-1.5 md:gap-2 mt-6 pt-4 md:pt-6 border-t flex-wrap z-20 ${borderColorClass} ${hasDarkBg ? 'dark-bg' : ''}`}>
             {/* Reaction Picker */}
             <ReactionPicker
+              kind="post"
+              id={post.id}
               currentReaction={reaction.mine}
               reactionCounts={reaction.counts}
               countsLoaded={reaction.countsLoaded}
@@ -1007,14 +1008,15 @@ function PostDetailModalComponent({
             {/* Comment Button */}
             <button
               onClick={() => setShowComments(true)}
-              aria-label="Show comments"
-              className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+              aria-label={commentsCount > 0 ? `Show comments, ${commentsCount.toLocaleString()}` : "Show comments"}
+              className={`engage-pill transition-colors ${
                 hasDarkBg
                   ? 'text-white hover:bg-white/10'
                   : 'text-ink hover:bg-subtle'
               }`}
             >
               {icons.comment}
+              {commentsCount > 0 && <span className="engage-pill-count">{commentsCount.toLocaleString()}</span>}
             </button>
 
             {/* Relay Button - hidden for own posts */}
@@ -1024,7 +1026,7 @@ function PostDetailModalComponent({
                 aria-label={isRelayed ? `Remove relay (${relayCount} relays)` : `Relay post (${relayCount} relays)`}
                 aria-pressed={isRelayed}
                 disabled={!user}
-                className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                className={`engage-pill transition-colors ${
                   isRelayed
                     ? "text-green-400"
                     : hasDarkBg
@@ -1033,6 +1035,7 @@ function PostDetailModalComponent({
                 } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 {icons.relay}
+                {relayCount > 0 && <span className="engage-pill-count">{relayCount.toLocaleString()}</span>}
               </button>
             )}
 
@@ -1073,8 +1076,6 @@ function PostDetailModalComponent({
                 icons.bookmark
               )}
             </button>
-            {/* Who reacted (Phase 6) */}
-            <ReactionSummary id={post.id} className="basis-full mt-1" dark={hasDarkBg} />
           </div>
           </div>
         </div>

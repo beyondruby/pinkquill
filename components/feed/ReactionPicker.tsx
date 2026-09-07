@@ -3,6 +3,9 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import type { ReactionType, ReactionCounts } from "@/lib/types";
+import type { EngagementKind } from "@/lib/engagement/store";
+import ReactionBarFooter from "./ReactionBarFooter";
+import ReactionsSheet from "./ReactionsSheet";
 
 interface Reaction {
   type: ReactionType;
@@ -125,11 +128,12 @@ export type ReactionPickerVariant = "card" | "pill" | "overlay";
 interface ReactionPickerProps {
   currentReaction: ReactionType | null;
   reactionCounts: ReactionCounts;
-  /** Kept for callers; per-type numbers now live in the Reactions sheet. */
+  /** False while only the total is known (list rows); the per-type numbers
+   *  in the open bar stay blank until `onOpen` has loaded them. */
   countsLoaded?: boolean;
   onReact: (type: ReactionType) => void;
   onRemoveReaction: () => void;
-  /** Fired when the picker opens — load per-type counts here. */
+  /** Fired when the bar opens — load per-type counts here. */
   onOpen?: () => void;
   disabled?: boolean;
   /**
@@ -138,6 +142,12 @@ interface ReactionPickerProps {
    * overlay — vertical `.tiktok-action-btn` on the takes feed
    */
   variant?: ReactionPickerVariant;
+  /** Which post / take this is. With both set, the open bar shows who
+   *  reacted and opens the Reactions sheet with everyone. */
+  kind?: EngagementKind;
+  id?: string;
+  /** Show the total beside the trigger icon (card / pill). */
+  showCount?: boolean;
 }
 
 export const REACTION_OPTIONS: ReadonlyArray<{ type: ReactionType; label: string }> = reactions.map(({ type, label }) => ({ type, label }));
@@ -154,13 +164,18 @@ export function getReactionLabel(type: ReactionType): string {
 export default function ReactionPicker({
   currentReaction,
   reactionCounts,
+  countsLoaded = true,
   onReact,
   onRemoveReaction,
   onOpen,
   disabled = false,
   variant = "card",
+  kind,
+  id,
+  showCount = true,
 }: ReactionPickerProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [hoveredReaction, setHoveredReaction] = useState<ReactionType | null>(null);
   const [showMainTooltip, setShowMainTooltip] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
@@ -169,10 +184,11 @@ export default function ReactionPicker({
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const reactionButtonsRef = useRef<(HTMLButtonElement | null)[]>([]);
+  const footerRef = useRef<HTMLButtonElement | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const tooltipTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isMounted, setIsMounted] = useState(false);
-  // Touch: long-press opens the picker; the click that follows must not
+  // Touch: long-press opens the bar; the click that follows must not
   // toggle the default reaction. Synthetic mouseenter after a tap must not
   // hover-open it either.
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -182,6 +198,9 @@ export default function ReactionPicker({
   // Count bump when the total changes (own click or someone else's).
   const [bump, setBump] = useState(false);
   const prevTotalRef = useRef(reactionCounts.total);
+
+  const hasContent = !!kind && !!id;
+  const total = reactionCounts.total;
 
   // For portal rendering
   /* eslint-disable react-hooks/set-state-in-effect */
@@ -211,18 +230,20 @@ export default function ReactionPicker({
   }, [reactionCounts.total]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  // Tap outside closes a picker opened by touch / right-click.
+  const closeBar = useCallback(() => {
+    setIsOpen(false);
+    setHoveredReaction(null);
+  }, []);
+
+  // Tap outside closes a bar opened by touch / right-click.
   useEffect(() => {
     if (!isOpen) return;
     const onPointerDown = (e: PointerEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-        setHoveredReaction(null);
-      }
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) closeBar();
     };
     document.addEventListener("pointerdown", onPointerDown);
     return () => document.removeEventListener("pointerdown", onPointerDown);
-  }, [isOpen]);
+  }, [isOpen, closeBar]);
 
   const clearLongPress = () => {
     if (longPressTimerRef.current) {
@@ -287,7 +308,7 @@ export default function ReactionPicker({
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
-    // Show tooltip immediately, open picker after delay
+    // Show tooltip immediately, open the bar after delay
     if (tooltipTimeoutRef.current) {
       clearTimeout(tooltipTimeoutRef.current);
     }
@@ -314,13 +335,10 @@ export default function ReactionPicker({
       clearTimeout(tooltipTimeoutRef.current);
     }
     setShowMainTooltip(false);
-    timeoutRef.current = setTimeout(() => {
-      setIsOpen(false);
-      setHoveredReaction(null);
-    }, 150);
+    timeoutRef.current = setTimeout(closeBar, 150);
   };
 
-  // Let the owner load per-type counts the moment the popup opens
+  // Let the owner load per-type counts the moment the bar opens
   const onOpenRef = useRef(onOpen);
   useEffect(() => {
     onOpenRef.current = onOpen;
@@ -344,7 +362,7 @@ export default function ReactionPicker({
     };
   }, []);
 
-  // Focus the first reaction when picker opens (for keyboard users)
+  // Focus the first reaction when the bar opens (for keyboard users)
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (isOpen && focusedIndex === -1) {
@@ -363,13 +381,33 @@ export default function ReactionPicker({
   }, [isOpen, currentReaction, focusedIndex]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  // Handle keyboard navigation within the picker
+  // Handle keyboard navigation within the bar
   const handlePickerKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (!isOpen) return;
 
+    // The "see everyone" row is a plain button: Enter / Space click it,
+    // Escape closes, Tab leaves the bar.
+    if (footerRef.current && e.target === footerRef.current) {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closeBar();
+        setFocusedIndex(-1);
+        buttonRef.current?.focus();
+      } else if (e.key === 'Tab' || e.key === 'ArrowUp') {
+        if (e.key === 'ArrowUp' || e.shiftKey) {
+          e.preventDefault();
+          const back = focusedIndex >= 0 ? focusedIndex : 0;
+          reactionButtonsRef.current[back]?.focus();
+        } else {
+          closeBar();
+          setFocusedIndex(-1);
+        }
+      }
+      return;
+    }
+
     switch (e.key) {
       case 'ArrowRight':
-      case 'ArrowDown':
         e.preventDefault();
         setFocusedIndex(prev => {
           const nextIndex = prev < reactions.length - 1 ? prev + 1 : 0;
@@ -378,13 +416,19 @@ export default function ReactionPicker({
         });
         break;
       case 'ArrowLeft':
-      case 'ArrowUp':
         e.preventDefault();
         setFocusedIndex(prev => {
           const nextIndex = prev > 0 ? prev - 1 : reactions.length - 1;
           reactionButtonsRef.current[nextIndex]?.focus();
           return nextIndex;
         });
+        break;
+      case 'ArrowDown':
+        e.preventDefault();
+        footerRef.current?.focus();
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
         break;
       case 'Enter':
       case ' ':
@@ -396,20 +440,25 @@ export default function ReactionPicker({
           } else {
             onReact(reaction.type);
           }
-          setIsOpen(false);
+          closeBar();
           buttonRef.current?.focus();
         }
         break;
       case 'Escape':
         e.preventDefault();
-        setIsOpen(false);
+        closeBar();
         setFocusedIndex(-1);
         buttonRef.current?.focus();
         break;
       case 'Tab':
-        // Close picker and allow natural tab navigation
-        setIsOpen(false);
-        setFocusedIndex(-1);
+        if (!e.shiftKey && footerRef.current) {
+          // Move on to the "see everyone" row before leaving the bar
+          e.preventDefault();
+          footerRef.current.focus();
+        } else {
+          closeBar();
+          setFocusedIndex(-1);
+        }
         break;
       case 'Home':
         e.preventDefault();
@@ -423,16 +472,16 @@ export default function ReactionPicker({
         reactionButtonsRef.current[lastIndex]?.focus();
         break;
     }
-  }, [isOpen, focusedIndex, currentReaction, onReact, onRemoveReaction]);
+  }, [isOpen, focusedIndex, currentReaction, onReact, onRemoveReaction, closeBar]);
 
-  // Handle keyboard on main button to open picker
+  // Handle keyboard on main button to open the bar
   const handleMainButtonKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (disabled) return;
 
     switch (e.key) {
       case 'ArrowDown':
       case 'ArrowUp':
-        // Open picker with arrow keys
+        // Open the bar with arrow keys
         e.preventDefault();
         setShowMainTooltip(false);
         setIsOpen(true);
@@ -477,11 +526,19 @@ export default function ReactionPicker({
     } else {
       onReact(type);
     }
-    setIsOpen(false);
+    closeBar();
+  };
+
+  const openSheet = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    closeBar();
+    setSheetOpen(true);
   };
 
   // Get the display icon (current reaction or outline heart)
   const displayIcon = currentReaction ? reactionIcons[currentReaction] : outlineHeart;
+  const triggerLabel = currentReaction ? `Remove ${getReactionLabel(currentReaction)} reaction` : 'Add reaction';
+  const countLabel = total > 0 ? `, ${total.toLocaleString()} reaction${total === 1 ? "" : "s"}` : "";
 
   return (
     <div
@@ -503,31 +560,37 @@ export default function ReactionPicker({
           onClick={handleMainClick}
           onKeyDown={handleMainButtonKeyDown}
           disabled={disabled}
-          aria-label={currentReaction ? `Remove ${getReactionLabel(currentReaction)} reaction` : 'Add reaction'}
+          aria-label={`${triggerLabel}${countLabel}`}
           aria-haspopup="listbox"
           aria-expanded={isOpen}
         >
           <span className={`w-6 h-6 transition-transform duration-200 ${currentReaction ? '' : 'group-hover/reaction:scale-110'} ${bump ? 'animate-pop' : ''}`}>
             {displayIcon}
           </span>
+          {showCount && total > 0 && (
+            <span className={`action-count ${bump ? 'animate-pop' : ''}`}>{total.toLocaleString()}</span>
+          )}
         </button>
       )}
       {variant === "pill" && (
         <button
           ref={buttonRef}
-          className={`reaction-picker-trigger w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+          className={`reaction-picker-trigger engage-pill ${
             currentReaction ? 'text-pink-vivid' : 'text-ink hover:bg-subtle'
           } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
           onClick={handleMainClick}
           onKeyDown={handleMainButtonKeyDown}
           disabled={disabled}
-          aria-label={currentReaction ? `Remove ${getReactionLabel(currentReaction)} reaction` : 'Add reaction'}
+          aria-label={`${triggerLabel}${countLabel}`}
           aria-haspopup="listbox"
           aria-expanded={isOpen}
         >
           <span className={`w-6 h-6 transition-transform duration-200 ${bump ? 'animate-pop' : ''}`}>
             {displayIcon}
           </span>
+          {showCount && total > 0 && (
+            <span className={`engage-pill-count ${bump ? 'animate-pop' : ''}`}>{total.toLocaleString()}</span>
+          )}
         </button>
       )}
       {variant === "overlay" && (
@@ -537,7 +600,7 @@ export default function ReactionPicker({
           onClick={handleMainClick}
           onKeyDown={handleMainButtonKeyDown}
           disabled={disabled}
-          aria-label={currentReaction ? `Remove ${getReactionLabel(currentReaction)} reaction` : 'Add reaction'}
+          aria-label={`${triggerLabel}${countLabel}`}
           aria-haspopup="listbox"
           aria-expanded={isOpen}
         >
@@ -574,31 +637,34 @@ export default function ReactionPicker({
         document.body
       )}
 
-      {/* Reaction Picker Popup */}
+      {/* The reaction bar */}
       {isOpen && (
         <div
           className={
             variant === "overlay"
-              ? "absolute right-full bottom-0 mr-2 z-50 animate-fadeIn"
-              : "reaction-picker-dropdown absolute bottom-full left-0 mb-2 z-50 animate-reactionPop"
+              ? "reaction-bar-anchor absolute right-full bottom-0 mr-2 z-50 animate-fadeIn"
+              : "reaction-picker-dropdown reaction-bar-anchor absolute bottom-full left-0 mb-2 z-50 animate-reactionPop"
           }
           onMouseEnter={() => {
             if (timeoutRef.current) clearTimeout(timeoutRef.current);
           }}
           onMouseLeave={handleMouseLeave}
           onKeyDown={handlePickerKeyDown}
-          role="listbox"
-          aria-label="Choose a reaction"
-          aria-activedescendant={focusedIndex >= 0 ? `reaction-option-${reactions[focusedIndex].type}` : undefined}
         >
-          {/* Picker Container */}
-          <div className="bg-surface rounded-full shadow-xl border border-border-light backdrop-blur-xl">
-            {/* Reaction buttons row */}
-            <div className="flex items-center gap-1 px-2 py-1.5">
+          <div className="reaction-bar bg-surface rounded-[26px] shadow-xl border border-border-light backdrop-blur-xl overflow-hidden">
+            {/* Six reactions, each with its count */}
+            <div
+              className="flex items-end gap-0.5 px-1.5 pt-1.5 pb-1"
+              role="listbox"
+              aria-label="Choose a reaction"
+              aria-activedescendant={focusedIndex >= 0 ? `reaction-option-${reactions[focusedIndex].type}` : undefined}
+            >
               {reactions.map((reaction, index) => {
+                const count = reactionCounts[reaction.type];
                 const isSelected = currentReaction === reaction.type;
                 const isHovered = hoveredReaction === reaction.type;
                 const isFocused = focusedIndex === index;
+                const lifted = isHovered || isFocused;
 
                 return (
                   <button
@@ -609,7 +675,7 @@ export default function ReactionPicker({
                     onMouseEnter={(e) => {
                       const rect = e.currentTarget.getBoundingClientRect();
                       setReactionTooltipPosition({
-                        top: rect.top - 8,
+                        top: rect.top - 6,
                         left: rect.left + rect.width / 2,
                       });
                       setHoveredReaction(reaction.type);
@@ -621,20 +687,37 @@ export default function ReactionPicker({
                       setHoveredReaction(reaction.type);
                     }}
                     onBlur={() => setHoveredReaction(null)}
-                    className={`relative flex items-center justify-center w-11 h-11 rounded-full transition-transform duration-150 focus:outline-none ${
-                      isSelected ? 'bg-pink-vivid/10' : ''
-                    } ${isHovered || isFocused ? 'scale-125 -translate-y-1' : ''}`}
+                    className={`reaction-option relative flex flex-col items-center justify-end w-12 h-14 rounded-2xl transition-[transform,background-color] duration-150 focus:outline-none ${
+                      isSelected ? 'bg-pink-vivid/10' : lifted ? 'bg-subtle' : ''
+                    } ${lifted ? '-translate-y-1' : ''}`}
                     role="option"
                     aria-selected={isSelected}
-                    aria-label={reaction.label}
+                    aria-label={countsLoaded && count > 0 ? `${reaction.label}, ${count.toLocaleString()}` : reaction.label}
                     tabIndex={isFocused ? 0 : -1}
                   >
-                    <span className="w-8 h-8">{reaction.icon}</span>
+                    <span
+                      className={`reaction-option-icon w-8 h-8 transition-transform duration-150 ${lifted ? 'scale-125' : ''}`}
+                      style={{ animationDelay: `${index * 28}ms` }}
+                    >
+                      {reaction.icon}
+                    </span>
+                    <span
+                      className={`h-4 mt-0.5 font-ui text-[0.68rem] font-semibold leading-4 tabular-nums transition-colors ${
+                        isSelected ? 'text-pink-vivid' : count > 0 ? 'text-ink' : 'text-muted/60'
+                      }`}
+                      aria-hidden="true"
+                    >
+                      {countsLoaded ? (count > 0 ? count.toLocaleString() : "") : ""}
+                    </span>
                   </button>
                 );
               })}
             </div>
 
+            {/* Who reacted — everyone, in the sheet */}
+            {hasContent && (
+              <ReactionBarFooter kind={kind} id={id} counts={reactionCounts} buttonRef={footerRef} onOpen={openSheet} />
+            )}
           </div>
 
           {/* Arrow */}
@@ -643,7 +726,7 @@ export default function ReactionPicker({
               <div className="w-2 h-2 bg-surface rotate-45 border-r border-t border-border-light" />
             </div>
           ) : (
-            <div className="absolute top-full left-6 -mt-1">
+            <div className="reaction-bar-arrow absolute top-full left-6 -mt-1">
               <div className="w-3 h-3 bg-surface rotate-45 border-r border-b border-border-light" />
             </div>
           )}
@@ -671,6 +754,12 @@ export default function ReactionPicker({
             style={{ background: 'var(--color-toast-bg)' }}
           />
         </div>,
+        document.body
+      )}
+
+      {/* Everyone who reacted */}
+      {isMounted && hasContent && sheetOpen && createPortal(
+        <ReactionsSheet kind={kind} id={id} isOpen={sheetOpen} onClose={() => setSheetOpen(false)} counts={reactionCounts} />,
         document.body
       )}
 

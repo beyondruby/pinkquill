@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from "vitest";
 vi.mock("@/lib/supabase", () => ({ supabase: { rpc: vi.fn(), from: vi.fn() } }));
 
 import { tokenAtCaret } from "../CommentComposer";
-import { describeReactors } from "../ReactionSummary";
+import { describeReactionTotal } from "../ReactionBarFooter";
 
 describe("tokenAtCaret", () => {
   it("finds an @ token at the caret", () => {
@@ -19,16 +19,14 @@ describe("tokenAtCaret", () => {
   });
 });
 
-describe("describeReactors", () => {
-  it("names the viewer, the top reactor and the rest", () => {
-    expect(describeReactors(1, true, null).text).toBe("You reacted");
-    expect(describeReactors(1, false, "poet").text).toBe("poet reacted");
-    expect(describeReactors(2, true, "poet").text).toBe("You and poet reacted");
-    expect(describeReactors(5, true, "poet").text).toBe("You, poet and 3 others reacted");
-    expect(describeReactors(13, false, "poet").text).toBe("poet and 12 others reacted");
+describe("describeReactionTotal", () => {
+  it("invites the first reaction and names the viewer when alone", () => {
+    expect(describeReactionTotal(0, false)).toBe("Be the first to react");
+    expect(describeReactionTotal(1, true)).toBe("Only you so far");
   });
-  it("falls back to a count while the summary is unknown", () => {
-    expect(describeReactors(4, false, null).text).toBe("4 reactions");
-    expect(describeReactors(1, false, null).text).toBe("1 reaction");
+  it("counts everyone otherwise", () => {
+    expect(describeReactionTotal(1, false)).toBe("See all 1 reaction");
+    expect(describeReactionTotal(13, true)).toBe("See all 13 reactions");
+    expect(describeReactionTotal(1200, false)).toBe("See all 1,200 reactions");
   });
 });

@@ -424,6 +424,8 @@ function TakeCard({
         {/* Reactions - using ReactionPicker */}
         <ReactionPicker
           variant="overlay"
+          kind="take"
+          id={take.id}
           currentReaction={reaction.mine}
           reactionCounts={reaction.counts}
           countsLoaded={reaction.countsLoaded}

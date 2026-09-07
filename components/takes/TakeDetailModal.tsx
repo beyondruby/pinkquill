@@ -17,7 +17,6 @@ import ActionMenu, { type ActionMenuItem } from "@/components/ui/ActionMenu";
 import ReactionPicker from "@/components/feed/ReactionPicker";
 import CommentItem from "@/components/feed/CommentItem";
 import CommentComposer from "@/components/feed/CommentComposer";
-import ReactionSummary from "@/components/feed/ReactionSummary";
 import { CommentSkeleton } from "@/components/ui/Skeleton";
 import PostTags from "@/components/feed/PostTags";
 import { supabase } from "@/lib/supabase";
@@ -520,6 +519,8 @@ export default function TakeDetailModal({
               {/* Reaction Picker */}
               <ReactionPicker
                 variant="pill"
+                kind="take"
+                id={take.id}
                 currentReaction={reaction.mine}
                 reactionCounts={reaction.counts}
                 countsLoaded={reaction.countsLoaded}
@@ -532,9 +533,11 @@ export default function TakeDetailModal({
               {/* Comment Button */}
               <button
                 onClick={() => setShowComments(true)}
-                className="w-10 h-10 rounded-full flex items-center justify-center text-ink hover:bg-subtle transition-colors"
+                aria-label={commentsCount > 0 ? `Show comments, ${commentsCount.toLocaleString()}` : "Show comments"}
+                className="engage-pill text-ink hover:bg-subtle transition-colors"
               >
                 <CommentIcon className="shrink-0" />
+                {commentsCount > 0 && <span className="engage-pill-count">{commentsCount.toLocaleString()}</span>}
               </button>
 
               {/* Relay Button */}
@@ -543,13 +546,14 @@ export default function TakeDetailModal({
                 disabled={!user || take.author_id === user?.id}
                 aria-label={isRelayed ? `Remove relay (${relayCount} relays)` : `Relay take (${relayCount} relays)`}
                 aria-pressed={isRelayed}
-                className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                className={`engage-pill transition-colors ${
                   isRelayed
                     ? "text-green-600"
                     : "text-ink hover:bg-subtle"
                 } ${(!user || take.author_id === user?.id) ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 {icons.relay}
+                {relayCount > 0 && <span className="engage-pill-count">{relayCount.toLocaleString()}</span>}
               </button>
 
               <div className="flex-1" />
@@ -580,8 +584,6 @@ export default function TakeDetailModal({
                   icons.bookmark
                 )}
               </button>
-              {/* Who reacted (Phase 6) */}
-              <ReactionSummary kind="take" id={take.id} className="basis-full mt-1" />
             </div>
           </div>
 

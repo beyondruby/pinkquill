@@ -24,8 +24,7 @@ import Button from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Loading";
 import CommunityBadge from "@/components/communities/CommunityBadge";
 import FlairBadge from "@/components/communities/FlairBadge";
-import ReactionSummary from "@/components/feed/ReactionSummary";
-import ViewCommentsLink from "@/components/feed/ViewCommentsLink";
+import CommentCount from "@/components/feed/CommentCount";
 import ReactionPicker from "@/components/feed/ReactionPicker";
 import { AudioPlayer } from "@/components/feed/AudioPlayer";
 import { supabase } from "@/lib/supabase";
@@ -449,6 +448,8 @@ function PostCardComponent({
         <div className="actions-left">
         {/* Reaction Picker with real-time counts */}
         <ReactionPicker
+          kind="post"
+          id={post.id}
           currentReaction={reaction.mine}
           reactionCounts={reaction.counts}
           countsLoaded={reaction.countsLoaded}
@@ -459,6 +460,7 @@ function PostCardComponent({
         />
         <button className="action-btn" aria-label="Comments" onClick={readOnly ? undefined : handleOpenModal} disabled={readOnly} style={readOnly ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}>
           <CommentIcon />
+          <span className="action-count"><CommentCount id={post.id} total={post.stats?.comments} format={(n) => (n > 0 ? n.toLocaleString() : "")} /></span>
         </button>
         {(!user || user.id !== post.authorId) && (
           <button
@@ -470,6 +472,7 @@ function PostCardComponent({
             disabled={readOnly}
           >
             <RelayIcon />
+            {relayCount > 0 && <span className="action-count">{relayCount.toLocaleString()}</span>}
           </button>
         )}
       </div>
@@ -486,10 +489,6 @@ function PostCardComponent({
           <BookmarkIcon filled={isSaved} />
         </button>
       </div>
-      </div>
-      <div className="px-1 pt-2 space-y-1">
-        <ReactionSummary id={post.id} />
-        <ViewCommentsLink id={post.id} total={post.stats?.comments} onClick={handleOpenModal} disabled={readOnly} />
       </div>
     </div>
   );

@@ -602,6 +602,41 @@ exercised (no touch emulation available in this session).
 - Insights labels still say "admires" (copy only).
 - `saves` on posts has no counter column (nothing displays it).
 
+## Phase 6c — reaction bar (2026-09-07)
+
+Requested after 6b: no "You and poet reacted" line, no "View all N
+comments" line; the open reaction bar shows all reactions instead.
+
+- `components/feed/ReactionSummary.tsx` and `ViewCommentsLink.tsx` deleted
+  (with the `describeReactors` test). Nothing renders under the action row
+  on cards, the post page, the post modal, the take page or the take modal.
+- Counts are back beside the icons: reaction total on the trigger, comment
+  count (`CommentCount`) and relay count on cards (`.action-count`), the
+  same three numbers on the pill rows (`.engage-pill` / `.engage-pill-count`
+  in `globals.css`). Zero is not rendered.
+- `ReactionPicker` takes `kind` + `id` (every caller passes them, the takes
+  feed overlay included). The open bar is a rounded card: six options, each
+  an icon with its count underneath (blank until `countsLoaded`; the chosen
+  one tinted), icons drift in with a 28 ms stagger
+  (`.reaction-option-icon`, off under `prefers-reduced-motion`), and a
+  footer row `components/feed/ReactionBarFooter.tsx`: facepile of up to
+  three reactors + "See all 12 reactions" / "Only you so far" / "Be the
+  first to react" (`describeReactionTotal`, tested). The footer opens
+  `ReactionsSheet`, which the picker now owns and portals to `body`.
+  Keyboard: Tab / ArrowDown from an option moves to the footer, Shift+Tab /
+  ArrowUp goes back, Escape closes.
+- `ReactionsSheet` redesign: subtitle "N people reacted", filter chips
+  (icon + count, label shown on the selected chip), rows with a larger
+  avatar, reaction badge, "Ovation · 2h", "You" for the viewer, skeleton
+  rows while loading, an empty state with the outline heart. Uses
+  `DEFAULT_AVATAR` from `lib/utils/image` (the Unsplash placeholder is gone
+  from these files).
+- Mobile CSS: `.reaction-picker-dropdown` is still fixed above the thumb;
+  the 44 px button override now targets `.reaction-option` only so the
+  footer keeps its shape; the arrow is `.reaction-bar-arrow`.
+- Tests: `composer.test.ts` covers `describeReactionTotal`. `tsc` clean,
+  `npx vitest run components/feed lib/engagement` 26 passed.
+
 ## Next session
 
 The six phases of the engagement rebuild are complete. Remaining items

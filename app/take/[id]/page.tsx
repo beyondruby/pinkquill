@@ -15,7 +15,6 @@ import { deleteOwnTake } from "@/lib/content-client";
 import ReactionPicker from "@/components/feed/ReactionPicker";
 import CommentItem from "@/components/feed/CommentItem";
 import CommentComposer from "@/components/feed/CommentComposer";
-import ReactionSummary from "@/components/feed/ReactionSummary";
 import { CommentSkeleton } from "@/components/ui/Skeleton";
 import PostTags from "@/components/feed/PostTags";
 import ShareModal from "@/components/ui/ShareModal";
@@ -706,6 +705,8 @@ export default function SingleTakePage({ params }: PageProps) {
                 {/* Reaction Picker */}
                 <ReactionPicker
                   variant="pill"
+                  kind="take"
+                  id={id}
                   currentReaction={reaction.mine}
                   reactionCounts={reaction.counts}
                   countsLoaded={reaction.countsLoaded}
@@ -716,9 +717,11 @@ export default function SingleTakePage({ params }: PageProps) {
                 />
 
                 <button
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-ink hover:bg-subtle transition-colors"
+                  aria-label={commentsCount > 0 ? `Comments, ${commentsCount.toLocaleString()}` : "Comments"}
+                  className="engage-pill text-ink hover:bg-subtle transition-colors"
                 >
                   <CommentIcon className="shrink-0" />
+                  {commentsCount > 0 && <span className="engage-pill-count">{commentsCount.toLocaleString()}</span>}
                 </button>
 
                 {!isOwner && (
@@ -727,13 +730,14 @@ export default function SingleTakePage({ params }: PageProps) {
                     disabled={!user}
                     aria-label={isRelayed ? `Remove relay (${relaysCount} relays)` : `Relay take (${relaysCount} relays)`}
                     aria-pressed={isRelayed}
-                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                    className={`engage-pill transition-colors ${
                       isRelayed
                         ? "text-green-600"
                         : "text-ink hover:bg-subtle"
                     } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
                   >
                     {icons.relay}
+                    {relaysCount > 0 && <span className="engage-pill-count">{relaysCount.toLocaleString()}</span>}
                   </button>
                 )}
 
@@ -757,8 +761,6 @@ export default function SingleTakePage({ params }: PageProps) {
                 >
                   {isSaved ? icons.bookmarkFilled : icons.bookmark}
                 </button>
-                {/* Who reacted (Phase 6) */}
-                <ReactionSummary kind="take" id={id} className="basis-full mt-1" />
               </div>
             </article>
           </div>

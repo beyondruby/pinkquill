@@ -2074,9 +2074,10 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
+  gap: 5px;
+  min-width: 40px;
   height: 40px;
-  padding: 0;
+  padding: 0 8px;
   border-radius: 999px;
   border: none;
   background: transparent;
@@ -2096,9 +2097,57 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 .action-btn:active {
   transform: scale(0.9);
 }
-/* Counts live in the lines under the row (reactions line, "View all N comments") */
+/* Small tabular number beside the icon; hidden when zero (not rendered) */
 .action-count {
+  font-family: var(--font-ui);
+  font-size: 0.82rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: inherit;
+}
+.action-count:empty {
   display: none;
+}
+
+/* Pill buttons on the post / take pages and modals: icon + count */
+.engage-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 40px;
+  height: 40px;
+  padding: 0 10px;
+  border-radius: 999px;
+}
+.engage-pill-count {
+  font-family: var(--font-ui);
+  font-size: 0.85rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+/* The open reaction bar: icons drift in one after another */
+@keyframes reactionIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.reaction-option-icon {
+  display: block;
+  animation: reactionIn 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .reaction-option-icon {
+    animation: none;
+  }
 }
 .action-btn.active {
   color: var(--vivid-pink);
@@ -2776,12 +2825,6 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
     backdrop-filter: blur(20px) !important;
   }
 
-  /* The who-reacted line does not fit the fixed bottom bar; the card line
-     above the comments already carries it on phones. */
-  .post-actions-bar .reaction-summary {
-    display: none !important;
-  }
-
   /* Mobile action buttons - Large touch targets */
   .post-actions-bar button,
   .post-actions-bar > div {
@@ -2909,7 +2952,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
     height: 22px !important;
   }
 
-  /* Mobile reaction dropdown */
+  /* Mobile reaction bar: fixed above the thumb, centred */
   .reaction-picker-dropdown {
     position: fixed !important;
     bottom: 80px !important;
@@ -2918,20 +2961,21 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
     right: auto !important;
     top: auto !important;
     width: auto !important;
-    max-width: 90vw !important;
-    padding: 12px 16px !important;
-    border-radius: 24px !important;
+    max-width: calc(100vw - 24px) !important;
+    margin: 0 !important;
+  }
+
+  .reaction-picker-dropdown .reaction-bar {
     box-shadow: 0 8px 40px rgba(0, 0, 0, 0.2) !important;
   }
 
-  .reaction-picker-dropdown button {
-    width: 44px !important;
-    height: 44px !important;
-    font-size: 1.5rem !important;
+  .reaction-picker-dropdown .reaction-option {
+    width: 50px !important;
+    height: 58px !important;
   }
 
-  /* The desktop arrow has no anchor once the sheet is fixed at the bottom */
-  .reaction-picker-dropdown > .absolute.top-full {
+  /* The desktop arrow has no anchor once the bar is fixed at the bottom */
+  .reaction-picker-dropdown > .reaction-bar-arrow {
     display: none !important;
   }
 
