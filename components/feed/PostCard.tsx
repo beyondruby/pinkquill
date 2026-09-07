@@ -64,6 +64,7 @@ const TruncatedContent = TruncatedContentComponent;
 // Types imported from ./PostCard/types
 import type { PostProps } from "./PostCard/types";
 import { FormBody } from "./PostCard/FormBody";
+import { MediaCarousel } from "./PostCard/MediaCarousel";
 import { getPostTypeTheme } from "@/lib/feed-view/post-type-theme";
 
 // Format date as "January 2, 2026"
@@ -437,7 +438,7 @@ function PostCardComponent({
   // Mentions and hashtags from post data (passed to extracted components)
 
   // Actions component reused across post types (now includes mentions and hashtags display)
-  const renderActions = () => (
+  const renderActions = (centered = false) => (
     <div className="actions-wrapper">
       {post.mentions && post.mentions.length > 0 && (
         <MentionsDisplay mentions={post.mentions} />
@@ -445,7 +446,7 @@ function PostCardComponent({
       {post.hashtags && post.hashtags.length > 0 && (
         <HashtagsDisplay hashtags={post.hashtags} />
       )}
-      <div className="actions" role="toolbar" aria-label="Post actions">
+      <div className={`actions ${centered ? "actions-centered" : ""}`} role="toolbar" aria-label="Post actions">
         <div className="actions-left">
         {/* Reaction Picker with real-time counts */}
         <ReactionPicker
@@ -919,6 +920,7 @@ function PostCardComponent({
               <TruncatedContent
                 content={post.content}
                 onReadMore={handleOpenModal}
+                className="video-description"
               />
             )}
           </ContentSection>
@@ -934,14 +936,34 @@ function PostCardComponent({
       center: "text-center",
       right: "text-right",
       justify: "text-justify",
-    }[post.styling?.textAlignment || "left"];
+    }[post.styling?.textAlignment || (getPostTypeTheme(post.type).form === "poem" ? "center" : "left")];
     const lineSpacingClass = {
       normal: "leading-relaxed",
       relaxed: "leading-[2]",
       loose: "leading-[2.5]",
     }[post.styling?.lineSpacing || "normal"];
 
-    const mediaFirst = getPostTypeTheme(post.type).form === "gallery";
+    const form = getPostTypeTheme(post.type).form;
+    const isGallery = form === "gallery";
+    const isPoem = form === "poem";
+    // Article class + title element per form, after the quill-v6 reference
+    // (manifesto / poem / journal / longform / carousel cards).
+    const formClass: Record<string, string> = {
+      text: "type-thought",
+      poem: "type-poem",
+      journal: "type-journal",
+      editorial: "type-longform",
+      quote: "type-quote",
+      gallery: "type-carousel",
+      video: "type-video",
+      music: "type-music",
+    };
+    const titleClass: Record<string, string> = {
+      poem: "poem-title",
+      journal: "journal-title",
+      editorial: "longform-title",
+      gallery: "carousel-title",
+    };
     const mediaBlock = (
       <>
             {/* 3. Images as squares - hidden entirely when content warning is active */}
@@ -1007,15 +1029,25 @@ function PostCardComponent({
       </>
     );
 
+    const carouselBlock = isGallery && showContent && (hasMedia || post.image) ? (
+      <MediaCarousel
+        items={
+          hasMedia
+            ? visualMedia
+            : [{ id: `${post.id}-legacy`, media_url: post.image as string, media_type: "image", caption: post.title || null, position: 0 }]
+        }
+        authorName={post.author.name}
+      />
+    ) : null;
+
     return (
-      <article className="post type-unified" onClick={handleOpenModal}>
-        <AuthorHeader />
+      <article className={`post type-unified ${formClass[form] || ""}`} onClick={handleOpenModal}>
+        <AuthorHeader centered={isPoem} />
         <ContentSection>
           <>
-            {mediaFirst && mediaBlock}
             {/* 1. Title */}
             {post.title && (
-              <h3 className={`unified-post-title ${alignmentClass}`}>
+              <h3 className={`${titleClass[form] || "unified-post-title"} ${alignmentClass}`}>
                 {post.title}
               </h3>
             )}
@@ -1056,10 +1088,10 @@ function PostCardComponent({
               </div>
             )}
 
-            {!mediaFirst && mediaBlock}
+            {isGallery ? carouselBlock : mediaBlock}
           </>
         </ContentSection>
-        {renderActions()}
+        {renderActions(isPoem)}
       </article>
     );
   };
