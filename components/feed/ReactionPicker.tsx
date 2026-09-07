@@ -230,10 +230,35 @@ export default function ReactionPicker({
   }, [reactionCounts.total]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  const closeBar = useCallback(() => {
-    setIsOpen(false);
+  // Hide the trigger tooltip and the option label, and stop the hover
+  // timers that would bring them back. Called whenever the bar or the sheet
+  // changes state, so no label survives a click, a press or a sheet open.
+  const hideLabels = useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    if (tooltipTimeoutRef.current) {
+      clearTimeout(tooltipTimeoutRef.current);
+      tooltipTimeoutRef.current = null;
+    }
+    setShowMainTooltip(false);
     setHoveredReaction(null);
   }, []);
+
+  const closeBar = useCallback(() => {
+    hideLabels();
+    setIsOpen(false);
+  }, [hideLabels]);
+
+  // Hover must not reopen the bar (or show the tooltip) the moment the
+  // sheet closes under a pointer that never moved.
+  const ignoreHoverUntilRef = useRef(0);
+  const closeSheet = useCallback(() => {
+    ignoreHoverUntilRef.current = Date.now() + 800;
+    hideLabels();
+    setSheetOpen(false);
+  }, [hideLabels]);
 
   // Tap outside closes a bar opened by touch / right-click.
   useEffect(() => {
@@ -253,7 +278,7 @@ export default function ReactionPicker({
   };
 
   const openByPress = () => {
-    setShowMainTooltip(false);
+    hideLabels();
     setIsOpen(true);
     if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
       try {
@@ -305,6 +330,7 @@ export default function ReactionPicker({
   const handleMouseEnter = () => {
     if (disabled) return;
     if (Date.now() - lastTouchAtRef.current < 1000) return; // synthetic hover after a tap
+    if (Date.now() < ignoreHoverUntilRef.current) return; // the sheet just closed
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
@@ -509,6 +535,7 @@ export default function ReactionPicker({
       return;
     }
 
+    hideLabels();
     if (currentReaction) {
       onRemoveReaction();
     } else {
@@ -614,7 +641,7 @@ export default function ReactionPicker({
       )}
 
       {/* Main button tooltip - rendered via portal to avoid clipping */}
-      {isMounted && showMainTooltip && !isOpen && createPortal(
+      {isMounted && showMainTooltip && !isOpen && !sheetOpen && createPortal(
         <div
           className="fixed z-[9999] pointer-events-none"
           style={{
@@ -734,7 +761,7 @@ export default function ReactionPicker({
       )}
 
       {/* Reaction tooltip - rendered via portal to avoid clipping */}
-      {isMounted && isOpen && hoveredReaction && createPortal(
+      {isMounted && isOpen && !sheetOpen && hoveredReaction && createPortal(
         <div
           className="fixed z-[9999] pointer-events-none"
           style={{
@@ -759,7 +786,7 @@ export default function ReactionPicker({
 
       {/* Everyone who reacted */}
       {isMounted && hasContent && sheetOpen && createPortal(
-        <ReactionsSheet kind={kind} id={id} isOpen={sheetOpen} onClose={() => setSheetOpen(false)} counts={reactionCounts} />,
+        <ReactionsSheet kind={kind} id={id} isOpen={sheetOpen} onClose={closeSheet} counts={reactionCounts} />,
         document.body
       )}
 

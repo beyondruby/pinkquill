@@ -176,10 +176,7 @@ export default function ReactionsSheet({ kind, id, isOpen, onClose, counts }: Re
                 <span className="relative flex-shrink-0">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={r.avatar_url || DEFAULT_AVATAR} alt="" className="w-11 h-11 rounded-full object-cover" />
-                  <span
-                    className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-elevated shadow-md ring-2 ring-elevated flex items-center justify-center"
-                    title={reactionLabel}
-                  >
+                  <span className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-elevated shadow-md ring-2 ring-elevated flex items-center justify-center" aria-hidden="true">
                     <span className="w-4 h-4">{getReactionIcon(r.reaction_type)}</span>
                   </span>
                 </span>

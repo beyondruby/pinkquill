@@ -634,6 +634,13 @@ comments" line; the open reaction bar shows all reactions instead.
 - Mobile CSS: `.reaction-picker-dropdown` is still fixed above the thumb;
   the 44 px button override now targets `.reaction-option` only so the
   footer keeps its shape; the arrow is `.reaction-bar-arrow`.
+- Follow-up fix: the reaction label (trigger tooltip / hovered option name)
+  could survive a click, a press-open or the sheet opening because the
+  hover timers kept running. `hideLabels()` now clears both timers and both
+  labels on every open/close/press/click; neither tooltip renders while the
+  sheet is up; closing the sheet ignores hover for 800 ms so the bar does
+  not reopen under a pointer that never moved. The sheet's reaction badge
+  lost its native `title` (the row already names the reaction).
 - Tests: `composer.test.ts` covers `describeReactionTotal`. `tsc` clean,
   `npx vitest run components/feed lib/engagement` 26 passed.
 
