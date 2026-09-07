@@ -17,6 +17,7 @@ import ReportModal from "@/components/ui/ReportModal";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import ActionMenu, { type ActionMenuItem } from "@/components/ui/ActionMenu";
 import ReactionPicker from "@/components/feed/ReactionPicker";
+import CommentCount from "@/components/feed/CommentCount";
 import { supabase } from "@/lib/supabase";
 import {
   HeartIcon,
@@ -299,7 +300,7 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
             </span>
             <span>
               <CommentIcon />
-              {formatCount(take.comments_count)}
+              <CommentCount kind="take" id={take.id} total={take.comments_count} format={formatCount} />
             </span>
           </div>
         </div>
@@ -427,7 +428,7 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
             />
             <button className="action-btn" onClick={(e) => { e.stopPropagation(); handleOpenModal(); }}>
               <CommentIcon />
-              <span className="action-count">{formatCount(take.comments_count)}</span>
+              <span className="action-count"><CommentCount kind="take" id={take.id} total={take.comments_count} format={formatCount} /></span>
             </button>
             {!isOwner && (
               <button

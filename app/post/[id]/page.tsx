@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useComments } from "@/lib/hooks/useComments";
+import { useComments, COMMENT_MAX_LENGTH } from "@/lib/hooks/useComments";
 import { useToggleSave, useToggleRelay, useBlock } from "@/lib/hooks/useInteractions";
 import { useReaction } from "@/lib/engagement/reactions";
 import { createNotification } from "@/lib/hooks/useNotifications";
+import { actionToast } from "@/lib/utils/toast";
 import type { ReactionType } from "@/lib/types";
 import { cleanHtmlForDisplay, stripHtmlPreserveLines } from "@/lib/utils/sanitize";
 import { deleteOwnPost } from "@/lib/content-client";
@@ -196,7 +197,18 @@ export default function PostPage() {
 
   const { toggle: toggleSave } = useToggleSave();
   const { toggle: toggleRelay } = useToggleRelay();
-  const { comments, loading: commentsLoading, addComment, toggleLike, deleteComment, fetchReplies } = useComments(postId, user?.id);
+  const {
+    comments,
+    loading: commentsLoading,
+    hasMore: hasMoreComments,
+    loadingMore: loadingMoreComments,
+    loadMore: loadMoreComments,
+    addComment,
+    toggleLike,
+    deleteComment,
+    fetchReplies,
+    ensureCommentVisible,
+  } = useComments("post", postId, { authorId: post?.author_id });
 
   // Reactions: shared store entry, per-type counts loaded on mount,
   // re-read when the tab regains focus so other users' reactions show up.
@@ -204,26 +216,46 @@ export default function PostPage() {
     authorId: post?.author_id,
     refreshOnFocus: true,
     loadCounts: true,
+    loadComments: true,
   });
+  const commentsCount = reaction.comments;
 
-  // Scroll to comment when navigating from notification
+  // Deep link (?comment=): make sure the comment is loaded (any page, any
+  // reply), then scroll to it. Replies render only when their parent thread
+  // is expanded, so a reply link expands the parent through the DOM id of
+  // the "View replies" toggle by retrying until the node exists.
+  const deepLinkDoneRef = useRef<string | null>(null);
   useEffect(() => {
-    if (commentIdFromUrl && !commentsLoading && comments.length > 0) {
-      // Wait a bit for DOM to render
-      const timeoutId = setTimeout(() => {
-        const commentElement = document.getElementById(`comment-${commentIdFromUrl}`);
-        if (commentElement) {
-          commentElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          // Add highlight effect
-          commentElement.classList.add('highlight-comment');
-          setTimeout(() => {
-            commentElement.classList.remove('highlight-comment');
-          }, 2000);
+    if (!commentIdFromUrl || commentsLoading || deepLinkDoneRef.current === commentIdFromUrl) return;
+    deepLinkDoneRef.current = commentIdFromUrl;
+    let cancelled = false;
+    (async () => {
+      const { found, parentId } = await ensureCommentVisible(commentIdFromUrl);
+      if (!found || cancelled) return;
+      const scrollTo = (el: HTMLElement) => {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.classList.add("highlight-comment");
+        setTimeout(() => el.classList.remove("highlight-comment"), 2000);
+      };
+      for (let attempt = 0; attempt < 20 && !cancelled; attempt++) {
+        await new Promise((r) => setTimeout(r, 150));
+        const el = document.getElementById(`comment-${commentIdFromUrl}`);
+        if (el) {
+          scrollTo(el);
+          return;
         }
-      }, 100);
-      return () => clearTimeout(timeoutId);
-    }
-  }, [commentIdFromUrl, commentsLoading, comments.length]);
+        if (parentId) {
+          // Expand the parent thread if its toggle is present and collapsed.
+          const parent = document.getElementById(`comment-${parentId}`);
+          const toggle = parent?.querySelector<HTMLButtonElement>("button[data-replies-toggle]");
+          if (toggle && toggle.getAttribute("aria-expanded") !== "true") toggle.click();
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [commentIdFromUrl, commentsLoading, ensureCommentVisible]);
 
   // Single fetch function for all data
   const fetchData = useCallback(async () => {
@@ -516,27 +548,27 @@ export default function PostPage() {
   };
 
   const handleAddComment = async () => {
-    if (!commentText.trim() || !user || !post) return;
+    const text = commentText.trim();
+    if (!text || !user || !post || submitting) return;
 
     setSubmitting(true);
-    const result = await addComment(user.id, commentText.trim());
-    if (result.success) {
-      setCommentText("");
-      if (post.author_id !== user.id) {
-        await createNotification(post.author_id, user.id, "comment", post.id, commentText.trim());
-      }
+    setCommentText("");
+    const result = await addComment(text);
+    if (!result.success) {
+      setCommentText(text);
+      actionToast.genericError("post comment");
     }
     setSubmitting(false);
   };
 
-  const handleCommentLike = (commentId: string, isLiked: boolean) => {
+  const handleCommentLike = (commentId: string) => {
     if (!user) return;
-    toggleLike(commentId, user.id, isLiked);
+    void toggleLike(commentId);
   };
 
-  const handleCommentReply = async (parentId: string, content: string) => {
+  const handleCommentReply = async (parentId: string, content: string, replyToUserId: string | null) => {
     if (!user) return { success: false };
-    return await addComment(user.id, content, parentId);
+    return await addComment(content, { parentId, replyToUserId });
   };
 
   const handleCommentDelete = (commentId: string) => {
@@ -1128,7 +1160,7 @@ export default function PostPage() {
                 className="flex items-center gap-1.5 px-3 md:px-4 py-2 md:py-2.5 rounded-full bg-skeleton/70 text-muted hover:bg-purple-50 hover:text-accent transition-all"
               >
                 {icons.comment}
-                {comments.length > 0 && <span className="text-xs md:text-sm font-medium">{comments.length}</span>}
+                {commentsCount > 0 && <span className="text-xs md:text-sm font-medium">{commentsCount}</span>}
               </button>
 
               {!isOwner && (
@@ -1176,7 +1208,7 @@ export default function PostPage() {
               <div className="p-4 md:p-5 border-b border-border-light">
                 <h2 className="font-ui text-[0.9rem] md:text-[1rem] font-medium text-ink flex items-center gap-2">
                   {icons.comment}
-                  Discussion ({comments.length})
+                  Discussion ({commentsCount})
                 </h2>
               </div>
 
@@ -1193,8 +1225,11 @@ export default function PostPage() {
                     type="text"
                     value={commentText}
                     onChange={(e) => setCommentText(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleAddComment()}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.nativeEvent.isComposing) handleAddComment();
+                    }}
                     placeholder="Add to the conversation..."
+                    maxLength={COMMENT_MAX_LENGTH}
                     disabled={submitting}
                     className="flex-1 py-2.5 border-none bg-transparent outline-none font-body text-[0.9rem] text-ink placeholder:text-muted/60"
                   />
@@ -1231,13 +1266,25 @@ export default function PostPage() {
                     <CommentItem
                       key={comment.id}
                       comment={comment}
+                      kind="post"
+                      contentId={post.id}
                       currentUserId={user?.id}
+                      canDeleteAny={!!isOwner}
                       onLike={handleCommentLike}
                       onReply={handleCommentReply}
                       onLoadReplies={fetchReplies}
                       onDelete={handleCommentDelete}
                     />
                   ))}
+                  {hasMoreComments && (
+                    <button
+                      onClick={() => void loadMoreComments()}
+                      disabled={loadingMoreComments}
+                      className="w-full py-2 rounded-full font-ui text-[0.8rem] text-purple-primary hover:bg-purple-primary/5 transition-colors disabled:opacity-50"
+                    >
+                      {loadingMoreComments ? "Loading…" : "Load more comments"}
+                    </button>
+                  )}
                 </div>
               )}
             </div>

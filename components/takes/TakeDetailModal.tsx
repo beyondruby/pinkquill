@@ -5,7 +5,9 @@ import { getTimeAgo } from "@/lib/utils/time";
 import Link from "next/link";
 import Modal from "@/components/ui/Modal";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useTakeComments, TakeReactionType, Take } from "@/lib/hooks/useTakes";
+import { TakeReactionType, Take } from "@/lib/hooks/useTakes";
+import { useComments, COMMENT_MAX_LENGTH } from "@/lib/hooks/useComments";
+import { actionToast } from "@/lib/utils/toast";
 import { useReaction } from "@/lib/engagement/reactions";
 import { deleteOwnTake } from "@/lib/content-client";
 import ShareModal from "@/components/ui/ShareModal";
@@ -13,7 +15,7 @@ import ReportModal from "@/components/ui/ReportModal";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import ActionMenu, { type ActionMenuItem } from "@/components/ui/ActionMenu";
 import ReactionPicker from "@/components/feed/ReactionPicker";
-import TakeCommentItem from "@/components/takes/TakeCommentItem";
+import CommentItem from "@/components/feed/CommentItem";
 import PostTags from "@/components/feed/PostTags";
 import { supabase } from "@/lib/supabase";
 import { CommentIcon, icons } from "@/components/ui/Icons";
@@ -69,13 +71,25 @@ export default function TakeDetailModal({
     id: string; username: string; display_name: string | null; avatar_url: string | null;
   }>>([]);
 
-  const { comments, loading: commentsLoading, addComment, toggleLike, deleteComment } = useTakeComments(take?.id || "", user?.id);
+  const {
+    comments,
+    loading: commentsLoading,
+    hasMore: hasMoreComments,
+    loadingMore: loadingMoreComments,
+    loadMore: loadMoreComments,
+    addComment,
+    toggleLike,
+    deleteComment,
+    fetchReplies,
+  } = useComments("take", take?.id || "", { authorId: take?.author_id });
   const reaction = useReaction("take", take?.id || "", {
     seed: take ? { total: take.reactions_count, mine: take.user_reaction_type, counts: take.reaction_counts } : undefined,
     authorId: take?.author_id,
     refreshOnFocus: true,
     loadCounts: true,
+    loadComments: true,
   });
+  const commentsCount = reaction.comments;
 
   const takeUrl = typeof window !== 'undefined' && take ? `${window.location.origin}/take/${take.id}` : '';
   const isOwner = user && take?.author_id && user.id === take.author_id;
@@ -302,19 +316,22 @@ export default function TakeDetailModal({
   };
 
   const handleAddComment = async () => {
-    if (!commentText.trim() || !user) return;
+    const text = commentText.trim();
+    if (!text || !user || submitting) return;
 
     setSubmitting(true);
-    const result = await addComment(commentText.trim());
-    if (result) {
-      setCommentText("");
+    setCommentText("");
+    const result = await addComment(text);
+    if (!result.success) {
+      setCommentText(text);
+      actionToast.genericError("post comment");
     }
     setSubmitting(false);
   };
 
   const handleCommentLike = (commentId: string) => {
     if (!user) return;
-    toggleLike(commentId);
+    void toggleLike(commentId);
   };
 
   const handleCommentDelete = (commentId: string) => {
@@ -383,7 +400,7 @@ export default function TakeDetailModal({
                 <CommentIcon className="shrink-0" />
                 <span>Discussion</span>
                 <span className="badge">
-                  {comments.length}
+                  {commentsCount}
                 </span>
               </button>
 
@@ -511,7 +528,7 @@ export default function TakeDetailModal({
                 className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-skeleton/70 text-muted hover:bg-purple-50 hover:text-accent transition-all"
               >
                 <CommentIcon className="shrink-0" />
-                {comments.length > 0 && <span className="text-sm font-medium">{comments.length}</span>}
+                {commentsCount > 0 && <span className="text-sm font-medium">{commentsCount}</span>}
               </button>
 
               {/* Relay Button */}
@@ -586,18 +603,28 @@ export default function TakeDetailModal({
                 ) : (
                   <div className="space-y-4">
                     {comments.map((comment) => (
-                      <TakeCommentItem
+                      <CommentItem
                         key={comment.id}
                         comment={comment}
+                        kind="take"
+                        contentId={take.id}
                         currentUserId={user?.id}
+                        canDeleteAny={!!isOwner}
                         onLike={handleCommentLike}
-                        onReply={async (content, parentId) => {
-                          return await addComment(content, parentId);
-                        }}
+                        onReply={(parentId, content, replyToUserId) => addComment(content, { parentId, replyToUserId })}
+                        onLoadReplies={fetchReplies}
                         onDelete={handleCommentDelete}
-                        onModalClose={onClose}
                       />
                     ))}
+                    {hasMoreComments && (
+                      <button
+                        onClick={() => void loadMoreComments()}
+                        disabled={loadingMoreComments}
+                        className="w-full py-2 rounded-full font-ui text-[0.8rem] text-purple-primary hover:bg-purple-primary/5 transition-colors disabled:opacity-50"
+                      >
+                        {loadingMoreComments ? "Loading…" : "Load more comments"}
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -615,8 +642,11 @@ export default function TakeDetailModal({
                       type="text"
                       value={commentText}
                       onChange={(e) => setCommentText(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && handleAddComment()}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.nativeEvent.isComposing) handleAddComment();
+                      }}
                       placeholder="Add to the conversation..."
+                      maxLength={COMMENT_MAX_LENGTH}
                       disabled={submitting}
                       className="flex-1 py-2.5 border-none bg-transparent outline-none font-body text-[0.95rem] text-ink placeholder:text-muted/60 placeholder:italic"
                     />

@@ -386,6 +386,7 @@ export default function TakesFeed({
           isOpen={commentsPanelOpen}
           onClose={() => setCommentsPanelOpen(false)}
           takeId={commentsTakeId}
+          authorId={takes.find((t) => t.id === commentsTakeId)?.author_id ?? null}
         />
       )}
     </div>

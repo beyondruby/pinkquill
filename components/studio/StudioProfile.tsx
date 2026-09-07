@@ -41,6 +41,7 @@ import ActionMenu from "@/components/ui/ActionMenu";
 import type { Collection, Post } from "@/lib/types";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import ReactionCount from "@/components/feed/ReactionCount";
+import CommentCount from "@/components/feed/CommentCount";
 
 // Helper function to decode HTML entities
 function decodeHtmlEntities(text: string): string {
@@ -1927,7 +1928,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                                   </span>
                                   <span className="flex items-center gap-1 text-xs text-muted">
                                     <CommentIcon />
-                                    {work.comments_count || 0}
+                                    <CommentCount id={work.id} total={work.comments_count} />
                                   </span>
                                 </div>
                               </div>
@@ -2027,7 +2028,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                                 </span>
                                 <span className="flex items-center gap-1.5">
                                   <CommentIcon />
-                                  {work.comments_count || 0}
+                                  <CommentCount id={work.id} total={work.comments_count} />
                                 </span>
                               </div>
                               <span className="text-accent text-sm font-medium group-hover:underline">
@@ -2074,7 +2075,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10z"/>
                                 </svg>
-                                {work.comments_count || 0}
+                                <CommentCount id={work.id} total={work.comments_count} />
                               </span>
                             </div>
                           </div>
@@ -2148,7 +2149,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                             <span className="text-muted/50">·</span>
                             <span className="flex items-center gap-1">
                               <CommentIcon />
-                              {work.comments_count || 0}
+                              <CommentCount id={work.id} total={work.comments_count} />
                             </span>
                           </div>
                         </article>
@@ -2310,7 +2311,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                                 </span>
                                 <span className="flex items-center gap-1 text-xs">
                                   <CommentIcon size="sm" />
-                                  {work.comments_count || 0}
+                                  <CommentCount id={work.id} total={work.comments_count} />
                                 </span>
                               </div>
                             </div>
@@ -2491,7 +2492,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                                 {icons.heart} <ReactionCount id={relay.id} total={relay.reactions_count} />
                               </span>
                               <span className="studio-relay-stat">
-                                {icons.comment} {relay.comments_count}
+                                {icons.comment} <CommentCount id={relay.id} total={relay.comments_count} />
                               </span>
                             </div>
                           </div>

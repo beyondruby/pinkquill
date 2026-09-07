@@ -9,10 +9,11 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { useMuted, useVolume, TakeReactionType } from "@/lib/hooks/useTakes";
 import { useReaction } from "@/lib/engagement/reactions";
 import { useBlock } from "@/lib/hooks/useInteractions";
-import { useTakeComments } from "@/lib/hooks/useTakes";
+import { useComments, COMMENT_MAX_LENGTH } from "@/lib/hooks/useComments";
+import { actionToast } from "@/lib/utils/toast";
 import { deleteOwnTake } from "@/lib/content-client";
 import ReactionPicker from "@/components/feed/ReactionPicker";
-import TakeCommentItem from "@/components/takes/TakeCommentItem";
+import CommentItem from "@/components/feed/CommentItem";
 import PostTags from "@/components/feed/PostTags";
 import ShareModal from "@/components/ui/ShareModal";
 import ReportModal from "@/components/ui/ReportModal";
@@ -91,7 +92,17 @@ export default function SingleTakePage({ params }: PageProps) {
   const { blockUser } = useBlock();
 
   // Comments hook
-  const { comments, loading: commentsLoading, addComment, toggleLike, deleteComment } = useTakeComments(id, user?.id);
+  const {
+    comments,
+    loading: commentsLoading,
+    hasMore: hasMoreComments,
+    loadingMore: loadingMoreComments,
+    loadMore: loadMoreComments,
+    addComment,
+    toggleLike,
+    deleteComment,
+    fetchReplies,
+  } = useComments("take", id, { authorId: take?.author_id });
 
   const isOwner = user?.id === take?.author_id;
 
@@ -284,7 +295,9 @@ export default function SingleTakePage({ params }: PageProps) {
     authorId: take?.author_id,
     refreshOnFocus: true,
     loadCounts: true,
+    loadComments: true,
   });
+  const commentsCount = reaction.comments;
 
   // Handlers
   const handleReaction = async (type: TakeReactionType) => {
@@ -424,24 +437,27 @@ export default function SingleTakePage({ params }: PageProps) {
   };
 
   const handleAddComment = async () => {
-    if (!commentText.trim() || !user || !take) return;
+    const text = commentText.trim();
+    if (!text || !user || !take || submitting) return;
 
     setSubmitting(true);
-    const result = await addComment(commentText.trim());
-    if (result) {
-      setCommentText("");
+    setCommentText("");
+    const result = await addComment(text);
+    if (!result.success) {
+      setCommentText(text);
+      actionToast.genericError("post comment");
     }
     setSubmitting(false);
   };
 
   const handleCommentLike = (commentId: string) => {
     if (!user) return;
-    toggleLike(commentId);
+    void toggleLike(commentId);
   };
 
-  const handleCommentReply = async (content: string, parentId: string) => {
-    if (!user) return null;
-    return await addComment(content, parentId);
+  const handleCommentReply = async (parentId: string, content: string, replyToUserId: string | null) => {
+    if (!user) return { success: false };
+    return await addComment(content, { parentId, replyToUserId });
   };
 
   const handleCommentDelete = (commentId: string) => {
@@ -646,7 +662,7 @@ export default function SingleTakePage({ params }: PageProps) {
                   className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-skeleton/70 text-muted hover:bg-purple-50 hover:text-accent transition-all"
                 >
                   <CommentIcon className="shrink-0" />
-                  {comments.length > 0 && <span className="text-sm font-medium">{comments.length}</span>}
+                  {commentsCount > 0 && <span className="text-sm font-medium">{commentsCount}</span>}
                 </button>
 
                 {!isOwner && (
@@ -694,7 +710,7 @@ export default function SingleTakePage({ params }: PageProps) {
               <div className="p-5 border-b border-border-light">
                 <h2 className="font-ui text-[1rem] font-medium text-ink flex items-center gap-2">
                   <CommentIcon className="shrink-0" />
-                  Discussion ({comments.length})
+                  Discussion ({commentsCount})
                 </h2>
               </div>
 
@@ -711,8 +727,11 @@ export default function SingleTakePage({ params }: PageProps) {
                       type="text"
                       value={commentText}
                       onChange={(e) => setCommentText(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && handleAddComment()}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.nativeEvent.isComposing) handleAddComment();
+                      }}
                       placeholder="Add to the conversation..."
+                      maxLength={COMMENT_MAX_LENGTH}
                       disabled={submitting}
                       className="flex-1 py-2.5 border-none bg-transparent outline-none font-body text-[0.9rem] text-ink placeholder:text-muted/60"
                     />
@@ -746,15 +765,28 @@ export default function SingleTakePage({ params }: PageProps) {
                 ) : (
                   <div className="space-y-4">
                     {comments.map((comment) => (
-                      <TakeCommentItem
+                      <CommentItem
                         key={comment.id}
                         comment={comment}
+                        kind="take"
+                        contentId={id}
                         currentUserId={user?.id}
+                        canDeleteAny={!!isOwner}
                         onLike={handleCommentLike}
                         onReply={handleCommentReply}
+                        onLoadReplies={fetchReplies}
                         onDelete={handleCommentDelete}
                       />
                     ))}
+                    {hasMoreComments && (
+                      <button
+                        onClick={() => void loadMoreComments()}
+                        disabled={loadingMoreComments}
+                        className="w-full py-2 rounded-full font-ui text-[0.8rem] text-purple-primary hover:bg-purple-primary/5 transition-colors disabled:opacity-50"
+                      >
+                        {loadingMoreComments ? "Loading…" : "Load more comments"}
+                      </button>
+                    )}
                   </div>
                 )}
               </div>

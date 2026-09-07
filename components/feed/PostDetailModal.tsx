@@ -12,12 +12,12 @@ import Modal from "@/components/ui/Modal";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useAuthModal } from "@/components/providers/AuthModalProvider";
 import { removeSelfAsCollaborator } from "@/lib/hooks.legacy";
-import { useComments } from "@/lib/hooks/useComments";
+import { useComments, COMMENT_MAX_LENGTH } from "@/lib/hooks/useComments";
 import { useToggleSave, useToggleRelay, useBlock } from "@/lib/hooks/useInteractions";
 import { useReaction } from "@/lib/engagement/reactions";
 import { createNotification } from "@/lib/hooks/useNotifications";
 import type { ReactionType } from "@/lib/types";
-import { showToast } from "@/lib/utils/toast";
+import { showToast, actionToast } from "@/lib/utils/toast";
 import type { PostUpdate } from "@/components/providers/ModalProvider";
 import CommentItem from "@/components/feed/CommentItem";
 import ReactionPicker from "@/components/feed/ReactionPicker";
@@ -188,7 +188,17 @@ function PostDetailModalComponent({
 
   const { blockUser } = useBlock();
 
-  const { comments, loading: commentsLoading, addComment, toggleLike, deleteComment, fetchReplies } = useComments(post?.id || "", user?.id);
+  const {
+    comments,
+    loading: commentsLoading,
+    hasMore: hasMoreComments,
+    loadingMore: loadingMoreComments,
+    loadMore: loadMoreComments,
+    addComment,
+    toggleLike,
+    deleteComment,
+    fetchReplies,
+  } = useComments("post", post?.id || "", { authorId: post?.authorId });
   const { toggle: toggleSave } = useToggleSave();
   const { toggle: toggleRelay } = useToggleRelay();
 
@@ -199,7 +209,9 @@ function PostDetailModalComponent({
     authorId: post?.authorId,
     refreshOnFocus: true,
     loadCounts: true,
+    loadComments: true,
   });
+  const commentsCount = reaction.comments;
 
   const audioMedia = post?.media?.find((m) => m.media_type === "audio") || null;
   const visualMediaList = (post?.media || []).filter((m) => m.media_type !== "audio");
@@ -464,34 +476,34 @@ function PostDetailModalComponent({
       openAuthModal();
       return;
     }
-    if (!commentText.trim()) return;
+    const text = commentText.trim();
+    if (!text || submitting) return;
 
+    // Optimistic: the hook shows the row immediately and notifies the author.
     setSubmitting(true);
-    const result = await addComment(user.id, commentText.trim());
-    if (result.success) {
-      setCommentText("");
-      // Create notification for comment
-      if (post.authorId && post.authorId !== user.id) {
-        await createNotification(post.authorId, user.id, 'comment', post.id, commentText.trim());
-      }
+    setCommentText("");
+    const result = await addComment(text);
+    if (!result.success) {
+      setCommentText(text);
+      actionToast.genericError("post comment");
     }
     setSubmitting(false);
-  }, [user, post, openAuthModal, commentText, addComment]);
+  }, [user, post, openAuthModal, commentText, submitting, addComment]);
 
-  const handleCommentLike = useCallback((commentId: string, isLiked: boolean) => {
+  const handleCommentLike = useCallback((commentId: string) => {
     if (!user) {
       openAuthModal();
       return;
     }
-    toggleLike(commentId, user.id, isLiked);
+    void toggleLike(commentId);
   }, [user, openAuthModal, toggleLike]);
 
-  const handleCommentReply = useCallback(async (parentId: string, content: string) => {
+  const handleCommentReply = useCallback(async (parentId: string, content: string, replyToUserId: string | null) => {
     if (!user) {
       openAuthModal();
       return { success: false };
     }
-    return await addComment(user.id, content, parentId);
+    return await addComment(content, { parentId, replyToUserId });
   }, [user, openAuthModal, addComment]);
 
   const handleCommentDelete = useCallback((commentId: string) => {
@@ -642,7 +654,7 @@ function PostDetailModalComponent({
                 {icons.comment}
                 <span>Discussion</span>
                 <span className={`badge ${hasDarkBg ? 'bg-surface/20' : ''}`}>
-                  {comments.length}
+                  {commentsCount}
                 </span>
               </button>
               {/* Mobile Discussion Button - hidden on mobile per user request */}
@@ -1006,7 +1018,7 @@ function PostDetailModalComponent({
               }`}
             >
               {icons.comment}
-              {comments.length > 0 && <span className="text-xs md:text-sm font-medium">{comments.length}</span>}
+              {commentsCount > 0 && <span className="text-xs md:text-sm font-medium">{commentsCount}</span>}
             </button>
 
             {/* Relay Button - hidden for own posts */}
@@ -1113,7 +1125,10 @@ function PostDetailModalComponent({
                     <CommentItem
                       key={comment.id}
                       comment={comment}
+                      kind="post"
+                      contentId={post.id}
                       currentUserId={user?.id}
+                      canDeleteAny={!!isOwner}
                       onLike={handleCommentLike}
                       onReply={handleCommentReply}
                       onLoadReplies={fetchReplies}
@@ -1122,6 +1137,15 @@ function PostDetailModalComponent({
                       onModeratorDelete={onModeratorDeleteComment}
                     />
                   ))}
+                  {hasMoreComments && (
+                    <button
+                      onClick={() => void loadMoreComments()}
+                      disabled={loadingMoreComments}
+                      className="w-full py-2 rounded-full font-ui text-[0.8rem] text-purple-primary hover:bg-purple-primary/5 transition-colors disabled:opacity-50"
+                    >
+                      {loadingMoreComments ? "Loading…" : "Load more comments"}
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -1143,8 +1167,11 @@ function PostDetailModalComponent({
                     type="text"
                     value={commentText}
                     onChange={(e) => setCommentText(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleAddComment()}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.nativeEvent.isComposing) handleAddComment();
+                    }}
                     placeholder="Add to the conversation..."
+                    maxLength={COMMENT_MAX_LENGTH}
                     disabled={submitting}
                     className="flex-1 py-2.5 border-none bg-transparent outline-none font-body text-[0.95rem] text-ink placeholder:text-muted/60 placeholder:italic"
                   />

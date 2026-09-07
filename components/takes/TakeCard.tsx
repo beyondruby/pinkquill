@@ -6,6 +6,7 @@ import { useState, useCallback, useRef, useEffect, useMemo, memo, type CSSProper
 import Link from "next/link";
 import TakePlayer from "./TakePlayer";
 import ReactionPicker from "@/components/feed/ReactionPicker";
+import CommentCount from "@/components/feed/CommentCount";
 import { useReaction } from "@/lib/engagement/reactions";
 import ReportModal from "@/components/ui/ReportModal";
 import ShareModal from "@/components/ui/ShareModal";
@@ -436,7 +437,7 @@ function TakeCard({
           <div className="tiktok-action-icon">
             <CommentIcon />
           </div>
-          <span>{formatCount(take.comments_count)}</span>
+          <span><CommentCount kind="take" id={take.id} total={take.comments_count} format={formatCount} /></span>
         </button>
 
         {/* Save */}

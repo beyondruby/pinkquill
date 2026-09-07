@@ -26,6 +26,7 @@ import { Spinner } from "@/components/ui/Loading";
 import CommunityBadge from "@/components/communities/CommunityBadge";
 import FlairBadge from "@/components/communities/FlairBadge";
 import ReactionPicker from "@/components/feed/ReactionPicker";
+import CommentCount from "@/components/feed/CommentCount";
 import { AudioPlayer } from "@/components/feed/AudioPlayer";
 import { supabase } from "@/lib/supabase";
 import { PostType } from "@/lib/types";
@@ -464,9 +465,9 @@ function PostCardComponent({
           onRemoveReaction={handleRemoveReaction}
           disabled={readOnly}
         />
-        <button className="action-btn" aria-label={`${post.stats?.comments ?? 0} comments`} disabled={readOnly} style={readOnly ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}>
+        <button className="action-btn" aria-label="Comments" onClick={readOnly ? undefined : handleOpenModal} disabled={readOnly} style={readOnly ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}>
           <CommentIcon />
-          <span className="action-count">{post.stats?.comments ?? 0}</span>
+          <span className="action-count"><CommentCount id={post.id} total={post.stats?.comments} /></span>
         </button>
         {(!user || user.id !== post.authorId) && (
           <button

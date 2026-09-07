@@ -49,6 +49,9 @@ export interface ReactionEntry {
    *  after a write are ignored so an in-flight list refetch cannot overwrite
    *  what the server just told us. */
   writtenAt: number;
+  /** Comment count over every row (top-level + replies). */
+  comments: number;
+  commentsLoaded: boolean;
 }
 
 export interface ReactionSeed {
@@ -57,6 +60,8 @@ export interface ReactionSeed {
   mine?: ReactionType | null;
   viewerId?: string | null;
   counts?: ReactionCounts;
+  /** Comment count from the list row; undefined = unknown. */
+  comments?: number;
 }
 
 export interface ReactionWriteResult {
@@ -86,6 +91,8 @@ const DEFAULT_ENTRY: ReactionEntry = Object.freeze({
   countsLoaded: false,
   pending: false,
   writtenAt: 0,
+  comments: 0,
+  commentsLoaded: false,
 }) as ReactionEntry;
 
 export function keyFor(kind: EngagementKind, id: string): string {
@@ -172,6 +179,15 @@ export function seedReaction(
     }
   }
 
+  if (typeof seed.comments === "number") {
+    const comments = Math.max(0, seed.comments);
+    if (!prev.commentsLoaded || prev.comments !== comments) {
+      next.comments = comments;
+      next.commentsLoaded = true;
+      dirty = true;
+    }
+  }
+
   if (!dirty) return;
   if (options.silent) {
     // Called during render (first seed): update without notifying other
@@ -208,6 +224,7 @@ interface SummaryRow {
   applaud: number;
   total: number;
   mine: string | null;
+  comments: number;
 }
 
 const queues: Record<EngagementKind, Set<string>> = { post: new Set(), take: new Set() };
@@ -239,6 +256,8 @@ function applySummary(kind: EngagementKind, rows: SummaryRow[], viewerId: string
       totalLoaded: true,
       mine: isReactionType(row.mine) ? row.mine : null,
       mineFor: viewerId,
+      comments: typeof row.comments === "number" ? row.comments : prev.comments,
+      commentsLoaded: typeof row.comments === "number" ? true : prev.commentsLoaded,
     });
   }
 }
@@ -289,11 +308,32 @@ export function ensureReactionLoaded(kind: EngagementKind, id: string): Promise<
 }
 
 /** Does the entry need a fetch for this viewer? */
-export function needsReactionLoad(entry: ReactionEntry, viewerId: string | null, wantCounts = false): boolean {
+export function needsReactionLoad(
+  entry: ReactionEntry,
+  viewerId: string | null,
+  wantCounts = false,
+  wantComments = false
+): boolean {
   if (!entry.totalLoaded) return true;
   if (wantCounts && !entry.countsLoaded) return true;
+  if (wantComments && !entry.commentsLoaded) return true;
   if (viewerId && entry.mineFor !== viewerId) return true;
   return false;
+}
+
+// ---------------------------------------------------------------------------
+// Comment counts — written by useComments after add/delete (server-confirmed)
+// ---------------------------------------------------------------------------
+
+/** Server-confirmed comment count for a post/take. */
+export function setCommentsCount(kind: EngagementKind, id: string, count: number): void {
+  patch(keyFor(kind, id), { comments: Math.max(0, count), commentsLoaded: true });
+}
+
+/** Optimistic nudge while a comment write is in flight. */
+export function bumpComments(kind: EngagementKind, id: string, delta: number): void {
+  const prev = getReaction(kind, id);
+  patch(keyFor(kind, id), { comments: Math.max(0, prev.comments + delta) });
 }
 
 // ---------------------------------------------------------------------------

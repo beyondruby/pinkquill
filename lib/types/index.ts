@@ -277,8 +277,12 @@ export interface FollowRequest {
 export interface Comment {
   id: string;
   user_id: string;
+  /** Post id or take id, depending on the engagement kind. */
   post_id: string;
   parent_id: string | null;
+  /** Who this reply answers (set for replies to replies; null otherwise). */
+  reply_to_user_id: string | null;
+  reply_to?: { username: string; display_name: string | null } | null;
   content: string;
   created_at: string;
   author: {
@@ -291,6 +295,8 @@ export interface Comment {
   user_has_liked: boolean;
   replies?: Comment[];
   hasMoreReplies?: boolean;
+  /** Optimistic row not yet confirmed by the server. */
+  pending?: boolean;
 }
 
 // ============================================================================

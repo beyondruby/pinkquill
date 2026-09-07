@@ -52,6 +52,8 @@ export interface UseReactionOptions {
   refreshOnFocus?: boolean;
   /** Fetch per-type counts immediately instead of on picker open. */
   loadCounts?: boolean;
+  /** Make sure the comment count is loaded (surfaces that show it). */
+  loadComments?: boolean;
 }
 
 export interface UseReactionResult {
@@ -61,6 +63,9 @@ export interface UseReactionResult {
   countsLoaded: boolean;
   totalLoaded: boolean;
   pending: boolean;
+  /** Comment count (all rows); trustworthy when `commentsLoaded`. */
+  comments: number;
+  commentsLoaded: boolean;
   isAuthenticated: boolean;
   /** Set this reaction; same type as `mine` removes it. Opens the auth modal
    *  for signed-out viewers and returns null. */
@@ -78,10 +83,11 @@ export function useReaction(kind: EngagementKind, id: string, options: UseReacti
   const { user } = useAuth();
   const { openModal: openAuthModal } = useAuthModal();
   const viewerId = user?.id ?? null;
-  const { authorId, refreshOnFocus = false, loadCounts: wantCounts = false } = options;
+  const { authorId, refreshOnFocus = false, loadCounts: wantCounts = false, loadComments: wantComments = false } = options;
   const seedTotal = options.seed?.total;
   const seedMine = options.seed?.mine;
   const seedCounts = options.seed?.counts;
+  const seedComments = options.seed?.comments;
   const seedCountsKey = seedCounts
     ? `${seedCounts.admire}|${seedCounts.snap}|${seedCounts.ovation}|${seedCounts.support}|${seedCounts.inspired}|${seedCounts.applaud}|${seedCounts.total}`
     : "";
@@ -91,7 +97,7 @@ export function useReaction(kind: EngagementKind, id: string, options: UseReacti
   // First paint must already show the list's numbers: seed synchronously
   // when the store has never heard of this id.
   if (id && options.seed && !hasReaction(kind, id)) {
-    seedReaction(kind, id, { total: seedTotal, mine: seedMine, counts: seedCounts, viewerId }, { silent: true });
+    seedReaction(kind, id, { total: seedTotal, mine: seedMine, counts: seedCounts, comments: seedComments, viewerId }, { silent: true });
   }
 
   const subscribe = useCallback(
@@ -104,15 +110,15 @@ export function useReaction(kind: EngagementKind, id: string, options: UseReacti
   // Re-seed when the list row changes (refetch). No-op during/after writes.
   useEffect(() => {
     if (!id || !options.seed) return;
-    seedReaction(kind, id, { total: seedTotal, mine: seedMine, counts: seedCounts, viewerId });
+    seedReaction(kind, id, { total: seedTotal, mine: seedMine, counts: seedCounts, comments: seedComments, viewerId });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- seedCounts keyed by value
-  }, [kind, id, seedTotal, seedMine, seedCountsKey, viewerId, !!options.seed]);
+  }, [kind, id, seedTotal, seedMine, seedCountsKey, seedComments, viewerId, !!options.seed]);
 
   // Fetch whatever is still unknown for this viewer.
   useEffect(() => {
     if (!id) return;
-    if (needsReactionLoad(entry, viewerId, wantCounts)) void ensureReactionLoaded(kind, id);
-  }, [kind, id, viewerId, wantCounts, entry.totalLoaded, entry.countsLoaded, entry.mineFor, entry]);
+    if (needsReactionLoad(entry, viewerId, wantCounts, wantComments)) void ensureReactionLoaded(kind, id);
+  }, [kind, id, viewerId, wantCounts, wantComments, entry.totalLoaded, entry.countsLoaded, entry.commentsLoaded, entry.mineFor, entry]);
 
   usePollOnFocus(() => {
     if (refreshOnFocus && id) void refreshReaction(kind, id);
@@ -176,6 +182,8 @@ export function useReaction(kind: EngagementKind, id: string, options: UseReacti
     countsLoaded: entry.countsLoaded,
     totalLoaded: entry.totalLoaded,
     pending: entry.pending,
+    comments: entry.comments,
+    commentsLoaded: entry.commentsLoaded,
     isAuthenticated: !!user,
     react,
     unreact,

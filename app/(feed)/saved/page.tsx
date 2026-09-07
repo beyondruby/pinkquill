@@ -19,6 +19,7 @@ import { supabase } from "@/lib/supabase";
 import Loading, { FullPageLoading } from "@/components/ui/Loading";
 import { CommentIcon } from "@/components/ui/Icons";
 import ReactionCount from "@/components/feed/ReactionCount";
+import CommentCount from "@/components/feed/CommentCount";
 // Product type is inferred from useSavedProducts hook
 
 function getTypeIcon(type: string): React.ReactNode {
@@ -469,7 +470,7 @@ export default function SavedPage() {
                       </span>
                       <span className="flex items-center gap-1 text-xs">
                         <CommentIcon size="sm" />
-                        {post.comments_count || 0}
+                        <CommentCount id={post.id} total={post.comments_count} />
                       </span>
                       <span className="text-xs ml-auto">{getTimeAgo(post.created_at)}</span>
                     </div>
@@ -577,7 +578,7 @@ export default function SavedPage() {
                       </span>
                       <span className="flex items-center gap-1 text-xs">
                         <CommentIcon size="sm" />
-                        {take.comments_count || 0}
+                        <CommentCount kind="take" id={take.id} total={take.comments_count} />
                       </span>
                       <span className="text-xs ml-auto">{getTimeAgo(take.created_at)}</span>
                     </div>
