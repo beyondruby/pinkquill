@@ -29,6 +29,7 @@ import {
   type ReactionEntry,
   type ReactionSeed,
   type ReactionWriteResult,
+  type TopReactor,
   clearReaction,
   ensureReactionLoaded,
   getReaction,
@@ -57,6 +58,9 @@ export interface UseReactionOptions {
   /** Subscribe to `content-events:<kind>:<id>` so other users' reactions
    *  and comments update the counts without a reload (open post/take). */
   live?: boolean;
+  /** Load the batched summary (per-type split + a reactor to name) even
+   *  when the list row already gave us the numbers — the card line. */
+  loadSummary?: boolean;
 }
 
 export interface UseReactionResult {
@@ -69,6 +73,9 @@ export interface UseReactionResult {
   /** Comment count (all rows); trustworthy when `commentsLoaded`. */
   comments: number;
   commentsLoaded: boolean;
+  /** Someone to name on the card line (null = nobody else reacted). */
+  topReactor: TopReactor | null;
+  summaryLoaded: boolean;
   isAuthenticated: boolean;
   /** Set this reaction; same type as `mine` removes it. Opens the auth modal
    *  for signed-out viewers and returns null. */
@@ -86,7 +93,13 @@ export function useReaction(kind: EngagementKind, id: string, options: UseReacti
   const { user } = useAuth();
   const { openModal: openAuthModal } = useAuthModal();
   const viewerId = user?.id ?? null;
-  const { refreshOnFocus = false, loadCounts: wantCounts = false, loadComments: wantComments = false, live = false } = options;
+  const {
+    refreshOnFocus = false,
+    loadCounts: wantCounts = false,
+    loadComments: wantComments = false,
+    live = false,
+    loadSummary: wantSummary = false,
+  } = options;
   const seedTotal = options.seed?.total;
   const seedMine = options.seed?.mine;
   const seedCounts = options.seed?.counts;
@@ -120,8 +133,8 @@ export function useReaction(kind: EngagementKind, id: string, options: UseReacti
   // Fetch whatever is still unknown for this viewer.
   useEffect(() => {
     if (!id) return;
-    if (needsReactionLoad(entry, viewerId, wantCounts, wantComments)) void ensureReactionLoaded(kind, id);
-  }, [kind, id, viewerId, wantCounts, wantComments, entry.totalLoaded, entry.countsLoaded, entry.commentsLoaded, entry.mineFor, entry]);
+    if (needsReactionLoad(entry, viewerId, wantCounts, wantComments, wantSummary)) void ensureReactionLoaded(kind, id);
+  }, [kind, id, viewerId, wantCounts, wantComments, wantSummary, entry.totalLoaded, entry.countsLoaded, entry.commentsLoaded, entry.summaryLoaded, entry.mineFor, entry]);
 
   usePollOnFocus(() => {
     if (refreshOnFocus && id) void refreshReaction(kind, id);
@@ -186,6 +199,8 @@ export function useReaction(kind: EngagementKind, id: string, options: UseReacti
     pending: entry.pending,
     comments: entry.comments,
     commentsLoaded: entry.commentsLoaded,
+    topReactor: entry.topReactor,
+    summaryLoaded: entry.summaryLoaded,
     isAuthenticated: !!user,
     react,
     unreact,

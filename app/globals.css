@@ -953,6 +953,8 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 .animate-fadeIn { animation: fadeIn 0.3s ease forwards; }
 .animate-scaleIn { animation: scaleIn 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
 .animate-slideUp { animation: slideUp 0.4s ease forwards; }
+/* Count / icon bump when a reaction or like lands (Phase 6) */
+.animate-pop { animation: pop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1); }
 
 /* Search Dropdown Animation */
 @keyframes searchDropdownIn {
@@ -2910,6 +2912,11 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
     width: 44px !important;
     height: 44px !important;
     font-size: 1.5rem !important;
+  }
+
+  /* The desktop arrow has no anchor once the sheet is fixed at the bottom */
+  .reaction-picker-dropdown > .absolute.top-full {
+    display: none !important;
   }
 
   /* Mobile menu - Bottom sheet style */

@@ -52,6 +52,16 @@ export interface ReactionEntry {
   /** Comment count over every row (top-level + replies). */
   comments: number;
   commentsLoaded: boolean;
+  /** One reactor to name on the card line (someone the viewer follows,
+   *  else the latest); null = nobody else has reacted. */
+  topReactor: TopReactor | null;
+  /** The batched summary has been applied at least once. */
+  summaryLoaded: boolean;
+}
+
+export interface TopReactor {
+  username: string;
+  display_name: string | null;
 }
 
 export interface ReactionSeed {
@@ -93,6 +103,8 @@ const DEFAULT_ENTRY: ReactionEntry = Object.freeze({
   writtenAt: 0,
   comments: 0,
   commentsLoaded: false,
+  topReactor: null,
+  summaryLoaded: false,
 }) as ReactionEntry;
 
 export function keyFor(kind: EngagementKind, id: string): string {
@@ -225,6 +237,7 @@ interface SummaryRow {
   total: number;
   mine: string | null;
   comments: number;
+  top_reactor?: TopReactor | null;
 }
 
 const queues: Record<EngagementKind, Set<string>> = { post: new Set(), take: new Set() };
@@ -258,6 +271,8 @@ function applySummary(kind: EngagementKind, rows: SummaryRow[], viewerId: string
       mineFor: viewerId,
       comments: typeof row.comments === "number" ? row.comments : prev.comments,
       commentsLoaded: typeof row.comments === "number" ? true : prev.commentsLoaded,
+      topReactor: row.top_reactor && typeof row.top_reactor.username === "string" ? row.top_reactor : null,
+      summaryLoaded: true,
     });
   }
 }
@@ -312,11 +327,14 @@ export function needsReactionLoad(
   entry: ReactionEntry,
   viewerId: string | null,
   wantCounts = false,
-  wantComments = false
+  wantComments = false,
+  wantSummary = false
 ): boolean {
   if (!entry.totalLoaded) return true;
   if (wantCounts && !entry.countsLoaded) return true;
   if (wantComments && !entry.commentsLoaded) return true;
+  // The card line needs a name; only worth a round trip when someone reacted.
+  if (wantSummary && !entry.summaryLoaded && entry.counts.total > 0) return true;
   if (viewerId && entry.mineFor !== viewerId) return true;
   return false;
 }

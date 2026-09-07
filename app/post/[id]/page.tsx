@@ -5,7 +5,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useComments, COMMENT_MAX_LENGTH } from "@/lib/hooks/useComments";
+import { useComments } from "@/lib/hooks/useComments";
 import { useToggleSave, useToggleRelay, useBlock } from "@/lib/hooks/useInteractions";
 import { useReaction } from "@/lib/engagement/reactions";
 import { actionToast } from "@/lib/utils/toast";
@@ -16,6 +16,9 @@ import ShareModal from "@/components/ui/ShareModal";
 import ReportModal from "@/components/ui/ReportModal";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import CommentItem from "@/components/feed/CommentItem";
+import CommentComposer from "@/components/feed/CommentComposer";
+import ReactionSummary from "@/components/feed/ReactionSummary";
+import { CommentSkeleton } from "@/components/ui/Skeleton";
 import ReactionPicker from "@/components/feed/ReactionPicker";
 import { AudioPlayer } from "@/components/feed/AudioPlayer";
 import LeftSidebar from "@/components/layout/LeftSidebar";
@@ -170,6 +173,7 @@ export default function PostPage() {
   const searchParams = useSearchParams();
   const postId = params.id as string;
   const commentIdFromUrl = searchParams.get('comment');
+  const replyFromUrl = searchParams.get('reply') === '1';
   const mediaFailedFromUrl = searchParams.get("media_failed");
   const { user, profile, status: authStatus } = useAuth();
 
@@ -226,7 +230,8 @@ export default function PostPage() {
   // the "View replies" toggle by retrying until the node exists.
   const deepLinkDoneRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!commentIdFromUrl || commentsLoading || deepLinkDoneRef.current === commentIdFromUrl) return;
+    // Wait for auth too: the Reply toggle is disabled for signed-out viewers.
+    if (!commentIdFromUrl || commentsLoading || authStatus === "loading" || deepLinkDoneRef.current === commentIdFromUrl) return;
     deepLinkDoneRef.current = commentIdFromUrl;
     let cancelled = false;
     (async () => {
@@ -236,6 +241,10 @@ export default function PostPage() {
         el.scrollIntoView({ behavior: "smooth", block: "center" });
         el.classList.add("highlight-comment");
         setTimeout(() => el.classList.remove("highlight-comment"), 2000);
+        if (replyFromUrl) {
+          const toggle = el.querySelector<HTMLButtonElement>("[data-reply-toggle]");
+          if (toggle && toggle.getAttribute("aria-expanded") !== "true") toggle.click();
+        }
       };
       for (let attempt = 0; attempt < 20 && !cancelled; attempt++) {
         await new Promise((r) => setTimeout(r, 150));
@@ -255,7 +264,7 @@ export default function PostPage() {
     return () => {
       cancelled = true;
     };
-  }, [commentIdFromUrl, commentsLoading, ensureCommentVisible]);
+  }, [commentIdFromUrl, replyFromUrl, commentsLoading, authStatus, ensureCommentVisible]);
 
   // Single fetch function for all data
   const fetchData = useCallback(async () => {
@@ -1089,6 +1098,8 @@ export default function PostPage() {
             </div>
 
             {/* Action Buttons */}
+            {/* Who reacted (Phase 6) */}
+            <ReactionSummary id={postId} className="px-4 md:px-6 pb-3" />
             <div className="flex items-center gap-1.5 md:gap-2 px-4 md:px-6 py-3 md:py-4 border-t border-border-light flex-wrap">
               {/* Reaction Picker */}
               <ReactionPicker
@@ -1157,53 +1168,23 @@ export default function PostPage() {
                 </h2>
               </div>
 
-            {/* Comment Input */}
-            {user ? (
-              <div className="p-4 border-b border-border-light flex gap-3 items-center">
-                <img
-                  src={profile?.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"}
-                  alt="You"
-                  className="w-9 h-9 rounded-full object-cover flex-shrink-0"
-                />
-                <div className="flex-1 flex items-center bg-subtle rounded-full px-4 focus-within:bg-surface focus-within:ring-2 focus-within:ring-purple-primary transition-all">
-                  <input
-                    type="text"
-                    value={commentText}
-                    onChange={(e) => setCommentText(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.nativeEvent.isComposing) handleAddComment();
-                    }}
-                    placeholder="Add to the conversation..."
-                    maxLength={COMMENT_MAX_LENGTH}
-                    disabled={submitting}
-                    className="flex-1 py-2.5 border-none bg-transparent outline-none font-body text-[0.9rem] text-ink placeholder:text-muted/60"
-                  />
-                </div>
-                <button
-                  onClick={handleAddComment}
-                  disabled={submitting || !commentText.trim()}
-                  className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white flex items-center justify-center hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {icons.send}
-                </button>
-              </div>
-            ) : (
-              <div className="p-4 border-b border-border-light text-center">
-                <p className="font-ui text-[0.9rem] text-muted">
-                  <Link href="/login" className="text-purple-primary hover:underline">Sign in</Link> to comment
-                </p>
-              </div>
-            )}
-
             {/* Comments List */}
-            <div className="p-4 max-h-[calc(100vh-280px)] overflow-y-auto">
+            <div className="p-4 max-h-[calc(100vh-320px)] overflow-y-auto">
               {commentsLoading ? (
-                <div className="flex justify-center py-8">
-                  <Loading size="small" text="" />
+                <div className="space-y-1" aria-busy="true" aria-label="Loading comments">
+                  <CommentSkeleton />
+                  <CommentSkeleton />
+                  <CommentSkeleton />
                 </div>
               ) : comments.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="font-body text-muted italic">No comments yet. Start the conversation!</p>
+                <div className="text-center py-10">
+                  <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-gradient-to-br from-purple-primary/10 to-pink-vivid/10 flex items-center justify-center text-purple-primary">
+                    <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.6}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h8M8 14h5m-9 7l3.5-3.5H18a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v15z" />
+                    </svg>
+                  </div>
+                  <p className="font-ui text-[0.95rem] text-ink mb-1">No comments yet</p>
+                  <p className="font-body text-sm text-muted">Be the first to share what you think.</p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -1233,6 +1214,25 @@ export default function PostPage() {
                 </div>
               )}
             </div>
+            {/* Composer — stays at the bottom of the discussion (Phase 6) */}
+            {user ? (
+              <div className="p-3 md:p-4 border-t border-border-light bg-surface sticky bottom-0">
+                <CommentComposer
+                  value={commentText}
+                  onChange={setCommentText}
+                  onSubmit={handleAddComment}
+                  submitting={submitting}
+                  showAvatar
+                  avatarUrl={profile?.avatar_url}
+                />
+              </div>
+            ) : (
+              <div className="p-4 border-t border-border-light text-center">
+                <p className="font-ui text-[0.9rem] text-muted">
+                  <Link href="/login" className="text-purple-primary hover:underline">Sign in</Link> to comment
+                </p>
+              </div>
+            )}
           </section>
           </div>
         </div>

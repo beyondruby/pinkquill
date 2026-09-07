@@ -9,10 +9,11 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useComments, COMMENT_MAX_LENGTH } from "@/lib/hooks/useComments";
+import { useComments } from "@/lib/hooks/useComments";
 import { useReaction } from "@/lib/engagement/reactions";
-import { CommentIcon } from "@/components/ui/Icons";
 import CommentItem from "@/components/feed/CommentItem";
+import CommentComposer from "@/components/feed/CommentComposer";
+import { CommentSkeleton } from "@/components/ui/Skeleton";
 import { actionToast } from "@/lib/utils/toast";
 
 interface TakeCommentsPanelProps {
@@ -24,7 +25,7 @@ interface TakeCommentsPanelProps {
 
 export default function TakeCommentsPanel({ isOpen, onClose, takeId, authorId }: TakeCommentsPanelProps) {
   const { user, profile } = useAuth();
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const [input, setInput] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -48,8 +49,7 @@ export default function TakeCommentsPanel({ isOpen, onClose, takeId, authorId }:
   }, [isOpen]);
 
   const handleSubmit = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault();
+    async () => {
       const text = input.trim();
       if (!text || submitting) return;
       setSubmitting(true);
@@ -116,18 +116,22 @@ export default function TakeCommentsPanel({ isOpen, onClose, takeId, authorId }:
 
         <div className="flex-1 overflow-y-auto p-4 md:p-6">
           {loading && (
-            <div className="text-center py-8">
-              <div className="w-6 h-6 border-2 border-purple-primary border-t-transparent rounded-full animate-spin mx-auto" />
+            <div className="space-y-1" aria-busy="true" aria-label="Loading comments">
+              <CommentSkeleton />
+              <CommentSkeleton />
+              <CommentSkeleton />
             </div>
           )}
 
           {!loading && comments.length === 0 && (
-            <div className="text-center py-12 md:py-8">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-skeleton/60 flex items-center justify-center">
-                <CommentIcon size="lg" className="w-8 h-8" />
+            <div className="text-center py-10">
+              <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-gradient-to-br from-purple-primary/10 to-pink-vivid/10 flex items-center justify-center text-purple-primary">
+                <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.6}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h8M8 14h5m-9 7l3.5-3.5H18a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v15z" />
+                </svg>
               </div>
               <p className="font-ui text-[0.95rem] text-ink mb-1">No comments yet</p>
-              <p className="font-body text-sm text-muted">Start the conversation!</p>
+              <p className="font-body text-sm text-muted">Be the first to share what you think.</p>
             </div>
           )}
 
@@ -171,30 +175,15 @@ export default function TakeCommentsPanel({ isOpen, onClose, takeId, authorId }:
                 {profile?.username?.[0]?.toUpperCase() || "?"}
               </div>
             )}
-            <form onSubmit={handleSubmit} className="flex-1 flex items-center gap-2">
-              <div className="flex-1 flex items-center bg-subtle rounded-full px-4 focus-within:bg-surface focus-within:ring-2 focus-within:ring-purple-primary focus-within:shadow-lg transition-all">
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder="Add a comment..."
-                  maxLength={COMMENT_MAX_LENGTH}
-                  disabled={submitting}
-                  className="flex-1 py-2.5 border-none bg-transparent outline-none font-body text-[0.95rem] text-ink placeholder:text-muted/60"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={!input.trim() || submitting}
-                aria-label="Post comment"
-                className="w-10 h-10 md:w-[42px] md:h-[42px] rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white flex items-center justify-center hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                </svg>
-              </button>
-            </form>
+            <CommentComposer
+              className="flex-1"
+              textareaRef={inputRef}
+              value={input}
+              onChange={setInput}
+              onSubmit={handleSubmit}
+              submitting={submitting}
+              placeholder="Add a comment…"
+            />
           </div>
         ) : (
           <div

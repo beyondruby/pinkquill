@@ -12,7 +12,7 @@ Read `00-system-map.md` (what existed), `01-findings.md` (root causes),
 | 3 — Notifications via DB triggers | **done** (merged to `main`) | 2026-09-07 |
 | 4 — Security | **done** (branch `fix/engagement-phase4`, merged to `main`) | 2026-09-07 |
 | 5 — Load / live events | **done** (branch `fix/engagement-phase5`, merged to `main`) | 2026-09-07 |
-| 6 — UI/UX | next | |
+| 6 — UI/UX | **done** (branch `fix/engagement-phase6`, merged to `main`) | 2026-09-07 |
 
 Decisions taken: D1 one reaction per user per post/take; D2 retire `admires`
 (folded into `reactions`; the table was dropped in Phase 5); D3 replies are one level deep; D4 post/take authors may delete any
@@ -481,7 +481,98 @@ reasoning, not a measurement.
 - Feed cards refresh counts on focus only; live events are opt-in per open
   surface by design.
 
+## Phase 6 — what changed (2026-09-07)
+
+### Database (`20260912_engagement_phase6_ui.sql`, applied to prod)
+
+- `get_post_reactors` / `get_take_reactors(p_id, p_type, p_limit, p_before)`:
+  who reacted, newest first, per type, with the viewer's follow status.
+  SECURITY INVOKER, so the Phase 4 read policies decide what is listed.
+- `get_post_/take_reaction_summary` return `top_reactor` (someone the viewer
+  follows, else the latest reactor, never the viewer) for the card line.
+- `search_mention_candidates(p_query, p_limit)` for the composer's `@`
+  autocomplete: people you follow first, then a name search; excludes
+  yourself, anyone blocked either way, and private accounts that do not
+  follow you (the tagging rule). Authenticated only.
+
+### Client
+
+Reactions
+- `ReactionPicker`: long-press (450 ms) on touch and right-click open the
+  picker; the click that follows does not toggle; tap still toggles the
+  default; haptic tick where `navigator.vibrate` exists; tap outside
+  closes; the synthetic hover after a tap no longer opens it. Count and
+  icon pop (`.animate-pop`, existing `pop` keyframe) whenever the total
+  changes, including live events. Mobile uses the existing fixed
+  bottom-sheet styles (`.reaction-picker-dropdown`, arrow hidden).
+- `components/feed/ReactionSummary.tsx`: top-3 reaction icons + "You, poet
+  and 3 others reacted" (falls back to "4 reactions" until the summary is
+  loaded). On every feed card (under the actions), the post page, post
+  modal, take page and take modal (above the action bar). Tapping opens
+  `components/feed/ReactionsSheet.tsx` (the `Sheet` primitive): a tab per
+  type with counts, people with their reaction, Follow / Requested /
+  Following buttons through `useFollow`, "Show more" paging.
+- `useReaction({ loadSummary })` + store fields `topReactor`,
+  `summaryLoaded`; the summary RPC is only requested when the total is > 0
+  (one batched call per feed page).
+
+Comments
+- `components/feed/CommentComposer.tsx` is the one input everywhere (post
+  page, post modal, take page, take modal, takes panel, and replies inside
+  `CommentItem`): auto-growing textarea, Enter sends / Shift+Enter newline /
+  IME-safe, counter from 2,000 of 2,200 (over the limit blocks sending),
+  emoji button (existing `EmojiPicker`), "Replying to @name ×" chip, `@`
+  autocomplete (people you follow first) and `#` autocomplete (tags),
+  arrow keys / Enter / Tab / Escape. Failed posts keep the text.
+- Pages: the composer sits at the bottom of the discussion card and
+  sticks there while the list scrolls; skeleton rows (`CommentSkeleton`)
+  while loading; an empty state that invites the first comment. The take
+  page now stacks on phones (it was a fixed two-column desktop layout).
+- `CommentItem`: like heart and count pop; Reply button carries
+  `data-reply-toggle` so a deep link can open it.
+- Deep links: `?comment=<id>&reply=1` scrolls to the comment (any page,
+  any reply) and opens its reply composer, on both the post page and the
+  take page (the take page had no deep-link handling before; E-15). Waits
+  for auth so the toggle is enabled.
+
+Notifications
+- Grouped reaction rows stack up to three actors' avatars, show the
+  reaction icon in the badge and the distinct reaction icons after the
+  text. Comment / reply / mention rows have a **Reply** quick action that
+  marks the group read and opens the thread with the composer on that
+  comment. Take rows show the take thumbnail.
+
+Tests: `components/feed/__tests__/composer.test.ts` (token parsing,
+summary wording); suite 223 passed; `tsc` clean; eslint 0 errors;
+`next build` clean.
+
+### Tested (2026-09-07, hadi in Chrome = A, poet / hii through the RPCs = B; phone widths through same-origin 390 px and 360 px frames because the Chrome window would not resize)
+
+| Check | Result |
+|---|---|
+| Card line on poet's post | "You and poet reacted" with the two icons; tapping opens the sheet with All 2 / Admire 1 / Snap 1, hadi + poet rows, Follow button on poet |
+| B's view of the same lists | `get_post_reactors` returns hadi (admire) + poet (snap, is_me); `top_reactor` for poet = hadi |
+| Type "nice one @po" in the composer | dropdown lists poet1 (followed) first, then poet; ↓ Enter inserts `@poet `; Enter posts; comment renders with the mention link; B receives a `comment` notification carrying `comment_id` |
+| `search_mention_candidates` as B | "ha" → hadi; "" → followed first; blocked and non-following private accounts absent |
+| Right-click the heart | picker opens with per-type counts; Escape closes |
+| Reply on a comment | compact composer with "Replying to @hadi ×" chip |
+| B comments on A's post; A opens Notifications | row shows the comment text and a **Reply** button; clicking it lands on `/post/<id>?comment=<id>&reply=1` with the reply composer open on that comment; A's reply appears nested under "Hide 1 reply"; B's thread query shows both rows |
+| Grouped reaction row | "jane doe and 1 other reacted to your thought" with stacked avatars and the snap icon |
+| 390 px / 360 px | feed card with summary line, post page (summary above the action bar, sticky composer), take page (stacked columns, no mid-word wrap), takes feed overlay all fit without horizontal scroll |
+
+Not verified on a real touch device: long-press and haptics were written to
+the Touch Events + `navigator.vibrate` APIs but only right-click was
+exercised (no touch emulation available in this session).
+
+### Known gaps left
+
+- Wording: the card line says "… reacted" rather than the plan's "Liked
+  by …" because Pinkquill's reactions are not likes.
+- Insights labels still say "admires" (copy only).
+- `saves` on posts has no counter column (nothing displays it).
+
 ## Next session
 
-Phase 6 (UI/UX). Start from `02-plan.md` §Phase 6. Keep Pinkquill's colours,
-fonts and components; Instagram-style social app; no accent-line boxes.
+The six phases of the engagement rebuild are complete. Remaining items
+from the audit are in each phase's "Known gaps" list above; the go-live
+checklist is unchanged (`docs/commissions/03-progress.md`).

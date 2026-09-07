@@ -21,6 +21,7 @@ import ActionMenu from "@/components/ui/ActionMenu";
 import Button from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Loading";
 import { COMMENT_MAX_LENGTH } from "@/lib/hooks/useComments";
+import CommentComposer from "./CommentComposer";
 
 export interface CommentItemProps {
   comment: Comment;
@@ -110,6 +111,9 @@ function CommentItemComponent({
   const [isReporting, setIsReporting] = useState(false);
   const [reportSubmitted, setReportSubmitted] = useState(false);
   const reportTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Like bump (Phase 6): the heart pops when the viewer likes.
+  const [likeBump, setLikeBump] = useState(false);
+  const likeBumpTimerRef = useRef<NodeJS.Timeout | null>(null);
   const { blockUser } = useBlock();
 
   const isOwner = currentUserId === comment.user_id;
@@ -120,7 +124,6 @@ function CommentItemComponent({
   // remembers whom it answers.
   const effectiveParentId = isReply ? (topLevelParentId || comment.id) : comment.id;
   const replyToUserId = isReply ? comment.user_id : null;
-  const replyToName = comment.author.display_name || comment.author.username;
 
   // "@name" prefix on a reply that answers someone other than the top-level author.
   const showReplyTarget =
@@ -129,6 +132,7 @@ function CommentItemComponent({
   useEffect(() => {
     return () => {
       if (reportTimeoutRef.current) clearTimeout(reportTimeoutRef.current);
+      if (likeBumpTimerRef.current) clearTimeout(likeBumpTimerRef.current);
     };
   }, []);
 
@@ -180,6 +184,11 @@ function CommentItemComponent({
 
   const handleLike = () => {
     if (!currentUserId || isPending) return;
+    if (!comment.user_has_liked) {
+      setLikeBump(true);
+      if (likeBumpTimerRef.current) clearTimeout(likeBumpTimerRef.current);
+      likeBumpTimerRef.current = setTimeout(() => setLikeBump(false), 320);
+    }
     onLike(comment.id);
   };
 
@@ -376,14 +385,16 @@ function CommentItemComponent({
                 comment.user_has_liked ? "text-pink-vivid" : "text-muted hover:text-pink-vivid"
               } ${!currentUserId ? "opacity-50 cursor-not-allowed" : ""}`}
             >
-              <svg className="w-3.5 h-3.5" fill={comment.user_has_liked ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+              <svg className={`w-3.5 h-3.5 ${likeBump ? "animate-pop" : ""}`} fill={comment.user_has_liked ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
               </svg>
-              {comment.likes_count > 0 && <span>{comment.likes_count}</span>}
+              {comment.likes_count > 0 && <span className={`tabular-nums ${likeBump ? "animate-pop" : ""}`}>{comment.likes_count}</span>}
             </button>
 
             <button
               onClick={handleOpenReply}
+              data-reply-toggle
+              aria-expanded={showReplyInput}
               disabled={!currentUserId || isPending}
               className={`font-ui text-[0.75rem] text-muted hover:text-accent transition-colors ${
                 !currentUserId ? "opacity-50 cursor-not-allowed" : ""
@@ -396,43 +407,18 @@ function CommentItemComponent({
           {/* Reply composer */}
           {showReplyInput && currentUserId && (
             <div className="mt-3 ml-2">
-              {isReply && (
-                <div className="flex items-center gap-2 mb-1.5 font-ui text-[0.72rem] text-muted">
-                  <span>
-                    Replying to <span className="text-purple-primary font-medium">@{comment.author.username}</span>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setShowReplyInput(false)}
-                    aria-label={`Stop replying to ${replyToName}`}
-                    className="w-4 h-4 rounded-full flex items-center justify-center hover:bg-skeleton text-muted/70"
-                  >
-                    ×
-                  </button>
-                </div>
-              )}
-              <div className="flex gap-2 items-stretch">
-                <input
-                  type="text"
-                  value={replyText}
-                  onChange={(e) => setReplyText(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.nativeEvent.isComposing && !submitting) handleSubmitReply();
-                  }}
-                  placeholder="Write a reply..."
-                  maxLength={COMMENT_MAX_LENGTH}
-                  disabled={submitting}
-                  autoFocus
-                  className="flex-1 min-w-0 h-9 px-3 rounded-full bg-skeleton/60 border-none outline-none font-body text-[0.85rem] text-ink placeholder:text-muted/50 focus:bg-surface focus:ring-2 focus:ring-purple-primary/20 transition-colors"
-                />
-                <button
-                  onClick={handleSubmitReply}
-                  disabled={submitting || !replyText.trim()}
-                  className="flex-shrink-0 h-9 px-4 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white font-ui text-[0.8rem] font-medium disabled:opacity-50 transition-opacity"
-                >
-                  {submitting ? "..." : "Reply"}
-                </button>
-              </div>
+              <CommentComposer
+                size="sm"
+                value={replyText}
+                onChange={setReplyText}
+                onSubmit={handleSubmitReply}
+                submitting={submitting}
+                autoFocus
+                placeholder="Write a reply…"
+                replyingTo={{ username: comment.author.username }}
+                onCancelReply={() => setShowReplyInput(false)}
+                submitLabel="Post reply"
+              />
             </div>
           )}
 

@@ -12,20 +12,23 @@ import Modal from "@/components/ui/Modal";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useAuthModal } from "@/components/providers/AuthModalProvider";
 import { removeSelfAsCollaborator } from "@/lib/hooks.legacy";
-import { useComments, COMMENT_MAX_LENGTH } from "@/lib/hooks/useComments";
+import { useComments } from "@/lib/hooks/useComments";
 import { useToggleSave, useToggleRelay, useBlock } from "@/lib/hooks/useInteractions";
 import { useReaction } from "@/lib/engagement/reactions";
 import type { ReactionType, ReactionCounts } from "@/lib/types";
 import { showToast, actionToast } from "@/lib/utils/toast";
 import type { PostUpdate } from "@/components/providers/ModalProvider";
 import CommentItem from "@/components/feed/CommentItem";
+import CommentComposer from "@/components/feed/CommentComposer";
+import ReactionSummary from "@/components/feed/ReactionSummary";
+import { CommentSkeleton } from "@/components/ui/Skeleton";
 import ReactionPicker from "@/components/feed/ReactionPicker";
 
 const ShareModal = dynamic(() => import("@/components/ui/ShareModal"), { ssr: false });
 const ReportModal = dynamic(() => import("@/components/ui/ReportModal"), { ssr: false });
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import Button from "@/components/ui/Button";
-import { Spinner } from "@/components/ui/Loading";
+
 import ActionMenu, { type ActionMenuItem } from "@/components/ui/ActionMenu";
 import { supabase } from "@/lib/supabase";
 import { deleteOwnPost } from "@/lib/content-client";
@@ -990,6 +993,8 @@ function PostDetailModalComponent({
           />
 
           {/* Actions - Floating action bar with adaptive colors */}
+          {/* Who reacted (Phase 6) */}
+          <ReactionSummary id={post.id} className="mt-4" />
           <div className={`post-actions-bar flex items-center gap-1.5 md:gap-2 mt-6 pt-4 md:pt-6 border-t flex-wrap z-20 ${borderColorClass} ${hasDarkBg ? 'dark-bg' : ''}`}>
             {/* Reaction Picker */}
             <ReactionPicker
@@ -1106,12 +1111,20 @@ function PostDetailModalComponent({
             {/* Comments List */}
             <div className="flex-1 overflow-y-auto p-6">
               {commentsLoading ? (
-                <div className="text-center py-8">
-                  <Spinner size="lg" className="text-purple-primary mx-auto" />
+                <div className="space-y-1" aria-busy="true" aria-label="Loading comments">
+                  <CommentSkeleton />
+                  <CommentSkeleton />
+                  <CommentSkeleton />
                 </div>
               ) : comments.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="font-body text-muted italic">No comments yet. Start the conversation!</p>
+                <div className="text-center py-10">
+                  <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-gradient-to-br from-purple-primary/10 to-pink-vivid/10 flex items-center justify-center text-purple-primary">
+                    <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.6}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h8M8 14h5m-9 7l3.5-3.5H18a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v15z" />
+                    </svg>
+                  </div>
+                  <p className="font-ui text-[0.95rem] text-ink mb-1">No comments yet</p>
+                  <p className="font-body text-sm text-muted">Be the first to share what you think.</p>
                 </div>
               ) : (
                 <div className="space-y-5">
@@ -1144,39 +1157,17 @@ function PostDetailModalComponent({
               )}
             </div>
 
-            {/* Comment Input */}
+            {/* Composer (Phase 6) */}
             {user ? (
-              <div className="p-4 bg-elevated border-t border-border-light flex gap-2.5 items-center">
-                <Image
-                  src={profile?.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80"}
-                  alt="You"
-                  width={36}
-                  height={36}
-                  className="w-9 h-9 rounded-full object-cover flex-shrink-0"
-                  sizes="36px"
-                  quality={80}
+              <div className="p-3 md:p-4 bg-elevated border-t border-border-light">
+                <CommentComposer
+                  value={commentText}
+                  onChange={setCommentText}
+                  onSubmit={handleAddComment}
+                  submitting={submitting}
+                  showAvatar
+                  avatarUrl={profile?.avatar_url}
                 />
-                <div className="flex-1 flex items-center bg-subtle rounded-3xl px-4 focus-within:bg-surface focus-within:ring-2 focus-within:ring-accent focus-within:shadow-lg transition-all">
-                  <input
-                    type="text"
-                    value={commentText}
-                    onChange={(e) => setCommentText(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.nativeEvent.isComposing) handleAddComment();
-                    }}
-                    placeholder="Add to the conversation..."
-                    maxLength={COMMENT_MAX_LENGTH}
-                    disabled={submitting}
-                    className="flex-1 py-2.5 border-none bg-transparent outline-none font-body text-[0.95rem] text-ink placeholder:text-muted/60 placeholder:italic"
-                  />
-                </div>
-                <button
-                  onClick={handleAddComment}
-                  disabled={submitting || !commentText.trim()}
-                  className="w-[42px] h-[42px] rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-on-accent flex items-center justify-center hover:scale-110 hover:shadow-lg hover:shadow-purple-primary/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                >
-                  {icons.send}
-                </button>
               </div>
             ) : (
               <div className="p-4 bg-elevated border-t border-border-light text-center">

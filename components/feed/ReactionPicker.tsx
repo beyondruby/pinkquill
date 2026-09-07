@@ -141,6 +141,8 @@ interface ReactionPickerProps {
   variant?: ReactionPickerVariant;
 }
 
+export const REACTION_OPTIONS: ReadonlyArray<{ type: ReactionType; label: string }> = reactions.map(({ type, label }) => ({ type, label }));
+
 export function getReactionIcon(type: ReactionType): React.ReactNode {
   return reactionIcons[type];
 }
@@ -172,6 +174,16 @@ export default function ReactionPicker({
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const tooltipTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isMounted, setIsMounted] = useState(false);
+  // Touch: long-press opens the picker; the click that follows must not
+  // toggle the default reaction. Synthetic mouseenter after a tap must not
+  // hover-open it either.
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const suppressClickRef = useRef(false);
+  const lastTouchAtRef = useRef(0);
+  // Count bump when the total changes (own click or someone else's).
+  const [bump, setBump] = useState(false);
+  const prevTotalRef = useRef(reactionCounts.total);
 
   // For portal rendering
   /* eslint-disable react-hooks/set-state-in-effect */
@@ -191,9 +203,89 @@ export default function ReactionPicker({
     }
   };
 
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    if (prevTotalRef.current === reactionCounts.total) return;
+    prevTotalRef.current = reactionCounts.total;
+    setBump(true);
+    const t = setTimeout(() => setBump(false), 320);
+    return () => clearTimeout(t);
+  }, [reactionCounts.total]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  // Tap outside closes a picker opened by touch / right-click.
+  useEffect(() => {
+    if (!isOpen) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+        setHoveredReaction(null);
+      }
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [isOpen]);
+
+  const clearLongPress = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
+  const openByPress = () => {
+    setShowMainTooltip(false);
+    setIsOpen(true);
+    if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+      try {
+        navigator.vibrate(12);
+      } catch {
+        /* unsupported */
+      }
+    }
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (disabled) return;
+    lastTouchAtRef.current = Date.now();
+    const t = e.touches[0];
+    touchStartRef.current = t ? { x: t.clientX, y: t.clientY } : null;
+    clearLongPress();
+    longPressTimerRef.current = setTimeout(() => {
+      longPressTimerRef.current = null;
+      suppressClickRef.current = true;
+      openByPress();
+    }, 450);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    const start = touchStartRef.current;
+    if (!t || !start) return;
+    if (Math.abs(t.clientX - start.x) > 10 || Math.abs(t.clientY - start.y) > 10) clearLongPress();
+  };
+
+  const handleTouchEnd = () => {
+    lastTouchAtRef.current = Date.now();
+    clearLongPress();
+  };
+
+  // Right-click (desktop) and the long-press context menu (Android).
+  const handleContextMenu = (e: React.MouseEvent) => {
+    if (disabled) return;
+    e.preventDefault();
+    e.stopPropagation();
+    suppressClickRef.current = true;
+    setTimeout(() => {
+      suppressClickRef.current = false;
+    }, 600);
+    openByPress();
+  };
+
   // Handle mouse enter with delay
   const handleMouseEnter = () => {
     if (disabled) return;
+    if (Date.now() - lastTouchAtRef.current < 1000) return; // synthetic hover after a tap
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
@@ -247,6 +339,9 @@ export default function ReactionPicker({
       }
       if (tooltipTimeoutRef.current) {
         clearTimeout(tooltipTimeoutRef.current);
+      }
+      if (longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current);
       }
     };
   }, []);
@@ -357,10 +452,15 @@ export default function ReactionPicker({
     }
   }, [disabled, currentReaction, onReact, onRemoveReaction]);
 
-  // Handle click on main button
+  // Handle click on main button (tap = toggle the default reaction)
   const handleMainClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (disabled) return;
+    if (suppressClickRef.current) {
+      // The click that follows a long-press / right-click open.
+      suppressClickRef.current = false;
+      return;
+    }
 
     if (currentReaction) {
       onRemoveReaction();
@@ -396,6 +496,11 @@ export default function ReactionPicker({
       className="relative"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchEnd}
+      onContextMenu={handleContextMenu}
     >
       {/* Main Button */}
       {variant === "card" && (
@@ -409,10 +514,10 @@ export default function ReactionPicker({
           aria-haspopup="listbox"
           aria-expanded={isOpen}
         >
-          <span className={`w-[1.1rem] h-[1.1rem] transition-transform duration-200 ${currentReaction ? 'scale-110' : 'group-hover/reaction:scale-110'}`}>
+          <span className={`w-[1.1rem] h-[1.1rem] transition-transform duration-200 ${currentReaction ? 'scale-110' : 'group-hover/reaction:scale-110'} ${bump ? 'animate-pop' : ''}`}>
             {displayIcon}
           </span>
-          <span className="action-count">{reactionCounts.total}</span>
+          <span className={`action-count ${bump ? 'animate-pop' : ''}`}>{reactionCounts.total}</span>
         </button>
       )}
       {variant === "pill" && (
@@ -430,11 +535,11 @@ export default function ReactionPicker({
           aria-haspopup="listbox"
           aria-expanded={isOpen}
         >
-          <span className={`w-5 h-5 transition-transform duration-200 ${currentReaction ? 'scale-110' : ''}`}>
+          <span className={`w-5 h-5 transition-transform duration-200 ${currentReaction ? 'scale-110' : ''} ${bump ? 'animate-pop' : ''}`}>
             {displayIcon}
           </span>
           {reactionCounts.total > 0 && (
-            <span className="text-sm font-medium">{reactionCounts.total}</span>
+            <span className={`text-sm font-medium ${bump ? 'animate-pop' : ''}`}>{reactionCounts.total}</span>
           )}
         </button>
       )}
@@ -450,11 +555,11 @@ export default function ReactionPicker({
           aria-expanded={isOpen}
         >
           <div className="tiktok-action-icon">
-            <span className={`w-6 h-6 transition-transform duration-200 ${currentReaction ? 'scale-110' : ''}`}>
+            <span className={`w-6 h-6 transition-transform duration-200 ${currentReaction ? 'scale-110' : ''} ${bump ? 'animate-pop' : ''}`}>
               {displayIcon}
             </span>
           </div>
-          <span>{reactionCounts.total}</span>
+          <span className={bump ? 'animate-pop' : ''}>{reactionCounts.total}</span>
         </button>
       )}
 

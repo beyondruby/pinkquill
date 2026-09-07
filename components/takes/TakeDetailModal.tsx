@@ -6,7 +6,7 @@ import Link from "next/link";
 import Modal from "@/components/ui/Modal";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { TakeReactionType, Take } from "@/lib/hooks/useTakes";
-import { useComments, COMMENT_MAX_LENGTH } from "@/lib/hooks/useComments";
+import { useComments } from "@/lib/hooks/useComments";
 import { actionToast } from "@/lib/utils/toast";
 import { useReaction } from "@/lib/engagement/reactions";
 import { deleteOwnTake } from "@/lib/content-client";
@@ -16,6 +16,9 @@ import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import ActionMenu, { type ActionMenuItem } from "@/components/ui/ActionMenu";
 import ReactionPicker from "@/components/feed/ReactionPicker";
 import CommentItem from "@/components/feed/CommentItem";
+import CommentComposer from "@/components/feed/CommentComposer";
+import ReactionSummary from "@/components/feed/ReactionSummary";
+import { CommentSkeleton } from "@/components/ui/Skeleton";
 import PostTags from "@/components/feed/PostTags";
 import { supabase } from "@/lib/supabase";
 import { CommentIcon, icons } from "@/components/ui/Icons";
@@ -513,6 +516,8 @@ export default function TakeDetailModal({
             </div>
 
             {/* Actions */}
+            {/* Who reacted (Phase 6) */}
+            <ReactionSummary kind="take" id={take.id} className="mt-4" />
             <div className="flex items-center gap-2 mt-auto pt-6 border-t border-border-light">
               {/* Reaction Picker */}
               <ReactionPicker
@@ -597,12 +602,20 @@ export default function TakeDetailModal({
               {/* Comments List */}
               <div className="flex-1 overflow-y-auto p-6">
                 {commentsLoading ? (
-                  <div className="text-center py-8">
-                    <div className="w-6 h-6 border-2 border-purple-primary border-t-transparent rounded-full animate-spin mx-auto" />
+                  <div className="space-y-1" aria-busy="true" aria-label="Loading comments">
+                    <CommentSkeleton />
+                    <CommentSkeleton />
+                    <CommentSkeleton />
                   </div>
                 ) : comments.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="font-body text-muted italic">No comments yet. Start the conversation!</p>
+                  <div className="text-center py-10">
+                    <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-gradient-to-br from-purple-primary/10 to-pink-vivid/10 flex items-center justify-center text-purple-primary">
+                      <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.6}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h8M8 14h5m-9 7l3.5-3.5H18a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v15z" />
+                      </svg>
+                    </div>
+                    <p className="font-ui text-[0.95rem] text-ink mb-1">No comments yet</p>
+                    <p className="font-body text-sm text-muted">Be the first to share what you think.</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -633,35 +646,17 @@ export default function TakeDetailModal({
                 )}
               </div>
 
-              {/* Comment Input */}
+              {/* Composer (Phase 6) */}
               {user ? (
-                <div className="p-4 bg-surface border-t border-border-light flex gap-2.5 items-center">
-                  <img
-                    src={profile?.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"}
-                    alt="You"
-                    className="w-9 h-9 rounded-full object-cover flex-shrink-0"
+                <div className="p-3 md:p-4 bg-surface border-t border-border-light">
+                  <CommentComposer
+                    value={commentText}
+                    onChange={setCommentText}
+                    onSubmit={handleAddComment}
+                    submitting={submitting}
+                    showAvatar
+                    avatarUrl={profile?.avatar_url}
                   />
-                  <div className="flex-1 flex items-center bg-subtle rounded-3xl px-4 focus-within:bg-surface focus-within:ring-2 focus-within:ring-purple-primary focus-within:shadow-lg transition-all">
-                    <input
-                      type="text"
-                      value={commentText}
-                      onChange={(e) => setCommentText(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && !e.nativeEvent.isComposing) handleAddComment();
-                      }}
-                      placeholder="Add to the conversation..."
-                      maxLength={COMMENT_MAX_LENGTH}
-                      disabled={submitting}
-                      className="flex-1 py-2.5 border-none bg-transparent outline-none font-body text-[0.95rem] text-ink placeholder:text-muted/60 placeholder:italic"
-                    />
-                  </div>
-                  <button
-                    onClick={handleAddComment}
-                    disabled={submitting || !commentText.trim()}
-                    className="w-[42px] h-[42px] rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white flex items-center justify-center hover:scale-110 hover:shadow-lg hover:shadow-purple-primary/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                  >
-                    {icons.send}
-                  </button>
                 </div>
               ) : (
                 <div className="p-4 bg-surface border-t border-border-light text-center">

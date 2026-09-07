@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, type MouseEvent } from "react";
+import { getReactionIcon } from "@/components/feed/ReactionPicker";
+import type { ReactionType } from "@/lib/types";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCollaborationInvites } from "@/lib/hooks.legacy";
@@ -996,15 +998,33 @@ function NotificationItem({
         <div className="absolute left-0 top-3 bottom-3 w-[3px] rounded-full bg-gradient-to-b from-purple-primary via-pink-vivid to-orange-warm" />
       )}
 
-      {/* Avatar with icon overlay */}
-      <div className="relative flex-shrink-0">
-        <img
-          src={notification.actor?.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"}
-          alt=""
-          className="w-11 h-11 rounded-full object-cover ring-2 ring-border-light shadow-sm group-hover:ring-accent/20 transition-all"
-        />
+      {/* Avatar(s) with icon overlay — a grouped row stacks up to three */}
+      <div className="relative flex-shrink-0 w-11 h-11">
+        {others > 0 ? (
+          <div className="relative w-11 h-11">
+            {items.slice(0, 3).map((n, i) => (
+              <img
+                key={n.id}
+                src={n.actor?.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"}
+                alt=""
+                className="absolute w-7 h-7 rounded-full object-cover ring-2 ring-surface shadow-sm"
+                style={{ left: i * 8, top: i * 7, zIndex: 3 - i }}
+              />
+            ))}
+          </div>
+        ) : (
+          <img
+            src={notification.actor?.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"}
+            alt=""
+            className="w-11 h-11 rounded-full object-cover ring-2 ring-border-light shadow-sm group-hover:ring-accent/20 transition-all"
+          />
+        )}
         <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-surface shadow-md flex items-center justify-center ring-2 ring-border-light">
-          {getNotificationIcon(notification.type)}
+          {REACTION_TYPES.has(notification.type) ? (
+            <span className="w-3.5 h-3.5">{getReactionIcon(notification.type as ReactionType)}</span>
+          ) : (
+            getNotificationIcon(notification.type)
+          )}
         </div>
       </div>
 
@@ -1013,6 +1033,15 @@ function NotificationItem({
         <p className="font-ui text-[0.88rem] text-ink leading-relaxed">
           <span className="font-semibold">{message.actor}</span>{" "}
           <span className="text-muted">{message.action}</span>
+          {others > 0 && REACTION_TYPES.has(notification.type) && (
+            <span className="inline-flex items-center -space-x-0.5 ml-1.5 align-middle" aria-hidden="true">
+              {Array.from(new Set(items.map((n) => n.type))).slice(0, 3).map((t) => (
+                <span key={t} className="w-4 h-4 rounded-full bg-surface flex items-center justify-center">
+                  <span className="w-3.5 h-3.5">{getReactionIcon(t as ReactionType)}</span>
+                </span>
+              ))}
+            </span>
+          )}
         </p>
 
         {/* Content preview for comments */}
@@ -1020,6 +1049,27 @@ function NotificationItem({
           <p className="font-body text-[0.82rem] text-muted/80 mt-1.5 line-clamp-2 italic">
             {notification.content}
           </p>
+        )}
+        {/* Reply quick action: opens the thread with the composer on that comment */}
+        {(notification.type === 'comment' || notification.type === 'reply' || notification.type === 'mention') && notification.comment_id && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              void (async () => {
+                await Promise.all(items.filter((n) => !n.read).map((n) => onMarkAsRead(n.id)));
+                onClose();
+                router.push(`${notificationLink}${notificationLink.includes('?') ? '&' : '?'}reply=1`);
+              })();
+            }}
+            className="mt-1.5 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-subtle font-ui text-[0.75rem] font-medium text-purple-primary hover:bg-purple-primary/10 transition-colors"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a5 5 0 015 5v4M3 10l5-5M3 10l5 5" />
+            </svg>
+            Reply
+          </button>
         )}
 
         {/* Content preview for mute/ban/warning/join request notifications */}
@@ -1088,6 +1138,15 @@ function NotificationItem({
           {getTimeAgoCompact(notification.created_at)}
         </span>
       </div>
+
+      {/* Take thumbnail */}
+      {notification.take?.thumbnail_url && (
+        <img
+          src={notification.take.thumbnail_url}
+          alt=""
+          className="flex-shrink-0 w-10 h-14 rounded-lg object-cover bg-skeleton self-center"
+        />
+      )}
     </Link>
   );
 }

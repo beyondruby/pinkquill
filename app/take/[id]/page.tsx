@@ -3,17 +3,20 @@
 import { use, useState, useEffect, useCallback, useRef } from "react";
 import { getTimeAgo } from "@/lib/utils/time";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useMuted, useVolume, TakeReactionType } from "@/lib/hooks/useTakes";
 import { useReaction } from "@/lib/engagement/reactions";
 import { useBlock } from "@/lib/hooks/useInteractions";
-import { useComments, COMMENT_MAX_LENGTH } from "@/lib/hooks/useComments";
+import { useComments } from "@/lib/hooks/useComments";
 import { actionToast } from "@/lib/utils/toast";
 import { deleteOwnTake } from "@/lib/content-client";
 import ReactionPicker from "@/components/feed/ReactionPicker";
 import CommentItem from "@/components/feed/CommentItem";
+import CommentComposer from "@/components/feed/CommentComposer";
+import ReactionSummary from "@/components/feed/ReactionSummary";
+import { CommentSkeleton } from "@/components/ui/Skeleton";
 import PostTags from "@/components/feed/PostTags";
 import ShareModal from "@/components/ui/ShareModal";
 import ReportModal from "@/components/ui/ReportModal";
@@ -102,7 +105,50 @@ export default function SingleTakePage({ params }: PageProps) {
     toggleLike,
     deleteComment,
     fetchReplies,
+    ensureCommentVisible,
   } = useComments("take", id, { authorId: take?.author_id, live: true });
+
+  // Deep link (?comment=, &reply=1): load the comment on any page, scroll
+  // to it, and open its reply composer when a notification's Reply sent us.
+  const searchParams = useSearchParams();
+  const commentIdFromUrl = searchParams.get("comment");
+  const replyFromUrl = searchParams.get("reply") === "1";
+  const deepLinkDoneRef = useRef<string | null>(null);
+  useEffect(() => {
+    // Wait for auth too: the Reply toggle is disabled for signed-out viewers.
+    if (!commentIdFromUrl || commentsLoading || authStatus === "loading" || deepLinkDoneRef.current === commentIdFromUrl) return;
+    deepLinkDoneRef.current = commentIdFromUrl;
+    let cancelled = false;
+    (async () => {
+      const { found, parentId } = await ensureCommentVisible(commentIdFromUrl);
+      if (!found || cancelled) return;
+      const scrollTo = (el: HTMLElement) => {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.classList.add("highlight-comment");
+        setTimeout(() => el.classList.remove("highlight-comment"), 2000);
+        if (replyFromUrl) {
+          const toggle = el.querySelector<HTMLButtonElement>("[data-reply-toggle]");
+          if (toggle && toggle.getAttribute("aria-expanded") !== "true") toggle.click();
+        }
+      };
+      for (let attempt = 0; attempt < 20 && !cancelled; attempt++) {
+        await new Promise((r) => setTimeout(r, 150));
+        const el = document.getElementById(`comment-${commentIdFromUrl}`);
+        if (el) {
+          scrollTo(el);
+          return;
+        }
+        if (parentId) {
+          const parent = document.getElementById(`comment-${parentId}`);
+          const toggle = parent?.querySelector<HTMLButtonElement>("[data-replies-toggle]");
+          if (toggle && toggle.getAttribute("aria-expanded") !== "true") toggle.click();
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [commentIdFromUrl, replyFromUrl, commentsLoading, authStatus, ensureCommentVisible]);
 
   const isOwner = user?.id === take?.author_id;
 
@@ -477,7 +523,7 @@ export default function SingleTakePage({ params }: PageProps) {
     return (
       <>
         <LeftSidebar />
-        <main className="ml-[72px] min-h-screen bg-canvas">
+        <main className="pt-14 pb-20 md:pt-0 md:pb-0 md:ml-[72px] min-h-screen bg-canvas">
           <div className="max-w-[680px] mx-auto py-12 px-6">
             <div className="flex justify-center py-20">
               <Loading text="Loading the take" />
@@ -493,7 +539,7 @@ export default function SingleTakePage({ params }: PageProps) {
     return (
       <>
         <LeftSidebar />
-        <main className="ml-[72px] min-h-screen bg-canvas">
+        <main className="pt-14 pb-20 md:pt-0 md:pb-0 md:ml-[72px] min-h-screen bg-canvas">
           <div className="max-w-[680px] mx-auto py-12 px-6">
             <div className="text-center py-20">
               <h1 className="font-display text-2xl text-ink mb-4">Take not found</h1>
@@ -511,24 +557,24 @@ export default function SingleTakePage({ params }: PageProps) {
   return (
     <ErrorBoundary>
       <LeftSidebar />
-      <main className="ml-[72px] min-h-screen bg-canvas">
-        <div className="max-w-[1100px] mx-auto py-8 px-6 flex gap-6">
+      <main className="pt-14 pb-20 md:pt-0 md:pb-0 md:ml-[72px] min-h-screen bg-canvas">
+        <div className="max-w-[1100px] mx-auto py-4 md:py-8 px-3 md:px-6 flex flex-col lg:flex-row gap-4 md:gap-6">
           {/* Left Column - Take */}
           <div className="flex-1 min-w-0">
             {/* Take Card */}
             <article className="bg-surface rounded-2xl shadow-sm border border-border-light overflow-hidden">
               {/* Author Header */}
-              <div className="flex items-center gap-4 p-6 border-b border-border-light">
-                <Link href={`/studio/${take.author.username}`}>
+              <div className="flex items-center gap-3 md:gap-4 p-4 md:p-6 border-b border-border-light">
+                <Link href={`/studio/${take.author.username}`} className="flex-shrink-0">
                   <img
                     src={take.author.avatar_url || "/defaultprofile.png"}
                     alt={take.author.display_name || take.author.username}
                     className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-md hover:scale-110 transition-transform"
                   />
                 </Link>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <Link href={`/studio/${take.author.username}`} className="font-ui text-[1rem] font-medium text-ink hover:text-accent transition-colors">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Link href={`/studio/${take.author.username}`} className="font-ui text-[1rem] font-medium text-ink hover:text-accent transition-colors truncate max-w-full">
                       {take.author.display_name || take.author.username}
                     </Link>
                     <span className="font-ui text-[0.85rem] text-muted">
@@ -654,7 +700,9 @@ export default function SingleTakePage({ params }: PageProps) {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center gap-2 px-6 py-4 border-t border-border-light">
+              {/* Who reacted (Phase 6) */}
+              <ReactionSummary kind="take" id={id} className="px-4 md:px-6 pb-3" />
+              <div className="flex items-center gap-1.5 md:gap-2 px-4 md:px-6 py-3 md:py-4 border-t border-border-light flex-wrap">
                 {/* Reaction Picker */}
                 <ReactionPicker
                   variant="pill"
@@ -714,8 +762,8 @@ export default function SingleTakePage({ params }: PageProps) {
           </div>
 
           {/* Right Column - Discussion */}
-          <div className="w-[360px] flex-shrink-0">
-            <section className="bg-surface rounded-2xl shadow-sm border border-border-light overflow-hidden sticky top-[86px]">
+          <div className="w-full lg:w-[360px] flex-shrink-0">
+            <section className="bg-surface rounded-2xl shadow-sm border border-border-light overflow-hidden lg:sticky lg:top-[86px]">
               <div className="p-5 border-b border-border-light">
                 <h2 className="font-ui text-[1rem] font-medium text-ink flex items-center gap-2">
                   <CommentIcon className="shrink-0" />
@@ -723,53 +771,23 @@ export default function SingleTakePage({ params }: PageProps) {
                 </h2>
               </div>
 
-              {/* Comment Input */}
-              {user ? (
-                <div className="p-4 border-b border-border-light flex gap-3 items-center">
-                  <img
-                    src={profile?.avatar_url || "/defaultprofile.png"}
-                    alt="You"
-                    className="w-9 h-9 rounded-full object-cover flex-shrink-0"
-                  />
-                  <div className="flex-1 flex items-center bg-subtle rounded-full px-4 focus-within:bg-surface focus-within:ring-2 focus-within:ring-purple-primary transition-all">
-                    <input
-                      type="text"
-                      value={commentText}
-                      onChange={(e) => setCommentText(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && !e.nativeEvent.isComposing) handleAddComment();
-                      }}
-                      placeholder="Add to the conversation..."
-                      maxLength={COMMENT_MAX_LENGTH}
-                      disabled={submitting}
-                      className="flex-1 py-2.5 border-none bg-transparent outline-none font-body text-[0.9rem] text-ink placeholder:text-muted/60"
-                    />
-                  </div>
-                  <button
-                    onClick={handleAddComment}
-                    disabled={submitting || !commentText.trim()}
-                    className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white flex items-center justify-center hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {icons.send}
-                  </button>
-                </div>
-              ) : (
-                <div className="p-4 border-b border-border-light text-center">
-                  <p className="font-ui text-[0.9rem] text-muted">
-                    <Link href="/login" className="text-purple-primary hover:underline">Sign in</Link> to comment
-                  </p>
-                </div>
-              )}
-
               {/* Comments List */}
-              <div className="p-4 max-h-[calc(100vh-280px)] overflow-y-auto">
+              <div className="p-4 max-h-[calc(100vh-320px)] overflow-y-auto">
                 {commentsLoading ? (
-                  <div className="flex justify-center py-8">
-                    <Loading size="small" text="" />
+                  <div className="space-y-1" aria-busy="true" aria-label="Loading comments">
+                    <CommentSkeleton />
+                    <CommentSkeleton />
+                    <CommentSkeleton />
                   </div>
                 ) : comments.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="font-body text-muted italic">No comments yet. Start the conversation!</p>
+                  <div className="text-center py-10">
+                    <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-gradient-to-br from-purple-primary/10 to-pink-vivid/10 flex items-center justify-center text-purple-primary">
+                      <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.6}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h8M8 14h5m-9 7l3.5-3.5H18a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v15z" />
+                      </svg>
+                    </div>
+                    <p className="font-ui text-[0.95rem] text-ink mb-1">No comments yet</p>
+                    <p className="font-body text-sm text-muted">Be the first to share what you think.</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -799,6 +817,25 @@ export default function SingleTakePage({ params }: PageProps) {
                   </div>
                 )}
               </div>
+              {/* Composer — stays at the bottom of the discussion (Phase 6) */}
+              {user ? (
+                <div className="p-3 md:p-4 border-t border-border-light bg-surface sticky bottom-0">
+                  <CommentComposer
+                    value={commentText}
+                    onChange={setCommentText}
+                    onSubmit={handleAddComment}
+                    submitting={submitting}
+                    showAvatar
+                    avatarUrl={profile?.avatar_url || "/defaultprofile.png"}
+                  />
+                </div>
+              ) : (
+                <div className="p-4 border-t border-border-light text-center">
+                  <p className="font-ui text-[0.9rem] text-muted">
+                    <Link href="/login" className="text-purple-primary hover:underline">Sign in</Link> to comment
+                  </p>
+                </div>
+              )}
             </section>
           </div>
         </div>

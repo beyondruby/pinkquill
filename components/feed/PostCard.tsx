@@ -24,6 +24,7 @@ import Button from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Loading";
 import CommunityBadge from "@/components/communities/CommunityBadge";
 import FlairBadge from "@/components/communities/FlairBadge";
+import ReactionSummary from "@/components/feed/ReactionSummary";
 import ReactionPicker from "@/components/feed/ReactionPicker";
 import CommentCount from "@/components/feed/CommentCount";
 import { AudioPlayer } from "@/components/feed/AudioPlayer";
@@ -488,6 +489,7 @@ function PostCardComponent({
         </button>
       </div>
       </div>
+      <ReactionSummary id={post.id} className="px-1 pt-1" />
     </div>
   );
 
