@@ -273,6 +273,8 @@ function GalleryTile({ post }: { post: PostProps }) {
           <button
             type="button"
             onClick={actions.onAdmire}
+            disabled={actions.admiring}
+            aria-busy={actions.admiring}
             aria-label={actions.isAdmired ? "Remove admire" : "Admire post"}
             aria-pressed={actions.isAdmired}
           >
@@ -282,6 +284,8 @@ function GalleryTile({ post }: { post: PostProps }) {
           <button
             type="button"
             onClick={actions.onSave}
+            disabled={actions.saving}
+            aria-busy={actions.saving}
             aria-label={actions.isSaved ? "Remove save" : "Save post"}
             aria-pressed={actions.isSaved}
             className="is-save"

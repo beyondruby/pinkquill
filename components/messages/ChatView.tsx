@@ -129,7 +129,10 @@ export default function ChatView({
   const [participant, setParticipant] = useState<Participant | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
+  const [chatError, setChatError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const sendPending = useRef(false);
+  const [failedMessages, setFailedMessages] = useState<Set<string>>(new Set());
   const [initialLoad, setInitialLoad] = useState(true);
   const [isBlockedByThem, setIsBlockedByThem] = useState(false);
   const [iBlockedThem, setIBlockedThem] = useState(false);
@@ -289,9 +292,10 @@ export default function ChatView({
   const fetchData = async () => {
     try {
       setLoading(true);
+      setChatError(null);
 
       // Get other participant
-      const { data: participants } = await supabase
+      const { data: participants, error: participantError } = await supabase
         .from("conversation_participants")
         .select(`
           user:profiles (
@@ -303,6 +307,9 @@ export default function ChatView({
         `)
         .eq("conversation_id", conversationId)
         .neq("user_id", currentUserId);
+
+      if (participantError) throw participantError;
+      if (!participants?.[0]) throw new Error("Conversation unavailable");
 
       if (participants && participants[0]) {
         const participantData = participants[0].user as unknown as Participant;
@@ -320,13 +327,14 @@ export default function ChatView({
       }
 
       // Get latest 50 messages (fetch newest first, then reverse for display)
-      const { data: messagesData } = await supabase
+      const { data: messagesData, error: messagesError } = await supabase
         .from("messages")
         .select("*")
         .eq("conversation_id", conversationId)
         .order("created_at", { ascending: false })
         .limit(50);
 
+      if (messagesError) throw messagesError;
       const sorted = (messagesData || []).reverse();
       setMessages(sorted);
       setHasOlderMessages((messagesData || []).length === 50);
@@ -340,6 +348,7 @@ export default function ChatView({
         .eq("is_read", false);
     } catch (err) {
       console.error("Failed to fetch chat data:", err);
+      setChatError("Couldn’t load this conversation.");
     } finally {
       setLoading(false);
     }
@@ -454,20 +463,21 @@ export default function ChatView({
     };
   }, [conversationId, currentUserId]);
 
-  const handleSend = async () => {
-    if (!newMessage.trim() || sending) return;
+  const handleSend = async (retryMessage?: Message) => {
+    const messageContent = retryMessage?.content || newMessage.trim();
+    if (!messageContent || sendPending.current) return;
 
     // Check block status before doing anything (silent block)
     if (isBlockedByThem || iBlockedThem) {
       return;
     }
 
+    sendPending.current = true;
     setSending(true);
-    const messageContent = newMessage.trim();
-    setNewMessage("");
+    if (!retryMessage) setNewMessage("");
 
     // Create optimistic message
-    const optimisticId = `temp-${crypto.randomUUID()}`;
+    const optimisticId = retryMessage?.id ?? `temp-${crypto.randomUUID()}`;
     const optimisticMessage: Message = {
       id: optimisticId,
       sender_id: currentUserId,
@@ -477,10 +487,11 @@ export default function ChatView({
     };
 
     // Add optimistic message immediately
-    setMessages((prev) => [...prev, optimisticMessage]);
+    if (!retryMessage) setMessages((prev) => [...prev, optimisticMessage]);
+    setFailedMessages(prev => { const next = new Set(prev); next.delete(optimisticId); return next; });
 
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("messages")
         .insert({
           conversation_id: conversationId,
@@ -490,27 +501,30 @@ export default function ChatView({
         .select()
         .single();
 
+      if (error) throw error;
+      if (!data) throw new Error("Message was not confirmed");
+
       // Replace optimistic message with real one
       if (data) {
         setMessages((prev) =>
           prev.map((m) => (m.id === optimisticId ? data : m))
         );
 
-        const { error: touchError } = await supabase
-          .from("conversations")
-          .update({ updated_at: new Date().toISOString() })
-          .eq("id", conversationId);
-
-        if (touchError) {
-          console.warn("Failed to update conversation timestamp:", touchError.message);
+        try {
+          const { error: touchError } = await supabase
+            .from("conversations")
+            .update({ updated_at: data.created_at })
+            .eq("id", conversationId);
+          if (touchError) console.warn("Failed to update conversation timestamp:", touchError.message);
+        } catch (error) {
+          console.warn("Failed to update conversation timestamp:", error);
         }
       }
     } catch (err) {
       console.error("Failed to send message:", err);
-      // Remove optimistic message on error
-      setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
-      setNewMessage(messageContent); // Restore message on error
+      setFailedMessages(prev => new Set(prev).add(optimisticId));
     } finally {
+      sendPending.current = false;
       setSending(false);
       inputRef.current?.focus();
     }
@@ -638,6 +652,14 @@ export default function ChatView({
       setMediaPreview(null);
     }
   };
+
+  if (chatError && !loading) {
+    return <div role="alert" className="flex-1 flex flex-col items-center justify-center p-6 font-ui text-sm text-muted">
+      <p>{chatError}</p>
+      <button type="button" onClick={() => void fetchData()} className="mt-3 py-2 text-accent underline underline-offset-2">Try again</button>
+      <button type="button" onClick={onBack} className="mt-2 py-2">Back to messages</button>
+    </div>;
+  }
 
   if (loading) {
     return (
@@ -846,7 +868,11 @@ export default function ChatView({
                           </span>
                           {isOwn && (
                             <span className={message.is_read ? "text-white" : "text-white/50"}>
-                              {icons.doubleCheck}
+                              {message.id.startsWith("temp-") ? (
+                                failedMessages.has(message.id) ? (
+                                  <button type="button" disabled={sending} onClick={() => void handleSend(message)} className="underline underline-offset-2 py-1" aria-label="Message failed to send. Retry sending">Not sent · Retry</button>
+                                ) : <span role="status">Sending…</span>
+                              ) : message.is_read ? icons.doubleCheck : icons.check}
                             </span>
                           )}
                         </div>
@@ -874,7 +900,11 @@ export default function ChatView({
                           </span>
                           {isOwn && (
                             <span className={message.is_read ? "text-white" : "text-white/50"}>
-                              {icons.doubleCheck}
+                              {message.id.startsWith("temp-") ? (
+                                failedMessages.has(message.id) ? (
+                                  <button type="button" disabled={sending} onClick={() => void handleSend(message)} className="underline underline-offset-2 py-1" aria-label="Message failed to send. Retry sending">Not sent · Retry</button>
+                                ) : <span role="status">Sending…</span>
+                              ) : message.is_read ? icons.doubleCheck : icons.check}
                             </span>
                           )}
                         </div>
@@ -897,7 +927,7 @@ export default function ChatView({
                         {/* Optional message content */}
                         {message.content && (
                           <div className={`px-4 py-2 ${isOwn ? "text-white" : "text-ink"}`}>
-                            <p className="font-body text-[0.95rem] leading-relaxed whitespace-pre-wrap break-words">
+                            <p className="font-body text-15 leading-relaxed whitespace-pre-wrap break-words">
                               {message.content}
                             </p>
                           </div>
@@ -912,7 +942,11 @@ export default function ChatView({
                           </span>
                           {isOwn && (
                             <span className={message.is_read ? "text-white" : "text-white/50"}>
-                              {icons.doubleCheck}
+                              {message.id.startsWith("temp-") ? (
+                                failedMessages.has(message.id) ? (
+                                  <button type="button" disabled={sending} onClick={() => void handleSend(message)} className="underline underline-offset-2 py-1" aria-label="Message failed to send. Retry sending">Not sent · Retry</button>
+                                ) : <span role="status">Sending…</span>
+                              ) : message.is_read ? icons.doubleCheck : icons.check}
                             </span>
                           )}
                         </div>
@@ -925,7 +959,7 @@ export default function ChatView({
                             : "bg-subtle text-ink shadow-sm rounded-bl-md"
                         }`}
                       >
-                        <p className="font-body text-[0.95rem] leading-relaxed whitespace-pre-wrap break-words">
+                        <p className="font-body text-15 leading-relaxed whitespace-pre-wrap break-words">
                           {message.content}
                         </p>
                         <div
@@ -938,7 +972,11 @@ export default function ChatView({
                           </span>
                           {isOwn && (
                             <span className={message.is_read ? "text-white" : "text-white/50"}>
-                              {icons.doubleCheck}
+                              {message.id.startsWith("temp-") ? (
+                                failedMessages.has(message.id) ? (
+                                  <button type="button" disabled={sending} onClick={() => void handleSend(message)} className="underline underline-offset-2 py-1" aria-label="Message failed to send. Retry sending">Not sent · Retry</button>
+                                ) : <span role="status">Sending…</span>
+                              ) : message.is_read ? icons.doubleCheck : icons.check}
                             </span>
                           )}
                         </div>
@@ -1075,7 +1113,7 @@ export default function ChatView({
                   onBlur={() => typing.setTyping(false)}
                   placeholder="Write a message..."
                   aria-label="Message input"
-                  className="flex-1 py-3 border-none bg-transparent outline-none font-body text-[0.95rem] text-ink placeholder:text-muted/60"
+                  className="flex-1 py-3 border-none bg-transparent outline-none font-body text-15 text-ink placeholder:text-muted/60"
                 />
                 <div className="relative">
                   <button
@@ -1104,7 +1142,7 @@ export default function ChatView({
           </div>
 
           <button
-            onClick={mediaPreview ? handleSendMedia : handleSend}
+            onClick={() => mediaPreview ? void handleSendMedia() : void handleSend()}
             disabled={(!newMessage.trim() && !mediaPreview) || sending || sendingMedia || showVoiceRecorder}
             aria-label={sendingMedia ? "Sending message" : (mediaPreview ? "Send media" : "Send message")}
             className="w-11 h-11 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white flex items-center justify-center shadow-lg shadow-purple-primary/30 hover:scale-105 hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"

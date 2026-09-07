@@ -17,6 +17,8 @@ interface SearchDropdownProps {
   query: string;
   results: SearchResults;
   loading: boolean;
+  error?: string | null;
+  onRetry?: () => void;
   history: SearchHistoryEntry[];
   onClose: () => void;
   onSelectResult: (entry: Omit<SearchHistoryEntry, "timestamp">) => void;
@@ -29,6 +31,8 @@ export default function SearchDropdown({
   query,
   results,
   loading,
+  error,
+  onRetry,
   history,
   onClose,
   onSelectResult,
@@ -46,13 +50,20 @@ export default function SearchDropdown({
       {/* Decorative gradient line at top */}
       <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm rounded-t-2xl" />
 
-      {/* Loading State */}
       {loading && (
-        <div className="flex items-center justify-center py-10">
-          <div className="relative">
-            <div className="w-8 h-8 border-2 border-purple-primary/20 rounded-full" />
-            <div className="absolute inset-0 w-8 h-8 border-2 border-transparent border-t-purple-primary rounded-full animate-spin" />
-          </div>
+        <div role="status" aria-label="Searching" className="p-4 space-y-4">
+          {[0, 1, 2].map(row => (
+            <div key={row} className="flex items-center gap-3 animate-pulse" aria-hidden="true">
+              <div className="w-10 h-10 rounded-full bg-skeleton shrink-0" />
+              <div className="flex-1 space-y-2"><div className="h-3 w-2/3 rounded bg-skeleton" /><div className="h-2 w-1/2 rounded bg-skeleton" /></div>
+            </div>
+          ))}
+        </div>
+      )}
+      {!loading && hasQuery && error && (
+        <div role="alert" className="p-4 font-ui text-sm text-muted">
+          <p>Couldn’t load search results.</p>
+          <button type="button" onClick={onRetry} className="mt-2 py-2 text-accent underline underline-offset-2">Try again</button>
         </div>
       )}
 
@@ -113,7 +124,7 @@ export default function SearchDropdown({
       )}
 
       {/* Has Query - Show Results */}
-      {!loading && hasQuery && (
+      {!loading && hasQuery && !error && (
         <>
           {hasResults ? (
             <>

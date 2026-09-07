@@ -624,6 +624,7 @@ function PostDetailModalComponent({
               {/* Mobile Back Button */}
               <button
                 onClick={onClose}
+                aria-label="Close post"
                 className={`md:hidden w-10 h-10 -ml-1 rounded-full flex items-center justify-center transition-all ${
                   hasBackground
                     ? hasDarkBg
@@ -906,6 +907,7 @@ function PostDetailModalComponent({
                       <>
                         <button
                           onClick={() => setCurrentMediaIndex((prev) => (prev === 0 ? media.length - 1 : prev - 1))}
+                          aria-label="Previous media"
                           className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-surface/90 shadow-md flex items-center justify-center text-ink/70 opacity-0 group-hover:opacity-100 hover:bg-surface hover:text-ink transition-all duration-200 z-10"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -914,6 +916,7 @@ function PostDetailModalComponent({
                         </button>
                         <button
                           onClick={() => setCurrentMediaIndex((prev) => (prev === media.length - 1 ? 0 : prev + 1))}
+                          aria-label="Next media"
                           className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-surface/90 shadow-md flex items-center justify-center text-ink/70 opacity-0 group-hover:opacity-100 hover:bg-surface hover:text-ink transition-all duration-200 z-10"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1033,6 +1036,7 @@ function PostDetailModalComponent({
             {/* Comment Button */}
             <button
               onClick={() => setShowComments(true)}
+              aria-label="Show comments"
               className={`flex items-center gap-1.5 px-3 md:px-4 py-2 md:py-2.5 rounded-full transition-all ${
                 hasDarkBg
                   ? 'bg-surface/15 text-white/90 hover:bg-surface/25 hover:text-white'
@@ -1047,6 +1051,8 @@ function PostDetailModalComponent({
             {user?.id !== post.authorId && (
               <button
                 onClick={handleRelay}
+                aria-label={isRelayed ? "Remove relay" : "Relay post"}
+                aria-pressed={isRelayed}
                 disabled={!user}
                 className={`flex items-center gap-1.5 px-3 md:px-4 py-2 md:py-2.5 rounded-full transition-all ${
                   isRelayed
@@ -1064,6 +1070,7 @@ function PostDetailModalComponent({
             {/* Share Button */}
             <button
               onClick={() => setShowShareModal(true)}
+              aria-label="Share post"
               className={`w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-all ${
                 hasDarkBg
                   ? 'bg-surface/15 text-white/90 hover:bg-surface/25 hover:text-white'
@@ -1076,6 +1083,8 @@ function PostDetailModalComponent({
             {/* Save/Bookmark Button */}
             <button
               onClick={handleSave}
+              aria-label={isSaved ? "Unsave post" : "Save post"}
+              aria-pressed={isSaved}
               disabled={!user}
               className={`w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-all ${
                 isSaved
@@ -1106,6 +1115,7 @@ function PostDetailModalComponent({
                 {/* Back button on mobile */}
                 <button
                   onClick={() => setShowComments(false)}
+                  aria-label="Close comments"
                   className="md:hidden w-9 h-9 rounded-full flex items-center justify-center text-muted hover:text-ink transition-all"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1118,6 +1128,7 @@ function PostDetailModalComponent({
               </div>
               <button
                 onClick={() => setShowComments(false)}
+                  aria-label="Close comments"
                 className="hidden md:flex w-9 h-9 rounded-full items-center justify-center text-muted hover:text-accent-2 hover:rotate-90 transition-all"
               >
                 {icons.close}

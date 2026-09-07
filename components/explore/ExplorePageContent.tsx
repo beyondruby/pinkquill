@@ -85,12 +85,12 @@ function TrendingSidebar() {
             className="flex items-center justify-between group py-2 px-2.5 -mx-2.5 rounded-lg hover:bg-accent/[0.04] transition-colors"
           >
             <div className="flex items-center gap-3">
-              <span className="font-ui text-[11px] text-muted w-3 tabular-nums">{index + 1}</span>
+              <span className="font-ui text-2xs text-muted w-3 tabular-nums">{index + 1}</span>
               <span className="font-body text-sm text-ink group-hover:text-accent transition-colors">
                 {tag.name}
               </span>
             </div>
-            <span className="font-ui text-[11px] text-muted">{tag.post_count}</span>
+            <span className="font-ui text-2xs text-muted">{tag.post_count}</span>
           </Link>
         ))}
       </div>
@@ -157,7 +157,7 @@ function TopicsTabView() {
 
           {/* Tag Info */}
           <div className="flex-1 min-w-0">
-            <div className="font-ui text-[0.95rem] font-medium text-ink truncate group-hover:text-accent transition-colors">
+            <div className="font-ui text-15 font-medium text-ink truncate group-hover:text-accent transition-colors">
               #{tag.name}
             </div>
             <div className="font-body text-[0.75rem] text-muted">
@@ -662,7 +662,7 @@ export default function ExplorePageContent() {
             )}
 
             {/* Posts */}
-            {!loading && posts.length === 0 ? (
+            {!loading && !error && posts.length === 0 ? (
               <EmptyState tab={activeTab} />
             ) : (
               <div className="space-y-4">

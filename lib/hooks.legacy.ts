@@ -1867,19 +1867,20 @@ export function useSearch(query: string, options?: { debounceMs?: number; limit?
   const [results, setResults] = useState<SearchResults>({ profiles: [], communities: [], tags: [] });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const mountedRef = useRef(true);
+  const [retryKey, setRetryKey] = useState(0);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const debounceMs = options?.debounceMs ?? 300;
   const limit = options?.limit ?? 5;
 
   useEffect(() => {
-    mountedRef.current = true;
+    let cancelled = false;
 
     // Don't search if query is too short
     if (!query || query.trim().length < 2) {
       setResults({ profiles: [], communities: [], tags: [] });
       setLoading(false);
+      setError(null);
       return;
     }
 
@@ -1896,7 +1897,7 @@ export function useSearch(query: string, options?: { debounceMs?: number; limit?
       try {
         const searchQuery = sanitizePostgrestSearchTerm(query.trim());
         if (!searchQuery) {
-          if (mountedRef.current) {
+          if (!cancelled) {
             setResults({ profiles: [], communities: [], tags: [] });
             setLoading(false);
           }
@@ -1922,8 +1923,10 @@ export function useSearch(query: string, options?: { debounceMs?: number; limit?
             .limit(limit * 2),
         ]);
 
-        if (!mountedRef.current) return;
+        if (cancelled) return;
 
+        const searchError = profilesResult.error || communitiesResult.error || tagsResult.error;
+        if (searchError) throw searchError;
         const profiles = (profilesResult.data || []) as SearchResultProfile[];
 
         const communities = communitiesResult.data || [];
@@ -1937,7 +1940,7 @@ export function useSearch(query: string, options?: { debounceMs?: number; limit?
             .in("community_id", communityIds)
             .eq("status", "active");
 
-          if (!mountedRef.current) return;
+          if (cancelled) return;
 
           const memberCounts: Record<string, number> = {};
           (membersData || []).forEach(m => {
@@ -1959,32 +1962,32 @@ export function useSearch(query: string, options?: { debounceMs?: number; limit?
           .map(([tag, count]) => ({ tag, community_count: count }))
           .slice(0, limit);
 
-        if (mountedRef.current) {
+        if (!cancelled) {
           setResults({ profiles, communities: enrichedCommunities, tags });
         }
       } catch (err: unknown) {
         if (isAbortError(err)) return;
         console.error("[useSearch] Error:", err);
-        if (mountedRef.current) {
+        if (!cancelled) {
           setError(err instanceof Error ? err.message : "Search failed");
         }
       } finally {
-        if (mountedRef.current) {
+        if (!cancelled) {
           setLoading(false);
         }
       }
     }, debounceMs);
 
     return () => {
-      mountedRef.current = false;
+      cancelled = true;
       clearTimeout(timeoutId);
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
     };
-  }, [query, debounceMs, limit]);
+  }, [query, debounceMs, limit, retryKey]);
 
-  return { results, loading, error };
+  return { results, loading, error, retry: () => setRetryKey(key => key + 1) };
 }
 
 // ============================================

@@ -34,9 +34,9 @@ export default function AdminOrders() {
       </form>
       {error && <div className="rounded-2xl border border-red-200 bg-red-50/60 p-4 text-sm font-body text-ink">{error}</div>}
       <Panel title={`${data?.orders.length ?? 0} order${data?.orders.length === 1 ? "" : "s"}`} right={<span className="text-2xs font-body text-muted">newest first · up to 100</span>}>
-        {loading ? <Skeleton rows={4} /> : !data?.orders.length ? <Empty text="No orders match." /> : (
+        {loading ? <Skeleton rows={4} /> : !data?.orders.length && !error ? <Empty text="No orders match." /> : (
           <Rows>
-            {data.orders.map((o) => (
+            {data?.orders.map((o) => (
               <div key={o.id} className="px-4 py-3 grid grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[150px_minmax(0,1fr)_150px_110px_90px_120px] gap-3 items-center text-sm">
                 <div className="min-w-0">
                   <Link href={`/orders/${o.id}`} className="font-ui text-ink hover:text-purple-primary tabular-nums">{o.order_number}</Link>

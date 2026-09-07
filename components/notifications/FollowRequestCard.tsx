@@ -1,5 +1,7 @@
 "use client";
 
+import { showToast } from "@/lib/utils/toast";
+
 import { useState } from "react";
 import { getTimeAgo } from "@/lib/utils/time";
 import Link from "next/link";
@@ -23,8 +25,10 @@ export default function FollowRequestCard({
     setAccepting(true);
     try {
       await onAccept(request.follower_id);
+      showToast.success("Follow request accepted");
     } catch (err) {
       console.error("Failed to accept follow request:", err);
+      showToast.error("Couldn’t accept request", "Please try again");
     } finally {
       setAccepting(false);
     }
@@ -34,8 +38,10 @@ export default function FollowRequestCard({
     setDeclining(true);
     try {
       await onDecline(request.follower_id);
+      showToast.info("Follow request declined");
     } catch (err) {
       console.error("Failed to decline follow request:", err);
+      showToast.error("Couldn’t decline request", "Please try again");
     } finally {
       setDeclining(false);
     }
@@ -64,7 +70,7 @@ export default function FollowRequestCard({
           <div className="flex items-center gap-2 flex-wrap">
             <Link
               href={`/studio/${requester.username}`}
-              className="font-ui text-[0.95rem] font-medium text-ink hover:text-accent transition-colors"
+              className="font-ui text-15 font-medium text-ink hover:text-accent transition-colors"
             >
               {requester.display_name || requester.username}
             </Link>
@@ -85,8 +91,9 @@ export default function FollowRequestCard({
           <div className="flex items-center gap-2 mt-3">
             <button
               onClick={handleAccept}
+              aria-busy={accepting}
               disabled={accepting || declining}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white font-ui text-sm font-medium hover:shadow-lg hover:shadow-purple-primary/30 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white font-ui text-sm font-medium hover:shadow-lg hover:shadow-purple-primary/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
               {accepting ? (
                 <>
@@ -105,6 +112,7 @@ export default function FollowRequestCard({
 
             <button
               onClick={handleDecline}
+              aria-busy={declining}
               disabled={accepting || declining}
               className="flex items-center gap-1.5 px-4 py-2 rounded-full border border-border-light bg-surface text-ink font-ui text-sm font-medium hover:border-border-strong hover:bg-subtle transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >

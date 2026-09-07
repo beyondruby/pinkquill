@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, type ReactNode } from "react";
+import { useCallback, useRef, type ReactNode } from "react";
+import { useDialog } from "@/lib/hooks/useDialog";
 import { CloseIcon } from "./Icons";
 
 /**
@@ -29,55 +30,15 @@ interface SheetProps {
   size?: "md" | "tall";
 }
 
-const FOCUSABLE = 'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])';
-
-let openSheets = 0;
-
 export default function Sheet({ isOpen, onClose, title, subtitle, children, footer, busy = false, ariaLabel, size = "md" }: SheetProps) {
   const panelRef = useRef<HTMLDivElement>(null);
-  const previousFocus = useRef<HTMLElement | null>(null);
+
 
   const requestClose = useCallback(() => {
     if (!busy) onClose();
   }, [busy, onClose]);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    previousFocus.current = document.activeElement as HTMLElement | null;
-    openSheets += 1;
-    if (openSheets === 1) document.body.style.overflow = "hidden";
-
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.stopPropagation();
-        requestClose();
-        return;
-      }
-      if (e.key !== "Tab" || !panelRef.current) return;
-      const nodes = Array.from(panelRef.current.querySelectorAll<HTMLElement>(FOCUSABLE));
-      if (nodes.length === 0) return;
-      const first = nodes[0];
-      const last = nodes[nodes.length - 1];
-      const inside = panelRef.current.contains(document.activeElement);
-      if (e.shiftKey && (document.activeElement === first || !inside)) { e.preventDefault(); last.focus(); }
-      else if (!e.shiftKey && (document.activeElement === last || !inside)) { e.preventDefault(); first.focus(); }
-    };
-    document.addEventListener("keydown", onKey);
-    const raf = requestAnimationFrame(() => {
-      const nodes = panelRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE);
-      // Skip the close button so the first field gets focus.
-      const target = nodes && nodes.length > 1 ? nodes[1] : nodes?.[0];
-      (target ?? panelRef.current)?.focus();
-    });
-
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      cancelAnimationFrame(raf);
-      openSheets = Math.max(0, openSheets - 1);
-      if (openSheets === 0) document.body.style.overflow = "";
-      previousFocus.current?.focus?.();
-    };
-  }, [isOpen, requestClose]);
+  useDialog(isOpen, panelRef, requestClose, busy);
 
   if (!isOpen) return null;
 

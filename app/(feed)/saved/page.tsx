@@ -1,5 +1,7 @@
 "use client";
 
+import { showToast } from "@/lib/utils/toast";
+
 import { useState, useCallback } from "react";
 import { formatCurrency } from "@/lib/utils/currency";
 import { getTimeAgoCompact as getTimeAgo } from "@/lib/utils/time";
@@ -131,50 +133,69 @@ export default function SavedPage() {
   const [removedItems, setRemovedItems] = useState<Set<string>>(new Set());
   const [removingItem, setRemovingItem] = useState<string | null>(null);
 
-  const loading = postsLoading || takesLoading || productsLoading;
-  const error = postsError || takesError || productsError;
+  const loading = activeTab === "posts" ? postsLoading : activeTab === "takes" ? takesLoading : activeTab === "products" ? productsLoading : postsLoading || takesLoading || productsLoading;
+  const error = activeTab === "posts" ? postsError : activeTab === "takes" ? takesError : activeTab === "products" ? productsError : postsError || takesError || productsError;
 
   const handleUnsavePost = useCallback(async (e: React.MouseEvent, postId: string) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!user) return;
+    if (!user || removingItem) return;
 
     setRemovingItem(postId);
-    await toggleSave(postId, user.id, true);
+    try {
+      await toggleSave(postId, user.id, true);
 
-    setTimeout(() => {
-      setRemovedItems(prev => new Set([...prev, postId]));
+      setTimeout(() => {
+        setRemovedItems(prev => new Set([...prev, postId]));
+        setRemovingItem(null);
+      }, 300);
+      showToast.info("Removed from saved");
+    } catch {
       setRemovingItem(null);
-    }, 300);
-  }, [user, toggleSave]);
+      showToast.error("Couldn’t remove saved item", "Please try again");
+    }
+  }, [removingItem, user, toggleSave]);
 
   const handleUnsaveTake = useCallback(async (e: React.MouseEvent, takeId: string) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!user) return;
+    if (!user || removingItem) return;
 
     setRemovingItem(takeId);
-    await supabase.from("take_saves").delete().eq("take_id", takeId).eq("user_id", user.id);
+    try {
+      const { error } = await supabase.from("take_saves").delete().eq("take_id", takeId).eq("user_id", user.id);
+      if (error) throw error;
 
-    setTimeout(() => {
-      setRemovedItems(prev => new Set([...prev, takeId]));
+      setTimeout(() => {
+        setRemovedItems(prev => new Set([...prev, takeId]));
+        setRemovingItem(null);
+      }, 300);
+      showToast.info("Removed from saved");
+    } catch {
       setRemovingItem(null);
-    }, 300);
-  }, [user]);
+      showToast.error("Couldn’t remove saved item", "Please try again");
+    }
+  }, [removingItem, user]);
 
   const handleUnsaveProduct = useCallback(async (e: React.MouseEvent, productId: string) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!user) return;
+    if (!user || removingItem) return;
 
     setRemovingItem(productId);
-    await toggleSaveProduct(productId, user.id, true);
+    try {
+      await toggleSaveProduct(productId, user.id, true);
 
-    setTimeout(() => {
-      setRemovedItems(prev => new Set([...prev, productId]));
+      setTimeout(() => {
+        setRemovedItems(prev => new Set([...prev, productId]));
+        setRemovingItem(null);
+      }, 300);
+      showToast.info("Removed from saved");
+    } catch {
       setRemovingItem(null);
-    }, 300);
-  }, [user, toggleSaveProduct]);
+      showToast.error("Couldn’t remove saved item", "Please try again");
+    }
+  }, [removingItem, user, toggleSaveProduct]);
 
   const handleOpenPost = useCallback((post: SavedPost) => {
     openPostModal({

@@ -1,5 +1,6 @@
 "use client";
 
+import { useDialog } from "@/lib/hooks/useDialog";
 import { useState, useEffect, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -57,6 +58,8 @@ export default function PeoplePickerModal({
   const [selected, setSelected] = useState<CollaboratorWithRole[]>(initialSelected);
   const [query, setQuery] = useState("");
   const [editingRoleFor, setEditingRoleFor] = useState<string | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialog(isOpen, dialogRef, onClose);
   const inputRef = useRef<HTMLInputElement>(null);
   const { results, loading, search, suggestions } = useUserSearch(currentUserId);
 
@@ -74,23 +77,6 @@ export default function PeoplePickerModal({
   useEffect(() => {
     search(query);
   }, [query, search]);
-
-  // Close on escape
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-
-    if (isOpen) {
-      document.addEventListener("keydown", handleEscape);
-      document.body.style.overflow = "hidden";
-    }
-
-    return () => {
-      document.removeEventListener("keydown", handleEscape);
-      document.body.style.overflow = "auto";
-    };
-  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -154,6 +140,11 @@ export default function PeoplePickerModal({
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Choose people"
+        tabIndex={-1}
         className="w-[95%] max-w-[500px] bg-surface rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-scaleIn"
         onClick={(e) => e.stopPropagation()}
       >

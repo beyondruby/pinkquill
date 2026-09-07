@@ -161,7 +161,7 @@ export function ModalProvider({ children }: { children: ReactNode }) {
     }
 
     setIsModalOpen(false);
-    setTimeout(() => setSelectedPost(null), 300);
+    setSelectedPost(null);
   }, []);
 
   const openTakeModal = useCallback((take: Take) => {
@@ -183,7 +183,7 @@ export function ModalProvider({ children }: { children: ReactNode }) {
     }
 
     setIsTakeModalOpen(false);
-    setTimeout(() => setSelectedTake(null), 300);
+    setSelectedTake(null);
   }, []);
 
   // Handle browser back button
@@ -191,12 +191,12 @@ export function ModalProvider({ children }: { children: ReactNode }) {
     const handlePopState = () => {
       if (isModalOpen) {
         setIsModalOpen(false);
-        setTimeout(() => setSelectedPost(null), 300);
+        setSelectedPost(null);
         originalUrlRef.current = null;
       }
       if (isTakeModalOpen) {
         setIsTakeModalOpen(false);
-        setTimeout(() => setSelectedTake(null), 300);
+        setSelectedTake(null);
         takeOriginalUrlRef.current = null;
       }
     };

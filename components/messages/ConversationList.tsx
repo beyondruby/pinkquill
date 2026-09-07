@@ -14,6 +14,8 @@ function formatVoiceDuration(seconds: number): string {
 interface ConversationListProps {
   conversations: Conversation[];
   loading: boolean;
+  error?: string | null;
+  onRetry?: () => void;
   selectedId: string | null;
   currentUserId: string;
   onSelect: (id: string) => void;
@@ -39,6 +41,8 @@ function formatTime(dateString: string): string {
 function ConversationList({
   conversations,
   loading,
+  error,
+  onRetry,
   selectedId,
   currentUserId,
   onSelect,
@@ -51,6 +55,13 @@ function ConversationList({
         ))}
       </div>
     );
+  }
+
+  if (error && conversations.length === 0) {
+    return <div role="alert" className="p-6 text-center font-ui text-sm text-muted">
+      <p>{error}</p>
+      <button type="button" onClick={onRetry} className="mt-3 py-2 text-accent underline underline-offset-2">Try again</button>
+    </div>;
   }
 
   if (conversations.length === 0) {
@@ -71,6 +82,15 @@ function ConversationList({
       {conversations.map((conversation) => (
         <div
           key={conversation.id}
+          role="button"
+          tabIndex={0}
+          aria-pressed={selectedId === conversation.id}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              onSelect(conversation.id);
+            }
+          }}
           onClick={() => onSelect(conversation.id)}
           className={`flex items-center gap-3 p-4 cursor-pointer transition-all border ${
             selectedId === conversation.id
@@ -93,7 +113,7 @@ function ConversationList({
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between mb-1">
               <h3
-                className={`font-ui text-[0.95rem] truncate ${
+                className={`font-ui text-15 truncate ${
                   conversation.unread_count > 0
                     ? "font-semibold text-ink"
                     : "font-medium text-ink"

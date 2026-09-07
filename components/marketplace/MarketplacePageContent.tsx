@@ -21,6 +21,7 @@ export default function MarketplacePageContent() {
     error,
     pagination,
     loadMore,
+    refresh,
     filters,
     setListingType,
     setCategory,
@@ -122,7 +123,7 @@ export default function MarketplacePageContent() {
             <h3 className="font-display text-lg font-semibold text-ink mb-2">Something went wrong</h3>
             <p className="text-sm font-body text-muted mb-5 max-w-sm mx-auto">{error}</p>
             <button
-              onClick={() => window.location.reload()}
+              onClick={() => void refresh()}
               className="px-6 py-2.5 text-sm font-ui font-medium text-pink-vivid border border-pink-vivid/30 rounded-full hover:bg-pink-vivid/10 transition-colors"
             >
               Try again
@@ -203,7 +204,7 @@ function DiscoveryStrip({
   keyword?: string;
 }) {
   return (
-    <div className="relative rounded-[24px] border border-border-light bg-surface/95 px-4 sm:px-6 py-5 shadow-sm overflow-hidden">
+    <div className="relative rounded-3xl border border-border-light bg-surface/95 px-4 sm:px-6 py-5 shadow-sm overflow-hidden">
       <div className="absolute -top-14 -right-12 w-40 h-40 rounded-full bg-pink-vivid/10 blur-2xl" />
       <div className="absolute -bottom-16 -left-12 w-40 h-40 rounded-full bg-purple-primary/10 blur-2xl" />
 

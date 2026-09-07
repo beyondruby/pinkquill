@@ -1,5 +1,8 @@
 "use client";
 
+import { Spinner } from "@/components/ui/Loading";
+import { showToast } from "@/lib/utils/toast";
+
 import "./studio.css";
 
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -679,7 +682,7 @@ function CollectionCard({
       </div>
 
       {/* Decorative gradient glow on hover */}
-      <div className="absolute -inset-1 bg-gradient-to-r from-purple-primary/20 to-pink-vivid/20 rounded-[28px] opacity-0 group-hover:opacity-50 blur-xl transition-opacity duration-500 -z-10" />
+      <div className="absolute -inset-1 bg-gradient-to-r from-purple-primary/20 to-pink-vivid/20 rounded-media opacity-0 group-hover:opacity-50 blur-xl transition-opacity duration-500 -z-10" />
 
       {/* Delete Collection Confirmation */}
       <ConfirmationModal
@@ -1103,24 +1106,25 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 <button
                   onClick={handleFollow}
                   disabled={followLoading}
-                  className={`px-5 py-2 md:px-8 md:py-3 rounded-full font-ui text-[0.85rem] md:text-[0.95rem] font-medium transition-all ${
+                  aria-busy={followLoading}
+                  aria-label={followLoading ? "Updating follow status" : undefined}
+                  className={`relative px-5 py-2 md:px-8 md:py-3 rounded-full font-ui text-[0.85rem] md:text-15 font-medium transition-all ${
                     isFollowing
                       ? "bg-surface border-2 border-accent text-accent hover:bg-accent/5"
                       : isPendingRequest
                         ? "bg-surface border-2 border-muted text-muted hover:border-red-400 hover:text-red-400"
-                        : "bg-gradient-to-r from-purple-primary to-pink-vivid text-on-accent shadow-lg shadow-purple-primary/30 hover:-translate-y-0.5 hover:shadow-xl"
+                        : "bg-gradient-to-r from-purple-primary to-pink-vivid text-on-accent shadow-lg shadow-purple-primary/30 hover:shadow-xl"
                   }`}
                 >
-                  {followLoading
-                    ? "..."
-                    : isFollowing
+                  {followLoading && <span className="absolute inset-0 flex items-center justify-center"><Spinner size="sm" /></span>}
+                  <span className={followLoading ? "invisible" : ""}>{isFollowing
                       ? "Following"
                       : isPendingRequest
                         ? "Requested"
                         : profile?.is_private
                           ? "Request to Follow"
                           : "Follow"
-                  }
+                  }</span>
                 </button>
                 <button
                   onClick={async () => {
@@ -1132,20 +1136,21 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                       router.push(`/messages?conversation=${conversationId}`);
                     } catch (err) {
                       console.error("Failed to start conversation:", err);
+                      showToast.error("Couldn’t open conversation", "Please try again");
                       setMessageLoading(false);
                     }
                   }}
                   disabled={messageLoading}
-                  className="px-4 py-2 md:px-6 md:py-3 rounded-full border-2 border-border-light bg-surface font-ui text-[0.85rem] md:text-[0.95rem] font-medium text-ink flex items-center gap-2 hover:border-accent hover:text-accent transition-all disabled:opacity-50"
+                  className="px-4 py-2 md:px-6 md:py-3 rounded-full border-2 border-border-light bg-surface font-ui text-[0.85rem] md:text-15 font-medium text-ink flex items-center gap-2 hover:border-accent hover:text-accent transition-all disabled:opacity-50"
                 >
                   {icons.message}
-                  <span className="hidden md:inline">{messageLoading ? "..." : "Message"}</span>
+                  <span className="hidden md:inline">{messageLoading ? "Following…" : "Message"}</span>
                 </button>
               </>
             )}
 
             {isOwnProfile && (
-              <Link href="/settings" className="px-5 py-2 md:px-8 md:py-3 rounded-full border-2 border-border-light bg-surface font-ui text-[0.85rem] md:text-[0.95rem] font-medium text-ink hover:border-accent hover:text-accent transition-all">
+              <Link href="/settings" className="px-5 py-2 md:px-8 md:py-3 rounded-full border-2 border-border-light bg-surface font-ui text-[0.85rem] md:text-15 font-medium text-ink hover:border-accent hover:text-accent transition-all">
                 Edit Profile
               </Link>
             )}
@@ -1228,7 +1233,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
               </div>
 
               <h3 className="font-display text-xl text-ink mb-3">This Account is Private</h3>
-              <p className="font-body text-muted text-[0.95rem] max-w-md mx-auto mb-6">
+              <p className="font-body text-muted text-15 max-w-md mx-auto mb-6">
                 {isPendingRequest
                   ? "Your follow request is pending. Once approved, you'll be able to see their posts and profile."
                   : "Follow this account to see their posts, takes, and profile information."
@@ -1307,7 +1312,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
 
               {/* Bio */}
               {profile.bio && (
-                <p className="font-body text-[0.95rem] md:text-[1.12rem] leading-[1.8] md:leading-[1.95] text-ink/75 mb-6 md:mb-8 max-w-2xl">
+                <p className="font-body text-15 md:text-[1.12rem] leading-[1.8] md:leading-[1.95] text-ink/75 mb-6 md:mb-8 max-w-2xl">
                   {profile.bio}
                 </p>
               )}
@@ -2285,7 +2290,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                             )}
 
                             {work.title && (
-                              <h4 className="font-display font-semibold text-ink text-[0.95rem] mb-1.5 line-clamp-2 group-hover:text-accent transition-colors">
+                              <h4 className="font-display font-semibold text-ink text-15 mb-1.5 line-clamp-2 group-hover:text-accent transition-colors">
                                 {work.title}
                               </h4>
                             )}
@@ -2671,7 +2676,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
             <h3 className="font-display text-xl text-ink mb-3">
               Close the door on @{profile.username}?
             </h3>
-            <p className="font-body text-[0.95rem] text-muted leading-relaxed mb-7">
+            <p className="font-body text-15 text-muted leading-relaxed mb-7">
               Their posts vanish from your feed and yours from theirs. They won&apos;t be able to follow you, message you, or knock again — and we won&apos;t tell them.
             </p>
             <div className="flex justify-end gap-2.5">
@@ -2871,7 +2876,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                       </p>
                     )}
                     <div className="flex items-center gap-3 mt-1">
-                      <span className="font-ui text-[10px] text-ink/40">
+                      <span className="font-ui text-3xs text-ink/40">
                         {community.member_count || 0} {community.member_count === 1 ? "member" : "members"}
                       </span>
                     </div>

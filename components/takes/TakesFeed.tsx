@@ -37,6 +37,7 @@ export default function TakesFeed({
     error,
     hasMore,
     fetchMore,
+    refetch,
     toggleAdmire,
     toggleReaction,
     toggleSave,
@@ -199,70 +200,24 @@ export default function TakesFeed({
     }
   }, [visibleTakes]);
 
-  // Loading state
+  // Keep the video footprint stable while the first page arrives.
   if (loading && visibleTakes.length === 0) {
     return (
-      <div className="tiktok-feed-container">
-        <div className="aura-blob blob-1" />
-        <div className="aura-blob blob-2" />
-        <div className="aura-blob blob-3" />
-        <div className="tiktok-status">
-          <div className="takes-loading-quill">
-            <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <linearGradient id="loadingQuillGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#8e44ad">
-                    <animate
-                      attributeName="stop-color"
-                      values="#8e44ad;#ff007f;#ff9f43;#8e44ad"
-                      dur="2s"
-                      repeatCount="indefinite"
-                    />
-                  </stop>
-                  <stop offset="50%" stopColor="#ff007f">
-                    <animate
-                      attributeName="stop-color"
-                      values="#ff007f;#ff9f43;#8e44ad;#ff007f"
-                      dur="2s"
-                      repeatCount="indefinite"
-                    />
-                  </stop>
-                  <stop offset="100%" stopColor="#ff9f43">
-                    <animate
-                      attributeName="stop-color"
-                      values="#ff9f43;#8e44ad;#ff007f;#ff9f43"
-                      dur="2s"
-                      repeatCount="indefinite"
-                    />
-                  </stop>
-                </linearGradient>
-              </defs>
-              <path
-                d="M28 2C22 4 18 8 15 13C12 18 10 22 9 25L7 30L8.5 28.5C9.5 27.5 11 26 13 24.5C14.5 23.5 16.5 22.5 19 22C17 20 15.5 17.5 15 15C18 15.5 21 17 23 19C23.5 16.5 24.5 14.5 25.5 13C27 14.5 28 16.5 28.5 19C30 15 31 10 28 2Z"
-                fill="url(#loadingQuillGradient)"
-                className="takes-quill-body"
-              />
-              <path
-                d="M27 3C21 7 16 14 12 21C10 25 8 28 7 30"
-                stroke="url(#loadingQuillGradient)"
-                strokeWidth="1.2"
-                strokeLinecap="round"
-                className="takes-quill-spine"
-              />
-              <path
-                d="M24 6C22 8 20 10 18 13M26 8C23 11 20 14 17 17M25 12C22 15 19 18 16 20"
-                stroke="url(#loadingQuillGradient)"
-                strokeWidth="0.8"
-                strokeLinecap="round"
-                className="takes-quill-barbs"
-              />
-            </svg>
-            <div className="takes-loading-ripple" />
-            <div className="takes-loading-ripple ripple-2" />
-          </div>
-          <p className="takes-loading-text">Loading Takes</p>
-          <div className="takes-loading-dots">
-            <span /><span /><span />
+      <div className="tiktok-feed-container" role="status" aria-label="Loading Takes" aria-busy="true">
+        <div className="tiktok-feed" aria-hidden="true">
+          <div className="tiktok-feed-item">
+            <div className="tiktok-take">
+              <div className="tiktok-take-video">
+                <div className="absolute inset-0 bg-subtle" />
+                <div className="tiktok-bottom-content animate-pulse space-y-3">
+                  <div className="h-3 w-28 rounded bg-skeleton" />
+                  <div className="h-3 w-3/4 rounded bg-skeleton" /><div className="h-3 w-1/2 rounded bg-skeleton" />
+                </div>
+              </div>
+              <div className="tiktok-actions animate-pulse">
+                {[0, 1, 2, 3, 4].map(item => <div key={item} className="w-10 h-10 rounded-full bg-skeleton" />)}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -285,7 +240,8 @@ export default function TakesFeed({
             </svg>
           </div>
           <p>Failed to load Takes</p>
-          <span className="tiktok-status-sub">{error}</span>
+          <span className="tiktok-status-sub" role="alert">{error}</span>
+          <button type="button" onClick={() => void refetch()} className="mt-4 py-2 font-ui text-accent underline underline-offset-2">Try again</button>
         </div>
       </div>
     );

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useDialog } from "@/lib/hooks/useDialog";
 import Image from "next/image";
 
 interface MediaItem {
@@ -19,6 +20,8 @@ interface LightboxProps {
 }
 
 export default function Lightbox({ images, initialIndex, isOpen, onClose }: LightboxProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialog(isOpen && images.length > 0, dialogRef, onClose);
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isZoomed, setIsZoomed] = useState(false);
 
@@ -41,24 +44,18 @@ export default function Lightbox({ images, initialIndex, isOpen, onClose }: Ligh
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [isOpen]);
-
   if (!isOpen || images.length === 0) return null;
 
   const currentImage = images[currentIndex];
 
   return (
     <div
-      className={`fixed inset-0 z-[3000] transition-all duration-400 ${
+      ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Media viewer"
+      tabIndex={-1}
+      className={`fixed inset-0 z-[3000] transition-all duration-150 ${
         isOpen ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"
       }`}
     >
@@ -83,7 +80,8 @@ export default function Lightbox({ images, initialIndex, isOpen, onClose }: Ligh
         {/* Close button */}
         <button
           onClick={onClose}
-          className="w-11 h-11 rounded-full bg-surface/10 backdrop-blur-sm flex items-center justify-center text-white/80 hover:bg-red-500/80 hover:text-white transition-all duration-300 hover:rotate-90"
+          aria-label="Close media viewer"
+          className="w-11 h-11 rounded-full bg-surface/10 backdrop-blur-sm flex items-center justify-center text-white/80 hover:bg-red-500/80 hover:text-white transition-all duration-150"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

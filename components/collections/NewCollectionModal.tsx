@@ -1,5 +1,6 @@
 "use client";
 
+import { useDialog } from "@/lib/hooks/useDialog";
 import React, { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useCreateCollection } from "@/lib/hooks/useCollections";
@@ -308,6 +309,8 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const retryUpload = useRef<(() => void) | null>(null);
   const [uploadingCover, setUploadingCover] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -317,6 +320,8 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
   // Reset form when modal opens/closes
   useEffect(() => {
     if (!isOpen) {
+      setUploadError(null);
+      retryUpload.current = null;
       setName("");
       setDescription("");
       setIconEmoji(null);
@@ -326,26 +331,11 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
     }
   }, [isOpen]);
 
-  // Close on escape key
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isOpen) {
-        onClose();
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener("keydown", handleEscape);
-    }
-
-    return () => {
-      document.removeEventListener("keydown", handleEscape);
-    };
-  }, [isOpen, onClose]);
+  useDialog(isOpen, modalRef, onClose, creating || uploading || uploadingCover);
 
   // Handle click outside
   const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
+    if (e.target === e.currentTarget && !(creating || uploading || uploadingCover)) {
       onClose();
     }
   };
@@ -353,6 +343,7 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
   const handleIconUpload = async (file: File) => {
     if (!user) return;
 
+    setUploadError(null);
     setUploading(true);
     try {
       const fileExt = file.name.split(".").pop();
@@ -373,6 +364,8 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       console.error("Failed to upload icon:", message);
+      setUploadError("Couldn’t upload icon. Please try again.");
+      retryUpload.current = () => { void handleIconUpload(file); };
     } finally {
       setUploading(false);
     }
@@ -388,6 +381,7 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
   const handleCoverUpload = async (file: File) => {
     if (!user) return;
 
+    setUploadError(null);
     setUploadingCover(true);
     try {
       const fileExt = file.name.split(".").pop();
@@ -407,6 +401,8 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       console.error("Failed to upload cover:", message);
+      setUploadError("Couldn’t upload cover. Please try again.");
+      retryUpload.current = () => { void handleCoverUpload(file); };
     } finally {
       setUploadingCover(false);
     }
@@ -446,6 +442,10 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
     >
       <div
         ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="New collection"
+        tabIndex={-1}
         className="w-full max-w-md bg-surface rounded-2xl shadow-2xl overflow-hidden animate-scaleIn"
       >
         {/* Header */}
@@ -453,6 +453,7 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
           <h2 className="font-display text-lg font-semibold text-ink">New Collection</h2>
           <button
             onClick={onClose}
+              disabled={creating || uploading || uploadingCover}
             className="w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-skeleton transition-colors"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -658,7 +659,7 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g., Music, Books, Writings..."
-              className="w-full px-4 py-3 rounded-xl border border-border-light bg-surface font-body text-[0.95rem] text-ink placeholder:text-muted/50 focus:outline-none focus:border-purple-primary focus:ring-2 focus:ring-purple-primary/10 transition-all"
+              className="w-full px-4 py-3 rounded-xl border border-border-light bg-surface font-body text-15 text-ink placeholder:text-muted/50 focus:outline-none focus:border-purple-primary focus:ring-2 focus:ring-purple-primary/10 transition-all"
               required
             />
           </div>
@@ -673,11 +674,17 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
               onChange={(e) => setDescription(e.target.value)}
               placeholder="What will this collection contain?"
               rows={2}
-              className="w-full px-4 py-3 rounded-xl border border-border-light bg-surface font-body text-[0.95rem] text-ink placeholder:text-muted/50 focus:outline-none focus:border-purple-primary focus:ring-2 focus:ring-purple-primary/10 transition-all resize-none"
+              className="w-full px-4 py-3 rounded-xl border border-border-light bg-surface font-body text-15 text-ink placeholder:text-muted/50 focus:outline-none focus:border-purple-primary focus:ring-2 focus:ring-purple-primary/10 transition-all resize-none"
             />
           </div>
 
           {/* Error Message */}
+          {uploadError && (
+            <div role="alert" className="font-ui text-sm text-red-500">
+              <p>{uploadError}</p>
+              <button type="button" disabled={creating || uploading || uploadingCover} onClick={() => retryUpload.current?.()} className="py-2 underline underline-offset-2">Try again</button>
+            </div>
+          )}
           {error && (
             <p className="text-sm text-red-500">{error}</p>
           )}
@@ -687,6 +694,7 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
             <button
               type="button"
               onClick={onClose}
+              disabled={creating || uploading || uploadingCover}
               className="flex-1 px-5 py-2.5 rounded-xl border border-border-light font-ui text-[0.9rem] text-muted hover:text-ink hover:border-border-strong transition-all"
             >
               Cancel

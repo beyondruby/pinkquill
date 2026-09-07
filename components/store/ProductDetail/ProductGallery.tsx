@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
+import { useDialog } from "@/lib/hooks/useDialog";
 import Image from "next/image";
 import { ProductMedia } from "@/lib/types/store";
 
@@ -17,6 +18,8 @@ export default function ProductGallery({
 }: ProductGalleryProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const fullscreenRef = useRef<HTMLDivElement>(null);
+  useDialog(isFullscreen, fullscreenRef, () => setIsFullscreen(false));
 
   const sortedMedia = [...media].sort((a, b) => {
     if (a.is_primary) return -1;
@@ -56,7 +59,7 @@ export default function ProductGallery({
   if (sortedMedia.length === 0) {
     return (
       <div
-        className={`aspect-square rounded-[28px] flex items-center justify-center border ${
+        className={`aspect-square rounded-media flex items-center justify-center border ${
           isService
             ? "bg-gradient-to-br from-orange-50/70 to-pink-50/50 border-orange-100/70"
             : "bg-gradient-to-br from-pink-50 to-orange-50 border-pink-100/50"
@@ -96,6 +99,7 @@ export default function ProductGallery({
                     : "opacity-55 hover:opacity-100 border border-pink-vivid/10"
                 }`}
                 aria-label={`View image ${index + 1}`}
+                  aria-pressed={selectedIndex === index}
                 aria-current={index === selectedIndex}
               >
                 <Image
@@ -112,12 +116,11 @@ export default function ProductGallery({
 
         <div className="flex-1">
           <div
-            className={`relative aspect-square rounded-[28px] overflow-hidden group cursor-pointer border ${
+            className={`relative aspect-square rounded-media overflow-hidden group cursor-pointer border ${
               isService
                 ? "bg-canvas border-orange-100/70 shadow-[0_18px_48px_-28px_rgba(255,159,67,0.45)]"
                 : "bg-gradient-to-br from-pink-50/40 to-orange-50/40 border-border-light shadow-lg shadow-black/5"
             }`}
-            onClick={() => setIsFullscreen(true)}
           >
             {selectedImage && (
               <Image
@@ -130,6 +133,12 @@ export default function ProductGallery({
               />
             )}
 
+            <button
+              type="button"
+              className="absolute inset-0 z-0 rounded-media focus-visible:-outline-offset-4"
+              onClick={() => setIsFullscreen(true)}
+              aria-label={`Open ${title} image ${selectedIndex + 1} fullscreen`}
+            />
             {sortedMedia.length > 1 && (
               <>
                 <button
@@ -137,7 +146,7 @@ export default function ProductGallery({
                     e.stopPropagation();
                     handlePrevious();
                   }}
-                  className={`absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full backdrop-blur-sm shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 ${
+                  className={`absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full backdrop-blur-sm shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-all duration-200 ${
                     isService
                       ? "bg-surface/95 hover:bg-surface border border-orange-100"
                       : "bg-surface/95 hover:bg-surface border border-pink-vivid/10"
@@ -158,7 +167,7 @@ export default function ProductGallery({
                     e.stopPropagation();
                     handleNext();
                   }}
-                  className={`absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full backdrop-blur-sm shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 ${
+                  className={`absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full backdrop-blur-sm shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-all duration-200 ${
                     isService
                       ? "bg-surface/95 hover:bg-surface border border-orange-100"
                       : "bg-surface/95 hover:bg-surface border border-pink-vivid/10"
@@ -194,6 +203,7 @@ export default function ProductGallery({
                         : "bg-surface/60 hover:bg-surface"
                     }`}
                     aria-label={`Go to image ${index + 1}`}
+                    aria-pressed={selectedIndex === index}
                   />
                 ))}
               </div>
@@ -214,6 +224,7 @@ export default function ProductGallery({
                       : "opacity-60 hover:opacity-100"
                   }`}
                   aria-label={`View image ${index + 1}`}
+                  aria-pressed={selectedIndex === index}
                 >
                   <Image
                     src={item.media_url}
@@ -231,7 +242,12 @@ export default function ProductGallery({
 
       {isFullscreen && selectedImage && (
         <div
-          className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
+          ref={fullscreenRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${title} image gallery`}
+          tabIndex={-1}
+          className="fixed inset-0 z-(--z-modal) bg-black/95 flex items-center justify-center"
           onClick={() => setIsFullscreen(false)}
         >
           <button

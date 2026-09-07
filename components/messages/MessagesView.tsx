@@ -119,6 +119,7 @@ export default function MessagesView() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [inboxError, setInboxError] = useState<string | null>(null);
   const [showNewMessage, setShowNewMessage] = useState(false);
 
   // Check for conversation ID in URL
@@ -147,8 +148,10 @@ export default function MessagesView() {
         .map(rowToConversation)
         .filter((c): c is Conversation => c !== null);
       setConversations(sortByRecent(next));
+      setInboxError(null);
     } catch (err) {
       console.error("Failed to fetch conversations:", err);
+      setInboxError("Couldn’t load your conversations.");
     } finally {
       if (showLoading) setLoading(false);
     }
@@ -282,12 +285,13 @@ export default function MessagesView() {
             >
               {icons.community}
               {communityUnreadCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-white font-ui text-[10px] font-semibold flex items-center justify-center">
+                <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-white font-ui text-3xs font-semibold flex items-center justify-center">
                   {communityUnreadCount > 99 ? "99+" : communityUnreadCount}
                 </span>
               )}
             </button>
             <button
+              aria-label="New message"
               onClick={() => setShowNewMessage(true)}
               className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white flex items-center justify-center shadow-lg shadow-purple-primary/30 hover:scale-105 hover:shadow-xl transition-all active:scale-95"
             >
@@ -296,9 +300,17 @@ export default function MessagesView() {
           </div>
         </div>
 
+        {inboxError && conversations.length > 0 && (
+          <div role="alert" className="px-4 py-3 font-ui text-sm text-muted">
+            <p>{inboxError}</p>
+            <button type="button" disabled={loading} onClick={() => void fetchConversations(false)} className="py-2 text-accent underline underline-offset-2">Try again</button>
+          </div>
+        )}
         {/* Conversations List */}
         <ConversationList
           conversations={conversations}
+          error={inboxError}
+          onRetry={() => void fetchConversations(true)}
           loading={loading}
           selectedId={selectedConversation}
           currentUserId={user.id}
@@ -333,8 +345,9 @@ export default function MessagesView() {
                 Select a conversation or start a new one to connect with fellow creators
               </p>
               <button
-                onClick={() => setShowNewMessage(true)}
-                className="px-5 py-2.5 md:px-6 md:py-3 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid font-ui text-[0.9rem] md:text-[0.95rem] font-medium text-white shadow-lg shadow-purple-primary/30 hover:-translate-y-0.5 hover:shadow-xl transition-all"
+                aria-label="New message"
+              onClick={() => setShowNewMessage(true)}
+                className="px-5 py-2.5 md:px-6 md:py-3 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid font-ui text-[0.9rem] md:text-15 font-medium text-white shadow-lg shadow-purple-primary/30 hover:-translate-y-0.5 hover:shadow-xl transition-all"
               >
                 New Message
               </button>

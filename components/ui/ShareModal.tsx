@@ -1,5 +1,6 @@
 "use client";
 
+import { useDialog } from "@/lib/hooks/useDialog";
 import { useState, useEffect, useRef } from "react";
 
 interface ShareModalProps {
@@ -97,6 +98,8 @@ export default function ShareModal({
   const [embedCopied, setEmbedCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<"share" | "embed" | "instagram">("share");
   const [storyGenerating, setStoryGenerating] = useState(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialog(isOpen, dialogRef, onClose);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Reset states when modal opens/closes
@@ -107,21 +110,6 @@ export default function ShareModal({
       setActiveTab("share");
     }
   }, [isOpen]);
-
-  // Close on escape key
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    if (isOpen) {
-      document.addEventListener("keydown", handleEscape);
-      document.body.style.overflow = "hidden";
-    }
-    return () => {
-      document.removeEventListener("keydown", handleEscape);
-      document.body.style.overflow = "";
-    };
-  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -510,11 +498,11 @@ export default function ShareModal({
 
   return (
     <div className="share-modal-overlay" onClick={onClose}>
-      <div className="share-modal" onClick={(e) => e.stopPropagation()}>
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Share" tabIndex={-1} className="share-modal" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="share-modal-header">
           <h3 className="share-modal-title">Share this {type}</h3>
-          <button className="share-modal-close" onClick={onClose}>
+          <button aria-label="Close share dialog" className="share-modal-close" onClick={onClose}>
             {icons.close}
           </button>
         </div>

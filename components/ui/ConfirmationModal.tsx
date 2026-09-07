@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useRef, useId } from "react";
+import { useDialog } from "@/lib/hooks/useDialog";
 import Button from "./Button";
 
 interface ConfirmationModalProps {
@@ -28,22 +29,9 @@ export default function ConfirmationModal({
 }: ConfirmationModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !loading) onClose();
-    };
-
-    if (isOpen) {
-      document.addEventListener("keydown", handleEscape);
-      document.body.style.overflow = "hidden";
-      modalRef.current?.focus();
-    }
-
-    return () => {
-      document.removeEventListener("keydown", handleEscape);
-      document.body.style.overflow = "auto";
-    };
-  }, [isOpen, onClose, loading]);
+  const titleId = useId();
+  const descriptionId = useId();
+  useDialog(isOpen, modalRef, onClose, loading);
 
   if (!isOpen) return null;
 
@@ -67,8 +55,8 @@ export default function ConfirmationModal({
         className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[440px] max-w-[90vw] bg-surface rounded-3xl shadow-2xl border border-border-light z-(--z-modal) overflow-hidden animate-scaleIn"
         role="alertdialog"
         aria-modal="true"
-        aria-labelledby="confirmation-modal-title"
-        aria-describedby="confirmation-modal-description"
+        aria-labelledby={titleId}
+        aria-describedby={descriptionId}
         tabIndex={-1}
       >
         <div className="p-7">
@@ -91,7 +79,7 @@ export default function ConfirmationModal({
               )}
             </div>
             <h3
-              id="confirmation-modal-title"
+              id={titleId}
               className="font-display text-xl text-ink leading-tight"
             >
               {title}
@@ -99,8 +87,8 @@ export default function ConfirmationModal({
           </div>
 
           <p
-            id="confirmation-modal-description"
-            className="font-body text-[0.95rem] text-muted leading-relaxed mb-7 ml-[56px]"
+            id={descriptionId}
+            className="font-body text-15 text-muted leading-relaxed mb-7 ml-[56px]"
           >
             {description}
           </p>

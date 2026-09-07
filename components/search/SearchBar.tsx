@@ -67,7 +67,7 @@ export default function SearchBar({ className = "" }: SearchBarProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { results, loading } = useSearch(query);
+  const { results, loading, error, retry } = useSearch(query);
 
   // Load history when user changes
   /* eslint-disable react-hooks/set-state-in-effect */
@@ -188,6 +188,7 @@ export default function SearchBar({ className = "" }: SearchBarProps) {
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setIsFocused(true)}
           placeholder="Search"
+          aria-label="Search creators and communities"
           className="w-full h-full pl-12 pr-9 bg-transparent border-none outline-none font-ui text-[0.85rem] text-ink placeholder:text-muted/50"
         />
 
@@ -195,7 +196,8 @@ export default function SearchBar({ className = "" }: SearchBarProps) {
         {query && (
           <button
             onClick={handleClearQuery}
-            className="absolute right-2 w-7 h-7 rounded-lg flex items-center justify-center text-muted hover:text-pink-vivid hover:bg-pink-vivid/10 transition-all duration-200"
+            aria-label="Clear search"
+            className="absolute right-2 w-7 h-7 pq-touch-target rounded-lg flex items-center justify-center text-muted hover:text-pink-vivid hover:bg-pink-vivid/10 transition-all duration-200"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -210,6 +212,8 @@ export default function SearchBar({ className = "" }: SearchBarProps) {
         query={query}
         results={results}
         loading={loading}
+        error={error}
+        onRetry={retry}
         history={user ? history : []}
         onClose={() => setIsFocused(false)}
         onSelectResult={handleSelectResult}

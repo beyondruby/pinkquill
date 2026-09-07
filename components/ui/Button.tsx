@@ -45,12 +45,12 @@ interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "cla
 const SIZE_CLASSES: Record<ButtonSize, string> = {
   sm: "px-4 py-2 text-sm gap-1.5",
   md: "px-5 py-2.5 text-sm gap-2",
-  lg: "px-6 py-3.5 text-[0.95rem] gap-2",
+  lg: "px-6 py-3.5 text-15 gap-2",
 };
 
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   primary:
-    "bg-gradient-to-r from-purple-primary to-pink-vivid text-on-accent shadow-sm hover:shadow-lg hover:shadow-pink-vivid/25 hover:scale-[1.02]",
+    "bg-gradient-to-r from-purple-primary to-pink-vivid text-on-accent shadow-sm hover:shadow-lg hover:shadow-pink-vivid/25",
   secondary: "bg-subtle text-ink hover:bg-skeleton/80",
   outline:
     "bg-transparent text-muted border border-border-light hover:border-border-strong hover:text-ink",
@@ -61,7 +61,7 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
 };
 
 const OUTLINE_GRADIENT_BG =
-  "linear-gradient(white, white) padding-box, linear-gradient(to right, #ff9f43, #ff007f) border-box";
+  "linear-gradient(var(--color-surface), var(--color-surface)) padding-box, linear-gradient(to right, #ff9f43, #ff007f) border-box";
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
   {
@@ -90,9 +90,9 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
       style={mergedStyle}
       className={[
         "inline-flex items-center justify-center rounded-full font-ui font-semibold",
-        "transition-all duration-150 ease-out",
+        "transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-150 ease-out",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:ring-offset-2 focus-visible:ring-offset-surface",
-        "active:scale-[0.97]",
+        "active:scale-[0.99]",
         "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none disabled:active:scale-100",
         SIZE_CLASSES[size],
         VARIANT_CLASSES[variant],

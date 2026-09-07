@@ -2434,7 +2434,7 @@ export default function CreatePost() {
               </svg>
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="font-ui text-[0.95rem] font-semibold text-ink mb-1">
+              <h3 className="font-ui text-15 font-semibold text-ink mb-1">
                 You have an unsaved draft
               </h3>
               <p className="font-body text-[0.85rem] text-muted mb-3">
@@ -4259,14 +4259,14 @@ export default function CreatePost() {
 
         {/* Error Message */}
         {(error || takeError) && (
-          <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-xl text-center">
+          <div role="alert" className="mb-8 p-4 bg-red-50 border border-red-200 rounded-xl text-center">
             <p className="text-sm text-red-600 font-body">{error || takeError}</p>
           </div>
         )}
 
         {/* Take Upload Progress */}
         {isTakeMode && takeUploading && (
-          <div className="mb-8">
+          <div className="mb-8" role="progressbar" aria-label="Uploading your Take" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(takeProgress)}>
             <div className="flex items-center justify-between mb-2">
               <span className="font-ui text-sm text-muted">Uploading your Take...</span>
               <span className="font-ui text-sm font-medium text-pink-vivid">{Math.round(takeProgress)}%</span>

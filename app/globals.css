@@ -55,6 +55,9 @@
   --font-body: var(--font-open-sans), sans-serif;
   --font-ui: var(--font-poppins), sans-serif;
 
+  --radius-media: 1.75rem;
+  --radius-feature: 2.5rem;
+
   /* === ELEVATION — named tokens for the hand-rolled glow/elevation shadows
      found in the Sep 2026 polish audit (10 one-off shadow-[…] values with no
      shared name). Ordinary cards should keep using the built-in
@@ -75,9 +78,10 @@
   --text-2xs: 0.6875rem;  /* 11px */
   --text-15: 0.95rem;
 
-  /* No new --radius-* or --spacing-* tokens: Tailwind's built-in radius scale
+  /* Tailwind's built-in radius scale
      (xs…4xl, full) and spacing scale already cover every real design need
-     here. The audit's "sprawl" findings there are inconsistent *usage* of an
+     here. The media and feature aliases above preserve existing special shapes.
+     The audit's "sprawl" findings are inconsistent *usage* of an
      already-complete scale (plus 27 arbitrary rounded-[…] and 98 arbitrary
      p-/m-/gap-/w-/h-[…] one-offs) — a per-file migration task for a later
      wave, not missing infrastructure. */
@@ -8407,4 +8411,48 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 @media (min-width: 768px) {
   .sheet-panel { max-height: 85vh; max-height: 85dvh; }
   .sheet-panel-tall { min-height: min(440px, 85dvh); }
+}
+
+/* Shared interaction defaults. Component utilities retain their existing visuals. */
+@layer base {
+  :where(button, a[href], input, select, textarea, [tabindex="0"]):focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+  }
+  :where(button, a[href], [role="button"]) {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    transition-duration: 150ms;
+    transition-timing-function: ease-out;
+  }
+  :where(button:not(:disabled), [role="button"]:not([aria-disabled="true"])):active {
+    opacity: 0.8;
+  }
+  :where(button:disabled, [aria-disabled="true"]) {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+}
+
+/* Extend isolated small controls without changing their visible geometry. */
+.pq-touch-target::after {
+  content: "";
+  position: absolute;
+  width: max(100%, 2.75rem);
+  height: max(100%, 2.75rem);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+@layer base {
+  @media (hover: hover) {
+    :where(button:not(:disabled), a[href]):hover { opacity: 0.92; }
+  }
+  :where(button:not(:disabled), a[href]):active { opacity: 0.8; }
+}
+
+@media (max-width: 767px) {
+  .pinkquill-toaster[data-sonner-toaster][data-y-position="bottom"] {
+    bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+  }
 }

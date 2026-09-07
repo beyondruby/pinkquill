@@ -6,6 +6,8 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { useBlock } from "@/lib/hooks/useInteractions";
 import { supabase } from "@/lib/supabase";
 import Loading from "@/components/ui/Loading";
+import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import { showToast } from "@/lib/utils/toast";
 import Button from "@/components/ui/Button";
 
 interface BlockedUser {
@@ -25,6 +27,8 @@ export default function PrivacySettingsPage() {
   // Private account state
   const [isPrivate, setIsPrivate] = useState(false);
   const [savingPrivacy, setSavingPrivacy] = useState(false);
+  const [pendingRequests, setPendingRequests] = useState<number | null>(null);
+  const [privacyError, setPrivacyError] = useState<string | null>(null);
   const [privacyLoading, setPrivacyLoading] = useState(true);
 
   // Fetch current privacy setting
@@ -47,29 +51,26 @@ export default function PrivacySettingsPage() {
   }, [user]);
 
   // Toggle private account
-  const handlePrivacyToggle = async () => {
+  const handlePrivacyToggle = async (confirmed = false) => {
     if (!user || savingPrivacy) return;
 
     const newValue = !isPrivate;
     setSavingPrivacy(true);
+    setPrivacyError(null);
 
     try {
       // Switching from private to public — confirm auto-accept of pending requests
-      if (!newValue) {
-        const { count } = await supabase
+      if (!newValue && !confirmed) {
+        const { count, error: countError } = await supabase
           .from("follows")
           .select("*", { count: "exact", head: true })
           .eq("following_id", user.id)
           .eq("status", "pending");
 
+        if (countError) throw countError;
         if (count && count > 0) {
-          const confirmed = window.confirm(
-            `You have ${count} pending follow request${count > 1 ? "s" : ""}. Making your account public will accept all of them. Continue?`
-          );
-          if (!confirmed) {
-            setSavingPrivacy(false);
-            return;
-          }
+          setPendingRequests(count);
+          return;
         }
       }
 
@@ -84,14 +85,23 @@ export default function PrivacySettingsPage() {
 
       // If switching from private to public, auto-accept all pending requests
       if (!newValue) {
-        await supabase
+        const { error: requestsError } = await supabase
           .from("follows")
           .update({ status: 'accepted' })
           .eq("following_id", user.id)
           .eq("status", 'pending');
+        if (requestsError) {
+          showToast.error("Account is public", "Some follow requests could not be accepted. Review them in notifications.");
+          setPendingRequests(null);
+          return;
+        }
       }
+      setPendingRequests(null);
+      showToast.success("Privacy setting saved");
     } catch (err) {
       console.error("Failed to update privacy setting:", err);
+      setPrivacyError("Couldn’t save your privacy setting. Please try again.");
+      showToast.error("Couldn’t save privacy setting", "Please try again");
     } finally {
       setSavingPrivacy(false);
     }
@@ -124,6 +134,16 @@ export default function PrivacySettingsPage() {
 
   return (
     <div className="max-w-2xl">
+      <ConfirmationModal
+        isOpen={pendingRequests !== null}
+        onClose={() => { if (!savingPrivacy) setPendingRequests(null); }}
+        onConfirm={() => handlePrivacyToggle(true)}
+        loading={savingPrivacy}
+        title="Make account public?"
+        description={`This will accept ${pendingRequests ?? 0} pending follow request${pendingRequests === 1 ? "" : "s"}. Your profile and posts will be public.`}
+        confirmText="Make public"
+      />
+      {privacyError && <p role="alert" className="mb-4 font-ui text-sm text-red-500">{privacyError}</p>}
       <div className="mb-8">
         <h2 className="font-display text-2xl text-ink mb-2">Privacy Settings</h2>
         <p className="font-body text-muted">
@@ -151,7 +171,7 @@ export default function PrivacySettingsPage() {
           <div className="flex items-center justify-between gap-4">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
-                <h4 className="font-ui text-[0.95rem] font-medium text-ink">
+                <h4 className="font-ui text-15 font-medium text-ink">
                   Private Account
                 </h4>
                 {isPrivate && (
@@ -169,7 +189,11 @@ export default function PrivacySettingsPage() {
               <div className="w-12 h-7 bg-skeleton rounded-full animate-pulse" />
             ) : (
               <button
-                onClick={handlePrivacyToggle}
+                onClick={() => void handlePrivacyToggle()}
+                role="switch"
+                aria-checked={isPrivate}
+                aria-label="Private account"
+                aria-busy={savingPrivacy}
                 disabled={savingPrivacy}
                 className={`relative w-12 h-7 rounded-full transition-colors duration-200 ${
                   isPrivate
@@ -257,7 +281,7 @@ export default function PrivacySettingsPage() {
                     className="w-12 h-12 rounded-full object-cover"
                   />
                   <div>
-                    <h4 className="font-ui text-[0.95rem] font-medium text-ink group-hover:text-accent transition-colors">
+                    <h4 className="font-ui text-15 font-medium text-ink group-hover:text-accent transition-colors">
                       {blockedUser.display_name || blockedUser.username}
                     </h4>
                     <p className="font-ui text-sm text-muted">

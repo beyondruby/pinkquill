@@ -1,5 +1,6 @@
 "use client";
 
+import { useDialog } from "@/lib/hooks/useDialog";
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useAuthModal } from "@/components/providers/AuthModalProvider";
@@ -30,6 +31,7 @@ export default function AuthModal() {
   // UI-only state
   const [showPassword, setShowPassword] = useState(false);
 
+  const dialogRef = useRef<HTMLDivElement>(null);
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const handleClose = useCallback(() => {
@@ -38,28 +40,7 @@ export default function AuthModal() {
     closeModal();
   }, [actions, closeModal]);
 
-  // Close on escape key
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isOpen) {
-        handleClose();
-      }
-    };
-    document.addEventListener("keydown", handleEscape);
-    return () => document.removeEventListener("keydown", handleEscape);
-  }, [isOpen, handleClose]);
-
-  // Lock body scroll when open
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [isOpen]);
+  useDialog(isOpen, dialogRef, handleClose, loading);
 
   // Focus first OTP input when entering OTP step
   useEffect(() => {
@@ -91,17 +72,18 @@ export default function AuthModal() {
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/40 backdrop-blur-md"
-        onClick={handleClose}
+        onClick={loading ? undefined : handleClose}
       />
 
       {/* Modal */}
-      <div className="relative w-full max-w-md bg-surface rounded-3xl shadow-2xl shadow-purple-primary/20 overflow-hidden animate-scaleIn">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Sign in or create an account" tabIndex={-1} className="relative w-full max-w-md bg-surface rounded-3xl shadow-2xl shadow-purple-primary/20 overflow-hidden animate-scaleIn">
 
         {/* Close button */}
         <button
-          onClick={handleClose}
+          onClick={loading ? undefined : handleClose}
           aria-label="Close"
-          className="absolute top-4 right-4 w-8 h-8 rounded-full bg-skeleton/80 flex items-center justify-center text-muted hover:text-ink hover:bg-black/10 transition-all z-20"
+          disabled={loading}
+          className="absolute top-4 right-4 w-8 h-8 pq-touch-target rounded-full bg-skeleton/80 flex items-center justify-center text-muted hover:text-ink hover:bg-black/10 transition-all z-20"
         >
           <FontAwesomeIcon icon={faXmark} className="w-4 h-4" />
         </button>
@@ -294,7 +276,7 @@ export default function AuthModal() {
               <div className="text-center">
                 <Link
                   href="/login"
-                  onClick={handleClose}
+                  onClick={loading ? undefined : handleClose}
                   className="font-ui text-xs text-muted/60 hover:text-accent transition-colors"
                 >
                   Open the full login page →

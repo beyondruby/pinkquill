@@ -564,7 +564,7 @@ function PostCardComponent({
   // Mentions and hashtags from post data (passed to extracted components)
 
   // Actions component reused across post types (now includes mentions and hashtags display)
-  const Actions = () => (
+  const renderActions = () => (
     <div className="actions-wrapper">
       {post.mentions && post.mentions.length > 0 && (
         <MentionsDisplay mentions={post.mentions} />
@@ -1018,7 +1018,7 @@ function PostCardComponent({
               <div className="audio-title">Voice Note</div>
               <div className="audio-author">&quot;{post.title}&quot;</div>
             </ContentSection>
-            <Actions />
+            {renderActions()}
           </div>
         </article>
       );
@@ -1045,7 +1045,7 @@ function PostCardComponent({
               />
             )}
           </ContentSection>
-          <Actions />
+          {renderActions()}
         </article>
       );
     }
@@ -1182,7 +1182,7 @@ function PostCardComponent({
             {!mediaFirst && mediaBlock}
           </>
         </ContentSection>
-        <Actions />
+        {renderActions()}
       </article>
     );
   };

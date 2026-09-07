@@ -77,7 +77,7 @@ export default function AuthForm() {
       </div>
 
       {/* Main Container */}
-      <div className="relative z-10 w-full max-w-[1100px] bg-surface/80 backdrop-blur-xl rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] border border-surface/50 flex flex-col lg:flex-row overflow-hidden min-h-[650px]">
+      <div className="relative z-10 w-full max-w-[1100px] bg-surface/80 backdrop-blur-xl rounded-feature shadow-card border border-surface/50 flex flex-col lg:flex-row overflow-hidden min-h-[650px]">
 
         {/* LEFT PANEL: The Art (Desktop Only) */}
         <div className="hidden lg:flex w-5/12 relative flex-col justify-between p-12 overflow-hidden">
@@ -250,7 +250,7 @@ export default function AuthForm() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full py-3.5 rounded-xl font-ui font-semibold text-white bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm bg-[length:200%_auto] hover:bg-[position:right_center] transition-all duration-500 shadow-lg shadow-purple-primary/20 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 group transform active:scale-[0.98]"
+                    className="w-full py-3.5 rounded-xl font-ui font-semibold text-white bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm bg-[length:200%_auto] hover:opacity-95 transition-all duration-150 shadow-lg shadow-purple-primary/20 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 group transform active:scale-[0.98]"
                   >
                     {loading ? (
                       <>
@@ -361,7 +361,7 @@ export default function AuthForm() {
                 <button
                   onClick={() => onOtpSubmit()}
                   disabled={loading || otpCode.some(d => d === "")}
-                  className="w-full py-3.5 rounded-xl font-ui font-semibold text-white bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm bg-[length:200%_auto] hover:bg-[position:right_center] transition-all duration-500 shadow-lg shadow-purple-primary/20 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 transform active:scale-[0.98]"
+                  className="w-full py-3.5 rounded-xl font-ui font-semibold text-white bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm bg-[length:200%_auto] hover:opacity-95 transition-all duration-150 shadow-lg shadow-purple-primary/20 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 transform active:scale-[0.98]"
                 >
                   {loading ? (
                     <>
@@ -443,7 +443,7 @@ export default function AuthForm() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full py-3.5 rounded-xl font-ui font-semibold text-white bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm bg-[length:200%_auto] hover:bg-[position:right_center] transition-all duration-500 shadow-lg shadow-purple-primary/20 disabled:opacity-70 flex items-center justify-center gap-2"
+                    className="w-full py-3.5 rounded-xl font-ui font-semibold text-white bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm bg-[length:200%_auto] hover:opacity-95 transition-all duration-150 shadow-lg shadow-purple-primary/20 disabled:opacity-70 flex items-center justify-center gap-2"
                   >
                     {loading ? (
                       <>
