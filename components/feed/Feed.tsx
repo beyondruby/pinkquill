@@ -164,20 +164,7 @@ function FeedFrame({
         }
 
         .home-feed-modern .action-btn {
-          gap: 0.4rem;
-          padding: 0.5rem 0.65rem;
-          border-radius: 999px;
-          border: 1px solid transparent;
           line-height: 1;
-        }
-
-        .home-feed-modern .action-btn:hover {
-          border-color: color-mix(in oklab, var(--color-accent) 22%, transparent);
-          background: color-mix(in oklab, var(--color-accent) 10%, transparent);
-        }
-
-        .home-feed-modern .action-count {
-          font-variant-numeric: tabular-nums;
         }
 
         .home-feed-modern .post-menu-btn {
@@ -203,7 +190,7 @@ function FeedFrame({
           }
 
           .home-feed-modern .action-btn {
-            padding: 0.45rem 0.55rem;
+            padding: 8px 10px;
           }
         }
 

@@ -239,7 +239,8 @@ export default function RootLayout({
       <body
         className={`${libreBaskerville.variable} ${crimsonPro.variable} ${josefinSans.variable} ${poppins.variable} ${openSans.variable} ${playfairDisplay.variable} ${lora.variable} ${merriweather.variable} ${dancingScript.variable} ${caveat.variable} ${sourceCodePro.variable} ${inter.variable} ${spectral.variable} ${ebGaramond.variable} ${cormorantGaramond.variable} antialiased`}
       >
-        {/* Aura Gradient Background */}
+        {/* Paper grain + aura gradient background */}
+        <div className="texture-overlay" aria-hidden="true" />
         <div className="aura-blob blob-1" />
         <div className="aura-blob blob-2" />
         <div className="aura-blob blob-3" />

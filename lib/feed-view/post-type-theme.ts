@@ -73,3 +73,10 @@ export function getPostTypePhrase(type: PostType | string): string {
   const t = getPostTypeTheme(type);
   return `${t.verb} ${t.label.toLowerCase()}`;
 }
+
+/** "collaborated on a poem", "collaborated on an essay", "collaborated on music". */
+export function getPostTypeCollabPhrase(type: PostType | string): string {
+  const t = getPostTypeTheme(type);
+  const article = /\ban$/.test(t.verb) ? "an " : t.form === "music" ? "" : "a ";
+  return `collaborated on ${article}${t.label.toLowerCase()}`;
+}

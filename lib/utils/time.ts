@@ -22,6 +22,27 @@ export function getTimeAgo(dateString: string): string {
 }
 
 /**
+ * Relative time in words for the feed card ("Just now", "5 minutes ago",
+ * "2 hours ago", "Yesterday", "3 days ago"), then a short date.
+ */
+export function getTimeAgoWords(dateString: string): string {
+  const now = new Date();
+  const date = new Date(dateString);
+  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  if (Number.isNaN(seconds)) return "";
+  if (seconds < 60) return "Just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
+  const hours = Math.floor(seconds / 3600);
+  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+  const days = Math.floor(seconds / 86400);
+  if (days === 1) return "Yesterday";
+  if (days < 7) return `${days} days ago`;
+  const sameYear = date.getFullYear() === now.getFullYear();
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", ...(sameYear ? {} : { year: "numeric" }) });
+}
+
+/**
  * Compact variant without "ago" suffix, used in tighter UI contexts.
  * Returns "just now", "5m", "3h", "2d", or short date like "Jan 5".
  */

@@ -1,17 +1,19 @@
 // The ONE way a post type is shown anywhere in the product: a monochrome
 // icon + canonical label. Colour is inherited (default: muted ink) so the chip
 // never competes with content or brand. See lib/feed-view/post-type-theme.ts.
-import { getPostTypeTheme } from "@/lib/feed-view/post-type-theme";
+import { getPostTypeTheme, getPostTypePhrase } from "@/lib/feed-view/post-type-theme";
 import { PostTypeIcon } from "./PostTypeIcon";
 import type { PostType } from "./PostCard/types";
 
 interface PostTypeChipProps {
   type: PostType | string;
   /**
-   * "label" — sentence case, sits inline with names/dates (classic header, modal).
-   * "caps"  — small caps with tracking, for tiles and rows (stream, gallery).
+   * "label"  — sentence case, sits inline with names/dates (modal, tiles).
+   * "caps"   — small caps with tracking, for tiles and rows (stream, gallery).
+   * "phrase" — "shared a thought" beside the author's name (classic card
+   *            header); no icon, the verb carries the type.
    */
-  variant?: "label" | "caps";
+  variant?: "label" | "caps" | "phrase";
   size?: "xs" | "sm" | "md";
   /** Icon only (label still available to assistive tech). */
   iconOnly?: boolean;
@@ -33,6 +35,13 @@ export function PostTypeChip({
 }: PostTypeChipProps) {
   const theme = getPostTypeTheme(type);
   const s = SIZE[size];
+  if (variant === "phrase") {
+    return (
+      <span className={`whitespace-nowrap font-ui font-light ${s.text} ${className || "text-muted"}`} title={theme.label}>
+        {getPostTypePhrase(type)}
+      </span>
+    );
+  }
   const typography =
     variant === "caps"
       ? "font-ui font-medium"

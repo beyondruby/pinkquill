@@ -749,6 +749,16 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   .pq-tile-author > span:not(.pq-tile-avatar) { display: none; }
 }
 
+/* Paper grain over everything, 3% — the same overlay as the reference feed */
+.texture-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
 /* Aura Gradient Background */
 .aura-blob {
   position: fixed;
@@ -1068,17 +1078,29 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   font-weight: 500;
   color: var(--ink);
 }
+/* "shared a thought" beside the name; "2 hours ago" alone underneath */
 .post-type-label {
   font-family: var(--font-ui);
   font-size: 0.85rem;
   font-weight: 300;
   color: var(--muted-text);
+  min-width: 0;
+}
+.post-type-label a {
+  color: inherit;
+  font-weight: 400;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+.post-type-label a:hover {
+  color: var(--primary-purple);
 }
 .post-time {
   font-family: var(--font-ui);
   font-size: 0.8rem;
   font-weight: 300;
   color: var(--muted-text);
+  line-height: 1.3;
 }
 
 /* Post Meta Line (for collaborators) */
@@ -2069,38 +2091,40 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   gap: 0.25rem;
   margin-right: -8px;
 }
+/* Icon + count side by side, quiet grey until hovered (purple) or active (pink) */
 .action-btn {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  gap: 6px;
   min-width: 40px;
-  height: 40px;
-  padding: 0 8px;
-  border-radius: 999px;
+  min-height: 38px;
+  padding: 8px 12px;
+  border-radius: 20px;
   border: none;
   background: transparent;
   cursor: pointer;
-  color: var(--color-ink);
+  color: var(--color-muted);
   font-family: var(--font-body);
   font-size: 0.85rem;
-  transition: background-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
+  transition: background-color 0.25s ease, color 0.25s ease, transform 0.15s ease;
 }
 .action-btn svg {
-  width: 24px;
-  height: 24px;
+  width: 19px;
+  height: 19px;
 }
 .action-btn:hover {
-  background: var(--color-subtle);
+  background: color-mix(in srgb, var(--color-purple-primary) 8%, transparent);
+  color: var(--primary-purple);
 }
 .action-btn:active {
-  transform: scale(0.9);
+  transform: scale(0.92);
 }
-/* Small tabular number beside the icon; hidden when zero (not rendered) */
+/* The number beside the icon; not rendered when zero */
 .action-count {
-  font-family: var(--font-ui);
-  font-size: 0.82rem;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   line-height: 1;

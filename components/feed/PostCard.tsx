@@ -28,6 +28,9 @@ import CommentCount from "@/components/feed/CommentCount";
 import ReactionPicker from "@/components/feed/ReactionPicker";
 import { AudioPlayer } from "@/components/feed/AudioPlayer";
 import { supabase } from "@/lib/supabase";
+import { getTimeAgoWords } from "@/lib/utils/time";
+import { PostTypeChip } from "@/components/feed/PostTypeChip";
+import { getPostTypeCollabPhrase } from "@/lib/feed-view/post-type-theme";
 import { PostType } from "@/lib/types";
 import { deleteOwnPost } from "@/lib/content-client";
 import { actionToast, showToast } from "@/lib/utils/toast";
@@ -36,7 +39,6 @@ import {
   HashtagsDisplay,
   SoundBars as SoundBarsComponent,
   TruncatedContent as TruncatedContentComponent,
-  StyledTypeLabel as StyledTypeLabelComponent,
   BlockConfirmModal,
   type MentionInfo,
 } from "./PostCard/index";
@@ -92,7 +94,6 @@ const moodIndicators: Record<string, string> = {
 };
 
 // Use imported modular components
-const StyledTypeLabel = StyledTypeLabelComponent;
 const SoundBars = SoundBarsComponent;
 
 function PostCardComponent({
@@ -653,6 +654,9 @@ function PostCardComponent({
     />
   ) : null;
 
+  // "2 hours ago" under the name; the list row's compact string is the fallback.
+  const timeWords = post.createdAt ? getTimeAgoWords(post.createdAt) : post.timeAgo;
+
   // Author Header component - Reddit-style for community posts
   const AuthorHeader = ({ small = false, centered = false }: { small?: boolean; centered?: boolean }) => {
     // Reddit-style: Community posts show community first, author as secondary
@@ -724,13 +728,13 @@ function PostCardComponent({
               )}
             </div>
 
-            {/* Secondary line: Time */}
-            <div className="post-meta-line community-post-meta">
+            {/* Secondary line: what was posted, then when */}
+            <div className="post-meta-line">
               <span className="post-type-label">
-                <StyledTypeLabel type={post.type} />
+                <PostTypeChip type={post.type} variant="phrase" size="md" className="" />
               </span>
               <span className="post-time-separator">·</span>
-              <span className="post-time">{post.timeAgo}</span>
+              <span className="post-time">{timeWords}</span>
             </div>
           </div>
           {postMenuElement}
@@ -821,23 +825,20 @@ function PostCardComponent({
                 ) : (
                   <span className="collab-count">{acceptedCollaborators.length} others</span>
                 )}
-                <span className="collab-label">collaborated</span>
+                <span className="post-type-label">{getPostTypeCollabPhrase(post.type)}</span>
               </>
             ) : (
               <>
                 <Link href={`/studio/${post.author.handle.replace('@', '')}`} onClick={(e) => e.stopPropagation()} className="author-name">
                   {post.author.name}
                 </Link>
+                <span className="post-type-label">
+                  <PostTypeChip type={post.type} variant="phrase" size="md" className="" />
+                </span>
               </>
             )}
           </div>
-          <div className="post-meta-line">
-            <span className="post-type-label">
-              <StyledTypeLabel type={post.type} />
-            </span>
-            <span className="post-time-separator">·</span>
-            <span className="post-time">{post.timeAgo}</span>
-          </div>
+          <span className="post-time">{timeWords}</span>
         </div>
         {postMenuElement}
       </div>
