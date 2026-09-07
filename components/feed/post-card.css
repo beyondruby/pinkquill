@@ -150,7 +150,7 @@
   object-fit: cover;
 }
 .pq-feed-card .carousel-video { background: #000; }
-.pq-feed-card .carousel-video .carousel-media { object-fit: contain; }
+.pq-feed-card .carousel-video .pqv { height: clamp(240px, 58vw, 380px); aspect-ratio: auto; border-radius: 0; max-height: none; }
 .pq-feed-card .carousel-caption {
   position: absolute;
   inset: auto 0 0 0;
@@ -356,6 +356,7 @@
   background: #000;
   aspect-ratio: 16 / 9;
 }
+.pq-post-video .video-container:has(.pqv) { aspect-ratio: auto; background: transparent; }
 .pq-post-video .video-thumbnail,
 .pq-post-video .video-element {
   display: block;

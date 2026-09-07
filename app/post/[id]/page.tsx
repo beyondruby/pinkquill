@@ -20,6 +20,7 @@ import CommentComposer from "@/components/feed/CommentComposer";
 import { CommentSkeleton } from "@/components/ui/Skeleton";
 import ReactionPicker from "@/components/feed/ReactionPicker";
 import { AudioPlayer } from "@/components/feed/AudioPlayer";
+import { VideoPlayer } from "@/components/feed/VideoPlayer";
 import LeftSidebar from "@/components/layout/LeftSidebar";
 import MobileHeader from "@/components/layout/MobileHeader";
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
@@ -991,12 +992,7 @@ export default function PostPage() {
                 <div className="mt-6">
                   <div className="relative rounded-xl overflow-hidden bg-subtle">
                     {visualMedia[currentMediaIndex]?.media_type === "video" ? (
-                      <video
-                        src={visualMedia[currentMediaIndex].media_url}
-                        className="w-full max-h-[500px] object-contain bg-black"
-                        controls
-                        playsInline
-                      />
+                      <VideoPlayer src={visualMedia[currentMediaIndex].media_url} title={post.title || undefined} maxHeight={500} />
                     ) : (
                       <img
                         src={visualMedia[currentMediaIndex]?.media_url}

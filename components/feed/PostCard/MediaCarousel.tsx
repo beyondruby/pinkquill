@@ -9,6 +9,7 @@ import { useRef, useState } from "react";
 import Image from "next/image";
 import type { MediaItem } from "./types";
 import { ChevronLeftGlyph, ChevronRightGlyph } from "./ActionIcons";
+import { VideoPlayer } from "../VideoPlayer";
 
 interface MediaCarouselProps {
   items: MediaItem[];
@@ -58,7 +59,7 @@ export function MediaCarousel({ items, authorName, onOpen }: MediaCarouselProps)
           >
             {item.media_type === "video" ? (
               <div className="carousel-video">
-                <video src={item.media_url} className="carousel-media" controls preload="metadata" aria-label={item.caption || `Video ${idx + 1}`} />
+                <VideoPlayer src={item.media_url} title={item.caption || undefined} />
               </div>
             ) : (
               <button

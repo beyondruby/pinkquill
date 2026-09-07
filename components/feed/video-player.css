@@ -1,0 +1,384 @@
+/* ============================================================================
+   PINKQUILL VIDEO PLAYER (components/feed/VideoPlayer.tsx)
+   Dark picture box on an ambient blur of the poster, a white play disc in a
+   turning brand ring, and a gradient scrubber. Everything below is scoped to
+   .pqv so it can sit inside any card, modal or page.
+   ============================================================================ */
+
+.pqv {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 14px;
+  background: #0b0710;
+  color: #fff;
+  font-family: var(--font-ui);
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+.pqv:focus-visible { box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-accent); }
+.pqv.is-fullscreen,
+.pqv:fullscreen { border-radius: 0; aspect-ratio: auto; max-height: none; width: 100%; height: 100%; }
+.pqv.is-playing.controls-hidden { cursor: none; }
+
+/* ---- Layers ---------------------------------------------------------------- */
+.pqv-ambient {
+  position: absolute;
+  inset: -12%;
+  z-index: 0;
+  background-position: center;
+  background-size: cover;
+  filter: blur(30px) saturate(1.25);
+  opacity: 0.55;
+  pointer-events: none;
+}
+.pqv-ambient.is-gradient {
+  inset: 0;
+  filter: none;
+  opacity: 1;
+  background:
+    radial-gradient(60% 80% at 20% 20%, color-mix(in srgb, var(--color-pink-vivid) 45%, transparent), transparent 70%),
+    radial-gradient(60% 80% at 85% 90%, color-mix(in srgb, var(--color-orange-warm) 35%, transparent), transparent 70%),
+    linear-gradient(160deg, var(--color-purple-primary), #1e1e1e);
+}
+.pqv-video {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: transparent;
+}
+.pqv-poster { position: absolute; inset: 0; z-index: 2; }
+.pqv-surface { position: absolute; inset: 0; z-index: 3; cursor: pointer; }
+.pqv.is-idle .pqv-surface { cursor: pointer; }
+
+/* ---- Play disc in a slowly turning brand ring ----------------------------- */
+.pqv-disc {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 4;
+  width: 72px;
+  height: 72px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-purple-primary);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  translate: -50% -50%;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.38);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.pqv-disc::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  z-index: -2;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, var(--color-purple-primary), var(--color-pink-vivid), var(--color-orange-warm), var(--color-purple-primary));
+  opacity: 0.95;
+}
+.pqv-disc::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.96);
+}
+.pqv-disc svg { width: 28px; height: 28px; margin-left: 3px; }
+.pqv.is-ended .pqv-disc svg { margin-left: 0; }
+.pqv:hover .pqv-disc::before,
+.pqv-disc:focus-visible::before { animation: pqv-spin 5s linear infinite; }
+.pqv-disc:hover { transform: scale(1.06); box-shadow: 0 16px 44px rgba(0, 0, 0, 0.45); }
+.pqv-disc:active { transform: scale(0.96); }
+.pqv-disc:focus-visible { outline: 2px solid #fff; outline-offset: 6px; }
+
+.pqv-chip {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 4;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(6px);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+.pqv-title {
+  position: absolute;
+  left: 14px;
+  right: 60px;
+  top: 12px;
+  z-index: 4;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+.pqv.controls-visible .pqv-title { opacity: 0.95; }
+
+/* ---- Feedback: centre pulse, edge ripple, buffering ring ------------------ */
+.pqv-pulse {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 4;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  display: grid;
+  place-items: center;
+  translate: -50% -50%;
+  pointer-events: none;
+  animation: pqv-pulse 0.7s ease-out forwards;
+}
+.pqv-pulse svg { width: 28px; height: 28px; }
+.pqv-ripple {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 4;
+  width: 38%;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.2), transparent 70%);
+  pointer-events: none;
+  animation: pqv-ripple 0.6s ease-out forwards;
+}
+.pqv-ripple.left { left: 0; border-radius: 0 50% 50% 0; }
+.pqv-ripple.right { right: 0; border-radius: 50% 0 0 50%; }
+.pqv-spinner {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 4;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  translate: -50% -50%;
+  background: conic-gradient(from 0deg, transparent 20%, var(--color-pink-vivid), var(--color-orange-warm));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+  animation: pqv-spin 0.9s linear infinite;
+  pointer-events: none;
+}
+
+/* ---- Controls scrim -------------------------------------------------------- */
+.pqv-controls {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+  padding: 34px 12px 10px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.74), rgba(0, 0, 0, 0.36) 55%, transparent);
+  opacity: 0;
+  translate: 0 6px;
+  transition: opacity 0.25s ease, translate 0.25s ease;
+}
+.pqv.controls-visible .pqv-controls,
+.pqv:focus-within .pqv-controls { opacity: 1; translate: 0 0; }
+.pqv.controls-hidden .pqv-controls { pointer-events: none; }
+
+/* Scrubber */
+.pqv-scrub {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 20px;
+  margin: 0 4px 4px;
+  cursor: pointer;
+}
+.pqv-track {
+  position: relative;
+  width: 100%;
+  height: 3px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.26);
+  transition: height 0.15s ease;
+}
+.pqv-scrub:hover .pqv-track,
+.pqv-scrub:focus-within .pqv-track,
+.pqv-scrub.is-dragging .pqv-track { height: 5px; }
+.pqv-buffered {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: inherit;
+  background: rgba(255, 255, 255, 0.32);
+}
+.pqv-played {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--color-purple-primary), var(--color-pink-vivid), var(--color-orange-warm));
+  box-shadow: 0 0 12px color-mix(in srgb, var(--color-pink-vivid) 55%, transparent);
+}
+.pqv-thumb {
+  position: absolute;
+  top: 50%;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #fff;
+  translate: -50% -50%;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-pink-vivid) 35%, transparent), 0 2px 8px rgba(0, 0, 0, 0.4);
+  transform: scale(0);
+  transition: transform 0.15s ease;
+}
+.pqv-scrub:hover .pqv-thumb,
+.pqv-scrub:focus-within .pqv-thumb,
+.pqv-scrub.is-dragging .pqv-thumb { transform: scale(1); }
+.pqv-scrub input[type="range"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+}
+.pqv-scrub input[type="range"]:disabled { cursor: default; }
+.pqv-scrub input[type="range"]::-webkit-slider-thumb { appearance: none; -webkit-appearance: none; width: 2px; height: 100%; }
+.pqv-tip {
+  position: absolute;
+  bottom: calc(100% + 2px);
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.82);
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  translate: -50%;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* Button row */
+.pqv-row { display: flex; align-items: center; gap: 2px; }
+.pqv-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+.pqv-btn:hover { background: rgba(255, 255, 255, 0.14); }
+.pqv-btn:active { transform: scale(0.92); }
+.pqv-btn:focus-visible { outline: 2px solid #fff; outline-offset: -2px; }
+.pqv-btn svg { width: 20px; height: 20px; }
+.pqv-skip span {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -42%;
+  font-size: 0.5rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.pqv-time {
+  margin-left: 6px;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  opacity: 0.94;
+}
+.pqv-time-sep { opacity: 0.55; margin: 0 1px; }
+.pqv-spacer { flex: 1; }
+.pqv-rate { width: auto; min-width: 40px; padding: 0 8px; font-size: 0.75rem; font-weight: 600; }
+.pqv-volume { display: flex; align-items: center; }
+.pqv-volume-slider {
+  display: flex;
+  align-items: center;
+  width: 0;
+  overflow: hidden;
+  transition: width 0.2s ease;
+}
+.pqv-volume:hover .pqv-volume-slider,
+.pqv-volume:focus-within .pqv-volume-slider { width: 76px; }
+.pqv-volume-slider input[type="range"] {
+  width: 66px;
+  height: 4px;
+  margin: 0 5px;
+  border-radius: 99px;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  background: linear-gradient(90deg, var(--color-pink-vivid) var(--pqv-vol, 100%), rgba(255, 255, 255, 0.3) var(--pqv-vol, 100%));
+}
+.pqv-volume-slider input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+.pqv-volume-slider input[type="range"]::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+}
+
+/* ---- Motion ---------------------------------------------------------------- */
+@keyframes pqv-spin { to { rotate: 360deg; } }
+@keyframes pqv-pulse {
+  0% { opacity: 0.9; transform: scale(0.7); }
+  100% { opacity: 0; transform: scale(1.5); }
+}
+@keyframes pqv-ripple {
+  0% { opacity: 0.95; }
+  100% { opacity: 0; }
+}
+
+/* ---- Small screens --------------------------------------------------------- */
+@media (max-width: 600px) {
+  .pqv-disc { width: 60px; height: 60px; }
+  .pqv-disc svg { width: 24px; height: 24px; }
+  .pqv-controls { padding: 26px 6px 6px; }
+  .pqv-btn { width: 34px; height: 34px; }
+  .pqv-time { font-size: 0.72rem; margin-left: 2px; }
+  .pqv-volume-slider,
+  .pqv-pip { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pqv *, .pqv *::before, .pqv *::after { animation: none !important; transition: none !important; }
+  .pqv-pulse, .pqv-ripple { display: none; }
+}

@@ -36,6 +36,7 @@ import PostTags from "@/components/feed/PostTags";
 import FlairBadge from "@/components/communities/FlairBadge";
 import { createSafeHtml, stripHtmlPreserveLines } from "@/lib/utils/sanitize";
 import { AudioPlayer } from "@/components/feed/AudioPlayer";
+import { VideoPlayer } from "@/components/feed/VideoPlayer";
 import { getTimeAgo } from "@/lib/utils/time";
 import { getBackgroundStyle, isDarkBackground } from "@/lib/utils/background";
 import { PostStyling, JournalMetadata, SpotifyTrack, CommunityFlair } from "@/lib/types";
@@ -836,17 +837,7 @@ function PostDetailModalComponent({
                   {/* Main Image Container - Clean single border */}
                   <div className={`relative group rounded-lg overflow-hidden border ${hasDarkBg ? 'border-surface/20' : 'border-ink/10'}`}>
                     {media[currentMediaIndex]?.media_type === "video" ? (
-                      <div className="relative bg-black">
-                        <video
-                          src={media[currentMediaIndex].media_url}
-                          className="w-full h-auto max-h-[350px] md:max-h-[450px] object-contain"
-                          controls
-                          controlsList="nodownload"
-                          playsInline
-                          preload="none"
-                          poster="/video-placeholder.svg"
-                        />
-                      </div>
+                      <VideoPlayer src={media[currentMediaIndex].media_url} title={post.title || undefined} maxHeight={450} />
                     ) : media[currentMediaIndex] && (
                       <div className="relative">
                         <Image

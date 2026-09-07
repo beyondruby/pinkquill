@@ -58,6 +58,7 @@ const TruncatedContent = TruncatedContentComponent;
 import type { PostProps } from "./PostCard/types";
 import { FormBody, JournalStrip } from "./PostCard/FormBody";
 import { MediaCarousel } from "./PostCard/MediaCarousel";
+import { VideoPlayer } from "./VideoPlayer";
 import { CommentGlyph, RelayGlyph, ShareGlyph, BookmarkGlyph, PlayGlyph } from "./PostCard/ActionIcons";
 import { stripHtml } from "@/lib/utils/sanitize";
 import { getPostTypeTheme } from "@/lib/feed-view/post-type-theme";
@@ -102,7 +103,6 @@ function PostCardComponent({
   const [isSaved, setIsSaved] = useState(post.isSaved || false);
   const [isRelayed, setIsRelayed] = useState(post.isRelayed || false);
   const [relayCount, setRelayCount] = useState(post.stats?.relays ?? 0);
-  const [videoPlaying, setVideoPlaying] = useState(false);
   const [showContent, setShowContent] = useState(!post.contentWarning);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showSendToDMModal, setShowSendToDMModal] = useState(false);
@@ -896,27 +896,17 @@ function PostCardComponent({
       );
     }
 
-    // Video — poster + play, then title and description
+    // Video — Pinkquill's own player (poster, play disc, gradient scrubber);
+    // the clip is not fetched until the disc is tapped.
     if (post.type === "video") {
       const poster = post.image || null;
-      // The poster + play button is all the feed loads; the clip only mounts on tap.
-      const showPlayer = !!videoMedia && showContent && videoPlaying;
       return (
         <article className="post type-video pq-feed-card pq-post-video" onClick={handleOpenModal}>
           <AuthorHeader />
           <ContentSection>
             <div className="video-container" onClick={(e) => e.stopPropagation()}>
-              {showPlayer ? (
-                <video
-                  src={videoMedia!.media_url}
-                  poster={poster || undefined}
-                  controls
-                  autoPlay
-                  preload="metadata"
-                  playsInline
-                  className="video-element"
-                  aria-label={post.title || "Video post"}
-                />
+              {videoMedia && showContent ? (
+                <VideoPlayer src={videoMedia.media_url} poster={poster} title={post.title} durationLabel={post.videoDuration} />
               ) : (
                 <>
                   {poster ? (
@@ -933,12 +923,7 @@ function PostCardComponent({
                   ) : (
                     <div className="video-poster-blank" aria-hidden="true" />
                   )}
-                  <button
-                    type="button"
-                    className="video-play-btn"
-                    aria-label={videoMedia ? "Play video" : "Open post"}
-                    onClick={() => (videoMedia && showContent ? setVideoPlaying(true) : handleOpenModal())}
-                  >
+                  <button type="button" className="video-play-btn" aria-label="Open post" onClick={handleOpenModal}>
                     <PlayGlyph size={24} />
                   </button>
                   {post.videoDuration && <span className="video-duration">{post.videoDuration}</span>}
