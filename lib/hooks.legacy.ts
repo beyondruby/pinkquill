@@ -789,9 +789,10 @@ export function useCommunityPosts(
             position,
             created_at
           ),
-          comments_agg:comments(count),
-          relays_agg:relays(count),
-          reactions_agg:reactions(count)
+          reactions_count,
+          comments_count,
+          relays_count,
+          reaction_counts
         `)
         .eq("community_id", communityId)
         .eq("status", "published");

@@ -4,7 +4,7 @@ import { createContext, useContext, useState, useCallback, useEffect, useMemo, u
 import dynamic from "next/dynamic";
 import type { TakeUpdate } from "@/components/takes/TakeDetailModal";
 import { Take } from "@/lib/hooks/useTakes";
-import { PostStyling, JournalMetadata, CommunityFlair, ReactionType } from "@/lib/types";
+import { PostStyling, JournalMetadata, CommunityFlair, ReactionType, ReactionCounts } from "@/lib/types";
 
 interface MediaItem {
   id: string;
@@ -50,6 +50,7 @@ interface Post {
   image?: string;
   stats: {
     reactions?: number;
+    reactionCounts?: ReactionCounts;
     comments: number;
     relays: number;
   };
@@ -129,15 +130,15 @@ export function ModalProvider({ children }: { children: ReactNode }) {
   // Post modal state
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [subscribers, setSubscribers] = useState<PostUpdateCallback[]>([]);
-  const [deleteSubscribers, setDeleteSubscribers] = useState<PostDeleteCallback[]>([]);
+  const subscribersRef = useRef<Set<PostUpdateCallback>>(new Set());
+  const deleteSubscribersRef = useRef<Set<PostDeleteCallback>>(new Set());
   const originalUrlRef = useRef<string | null>(null);
 
   // Take modal state
   const [selectedTake, setSelectedTake] = useState<Take | null>(null);
   const [isTakeModalOpen, setIsTakeModalOpen] = useState(false);
-  const [takeSubscribers, setTakeSubscribers] = useState<TakeUpdateCallback[]>([]);
-  const [takeDeleteSubscribers, setTakeDeleteSubscribers] = useState<TakeDeleteCallback[]>([]);
+  const takeSubscribersRef = useRef<Set<TakeUpdateCallback>>(new Set());
+  const takeDeleteSubscribersRef = useRef<Set<TakeDeleteCallback>>(new Set());
   const takeOriginalUrlRef = useRef<string | null>(null);
 
   // Moderation context state
@@ -207,18 +208,20 @@ export function ModalProvider({ children }: { children: ReactNode }) {
   }, [isModalOpen, isTakeModalOpen]);
 
   const subscribeToUpdates = useCallback((callback: PostUpdateCallback) => {
-    setSubscribers((prev) => [...prev, callback]);
+    subscribersRef.current.add(callback);
     return () => {
-      setSubscribers((prev) => prev.filter((cb) => cb !== callback));
+      subscribersRef.current.delete(callback);
     };
   }, []);
 
+  // Stable: subscribers live in a ref and the selected post is read through
+  // the functional updater, so consumers' effects don't re-run per update.
   const notifyUpdate = useCallback((update: PostUpdate) => {
-    subscribers.forEach((callback) => callback(update));
+    for (const callback of Array.from(subscribersRef.current)) callback(update);
     // Also update the selected post if it matches
-    if (selectedPost && selectedPost.id === update.postId) {
+    {
       setSelectedPost((prev) => {
-        if (!prev) return prev;
+        if (!prev || prev.id !== update.postId) return prev;
         const newStats = { ...prev.stats };
         if (update.field === "relays") {
           newStats.relays = Math.max(0, newStats.relays + update.countChange);
@@ -234,18 +237,18 @@ export function ModalProvider({ children }: { children: ReactNode }) {
         return prev;
       });
     }
-  }, [subscribers, selectedPost]);
+  }, []);
 
   const subscribeToDeletes = useCallback((callback: PostDeleteCallback) => {
-    setDeleteSubscribers((prev) => [...prev, callback]);
+    deleteSubscribersRef.current.add(callback);
     return () => {
-      setDeleteSubscribers((prev) => prev.filter((cb) => cb !== callback));
+      deleteSubscribersRef.current.delete(callback);
     };
   }, []);
 
   const notifyDelete = useCallback((postId: string) => {
-    deleteSubscribers.forEach((callback) => callback(postId));
-  }, [deleteSubscribers]);
+    for (const callback of Array.from(deleteSubscribersRef.current)) callback(postId);
+  }, []);
 
   const handlePostDeleted = useCallback((postId: string) => {
     notifyDelete(postId);
@@ -253,18 +256,18 @@ export function ModalProvider({ children }: { children: ReactNode }) {
 
   // Take update subscriptions
   const subscribeToTakeUpdates = useCallback((callback: TakeUpdateCallback) => {
-    setTakeSubscribers((prev) => [...prev, callback]);
+    takeSubscribersRef.current.add(callback);
     return () => {
-      setTakeSubscribers((prev) => prev.filter((cb) => cb !== callback));
+      takeSubscribersRef.current.delete(callback);
     };
   }, []);
 
   const notifyTakeUpdate = useCallback((update: TakeUpdate) => {
-    takeSubscribers.forEach((callback) => callback(update));
+    for (const callback of Array.from(takeSubscribersRef.current)) callback(update);
     // Also update the selected take if it matches
-    if (selectedTake && selectedTake.id === update.takeId) {
+    {
       setSelectedTake((prev) => {
-        if (!prev) return prev;
+        if (!prev || prev.id !== update.takeId) return prev;
         if (update.field === "relays") {
           return {
             ...prev,
@@ -284,18 +287,18 @@ export function ModalProvider({ children }: { children: ReactNode }) {
         return prev;
       });
     }
-  }, [takeSubscribers, selectedTake]);
+  }, []);
 
   const subscribeToTakeDeletes = useCallback((callback: TakeDeleteCallback) => {
-    setTakeDeleteSubscribers((prev) => [...prev, callback]);
+    takeDeleteSubscribersRef.current.add(callback);
     return () => {
-      setTakeDeleteSubscribers((prev) => prev.filter((cb) => cb !== callback));
+      takeDeleteSubscribersRef.current.delete(callback);
     };
   }, []);
 
   const notifyTakeDelete = useCallback((takeId: string) => {
-    takeDeleteSubscribers.forEach((callback) => callback(takeId));
-  }, [takeDeleteSubscribers]);
+    for (const callback of Array.from(takeDeleteSubscribersRef.current)) callback(takeId);
+  }, []);
 
   const handleTakeDeleted = useCallback((takeId: string) => {
     notifyTakeDelete(takeId);

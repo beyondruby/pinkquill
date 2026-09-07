@@ -336,6 +336,32 @@ export function bumpComments(kind: EngagementKind, id: string, delta: number): v
   patch(keyFor(kind, id), { comments: Math.max(0, prev.comments + delta) });
 }
 
+/**
+ * Live counts from a `content-events` broadcast (Phase 5). Server truth, so
+ * it overrides loaded counts — but not while this tab has a write in flight
+ * or just landed one (the write-back already carries the newer numbers).
+ */
+export function applyLiveCounts(kind: EngagementKind, id: string, counts: ReactionCounts, comments?: number): void {
+  const key = keyFor(kind, id);
+  const prev = entries.get(key) ?? DEFAULT_ENTRY;
+  if (prev.pending) return;
+  if (prev.writtenAt && Date.now() - prev.writtenAt < SEED_GRACE_MS) return;
+  const next: Partial<ReactionEntry> = {};
+  const total = Math.max(0, Number(counts?.total ?? 0));
+  const clean: ReactionCounts = { ...emptyReactionCounts(total) };
+  for (const t of REACTION_TYPES) clean[t] = Math.max(0, Number(counts?.[t] ?? 0));
+  if (!countsEqual(prev.counts, clean) || !prev.countsLoaded || !prev.totalLoaded) {
+    next.counts = clean;
+    next.countsLoaded = true;
+    next.totalLoaded = true;
+  }
+  if (typeof comments === "number" && (prev.comments !== comments || !prev.commentsLoaded)) {
+    next.comments = Math.max(0, comments);
+    next.commentsLoaded = true;
+  }
+  if (Object.keys(next).length) patch(key, next);
+}
+
 // ---------------------------------------------------------------------------
 // Writes through set_/clear_<kind>_reaction
 // ---------------------------------------------------------------------------

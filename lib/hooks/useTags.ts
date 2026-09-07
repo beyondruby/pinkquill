@@ -232,9 +232,10 @@ export function useTagPosts(tagName: string, userId?: string): UseTagPostsReturn
           tags:post_tags (
             tag:tags(name)
           ),
-          reactions:reactions(count),
-          comments:comments(count),
-          relays:relays(count)
+          reactions_count,
+          comments_count,
+          relays_count,
+          reaction_counts
         `)
         .in("id", postIds)
         .eq("status", "published")

@@ -85,7 +85,6 @@ export async function POST(request: Request) {
       supabaseAdmin.from("take_saves").delete().eq("take_id", takeId),
       supabaseAdmin.from("take_relays").delete().eq("take_id", takeId),
       supabaseAdmin.from("take_reactions").delete().eq("take_id", takeId),
-      supabaseAdmin.from("take_admires").delete().eq("take_id", takeId),
       supabaseAdmin.from("take_tags").delete().eq("take_id", takeId),
       supabaseAdmin.from("take_mentions").delete().eq("take_id", takeId),
       supabaseAdmin.from("take_collaborators").delete().eq("take_id", takeId),

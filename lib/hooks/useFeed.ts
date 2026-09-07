@@ -145,9 +145,10 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
                 position,
                 created_at
               ),
-              reactions:reactions(count),
-              comments:comments(count),
-              relays:relays(count)
+              reactions_count,
+              comments_count,
+              relays_count,
+              reaction_counts
             `
             )
             .eq("status", "published")
@@ -378,9 +379,10 @@ export function useSavedPosts(userId?: string): UseSavedPostsReturn {
               position,
               created_at
             ),
-            reactions:reactions(count),
-            comments:comments(count),
-            relays:relays(count)
+            reactions_count,
+            comments_count,
+            relays_count,
+            reaction_counts
           `
           )
           .in("id", postIds)
@@ -557,9 +559,10 @@ export function useRelays(username: string) {
             caption: string | null;
             position: number;
           }[];
-          reactions: { count: number }[] | null;
-          comments: { count: number }[] | null;
-          relays: { count: number }[] | null;
+          reactions_count: number | null;
+          comments_count: number | null;
+          relays_count: number | null;
+          reaction_counts: Record<string, number> | null;
         }
 
         // Helper to extract post data - handles both object and array return types from Supabase
@@ -567,12 +570,6 @@ export function useRelays(username: string) {
           if (!post) return null;
           if (Array.isArray(post)) return post[0] as RelayPostData;
           return post as RelayPostData;
-        };
-
-        // Helper to extract count from Supabase aggregate response
-        const getCount = (countData: { count: number }[] | null | undefined): number => {
-          if (!countData || countData.length === 0) return 0;
-          return countData[0]?.count ?? 0;
         };
 
         const processedRelays = relaysData
@@ -596,9 +593,9 @@ export function useRelays(username: string) {
               relayed_at: relay.created_at,
               original_author: post.author as PostAuthor,
               // Use counts from the aggregate query - no separate queries needed!
-              comments_count: getCount(post.comments),
-              relays_count: getCount(post.relays),
-              reactions_count: getCount(post.reactions),
+              comments_count: post.comments_count ?? 0,
+              relays_count: post.relays_count ?? 0,
+              reactions_count: post.reactions_count ?? 0,
               user_has_saved: false,
               user_has_relayed: false,
               user_reaction_type: null,

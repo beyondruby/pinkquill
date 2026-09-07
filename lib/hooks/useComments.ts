@@ -20,6 +20,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../supabase";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { bumpComments, setCommentsCount, type EngagementKind } from "@/lib/engagement/store";
+import { subscribeContentEvents } from "@/lib/engagement/live";
 import type { Comment } from "../types";
 import { isAbortError } from "../utils/retry";
 
@@ -111,6 +112,9 @@ export interface AddCommentOptions {
 export interface UseCommentsOptions {
   /** Post/take author (kept for callers; notifications are DB triggers now). */
   authorId?: string | null;
+  /** Refetch the first page when another user adds/removes a comment
+   *  (`content-events` broadcast, Phase 5). */
+  live?: boolean;
 }
 
 export interface UseCommentsReturn {
@@ -514,6 +518,27 @@ export function useComments(kind: EngagementKind, id: string, options: UseCommen
       if (abortControllerRef.current) abortControllerRef.current.abort();
     };
   }, [id, fetchComments]);
+
+  // Live: another user's comment lands → reload page 0 (coalesced). Our own
+  // writes are already applied optimistically, so events we caused are skipped.
+  const live = !!options.live;
+  useEffect(() => {
+    if (!live || !id) return;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const unsubscribe = subscribeContentEvents(kind, id, (event) => {
+      if (event.what !== "comment") return;
+      if (userIdRef.current && event.actor_id === userIdRef.current) return;
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        timer = null;
+        if (mountedRef.current) void fetchComments(0, false);
+      }, 400);
+    });
+    return () => {
+      if (timer) clearTimeout(timer);
+      unsubscribe();
+    };
+  }, [live, kind, id, fetchComments]);
 
   return {
     comments,

@@ -10,6 +10,7 @@ vi.mock("@/lib/supabase", () => ({
 
 import {
   __resetEngagementStore,
+  applyLiveCounts,
   clearReaction,
   emptyReactionCounts,
   ensureReactionLoaded,
@@ -207,5 +208,38 @@ describe("ensureReactionLoaded", () => {
     write.resolve({ data: { mine: "admire", previous: null, changed: true, counts: counts({ admire: 1, total: 1 }) }, error: null });
     await pending;
     expect(getReaction("post", "a").counts.total).toBe(1);
+  });
+});
+
+describe("applyLiveCounts (content-events broadcast)", () => {
+  it("overrides loaded counts and the comment count with the server's numbers", () => {
+    seedReaction("post", "p1", { total: 2, mine: null, viewerId: "u1" });
+    applyLiveCounts("post", "p1", counts({ admire: 2, snap: 1, total: 3 }), 7);
+    const e = getReaction("post", "p1");
+    expect(e.counts.total).toBe(3);
+    expect(e.counts.snap).toBe(1);
+    expect(e.countsLoaded).toBe(true);
+    expect(e.comments).toBe(7);
+    expect(e.commentsLoaded).toBe(true);
+  });
+
+  it("notifies subscribers", () => {
+    const listener = vi.fn();
+    subscribeReaction("post", "p1", listener);
+    applyLiveCounts("post", "p1", counts({ admire: 1, total: 1 }));
+    expect(listener).toHaveBeenCalled();
+  });
+
+  it("is ignored while this tab has a write in flight or one just landed", async () => {
+    setEngagementViewer("u1");
+    const d = deferred<{ data: unknown; error: null }>();
+    mocks.rpc.mockReturnValueOnce(d.promise);
+    const write = setReaction("post", "p1", "u1", "snap");
+    applyLiveCounts("post", "p1", counts({ admire: 9, total: 9 }), 4);
+    expect(getReaction("post", "p1").counts.total).toBe(1);
+    d.resolve({ data: { mine: "snap", previous: null, counts: counts({ snap: 1, total: 1 }) }, error: null });
+    await write;
+    applyLiveCounts("post", "p1", counts({ admire: 9, total: 9 }), 4);
+    expect(getReaction("post", "p1").counts.total).toBe(1);
   });
 });

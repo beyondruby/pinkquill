@@ -1670,6 +1670,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                   metadata: work.metadata,
                   stats: {
                     reactions: work.reactions_count,
+                    reactionCounts: work.reaction_counts,
                     comments: work.comments_count,
                     relays: work.relays_count || 0,
                   },

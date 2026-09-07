@@ -81,13 +81,14 @@ export default function TakeDetailModal({
     toggleLike,
     deleteComment,
     fetchReplies,
-  } = useComments("take", take?.id || "", { authorId: take?.author_id });
+  } = useComments("take", take?.id || "", { authorId: take?.author_id, live: true });
   const reaction = useReaction("take", take?.id || "", {
     seed: take ? { total: take.reactions_count, mine: take.user_reaction_type, counts: take.reaction_counts } : undefined,
     authorId: take?.author_id,
     refreshOnFocus: true,
     loadCounts: true,
     loadComments: true,
+    live: true,
   });
   const commentsCount = reaction.comments;
 

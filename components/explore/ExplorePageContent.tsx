@@ -1,5 +1,7 @@
 "use client";
 
+import type { ReactionCounts } from "@/lib/types";
+
 import { useRef, useEffect, useCallback, useState } from "react";
 import { getTimeAgoCompact as getTimeAgo } from "@/lib/utils/time";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -259,6 +261,7 @@ function transformPostForCard(post: {
   created_at: string;
   media: { id: string; media_url: string; media_type: "image" | "video" | "audio"; caption: string | null; position: number }[];
   reactions_count?: number;
+  reaction_counts?: ReactionCounts;
   comments_count: number;
   relays_count: number;
   user_has_saved: boolean;
@@ -303,6 +306,7 @@ function transformPostForCard(post: {
     media: post.media,
     stats: {
       reactions: post.reactions_count || 0,
+      reactionCounts: post.reaction_counts,
       comments: post.comments_count || 0,
       relays: post.relays_count || 0,
     },

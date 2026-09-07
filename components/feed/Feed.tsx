@@ -45,6 +45,7 @@ function transformPostForCard(post: Post) {
     media: post.media || [],
     stats: {
       reactions: post.reactions_count,
+      reactionCounts: post.reaction_counts,
       comments: post.comments_count,
       relays: post.relays_count,
     },

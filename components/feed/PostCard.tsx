@@ -125,7 +125,7 @@ function PostCardComponent({
   // Reactions: one shared entry per post (lib/engagement), seeded from the
   // list row. Every other surface showing this post reads the same entry.
   const reaction = useReaction("post", post.id, {
-    seed: { total: post.stats?.reactions, mine: post.reactionType },
+    seed: { total: post.stats?.reactions, counts: post.stats?.reactionCounts, mine: post.reactionType, comments: post.stats?.comments },
     authorId: post.authorId,
   });
 
@@ -211,7 +211,8 @@ function PostCardComponent({
       reactionType: reaction.mine,
       stats: {
         reactions: reaction.counts.total,
-        comments: post.stats?.comments ?? 0,
+        reactionCounts: reaction.countsLoaded ? reaction.counts : undefined,
+        comments: reaction.comments,
         relays: relayCount,
       },
       mentions: mappedMentions,

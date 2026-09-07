@@ -1,5 +1,7 @@
 "use client";
 
+import type { ReactionCounts } from "@/lib/types";
+
 import { useRef, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
@@ -42,6 +44,7 @@ function transformPostForCard(post: {
   created_at: string;
   media: { id: string; media_url: string; media_type: "image" | "video" | "audio"; caption: string | null; position: number }[];
   reactions_count?: number;
+  reaction_counts?: ReactionCounts;
   comments_count: number;
   relays_count: number;
   user_has_saved: boolean;
@@ -82,6 +85,7 @@ function transformPostForCard(post: {
     media: post.media,
     stats: {
       reactions: post.reactions_count || 0,
+      reactionCounts: post.reaction_counts,
       comments: post.comments_count || 0,
       relays: post.relays_count || 0,
     },

@@ -384,9 +384,10 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
               created_at
             ),
             ${POST_RELATIONS_SELECT},
-            reactions:reactions(count),
-            comments:comments(count),
-            relays:relays(count)
+            reactions_count,
+            comments_count,
+            relays_count,
+            reaction_counts
           `
           )
           .eq("status", "published")

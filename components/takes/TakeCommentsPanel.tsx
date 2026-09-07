@@ -38,8 +38,8 @@ export default function TakeCommentsPanel({ isOpen, onClose, takeId, authorId }:
     toggleLike,
     deleteComment,
     fetchReplies,
-  } = useComments("take", takeId, { authorId });
-  const reaction = useReaction("take", takeId, { loadComments: true });
+  } = useComments("take", takeId, { authorId, live: true });
+  const reaction = useReaction("take", takeId, { loadComments: true, live: true });
   const commentsCount = reaction.comments;
   const isOwner = !!user && !!authorId && user.id === authorId;
 

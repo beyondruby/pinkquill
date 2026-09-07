@@ -3,8 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../supabase";
 import { enrichPost, fetchUserPostFlags } from "@/lib/posts/enrich";
-import type { Profile, Post, FollowUser, FollowStatus, FollowRequest, AggregateCount } from "../types";
-import { getAggregateCount } from "../types";
+import type { Profile, Post, FollowUser, FollowStatus, FollowRequest } from "../types";
 import { useUserEvent } from "@/components/providers/UserEventsProvider";
 import { isAbortError } from "../utils/retry";
 
@@ -172,9 +171,10 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
             position,
             created_at
           ),
-          reactions:reactions(count),
-          comments:comments(count),
-          relays:relays(count)
+          reactions_count,
+          comments_count,
+          relays_count,
+          reaction_counts
         `
         )
         .eq("author_id", profileData.id)
@@ -215,7 +215,7 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
       // Profile "admires" stat = every reaction received across these posts.
       let totalAdmires = 0;
       (postsData.data || []).forEach((post) => {
-        totalAdmires += getAggregateCount(post.reactions as AggregateCount[] | null);
+        totalAdmires += Number((post as { reactions_count?: number | null }).reactions_count ?? 0);
       });
 
       setProfile({

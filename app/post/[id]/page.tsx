@@ -171,7 +171,7 @@ export default function PostPage() {
   const postId = params.id as string;
   const commentIdFromUrl = searchParams.get('comment');
   const mediaFailedFromUrl = searchParams.get("media_failed");
-  const { user, profile } = useAuth();
+  const { user, profile, status: authStatus } = useAuth();
 
   const [post, setPost] = useState<Post | null>(null);
   const [loading, setLoading] = useState(true);
@@ -207,7 +207,7 @@ export default function PostPage() {
     deleteComment,
     fetchReplies,
     ensureCommentVisible,
-  } = useComments("post", postId, { authorId: post?.author_id });
+  } = useComments("post", postId, { authorId: post?.author_id, live: true });
 
   // Reactions: shared store entry, per-type counts loaded on mount,
   // re-read when the tab regains focus so other users' reactions show up.
@@ -216,6 +216,7 @@ export default function PostPage() {
     refreshOnFocus: true,
     loadCounts: true,
     loadComments: true,
+    live: true,
   });
   const commentsCount = reaction.comments;
 
@@ -346,76 +347,11 @@ export default function PostPage() {
         hasCollaborationAccess = true;
       }
 
-      // Blocks are enforced by the posts read policy (Phase 6): a blocked
-      // viewer never receives the row, so no client-side check is needed.
+      // Visibility, private accounts and blocks are enforced by the posts
+      // read policy (`can_view_post`, Phase 4): a viewer who may not see the
+      // post never receives the row, so no client-side checks are needed.
 
-      // SECURITY CHECK: Enforce visibility rules (Rule Set 2, 3, 4)
-      const visibility = postData.visibility;
-
-      if (visibility === "private") {
-        // Private posts: only the author can see
-        if (!isOwner && !hasCollaborationAccess) {
-          setError("This post is private");
-          setLoading(false);
-          return;
-        }
-      } else if (visibility === "followers") {
-        // Followers-only posts: only the author or their followers can see
-        if (!isOwner && !hasCollaborationAccess) {
-          if (!user) {
-            // Not logged in - can't see followers-only content
-            setError("You must be logged in to view this post");
-            setLoading(false);
-            return;
-          }
-
-          // Check if the current user follows the post author
-          const { count: followCount } = await supabase
-            .from("follows")
-            .select("*", { count: "exact", head: true })
-            .eq("follower_id", user.id)
-            .eq("following_id", postData.author_id);
-
-          if (!followCount || followCount === 0) {
-            setError("This post is only visible to followers");
-            setLoading(false);
-            return;
-          }
-        }
-      }
-
-      // SECURITY CHECK: Private account check
-      // If the author has a private account, only approved followers can see their posts
-      if (!isOwner && !hasCollaborationAccess) {
-        const { data: authorProfile } = await supabase
-          .from("profiles")
-          .select("is_private")
-          .eq("id", postData.author_id)
-          .single();
-
-        if (authorProfile?.is_private) {
-          if (!user) {
-            setError("This post is from a private account");
-            setLoading(false);
-            return;
-          }
-
-          // Check if user is an accepted follower
-          const { count: followCount } = await supabase
-            .from("follows")
-            .select("*", { count: "exact", head: true })
-            .eq("follower_id", user.id)
-            .eq("following_id", postData.author_id);
-
-          if (!followCount || followCount === 0) {
-            setError("This post is from a private account");
-            setLoading(false);
-            return;
-          }
-        }
-      }
-
-      // Fetch mentions, hashtags, collaborators, relays, and saves in parallel
+      // Fetch mentions, hashtags, collaborators, and the viewer's relay/save flags in parallel
       const mentionsPromise = supabase
         .from("post_mentions")
         .select(`
@@ -441,7 +377,14 @@ export default function PostPage() {
         .eq("post_id", postId)
         .eq("status", "accepted");
 
-      const relaysPromise = supabase.from("relays").select("user_id").eq("post_id", postId);
+      const relayPromise = user
+        ? supabase
+            .from("relays")
+            .select("user_id")
+            .eq("post_id", postId)
+            .eq("user_id", user.id)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null });
 
       const savePromise = user
         ? supabase
@@ -453,7 +396,7 @@ export default function PostPage() {
         : Promise.resolve({ data: null, error: null });
 
       const [mentionsRes, tagsRes, collabRes, relaysResult, saveResult] = await Promise.all([
-        mentionsPromise, tagsPromise, collabPromise, relaysPromise, savePromise,
+        mentionsPromise, tagsPromise, collabPromise, relayPromise, savePromise,
       ]);
 
       const mentions: TaggedUser[] = mentionsRes.data
@@ -488,12 +431,11 @@ export default function PostPage() {
       setPost({ ...postData, flair: normalizedFlair || null, community: normalizedCommunity || null, mentions, hashtags, collaborators });
       setShowContent(!postData.content_warning);
 
-      // Process relays
-      setRelayCount(relaysResult.data?.length || 0);
+      // Relay count comes from the counter column (Phase 5)
+      setRelayCount(postData.relays_count ?? 0);
 
       if (user) {
-        const userRelayed = relaysResult.data?.some((r: { user_id: string }) => r.user_id === user.id) || false;
-        setIsRelayed(userRelayed);
+        setIsRelayed(!!relaysResult.data);
         setIsSaved(!!saveResult.data);
       }
 
@@ -503,11 +445,16 @@ export default function PostPage() {
       setError("Failed to load post");
       setLoading(false);
     }
-  }, [postId, user]);
+    // Only the user id matters: a refreshed session object must not refetch.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [postId, user?.id]);
 
+  // One fetch per post/viewer: wait until auth has settled so the RLS-scoped
+  // query runs once with the right session instead of anon-then-user.
   useEffect(() => {
+    if (authStatus === "loading") return;
     fetchData();
-  }, [fetchData]);
+  }, [fetchData, authStatus]);
 
   // Reaction handlers — the store owns optimistic update, RPC, revert,
   // toast and the notification.

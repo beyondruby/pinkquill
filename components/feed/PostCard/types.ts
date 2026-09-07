@@ -1,4 +1,4 @@
-import type { PostStyling, JournalMetadata, SpotifyTrack, ReactionType, CommunityFlair } from "@/lib/types";
+import type { PostStyling, JournalMetadata, SpotifyTrack, ReactionType, ReactionCounts, CommunityFlair } from "@/lib/types";
 
 export interface Author {
   name: string;
@@ -56,6 +56,8 @@ export type PostType =
 export interface PostStats {
   /** Reaction total from the list row; `undefined` = unknown, the engagement store fetches it. */
   reactions?: number;
+  /** Per-type split from the list row (posts.reaction_counts), when known. */
+  reactionCounts?: ReactionCounts;
   comments: number;
   relays: number;
 }

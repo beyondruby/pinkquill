@@ -309,14 +309,7 @@ export function useInsightsDashboard(
               .gte("created_at", startDate)
               .lt("created_at", exclusiveEndDate)
           : { count: 0 },
-        postIds.length > 0
-          ? supabase
-              .from("admires")
-              .select("id", { count: "exact", head: true })
-              .in("post_id", postIds)
-              .gte("created_at", startDate)
-              .lt("created_at", exclusiveEndDate)
-          : { count: 0 },
+        { count: 0 }, // legacy admires (table removed in Phase 5)
         postIds.length > 0
           ? supabase
               .from("comments")
@@ -1094,14 +1087,7 @@ export function useProfileInsights(
                 .gte("created_at", startDate)
                 .lt("created_at", exclusiveEndDate)
             : { count: 0 },
-          postIds.length > 0
-            ? supabase
-                .from("admires")
-                .select("id", { count: "exact", head: true })
-                .in("post_id", postIds)
-                .gte("created_at", startDate)
-                .lt("created_at", exclusiveEndDate)
-            : { count: 0 },
+          { count: 0 }, // legacy admires (table removed in Phase 5)
           postIds.length > 0
             ? supabase
                 .from("comments")
@@ -1458,9 +1444,7 @@ export function useCommunityInsights(
         postIds.length > 0
           ? supabase.from("reactions").select("post_id").in("post_id", postIds).gte("created_at", startDate).lt("created_at", exclusiveEndDate)
           : { data: [] },
-        postIds.length > 0
-          ? supabase.from("admires").select("post_id").in("post_id", postIds).gte("created_at", startDate).lt("created_at", exclusiveEndDate)
-          : { data: [] },
+        { data: [] as { post_id: string }[] }, // legacy admires (table removed in Phase 5)
         postIds.length > 0
           ? supabase.from("comments").select("post_id").in("post_id", postIds).gte("created_at", startDate).lt("created_at", exclusiveEndDate)
           : { data: [] },
@@ -1732,14 +1716,7 @@ export function useContentInsights(
               .gte("created_at", startDate)
               .lt("created_at", exclusiveEndDate)
           : { data: [] },
-        postIds.length > 0
-          ? supabase
-              .from("admires")
-              .select("post_id")
-              .in("post_id", postIds)
-              .gte("created_at", startDate)
-              .lt("created_at", exclusiveEndDate)
-          : { data: [] },
+        { data: [] as { post_id: string }[] }, // legacy admires (table removed in Phase 5)
         postIds.length > 0
           ? supabase
               .from("comments")
@@ -2282,9 +2259,9 @@ async function getTopContent(
       .select("id, title, type, created_at")
       .in("id", Array.from(postViewCounts.keys()));
 
-    // Get engagement
+    // Get engagement (reactions; the legacy admires table was removed in Phase 5)
     const { data: admires } = await supabase
-      .from("admires")
+      .from("reactions")
       .select("post_id")
       .in("post_id", Array.from(postViewCounts.keys()));
 

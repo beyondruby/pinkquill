@@ -21,7 +21,7 @@ export function useTileActions(post: PostProps) {
   const { openPostModal, subscribeToUpdates, notifyUpdate } = useModal();
   const { toggle: toggleSave } = useToggleSave();
   const reaction = useReaction("post", post.id, {
-    seed: { total: post.stats?.reactions, mine: post.reactionType },
+    seed: { total: post.stats?.reactions, counts: post.stats?.reactionCounts, mine: post.reactionType, comments: post.stats?.comments },
     authorId: post.authorId,
   });
 
@@ -52,14 +52,15 @@ export function useTileActions(post: PostProps) {
       reactionType: reaction.mine,
       stats: {
         reactions: reaction.counts.total,
-        comments: commentCount,
+        reactionCounts: reaction.countsLoaded ? reaction.counts : undefined,
+        comments: reaction.comments,
         relays: post.stats?.relays ?? 0,
       },
       mentions: mappedMentions,
       hashtags: post.hashtags || [],
       collaborators: post.collaborators || [],
     });
-  }, [post, isSaved, reaction.mine, reaction.counts.total, commentCount, openPostModal]);
+  }, [post, isSaved, reaction.mine, reaction.counts, reaction.countsLoaded, reaction.comments, openPostModal]);
 
   const onAdmire = useCallback(
     async (e: React.MouseEvent | React.KeyboardEvent) => {

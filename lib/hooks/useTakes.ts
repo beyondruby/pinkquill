@@ -415,19 +415,11 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
       const [
         authorsRes,
         soundsRes,
-        reactionsRes,
-        commentsRes,
-        savesRes,
-        relaysRes,
       ] = await Promise.all([
         supabase.from("profiles").select("id, username, display_name, avatar_url").in("id", authorIds).abortSignal(signal),
         soundIds.length > 0
           ? supabase.from("sounds").select("*").in("id", soundIds).abortSignal(signal)
           : Promise.resolve({ data: [] as Sound[] }),
-        supabase.from("take_reactions").select("take_id, reaction_type").in("take_id", takeIds).abortSignal(signal),
-        supabase.from("take_comments").select("take_id").in("take_id", takeIds).abortSignal(signal),
-        supabase.from("take_saves").select("take_id").in("take_id", takeIds).abortSignal(signal),
-        supabase.from("take_relays").select("take_id").in("take_id", takeIds).abortSignal(signal),
       ]);
 
       if (!mountedRef.current || signal.aborted) return;
@@ -456,30 +448,7 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
       // Build lookup maps
       const authorMap = new Map((authorsRes.data || []).map(a => [a.id, a]));
       const soundMap = new Map((soundsRes.data || []).map(s => [s.id, s as Sound]));
-      const reactionsCount: Record<string, number> = {};
-      const reactionsByType: Record<string, TakeReactionCounts> = {};
-      const commentsCount: Record<string, number> = {};
-      const savesCount: Record<string, number> = {};
-      const relaysCount: Record<string, number> = {};
-
-      // Initialize reaction counts by type
-      takeIds.forEach(takeId => {
-        reactionsByType[takeId] = {
-          admire: 0, snap: 0, ovation: 0, support: 0, inspired: 0, applaud: 0, total: 0,
-        };
-      });
-
-      (reactionsRes.data || []).forEach(r => {
-        reactionsCount[r.take_id] = (reactionsCount[r.take_id] || 0) + 1;
-        const type = r.reaction_type as TakeReactionType;
-        if (reactionsByType[r.take_id] && type in reactionsByType[r.take_id]) {
-          reactionsByType[r.take_id][type]++;
-          reactionsByType[r.take_id].total++;
-        }
-      });
-      (commentsRes.data || []).forEach(c => { commentsCount[c.take_id] = (commentsCount[c.take_id] || 0) + 1; });
-      (savesRes.data || []).forEach(s => { savesCount[s.take_id] = (savesCount[s.take_id] || 0) + 1; });
-      (relaysRes.data || []).forEach(r => { relaysCount[r.take_id] = (relaysCount[r.take_id] || 0) + 1; });
+      // Counts come from the counter columns on takes (Phase 5).
 
       // Check if still mounted before building final array
       if (!mountedRef.current || signal.aborted) return;
@@ -499,18 +468,16 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
         sound: take.sound_id ? soundMap.get(take.sound_id) || null : null,
         // Author info
         author: authorMap.get(take.author_id) || { username: "unknown", display_name: null, avatar_url: null },
-        // Counts
-        reactions_count: reactionsCount[take.id] || 0,
-        comments_count: commentsCount[take.id] || 0,
-        saves_count: savesCount[take.id] || 0,
-        relays_count: relaysCount[take.id] || 0,
+        // Counts (counter columns)
+        reactions_count: take.reactions_count ?? 0,
+        comments_count: take.comments_count ?? 0,
+        saves_count: take.saves_count ?? 0,
+        relays_count: take.relays_count ?? 0,
         // User state
         is_saved: userSaveSet.has(take.id),
         is_relayed: userRelaySet.has(take.id),
         user_reaction_type: userReactionMap.get(take.id) || null,
-        reaction_counts: reactionsByType[take.id] || {
-          admire: 0, snap: 0, ovation: 0, support: 0, inspired: 0, applaud: 0, total: 0,
-        },
+        reaction_counts: normalizeReactionCounts({ ...(take.reaction_counts || {}), total: take.reactions_count ?? 0 }),
       }));
 
       if (reset) {
@@ -1052,20 +1019,12 @@ export function useUserTakes(username: string, viewerId?: string) {
 
         const takeIds = takesData.map(t => t.id);
 
-        // Fetch counts
+        // Viewer flags (counts come from the counter columns)
         const [
-          { data: reactions },
-          { data: comments },
-          { data: saves },
-          { data: relays },
           { data: userReaction },
           { data: userSaves },
           { data: userRelays },
         ] = await Promise.all([
-          supabase.from("take_reactions").select("take_id, reaction_type").in("take_id", takeIds),
-          supabase.from("take_comments").select("take_id").in("take_id", takeIds),
-          supabase.from("take_saves").select("take_id").in("take_id", takeIds),
-          supabase.from("take_relays").select("take_id").in("take_id", takeIds),
           viewerId
             ? supabase.from("take_reactions").select("take_id, reaction_type").eq("user_id", viewerId).in("take_id", takeIds)
             : Promise.resolve({ data: [] as { take_id: string; reaction_type: string }[] }),
@@ -1076,17 +1035,6 @@ export function useUserTakes(username: string, viewerId?: string) {
             ? supabase.from("take_relays").select("take_id").eq("user_id", viewerId).in("take_id", takeIds)
             : Promise.resolve({ data: [] as { take_id: string }[] }),
         ]);
-
-        // Build counts
-        const reactionsCount: Record<string, number> = {};
-        const commentsCount: Record<string, number> = {};
-        const savesCount: Record<string, number> = {};
-        const relaysCount: Record<string, number> = {};
-
-        (reactions || []).forEach(r => { reactionsCount[r.take_id] = (reactionsCount[r.take_id] || 0) + 1; });
-        (comments || []).forEach(c => { commentsCount[c.take_id] = (commentsCount[c.take_id] || 0) + 1; });
-        (saves || []).forEach(s => { savesCount[s.take_id] = (savesCount[s.take_id] || 0) + 1; });
-        (relays || []).forEach(r => { relaysCount[r.take_id] = (relaysCount[r.take_id] || 0) + 1; });
 
         const userReactionMap = new Map<string, TakeReactionType>();
         (userReaction || []).forEach(r => {
@@ -1112,14 +1060,15 @@ export function useUserTakes(username: string, viewerId?: string) {
             display_name: profileData.display_name,
             avatar_url: profileData.avatar_url,
           },
-          reactions_count: reactionsCount[take.id] || 0,
-          comments_count: commentsCount[take.id] || 0,
-          saves_count: savesCount[take.id] || 0,
-          relays_count: relaysCount[take.id] || 0,
+          reactions_count: take.reactions_count ?? 0,
+          comments_count: take.comments_count ?? 0,
+          saves_count: take.saves_count ?? 0,
+          relays_count: take.relays_count ?? 0,
+          reaction_counts: normalizeReactionCounts({ ...(take.reaction_counts || {}), total: take.reactions_count ?? 0 }),
           is_saved: userSaveSet.has(take.id),
           is_relayed: userRelaySet.has(take.id),
           user_reaction_type: userReactionMap.get(take.id) || null,
-          }));
+        }));
 
         setTakes(processedTakes);
       } catch (err) {
@@ -1210,29 +1159,6 @@ export function useRelayedTakes(username: string, viewerId?: string) {
 
         const authorMap = new Map((authors || []).map(a => [a.id, a]));
 
-        // Fetch counts
-        const [
-          { data: reactions },
-          { data: comments },
-          { data: saves },
-          { data: relays },
-        ] = await Promise.all([
-          supabase.from("take_reactions").select("take_id").in("take_id", takeIds),
-          supabase.from("take_comments").select("take_id").in("take_id", takeIds),
-          supabase.from("take_saves").select("take_id").in("take_id", takeIds),
-          supabase.from("take_relays").select("take_id").in("take_id", takeIds),
-        ]);
-
-        const reactionsCount: Record<string, number> = {};
-        const commentsCount: Record<string, number> = {};
-        const savesCount: Record<string, number> = {};
-        const relaysCount: Record<string, number> = {};
-
-        (reactions || []).forEach(r => { reactionsCount[r.take_id] = (reactionsCount[r.take_id] || 0) + 1; });
-        (comments || []).forEach(c => { commentsCount[c.take_id] = (commentsCount[c.take_id] || 0) + 1; });
-        (saves || []).forEach(s => { savesCount[s.take_id] = (savesCount[s.take_id] || 0) + 1; });
-        (relays || []).forEach(r => { relaysCount[r.take_id] = (relaysCount[r.take_id] || 0) + 1; });
-
         // Map relay created_at by take_id
         const relayTimeMap = new Map(relaysData.map(r => [r.take_id, r.created_at]));
 
@@ -1241,10 +1167,11 @@ export function useRelayedTakes(username: string, viewerId?: string) {
           return {
             ...take,
             author: author || { username: "unknown", display_name: null, avatar_url: null },
-            reactions_count: reactionsCount[take.id] || 0,
-            comments_count: commentsCount[take.id] || 0,
-            saves_count: savesCount[take.id] || 0,
-            relays_count: relaysCount[take.id] || 0,
+            reactions_count: take.reactions_count ?? 0,
+            comments_count: take.comments_count ?? 0,
+            saves_count: take.saves_count ?? 0,
+            relays_count: take.relays_count ?? 0,
+            reaction_counts: normalizeReactionCounts({ ...(take.reaction_counts || {}), total: take.reactions_count ?? 0 }),
             is_saved: false,
             is_relayed: true,
             user_reaction_type: null,
@@ -1337,29 +1264,6 @@ export function useSavedTakes(userId?: string) {
 
       const authorMap = new Map((authors || []).map(a => [a.id, a]));
 
-      // Fetch counts
-      const [
-        { data: reactions },
-        { data: comments },
-        { data: saves },
-        { data: relays },
-      ] = await Promise.all([
-        supabase.from("take_reactions").select("take_id, reaction_type").in("take_id", takeIds),
-        supabase.from("take_comments").select("take_id").in("take_id", takeIds),
-        supabase.from("take_saves").select("take_id").in("take_id", takeIds),
-        supabase.from("take_relays").select("take_id").in("take_id", takeIds),
-      ]);
-
-      const reactionsCount: Record<string, number> = {};
-      const commentsCount: Record<string, number> = {};
-      const savesCount: Record<string, number> = {};
-      const relaysCount: Record<string, number> = {};
-
-      (reactions || []).forEach(r => { reactionsCount[r.take_id] = (reactionsCount[r.take_id] || 0) + 1; });
-      (comments || []).forEach(c => { commentsCount[c.take_id] = (commentsCount[c.take_id] || 0) + 1; });
-      (saves || []).forEach(s => { savesCount[s.take_id] = (savesCount[s.take_id] || 0) + 1; });
-      (relays || []).forEach(r => { relaysCount[r.take_id] = (relaysCount[r.take_id] || 0) + 1; });
-
       // Order by save time
       const saveTimeMap = new Map(savedData.map(s => [s.take_id, s.created_at]));
 
@@ -1376,10 +1280,11 @@ export function useSavedTakes(userId?: string) {
         added_sound_volume: take.added_sound_volume ?? 100,
         sound: null,
         author: authorMap.get(take.author_id) || { username: "unknown", display_name: null, avatar_url: null },
-        reactions_count: reactionsCount[take.id] || 0,
-        comments_count: commentsCount[take.id] || 0,
-        saves_count: savesCount[take.id] || 0,
-        relays_count: relaysCount[take.id] || 0,
+        reactions_count: take.reactions_count ?? 0,
+        comments_count: take.comments_count ?? 0,
+        saves_count: take.saves_count ?? 0,
+        relays_count: take.relays_count ?? 0,
+        reaction_counts: normalizeReactionCounts({ ...(take.reaction_counts || {}), total: take.reactions_count ?? 0 }),
         is_saved: true,
         is_relayed: false,
         user_reaction_type: null,

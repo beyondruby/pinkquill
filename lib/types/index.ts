@@ -153,10 +153,12 @@ export interface Post {
   media: PostMedia[];
   community?: PostCommunity | null;
 
-  // Computed counts (from aggregation)
+  // Counter columns (maintained by triggers)
   reactions_count: number;
   comments_count: number;
   relays_count: number;
+  /** Per-type split from `posts.reaction_counts`; undefined when the row had no column. */
+  reaction_counts?: ReactionCounts;
 
   // User-specific flags
   user_reaction_type: ReactionType | null;

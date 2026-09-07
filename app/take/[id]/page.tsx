@@ -51,7 +51,7 @@ interface PageProps {
 export default function SingleTakePage({ params }: PageProps) {
   const { id } = use(params);
   const router = useRouter();
-  const { user, profile } = useAuth();
+  const { user, profile, status: authStatus } = useAuth();
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const [take, setTake] = useState<Take | null>(null);
@@ -102,7 +102,7 @@ export default function SingleTakePage({ params }: PageProps) {
     toggleLike,
     deleteComment,
     fetchReplies,
-  } = useComments("take", id, { authorId: take?.author_id });
+  } = useComments("take", id, { authorId: take?.author_id, live: true });
 
   const isOwner = user?.id === take?.author_id;
 
@@ -110,6 +110,7 @@ export default function SingleTakePage({ params }: PageProps) {
   const fetchTake = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
 
       // Fetch the take
       const { data: takeData, error: takeError } = await supabase
@@ -209,17 +210,15 @@ export default function SingleTakePage({ params }: PageProps) {
       // Set content warning state
       setShowContent(!takeData.content_warning);
 
-      // Fetch counts, tags, collaborators, and mentions
-      const [savesRes, relaysRes, tagsRes, collabRes, mentionsRes] = await Promise.all([
-        supabase.from("take_saves").select("id", { count: "exact" }).eq("take_id", id),
-        supabase.from("take_relays").select("id", { count: "exact" }).eq("take_id", id),
+      // Counts come from the counter columns (Phase 5); fetch tags, collaborators, and mentions
+      const [tagsRes, collabRes, mentionsRes] = await Promise.all([
         supabase.from("take_tags").select("tag").eq("take_id", id),
         supabase.from("take_collaborators").select("role, user_id").eq("take_id", id).eq("status", "accepted"),
         supabase.from("take_mentions").select("user_id").eq("take_id", id),
       ]);
 
-      setSavesCount(savesRes.count || 0);
-      setRelaysCount(relaysRes.count || 0);
+      setSavesCount(takeData.saves_count ?? 0);
+      setRelaysCount(takeData.relays_count ?? 0);
       setHashtags(tagsRes.data?.map(t => t.tag) || []);
 
       // Fetch collaborator profiles
@@ -273,12 +272,18 @@ export default function SingleTakePage({ params }: PageProps) {
       setError("Failed to load take");
       setLoading(false);
     }
-  }, [id, user]);
+    // Only the user id matters: a refreshed session object must not refetch.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, user?.id]);
 
+  // One fetch per take/viewer: wait until auth has settled so the RLS-scoped
+  // query runs once with the right session instead of anon-then-user (an
+  // anon miss used to leave "Take not found" on screen).
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
+    if (authStatus === "loading") return;
     fetchTake();
-  }, [fetchTake]);
+  }, [fetchTake, authStatus]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   // Video control
@@ -296,6 +301,7 @@ export default function SingleTakePage({ params }: PageProps) {
     refreshOnFocus: true,
     loadCounts: true,
     loadComments: true,
+    live: true,
   });
   const commentsCount = reaction.comments;
 

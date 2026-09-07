@@ -15,6 +15,7 @@ import type {
   PostCollaborator,
   PostMedia,
   PostMention,
+  ReactionCounts,
   ReactionType,
 } from "@/lib/types";
 
@@ -43,10 +44,12 @@ export const POST_RELATIONS_SELECT = `
             tag:tags(name)
           )`;
 
+// Counter columns maintained by triggers (Phase 5) — no correlated counts.
 export const POST_COUNTS_SELECT = `
-          reactions:reactions(count),
-          comments:comments(count),
-          relays:relays(count)`;
+          reactions_count,
+          comments_count,
+          relays_count,
+          reaction_counts`;
 
 export interface UserPostFlags {
   saves: Set<string>;
@@ -102,12 +105,22 @@ function one<T>(value: T | T[] | null | undefined): T | null {
 }
 
 function aggregate(row: Row, name: string): number {
+  const column = row[`${name}_count`];
+  if (typeof column === "number") return column;
   const raw = row[name] ?? row[`${name}_agg`];
   if (Array.isArray(raw) && raw[0] && typeof (raw[0] as { count?: unknown }).count === "number") {
     return (raw[0] as { count: number }).count;
   }
   if (typeof raw === "number") return raw;
   return 0;
+}
+
+/** `posts.reaction_counts` jsonb → full ReactionCounts (undefined when the row has no column). */
+function perTypeCounts(raw: unknown, total: number): ReactionCounts | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const o = raw as Record<string, unknown>;
+  const n = (k: string) => (typeof o[k] === "number" ? (o[k] as number) : 0);
+  return { admire: n("admire"), snap: n("snap"), ovation: n("ovation"), support: n("support"), inspired: n("inspired"), applaud: n("applaud"), total };
 }
 
 /** Raw post row (with whichever embeds the caller selected) → `Post`. */
@@ -156,6 +169,7 @@ export function enrichPost(raw: unknown, flags: UserPostFlags = EMPTY_USER_POST_
     comments_count: aggregate(row, "comments"),
     relays_count: aggregate(row, "relays"),
     reactions_count: aggregate(row, "reactions"),
+    reaction_counts: perTypeCounts(row.reaction_counts, aggregate(row, "reactions")),
     user_has_saved: flags.saves.has(id),
     user_has_relayed: flags.relays.has(id),
     user_reaction_type: flags.reactions.get(id) ?? null,

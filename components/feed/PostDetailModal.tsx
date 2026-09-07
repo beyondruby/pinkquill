@@ -15,7 +15,7 @@ import { removeSelfAsCollaborator } from "@/lib/hooks.legacy";
 import { useComments, COMMENT_MAX_LENGTH } from "@/lib/hooks/useComments";
 import { useToggleSave, useToggleRelay, useBlock } from "@/lib/hooks/useInteractions";
 import { useReaction } from "@/lib/engagement/reactions";
-import type { ReactionType } from "@/lib/types";
+import type { ReactionType, ReactionCounts } from "@/lib/types";
 import { showToast, actionToast } from "@/lib/utils/toast";
 import type { PostUpdate } from "@/components/providers/ModalProvider";
 import CommentItem from "@/components/feed/CommentItem";
@@ -101,6 +101,7 @@ interface Post {
   image?: string;
   stats: {
     reactions?: number;
+    reactionCounts?: ReactionCounts;
     comments: number;
     relays: number;
   };
@@ -197,18 +198,19 @@ function PostDetailModalComponent({
     toggleLike,
     deleteComment,
     fetchReplies,
-  } = useComments("post", post?.id || "", { authorId: post?.authorId });
+  } = useComments("post", post?.id || "", { authorId: post?.authorId, live: true });
   const { toggle: toggleSave } = useToggleSave();
   const { toggle: toggleRelay } = useToggleRelay();
 
   // Reactions: shared store entry (seeded from the card that opened us),
   // full per-type counts loaded on open, re-read when the tab regains focus.
   const reaction = useReaction("post", post?.id || "", {
-    seed: post ? { total: post.stats.reactions, mine: post.reactionType } : undefined,
+    seed: post ? { total: post.stats.reactions, counts: post.stats.reactionCounts, mine: post.reactionType, comments: post.stats.comments } : undefined,
     authorId: post?.authorId,
     refreshOnFocus: true,
     loadCounts: true,
     loadComments: true,
+    live: true,
   });
   const commentsCount = reaction.comments;
 

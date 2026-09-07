@@ -11,12 +11,11 @@ Read `00-system-map.md` (what existed), `01-findings.md` (root causes),
 | 2 — Comments, likes, replies | **done** (merged to `main`) | 2026-09-07 |
 | 3 — Notifications via DB triggers | **done** (merged to `main`) | 2026-09-07 |
 | 4 — Security | **done** (branch `fix/engagement-phase4`, merged to `main`) | 2026-09-07 |
-| 5 — Load / live events | next | |
-| 6 — UI/UX | | |
+| 5 — Load / live events | **done** (branch `fix/engagement-phase5`, merged to `main`) | 2026-09-07 |
+| 6 — UI/UX | next | |
 
 Decisions taken: D1 one reaction per user per post/take; D2 retire `admires`
-(folded into `reactions`, writes revoked, table kept for insights RPCs until
-Phase 5); D3 replies are one level deep; D4 post/take authors may delete any
+(folded into `reactions`; the table was dropped in Phase 5); D3 replies are one level deep; D4 post/take authors may delete any
 comment on their content; D5 no comment editing. All approved 2026-09-07.
 
 ---
@@ -375,8 +374,114 @@ Chrome as A.
 - Rate limits are per user per minute; there is no per-IP limit for
   anonymous traffic (nothing anonymous can write).
 
+## Phase 5 — what changed (2026-09-07)
+
+### Database (`20260911_engagement_phase5_load.sql` + `20260911_engagement_phase5b_trigger_fix.sql`, applied to prod as `..._phase5_load`, `..._phase5b_trigger_fix`, `..._phase5c_bump_grants`)
+
+- **Counter columns instead of counting rows.** `posts.reactions_count`,
+  `comments_count`, `relays_count`, `reaction_counts jsonb` (per type) and
+  `takes.reactions_count`, `comments_count`, `relays_count`, `saves_count`,
+  `reaction_counts`. Maintained by AFTER triggers on `reactions`,
+  `take_reactions` (insert / type change / delete), `comments`,
+  `take_comments`, `relays`, `take_relays`, `take_saves` through two
+  trigger-only helpers (`engagement_bump_reaction`, `engagement_bump_counter`,
+  not executable from the API). Backfilled once by
+  `engagement_reconcile_counts()`, which also runs nightly (pg_cron
+  `engagement-reconcile`, 03:17) and returns the number of rows it had to
+  fix (0 after the backfill, 0 after the tests below).
+- `get_post_/take_reaction_summary(p_ids)`, `post_/take_reaction_counts_json`
+  and `get_takes_feed` read the columns. The summary LEFT JOINs the content
+  table so an id the viewer may not see comes back as zeros (RLS still
+  applies to the row).
+- **Live content events.** `trg_content_events` on reactions / take_reactions
+  / comments / take_comments calls `realtime.send` on the public channel
+  `content-events:<kind>:<id>` with `{kind, id, what, op, counts, comments,
+  actor_id, comment_id?, parent_id?}`. Nothing is subscribed per user; a
+  surface subscribes only while a post/take is open.
+- Dropped: `admires`, `take_admires` (the insights RPCs
+  `get_creator_insights_summary` / `get_community_insights_summary` were
+  rewritten without them), `get_reaction_counts`, `get_total_reactions`,
+  the redundant single-column indexes `idx_reactions_post_id`,
+  `idx_comments_post_id` (the UNIQUE / composite indexes cover them).
+- 5b: the first trigger version referenced `NEW.take_id` inside a CASE on a
+  `reactions` row; plpgsql resolves record fields even in the branch that is
+  not taken, so every post reaction failed until the triggers were changed
+  to read the id through `to_jsonb(NEW)`. 5c: the security advisor flagged
+  the bump helpers as callable by `authenticated`; EXECUTE revoked (a caller
+  could otherwise have inflated any counter).
+
+### Client
+
+- Every list read (`lib/posts/enrich.ts` `POST_COUNTS_SELECT`, `useFeed`,
+  `useProfile`, `useTags`, `useExplore`, `hooks.legacy`, the `useTakes`
+  fallback path and `useUserTakes` / `useRelayedTakes` / `useSavedTakes`, the
+  take page) selects the counter columns instead of `reactions(count)` embeds
+  or fetching every reaction/comment/save/relay row. `enrichPost` exposes
+  `Post.reaction_counts`.
+- Cards seed the store with the per-type split (`PostStats.reactionCounts`,
+  passed from Feed, community page, explore, tag page, studio profile), so
+  the picker opens with real numbers and the modal/page do not refetch what
+  the list already knew.
+- `lib/engagement/live.ts` — `subscribeContentEvents(kind, id, listener?)`:
+  one channel per content id per tab, reference-counted, at most 4 idle
+  channels. Counts go into the store via `applyLiveCounts` (ignored while
+  this tab has a write in flight or within the 5 s post-write grace, same
+  rule as seeds). `useReaction({ live: true })` and
+  `useComments({ live: true })` (refetches page 0, coalesced 400 ms, when
+  another user adds or removes a comment) are wired on the post page, post
+  modal, take page, take modal and the takes comments panel. Feed cards keep
+  poll-on-focus.
+- `ModalProvider`: subscribers live in refs and `notifyUpdate` /
+  `notifyTakeUpdate` are stable (no `selectedPost` dependency), so a count
+  change no longer re-runs every card's subscribe effect.
+- Post page and take page fetch once per (id, viewer id): they wait for
+  `status !== "loading"` from `useAuth` instead of running anon-then-user.
+  The take page also clears a stale error on refetch (the anon miss used to
+  leave "Take not found" on screen) and no longer runs the two `take_saves`
+  / `take_relays` count queries that returned 400 (those tables have no
+  `id` column). The post page's client-side visibility / private-account /
+  follower checks are gone; `can_view_post` in RLS decides.
+- `useInsights` no longer queries `admires` (the one place that needed
+  engagement rows for the top-posts list reads `reactions`);
+  `app/api/takes/delete` no longer deletes from `take_admires`.
+- Tests: `lib/engagement/__tests__/live.test.ts` (new) + `applyLiveCounts`
+  cases in `store.test.ts`; suite 218 passed; `tsc` clean; eslint 0 errors;
+  `next build` clean.
+
+### Tested (2026-09-07, hadi in Chrome = A, poet / hii through the RPCs = B)
+
+| Check | Result |
+|---|---|
+| A has poet's post open; B (poet) reacts `snap` and comments through the RPCs | A's page shows 1 reaction, "Discussion (4)" and the new comment within a second, no reload |
+| A then reacts `admire` on the same post | A sees admire 1 + snap 1 = 2; B's `get_post_reaction_summary` returns the same split, total 2, comments 4 |
+| Studio profile cards and the header stat | 1/1, 2/4, 0/0 match `posts.reactions_count` / `comments_count`; header "Admires 3" = sum of the columns |
+| A has hii's take open; B (hii) reacts `snap` and comments | A sees 2 reactions, "Discussion (2)", the comment appears live |
+| `engagement_reconcile_counts()` after all of the above | 0 rows corrected (columns = row counts for every post and take) |
+| Security advisor | no findings on the new functions after 5c |
+
+**Load test not run.** The plan's 10k-users-on-one-post scenario needs a
+Supabase branch (billed) or a synthetic dataset; prod has 37 posts, 28
+reactions, 34 comments, 7 takes. What was measured instead: the batched
+summary for 30 posts as an authenticated user is one function scan plus the
+RLS filter, 12 ms end to end on this data (EXPLAIN ANALYZE), with no
+per-post subquery; the per-row cost is now the RLS policy, not counting.
+The write path is one row insert + one indexed UPDATE on the parent + one
+broadcast, so hot-post contention is on the parent row lock (Postgres
+serialises those; a burst on one post queues rather than fails). This is
+reasoning, not a measurement.
+
+### Known gaps left for later phases
+
+- `saves` on posts has no counter column (nothing displays a post save
+  count today).
+- The take page still runs its own client-side visibility checks (the post
+  page's were removed); `can_view_take` in RLS makes them redundant.
+- `useInsights` shows `reactions` where "admires" used to be counted; the
+  labels in the insights UI still say "admires" (Phase 6 wording).
+- Feed cards refresh counts on focus only; live events are opt-in per open
+  surface by design.
+
 ## Next session
 
-Phase 5 (load, concurrency, live freshness). Start from `02-plan.md`
-§Phase 5. Migration name: `20260911_engagement_phase5_load.sql`. Drop
-`get_reaction_counts`, `get_total_reactions` and the `admires` table there.
+Phase 6 (UI/UX). Start from `02-plan.md` §Phase 6. Keep Pinkquill's colours,
+fonts and components; Instagram-style social app; no accent-line boxes.

@@ -21,6 +21,7 @@ import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useAuthModal } from "@/components/providers/AuthModalProvider";
 import { usePollOnFocus } from "@/lib/hooks/usePollOnFocus";
+import { subscribeContentEvents } from "./live";
 import { actionToast } from "@/lib/utils/toast";
 import type { ReactionType, ReactionCounts } from "@/lib/types";
 import {
@@ -53,6 +54,9 @@ export interface UseReactionOptions {
   loadCounts?: boolean;
   /** Make sure the comment count is loaded (surfaces that show it). */
   loadComments?: boolean;
+  /** Subscribe to `content-events:<kind>:<id>` so other users' reactions
+   *  and comments update the counts without a reload (open post/take). */
+  live?: boolean;
 }
 
 export interface UseReactionResult {
@@ -82,7 +86,7 @@ export function useReaction(kind: EngagementKind, id: string, options: UseReacti
   const { user } = useAuth();
   const { openModal: openAuthModal } = useAuthModal();
   const viewerId = user?.id ?? null;
-  const { refreshOnFocus = false, loadCounts: wantCounts = false, loadComments: wantComments = false } = options;
+  const { refreshOnFocus = false, loadCounts: wantCounts = false, loadComments: wantComments = false, live = false } = options;
   const seedTotal = options.seed?.total;
   const seedMine = options.seed?.mine;
   const seedCounts = options.seed?.counts;
@@ -122,6 +126,12 @@ export function useReaction(kind: EngagementKind, id: string, options: UseReacti
   usePollOnFocus(() => {
     if (refreshOnFocus && id) void refreshReaction(kind, id);
   });
+
+  // Live counts from the database (Phase 5). The channel is shared per id.
+  useEffect(() => {
+    if (!live || !id) return;
+    return subscribeContentEvents(kind, id);
+  }, [live, kind, id]);
 
   // Notifications are created by database triggers (Phase 3); the client
   // only reports failures.
