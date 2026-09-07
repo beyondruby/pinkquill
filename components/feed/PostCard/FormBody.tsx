@@ -79,6 +79,7 @@ export function JournalStrip({ post, className = "" }: { post: PostProps; classN
 }
 
 interface FormBodyProps {
+  hideJournalStrip?: boolean;
   post: PostProps;
   onReadMore: () => void;
   /** Alignment / spacing / drop-cap classes derived from post.styling. */
@@ -171,7 +172,7 @@ function EditorialBody({ post, onReadMore, className = "" }: FormBodyProps) {
   );
 }
 
-export function FormBody({ post, onReadMore, className = "" }: FormBodyProps) {
+export function FormBody({ post, onReadMore, className = "", hideJournalStrip = false }: FormBodyProps) {
   const form = getPostTypeTheme(post.type).form;
   if (!post.content && form !== "journal") return null;
 
@@ -183,7 +184,7 @@ export function FormBody({ post, onReadMore, className = "" }: FormBodyProps) {
     case "journal":
       return (
         <>
-          <JournalStrip post={post} />
+          {!hideJournalStrip && <JournalStrip post={post} />}
           {post.content && (
             <TruncatedContent
               content={post.content}

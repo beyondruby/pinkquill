@@ -1,0 +1,455 @@
+/* ============================================================================
+   CLASSIC FEED CARD — after the quill-v6 reference.
+   One shell, one author header, one action row. Each post type earns its own
+   body form (journal date line, visual carousel, audio banner, poem frame…)
+   while padding, radius, type scale and the action row stay identical, so the
+   feed reads as one thing. Colours are semantic tokens only.
+   ============================================================================ */
+
+/* ---- Shell ---------------------------------------------------------------- */
+.pq-feed-card {
+  border: 1px solid var(--color-border-light);
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.04);
+}
+.pq-feed-card .author-header { margin-bottom: 1.25rem; }
+.pq-feed-card .unified-post-title {
+  font-family: var(--font-playfair-display), Georgia, serif;
+  font-weight: 400;
+  font-size: 1.5rem;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--color-ink);
+  margin-bottom: 0.75rem;
+}
+.pq-feed-card .post-content-text,
+.pq-feed-card .pq-serif {
+  font-family: var(--font-lora), Georgia, serif;
+  font-size: 1.02rem;
+  line-height: 1.8;
+  color: var(--color-ink);
+}
+.pq-feed-card .continue-reading-link {
+  font-family: var(--font-ui);
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--color-purple-primary);
+}
+.pq-feed-card .continue-reading-link:hover { color: var(--color-pink-vivid); gap: 10px; }
+
+/* ---- Action row: icon + count, every glyph in the same 20px box ----------- */
+.pq-feed-card .actions {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border-light);
+}
+.pq-feed-card .actions-left,
+.pq-feed-card .actions-right { gap: 0.15rem; }
+.pq-feed-card .action-btn {
+  min-width: 40px;
+  min-height: 40px;
+  padding: 8px 12px;
+  gap: 7px;
+  border-radius: 20px;
+  font-family: var(--font-ui);
+}
+.pq-feed-card .action-btn .pq-glyph {
+  display: block;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+}
+.pq-feed-card .reaction-picker-trigger > span:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+}
+.pq-feed-card .reaction-picker-trigger svg { width: 20px !important; height: 20px !important; }
+.pq-feed-card .action-count {
+  font-family: var(--font-ui);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+.pq-feed-card .action-btn.relayed { color: var(--color-pink-vivid); }
+.pq-feed-card .action-btn.relayed .pq-glyph { animation: pop 0.4s ease; }
+.pq-feed-card .action-btn.saved { color: var(--color-purple-primary); }
+.pq-feed-card .action-btn:focus-visible,
+.pq-feed-card .unified-media-item:focus-visible,
+.pq-feed-card .carousel-open:focus-visible,
+.pq-feed-card .video-play-btn:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* ---- Thought: a short statement set large in the display serif ----------- */
+.pq-thought-statement {
+  font-family: var(--font-playfair-display), Georgia, serif;
+  font-size: clamp(1.45rem, 3vw, 1.85rem);
+  line-height: 1.4;
+  color: var(--color-ink);
+  padding: 0.75rem 0 0.5rem;
+  text-wrap: balance;
+  white-space: pre-line;
+}
+
+/* ---- Journal: date line with a fading hairline, title, quiet excerpt ------ */
+.pq-post-journal .journal-date {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.85rem;
+  margin: 0 0 1rem;
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-purple-primary);
+}
+.pq-post-journal .journal-date > span { display: inline-flex; align-items: center; gap: 0.3rem; white-space: nowrap; }
+.pq-post-journal .journal-date svg { width: 14px; height: 14px; flex: 0 0 14px; }
+.pq-post-journal .journal-date::after {
+  content: "";
+  flex: 1;
+  min-width: 2.5rem;
+  height: 1px;
+  background: linear-gradient(90deg, var(--color-purple-primary), transparent);
+  opacity: 0.35;
+}
+.pq-post-journal .unified-post-title { margin-bottom: 1rem; }
+.pq-post-journal .post-content-text {
+  color: var(--color-muted);
+  font-size: 1.05rem;
+  line-height: 1.8;
+}
+
+/* ---- Visual story: title + description above, caption carousel below ------ */
+.pq-post-visual .unified-post-title { font-size: 1.3rem; margin-bottom: 0.5rem; }
+.pq-post-visual .post-content-text { color: var(--color-muted); font-size: 1rem; line-height: 1.6; }
+.pq-feed-card .carousel-container {
+  position: relative;
+  overflow: hidden;
+  margin-top: 1.25rem;
+  border-radius: 14px;
+  background: var(--color-subtle);
+}
+.pq-feed-card .carousel-container:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; }
+.pq-feed-card .carousel-track { display: flex; transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+.pq-feed-card .carousel-slide { position: relative; min-width: 100%; }
+.pq-feed-card .carousel-open {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: zoom-in;
+}
+.pq-feed-card .carousel-media {
+  display: block;
+  width: 100%;
+  height: clamp(240px, 58vw, 380px);
+  object-fit: cover;
+}
+.pq-feed-card .carousel-video { background: #000; }
+.pq-feed-card .carousel-video .carousel-media { object-fit: contain; }
+.pq-feed-card .carousel-caption {
+  position: absolute;
+  inset: auto 0 0 0;
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 2.5rem 1.5rem 1.25rem;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
+  color: #fff;
+  pointer-events: none;
+}
+.pq-feed-card .carousel-caption p {
+  margin: 0;
+  font-family: var(--font-lora), Georgia, serif;
+  font-size: 0.98rem;
+  line-height: 1.5;
+}
+.pq-feed-card .carousel-counter {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 5;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-family: var(--font-ui);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  backdrop-filter: blur(6px);
+}
+.pq-feed-card .carousel-nav {
+  position: absolute;
+  top: 50%;
+  z-index: 5;
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  color: #1e1e1e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+  opacity: 0;
+  transform: translateY(-50%);
+  transition: opacity 0.25s ease, transform 0.25s ease, background 0.25s ease;
+}
+.pq-feed-card .carousel-nav.prev { left: 14px; }
+.pq-feed-card .carousel-nav.next { right: 14px; }
+.pq-feed-card .carousel-nav .pq-glyph { display: block; }
+.pq-feed-card .carousel-nav.prev .pq-glyph { margin-left: -2px; }
+.pq-feed-card .carousel-nav.next .pq-glyph { margin-right: -2px; }
+.pq-feed-card .carousel-container:hover .carousel-nav,
+.pq-feed-card .carousel-container:focus-within .carousel-nav { opacity: 1; }
+.pq-feed-card .carousel-nav:hover { background: #fff; transform: translateY(-50%) scale(1.08); }
+@media (hover: none) { .pq-feed-card .carousel-nav { opacity: 1; } }
+.pq-feed-card .carousel-dots {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  z-index: 5;
+  display: flex;
+  gap: 7px;
+  transform: translateX(-50%);
+}
+.pq-feed-card .carousel-container.has-captions .carousel-dots { bottom: auto; top: 16px; }
+.pq-feed-card .carousel-dot {
+  width: 7px;
+  height: 7px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  transition: transform 0.3s ease, background 0.3s ease;
+}
+.pq-feed-card .carousel-dot.active { background: #fff; transform: scale(1.35); }
+
+/* ---- Photos on any other type: the grid ---------------------------------- */
+.pq-feed-card .unified-media-grid { gap: 6px; margin-top: 1rem; }
+.pq-feed-card .unified-media-item { display: block; width: 100%; padding: 0; border: 0; cursor: pointer; }
+.pq-feed-card .pq-media-count-2 { grid-template-columns: 1.35fr 1fr; }
+.pq-feed-card .pq-media-count-2 .unified-media-item { aspect-ratio: auto; height: clamp(200px, 32vw, 360px); }
+.pq-feed-card .pq-media-count-3 { grid-template-columns: 1.5fr 1fr; grid-template-rows: repeat(2, minmax(0, 1fr)); height: clamp(240px, 38vw, 400px); }
+.pq-feed-card .pq-media-count-3 .unified-media-item { aspect-ratio: auto; min-height: 0; height: 100%; }
+.pq-feed-card .pq-media-count-4 { grid-template-columns: 1.2fr 1fr; }
+.pq-feed-card .unified-video-play .pq-glyph { margin-left: 2px; }
+
+/* ---- Poem: centred, italic, framed by two faint quotation marks ----------- */
+.pq-post-poem { position: relative; }
+.pq-post-poem::before,
+.pq-post-poem::after {
+  position: absolute;
+  font-family: var(--font-playfair-display), Georgia, serif;
+  font-size: 4.5rem;
+  line-height: 1;
+  color: var(--color-purple-primary);
+  opacity: 0.1;
+  pointer-events: none;
+}
+.pq-post-poem::before { content: "\201C"; top: 78px; left: 22px; }
+.pq-post-poem::after { content: "\201D"; bottom: 62px; right: 22px; }
+.pq-post-poem .poem-title,
+.pq-post-poem .unified-post-title {
+  text-align: center;
+  font-size: 1.3rem;
+  margin: 0.25rem 0 1rem;
+}
+.pq-post-poem .pq-form-poem {
+  margin-inline: auto;
+  max-width: 46ch;
+  padding: 0.25rem 1rem;
+  text-align: center;
+  font-family: var(--font-lora), Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 1.12rem;
+  line-height: 2;
+  color: var(--color-ink);
+}
+.pq-post-poem .truncated-content-wrapper .continue-reading-link { justify-content: center; }
+.pq-post-poem .actions { justify-content: center; gap: 1.25rem; }
+.pq-post-poem .actions-left,
+.pq-post-poem .actions-right { margin: 0; }
+
+/* ---- Quote --------------------------------------------------------------- */
+.pq-post-quote .pq-form-quote { padding: 0.5rem 0 0 2.2rem; }
+.pq-post-quote .pq-quote-text { font-size: clamp(1.25rem, 2.4vw, 1.6rem); line-height: 1.5; }
+
+/* ---- Essay / blog / story / letter --------------------------------------- */
+.pq-post-essay .unified-post-title,
+.pq-post-blog .unified-post-title,
+.pq-post-story .unified-post-title,
+.pq-post-letter .unified-post-title { font-size: 1.4rem; margin-bottom: 0.6rem; }
+.pq-post-letter .unified-post-title { font-style: italic; }
+.pq-feed-card .pq-form-readtime { font-weight: 500; font-size: 0.75rem; }
+.pq-feed-card .pq-form-letter { font-size: 1.02rem; line-height: 1.85; }
+
+/* ---- Audio: gradient banner with a live wave, the note beside it ---------- */
+.pq-feed-card.type-audio { display: flex; padding: 0; overflow: hidden; }
+.pq-feed-card .audio-visual {
+  position: relative;
+  isolation: isolate;
+  flex: 0 0 110px;
+  width: 110px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: linear-gradient(160deg, var(--color-purple-primary), var(--color-pink-vivid));
+  color: #fff;
+  cursor: default;
+}
+.pq-feed-card .audio-cover { object-fit: cover; }
+.pq-feed-card.has-cover .audio-visual::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--color-purple-primary) 78%, transparent),
+    color-mix(in srgb, var(--color-pink-vivid) 72%, transparent)
+  );
+}
+.pq-feed-card .sound-bars { position: relative; z-index: 1; gap: 3px; height: 40px; }
+.pq-feed-card .sound-bar {
+  width: 4px;
+  border-radius: 2px;
+  background: #fff;
+  transform-origin: center;
+  animation: soundWave 1s ease-in-out infinite;
+}
+.pq-feed-card .audio-content { flex: 1; min-width: 0; padding: 1.5rem 1.75rem; }
+.pq-feed-card .audio-content .author-header { margin-bottom: 0.75rem; }
+.pq-feed-card .audio-kind {
+  font-family: var(--font-ui);
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  margin-bottom: 4px;
+}
+.pq-feed-card .audio-author {
+  margin: 0 0 0.5rem;
+  font-family: var(--font-playfair-display), Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 1.25rem;
+  line-height: 1.3;
+  color: var(--color-ink);
+}
+.pq-feed-card .audio-author::before { content: "\201C"; }
+.pq-feed-card .audio-author::after { content: "\201D"; }
+.pq-feed-card .audio-note { font-size: 0.95rem; line-height: 1.6; color: var(--color-muted); }
+.pq-feed-card .audio-feed-player { margin-top: 0.9rem; }
+.pq-feed-card .audio-content .actions { flex-wrap: wrap; gap: 0.25rem; }
+
+/* ---- Video: poster + play, then title and description --------------------- */
+.pq-post-video .video-container {
+  position: relative;
+  margin-top: 0.25rem;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #000;
+  aspect-ratio: 16 / 9;
+}
+.pq-post-video .video-thumbnail,
+.pq-post-video .video-element {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.pq-post-video .video-thumbnail { opacity: 0.92; }
+.pq-post-video .video-poster-blank {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(60% 80% at 20% 20%, color-mix(in srgb, var(--color-pink-vivid) 45%, transparent), transparent 70%),
+    radial-gradient(60% 80% at 85% 90%, color-mix(in srgb, var(--color-orange-warm) 35%, transparent), transparent 70%),
+    linear-gradient(160deg, var(--color-purple-primary), #1e1e1e);
+}
+.pq-post-video .video-play-btn {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 70px;
+  height: 70px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--color-purple-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+  transform: translate(-50%, -50%);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.pq-post-video .video-play-btn .pq-glyph { display: block; margin-left: 4px; }
+.pq-post-video .video-play-btn:hover {
+  transform: translate(-50%, -50%) scale(1.1);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+.pq-post-video .video-duration {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  font-family: var(--font-ui);
+  font-size: 0.8rem;
+}
+.pq-post-video .video-title {
+  margin-top: 1rem;
+  font-family: var(--font-playfair-display), Georgia, serif;
+  font-weight: 400;
+  font-size: 1.2rem;
+  line-height: 1.35;
+  color: var(--color-ink);
+}
+.pq-post-video .video-description {
+  margin-top: 0.5rem;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--color-muted);
+}
+
+/* ---- Small screens -------------------------------------------------------- */
+@media (max-width: 600px) {
+  .pq-feed-card.type-unified,
+  .pq-feed-card.type-video { padding: 1.15rem; }
+  .pq-feed-card .author-header { gap: 10px; }
+  .pq-feed-card .unified-post-title { font-size: 1.3rem; }
+  .pq-thought-statement { font-size: 1.4rem; }
+  .pq-feed-card .carousel-media { height: clamp(220px, 66vw, 320px); }
+  .pq-feed-card .carousel-caption { padding: 2rem 1rem 0.9rem; }
+  .pq-post-poem::before,
+  .pq-post-poem::after { display: none; }
+  .pq-feed-card .audio-visual { flex-basis: 72px; width: 72px; }
+  .pq-feed-card .sound-bars { transform: scale(0.8); }
+  .pq-feed-card .audio-content { padding: 1.1rem 1rem; }
+  .pq-feed-card .audio-content .author-avatar { width: 32px; height: 32px; }
+  .pq-feed-card .action-btn { padding: 8px 9px; }
+  .pq-feed-card .actions-left,
+  .pq-feed-card .actions-right { gap: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pq-feed-card,
+  .pq-feed-card .unified-media-image,
+  .pq-feed-card .carousel-track { transition: none; }
+  .pq-feed-card:hover,
+  .pq-feed-card:hover .unified-media-image { transform: none; }
+  .pq-feed-card .sound-bar,
+  .pq-feed-card .action-btn.relayed .pq-glyph { animation: none; }
+}

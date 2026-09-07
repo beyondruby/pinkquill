@@ -375,7 +375,7 @@ export function AudioPlayer({
   // The waveform: a canvas with a transparent range input overlaid for
   // accessible, draggable, keyboard-operable seeking.
   const waveform = (heightClass: string) => (
-    <div className={`relative w-full ${heightClass}`}>
+    <div className={`relative w-full rounded-md has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-4 has-[:focus-visible]:outline-accent ${heightClass}`}>
       <canvas ref={canvasRef} className="h-full w-full" aria-hidden="true" />
       <input
         type="range"

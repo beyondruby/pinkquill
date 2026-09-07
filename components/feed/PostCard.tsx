@@ -1,7 +1,8 @@
 "use client";
 
+import "./post-card.css";
+
 import { useState, useEffect, useRef, useCallback, memo, useMemo } from "react";
-import { formatDate } from "@/lib/utils/time";
 import Link from "next/link";
 import Image from "next/image";
 import dynamic from "next/dynamic";
@@ -43,19 +44,11 @@ import {
   type MentionInfo,
 } from "./PostCard/index";
 import {
-  HeartIcon,
-  CommentIcon,
-  RelayIcon,
   ShareIcon,
-  BookmarkIcon,
   TrashIcon,
   EditIcon,
   FlagIcon,
   BlockIcon,
-  PlayIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  ArrowRightIcon,
 } from "@/components/ui/Icons";
 
 // TruncatedContent imported from ./PostCard/TruncatedContent
@@ -63,35 +56,11 @@ const TruncatedContent = TruncatedContentComponent;
 
 // Types imported from ./PostCard/types
 import type { PostProps } from "./PostCard/types";
-import { FormBody } from "./PostCard/FormBody";
+import { FormBody, JournalStrip } from "./PostCard/FormBody";
+import { MediaCarousel } from "./PostCard/MediaCarousel";
+import { CommentGlyph, RelayGlyph, ShareGlyph, BookmarkGlyph, PlayGlyph } from "./PostCard/ActionIcons";
+import { stripHtml } from "@/lib/utils/sanitize";
 import { getPostTypeTheme } from "@/lib/feed-view/post-type-theme";
-
-// Format date as "January 2, 2026"
-// Weather icons (simplified inline)
-const weatherIconsSmall: Record<string, string> = {
-  'sunny': '☀️',
-  'partly-cloudy': '⛅',
-  'cloudy': '☁️',
-  'rainy': '🌧️',
-  'stormy': '⛈️',
-  'snowy': '❄️',
-  'foggy': '🌫️',
-  'windy': '💨',
-};
-
-// Mood indicators
-const moodIndicators: Record<string, string> = {
-  'reflective': '🪞',
-  'joyful': '😊',
-  'melancholic': '🌙',
-  'peaceful': '🕊️',
-  'anxious': '😰',
-  'grateful': '🙏',
-  'creative': '✨',
-  'nostalgic': '📷',
-  'hopeful': '🌟',
-  'contemplative': '💭',
-};
 
 // Use imported modular components
 const SoundBars = SoundBarsComponent;
@@ -133,7 +102,7 @@ function PostCardComponent({
   const [isSaved, setIsSaved] = useState(post.isSaved || false);
   const [isRelayed, setIsRelayed] = useState(post.isRelayed || false);
   const [relayCount, setRelayCount] = useState(post.stats?.relays ?? 0);
-  const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
+  const [videoPlaying, setVideoPlaying] = useState(false);
   const [showContent, setShowContent] = useState(!post.contentWarning);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showSendToDMModal, setShowSendToDMModal] = useState(false);
@@ -179,6 +148,7 @@ function PostCardComponent({
   const visualMedia = (post.media || []).filter((m) => m.media_type !== "audio");
   const hasMedia = visualMedia.length > 0;
   const isVoicePost = (post.type as string) === "voice";
+  const videoMedia = visualMedia.find((item) => item.media_type === "video");
   const audioCover = visualMedia.find((m) => m.media_type === "image")?.media_url || null;
   const postUrl = typeof window !== 'undefined' ? `${window.location.origin}/post/${post.id}` : `/post/${post.id}`;
 
@@ -460,26 +430,26 @@ function PostCardComponent({
           disabled={readOnly}
         />
         <button className="action-btn" aria-label="Comments" onClick={readOnly ? undefined : handleOpenModal} disabled={readOnly} style={readOnly ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}>
-          <CommentIcon />
+          <CommentGlyph />
           <span className="action-count"><CommentCount id={post.id} total={post.stats?.comments} format={(n) => (n > 0 ? n.toLocaleString() : "")} /></span>
         </button>
         {(!user || user.id !== post.authorId) && (
           <button
-            className={`action-btn ${isRelayed ? 'active' : ''}`}
+            className={`action-btn ${isRelayed ? 'relayed' : ''}`}
             onClick={readOnly ? undefined : handleRelay}
-            style={isRelayed ? { color: '#22c55e' } : readOnly ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
+            style={readOnly ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
             aria-label={isRelayed ? `Remove relay, ${relayCount} relays` : `Relay post, ${relayCount} relays`}
             aria-pressed={isRelayed}
             disabled={readOnly}
           >
-            <RelayIcon />
+            <RelayGlyph />
             {relayCount > 0 && <span className="action-count">{relayCount.toLocaleString()}</span>}
           </button>
         )}
       </div>
       <div className="actions-right">
         <button className="action-btn" onClick={(e) => { e.stopPropagation(); setShowShareModal(true); }} aria-label="Share post">
-          <ShareIcon />
+          <ShareGlyph />
         </button>
         <button
           className={`action-btn ${isSaved ? 'saved' : ''}`}
@@ -487,7 +457,7 @@ function PostCardComponent({
           aria-label={isSaved ? "Remove from saved" : "Save post"}
           aria-pressed={isSaved}
         >
-          <BookmarkIcon filled={isSaved} />
+          <BookmarkGlyph filled={isSaved} />
         </button>
       </div>
       </div>
@@ -879,21 +849,46 @@ function PostCardComponent({
     );
   };
 
-  // Unified render function for all post types
-  // Format: Title → First 20 words → Images (square) → Continue reading
+  // ---------------------------------------------------------------------------
+  // Render — one card shell, one header, one action row; each post type earns
+  // its own body form (after the quill-v6 reference):
+  //   thought  → a statement in the display serif
+  //   journal  → date line with a hairline rule, title, muted excerpt
+  //   visual   → title + description, then a caption carousel
+  //   poem     → centred, italic, framed by faint quotation marks
+  //   audio    → gradient banner with a live wave on the left, note on the right
+  //   video    → poster + play, title and description below
+  //   essay/blog/story/letter/quote → editorial forms from FormBody
+  // ---------------------------------------------------------------------------
+  const form = getPostTypeTheme(post.type).form;
+  const plainContent = post.content ? stripHtml(post.content) : "";
+  const isStatement =
+    form === "text" && !post.title && !hasMedia && !post.image && !audioMedia && !post.spotify_track &&
+    plainContent.length > 0 && plainContent.length <= 180;
+
   const renderPost = () => {
-    // Audio post - special layout
+    // Audio — banner on the left, note on the right
     if (post.type === "audio") {
+      const cover = audioCover || post.image || null;
       return (
-        <article className="post type-audio" onClick={handleOpenModal}>
-          <div className="audio-visual" onClick={(e) => e.stopPropagation()}>
+        <article className={`post type-audio pq-feed-card pq-post-audio ${cover ? "has-cover" : ""}`} onClick={handleOpenModal}>
+          <div className="audio-visual" aria-hidden="true">
+            {showContent && cover && <Image src={cover} alt="" fill sizes="120px" className="audio-cover" />}
             <SoundBars />
           </div>
           <div className="audio-content">
             <AuthorHeader small />
             <ContentSection>
-              <div className="audio-title">Voice Note</div>
-              <div className="audio-author">&quot;{post.title}&quot;</div>
+              <div className="audio-kind">{isVoicePost ? "Voice note" : "Sound"}{post.audioDuration ? ` · ${post.audioDuration}` : ""}</div>
+              <h3 className="audio-author">{post.title || "Untitled recording"}</h3>
+              {post.content && (
+                <TruncatedContent content={post.content} maxChars={140} onReadMore={handleOpenModal} className="audio-note" />
+              )}
+              {audioMedia && showContent && (
+                <div className="audio-feed-player" onClick={(e) => e.stopPropagation()}>
+                  <AudioPlayer src={audioMedia.media_url} title={post.title} variant="voice" />
+                </div>
+              )}
             </ContentSection>
             {renderActions()}
           </div>
@@ -901,25 +896,58 @@ function PostCardComponent({
       );
     }
 
-    // Video post - special layout
+    // Video — poster + play, then title and description
     if (post.type === "video") {
+      const poster = post.image || null;
+      // The poster + play button is all the feed loads; the clip only mounts on tap.
+      const showPlayer = !!videoMedia && showContent && videoPlaying;
       return (
-        <article className="post type-video" onClick={handleOpenModal}>
+        <article className="post type-video pq-feed-card pq-post-video" onClick={handleOpenModal}>
           <AuthorHeader />
           <ContentSection>
             <div className="video-container" onClick={(e) => e.stopPropagation()}>
-              <Image src={post.image || "/video-placeholder.svg"} alt={post.title || "Video thumbnail"} width={640} height={360} className="video-thumbnail" style={{ width: '100%', height: 'auto' }} sizes="(max-width: 640px) 90vw, 500px" quality={75} loading="lazy" />
-              <div className="video-play-btn">
-                <span style={{ color: 'var(--primary-purple)', marginLeft: '4px' }}><PlayIcon /></span>
-              </div>
-              {post.videoDuration && <span className="video-duration">{post.videoDuration}</span>}
+              {showPlayer ? (
+                <video
+                  src={videoMedia!.media_url}
+                  poster={poster || undefined}
+                  controls
+                  autoPlay
+                  preload="metadata"
+                  playsInline
+                  className="video-element"
+                  aria-label={post.title || "Video post"}
+                />
+              ) : (
+                <>
+                  {poster ? (
+                    <Image
+                      src={poster}
+                      alt={post.title || "Video thumbnail"}
+                      width={640}
+                      height={360}
+                      className="video-thumbnail"
+                      sizes="(max-width: 640px) 92vw, 560px"
+                      quality={75}
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="video-poster-blank" aria-hidden="true" />
+                  )}
+                  <button
+                    type="button"
+                    className="video-play-btn"
+                    aria-label={videoMedia ? "Play video" : "Open post"}
+                    onClick={() => (videoMedia && showContent ? setVideoPlaying(true) : handleOpenModal())}
+                  >
+                    <PlayGlyph size={24} />
+                  </button>
+                  {post.videoDuration && <span className="video-duration">{post.videoDuration}</span>}
+                </>
+              )}
             </div>
             {post.title && <h3 className="video-title">{post.title}</h3>}
             {post.content && (
-              <TruncatedContent
-                content={post.content}
-                onReadMore={handleOpenModal}
-              />
+              <TruncatedContent content={post.content} maxChars={200} onReadMore={handleOpenModal} className="video-description" />
             )}
           </ContentSection>
           {renderActions()}
@@ -927,8 +955,6 @@ function PostCardComponent({
       );
     }
 
-    // UNIFIED LAYOUT for all other post types
-    // Format: Title → First 250 chars → Images (square) → Continue reading
     const alignmentClass = {
       left: "text-left",
       center: "text-center",
@@ -941,110 +967,104 @@ function PostCardComponent({
       loose: "leading-[2.5]",
     }[post.styling?.lineSpacing || "normal"];
 
-    const mediaFirst = getPostTypeTheme(post.type).form === "gallery";
-    const mediaBlock = (
-      <>
-            {/* 3. Images as squares - hidden entirely when content warning is active */}
-            {hasMedia && showContent && (
-              <div className="unified-media-grid" onClick={(e) => e.stopPropagation()}>
-                {visualMedia.slice(0, 4).map((item, idx) => (
-                  <div
-                    key={item.id || idx}
-                    className={`unified-media-item ${visualMedia.length === 1 ? 'single' : ''} ${visualMedia.length === 2 ? 'double' : ''} ${visualMedia.length === 3 && idx === 0 ? 'featured' : ''}`}
-                  >
-                    {item.media_type === "video" ? (
-                      <div className="unified-video-thumb">
-                        <video
-                          src={item.media_url}
-                          className="unified-media-image"
-                          preload="metadata"
-                          aria-label={item.caption || `Video ${idx + 1} in post by ${post.author.name}`}
-                        />
-                        <div className="unified-video-play" aria-hidden="true">
-                          <PlayIcon />
-                        </div>
-                      </div>
-                    ) : (
-                      <Image
-                        src={item.media_url}
-                        alt={item.caption || `Image ${idx + 1} in post by ${post.author.name}`}
-                        width={400}
-                        height={400}
-                        className="unified-media-image"
-                        sizes="(max-width: 640px) 45vw, (max-width: 1024px) 200px, 180px"
-                        quality={75}
-                        loading="lazy"
-                      />
-                    )}
-                    {/* Show +N overlay on the last visible image if more than 4 */}
-                    {idx === 3 && visualMedia.length > 4 && (
-                      <div className="unified-media-more">
-                        +{visualMedia.length - 4}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
+    const isVisual = form === "gallery";
+    const isPoem = form === "poem";
 
-            {/* Legacy single image support - hidden when content warning is active */}
-            {!hasMedia && post.image && showContent && (
-              <div className="unified-media-grid single-legacy" onClick={(e) => e.stopPropagation()}>
-                <div className="unified-media-item single">
+    // Photos: the visual story gets a carousel; other types keep the grid.
+    const mediaBlock = isVisual ? (
+      hasMedia && showContent ? (
+        <MediaCarousel items={visualMedia} authorName={post.author.name} onOpen={handleOpenModal} />
+      ) : !hasMedia && post.image && showContent ? (
+        <MediaCarousel
+          items={[{ id: post.id, media_url: post.image, media_type: "image", caption: null, position: 0 }]}
+          authorName={post.author.name}
+          onOpen={handleOpenModal}
+        />
+      ) : null
+    ) : (
+      <>
+        {hasMedia && showContent && (
+          <div className={`unified-media-grid pq-media-count-${Math.min(visualMedia.length, 4)}`} onClick={(e) => e.stopPropagation()}>
+            {visualMedia.slice(0, 4).map((item, idx) => (
+              <button
+                type="button"
+                onClick={handleOpenModal}
+                aria-label={`Open ${item.media_type === "video" ? "video" : "photo"} ${idx + 1} of ${visualMedia.length}`}
+                key={item.id || idx}
+                className={`unified-media-item ${visualMedia.length === 1 ? "single" : ""} ${visualMedia.length === 2 ? "double" : ""} ${visualMedia.length === 3 && idx === 0 ? "featured" : ""}`}
+              >
+                {item.media_type === "video" ? (
+                  <div className="unified-video-thumb">
+                    <video src={item.media_url} className="unified-media-image" preload="metadata" aria-label={item.caption || `Video ${idx + 1} in post by ${post.author.name}`} />
+                    <div className="unified-video-play" aria-hidden="true">
+                      <PlayGlyph size={18} />
+                    </div>
+                  </div>
+                ) : (
                   <Image
-                    src={post.image}
-                    alt={post.title || ""}
+                    src={item.media_url}
+                    alt={item.caption || `Image ${idx + 1} in post by ${post.author.name}`}
                     width={400}
                     height={400}
                     className="unified-media-image"
-                    sizes="(max-width: 640px) 90vw, (max-width: 1024px) 400px, 360px"
+                    sizes="(max-width: 640px) 90vw, 600px"
                     quality={75}
                     loading="lazy"
                   />
-                </div>
-              </div>
-            )}
+                )}
+                {idx === 3 && visualMedia.length > 4 && <div className="unified-media-more">+{visualMedia.length - 4}</div>}
+              </button>
+            ))}
+          </div>
+        )}
+        {!hasMedia && post.image && showContent && (
+          <div className="unified-media-grid single-legacy" onClick={(e) => e.stopPropagation()}>
+            <div className="unified-media-item single">
+              <Image src={post.image} alt={post.title || ""} width={400} height={400} className="unified-media-image" sizes="(max-width: 640px) 90vw, 600px" quality={75} loading="lazy" />
+            </div>
+          </div>
+        )}
       </>
     );
 
     return (
-      <article className="post type-unified" onClick={handleOpenModal}>
+      <article
+        className={`post type-unified pq-feed-card pq-post-${post.type} ${isStatement ? "pq-statement" : ""}`}
+        onClick={handleOpenModal}
+      >
         <AuthorHeader />
         <ContentSection>
           <>
-            {mediaFirst && mediaBlock}
-            {/* 1. Title */}
+            {/* Journal: the dated entry line sits above the title, with a hairline rule */}
+            {post.type === "journal" && <JournalStrip post={post} className="journal-date" />}
+
             {post.title && (
-              <h3 className={`unified-post-title ${alignmentClass}`}>
-                {post.title}
-              </h3>
+              <h3 className={`unified-post-title ${isPoem ? "poem-title" : ""} ${alignmentClass}`}>{post.title}</h3>
             )}
 
-            {/* 2. Body — shaped by the post type's form (poem / quote / journal / editorial / text) */}
-            <FormBody
-              post={post}
-              onReadMore={handleOpenModal}
-              className={`${alignmentClass} ${lineSpacingClass} ${post.styling?.dropCap ? "drop-cap-enabled" : ""}`}
-            />
+            {isStatement ? (
+              <p className={`pq-thought-statement ${alignmentClass}`}>{plainContent}</p>
+            ) : (
+              <FormBody
+                hideJournalStrip
+                post={post}
+                onReadMore={handleOpenModal}
+                className={`${alignmentClass} ${lineSpacingClass} ${post.styling?.dropCap ? "drop-cap-enabled" : ""}`}
+              />
+            )}
 
-            {/* Spotify Track Indicator */}
             {post.spotify_track && (
               <div className="flex items-center gap-2 mt-3 mb-1 px-1">
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#1DB954]/10 border border-[#1DB954]/20">
                   <svg className="w-4 h-4 text-[#1DB954]" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
                   </svg>
-                  <span className="font-ui text-xs text-[#1DB954] font-medium truncate max-w-[180px]">
-                    {post.spotify_track.name}
-                  </span>
-                  <span className="font-ui text-xs text-[#1DB954]/60 hidden sm:inline">
-                    · {post.spotify_track.artist}
-                  </span>
+                  <span className="font-ui text-xs text-[#1DB954] font-medium truncate max-w-[180px]">{post.spotify_track.name}</span>
+                  <span className="font-ui text-xs text-[#1DB954]/60 hidden sm:inline">· {post.spotify_track.artist}</span>
                 </div>
               </div>
             )}
 
-            {/* Audio (Sound / Voice formats) — inline player */}
             {audioMedia && showContent && (
               <div className="mt-3" onClick={(e) => e.stopPropagation()}>
                 <AudioPlayer
@@ -1056,7 +1076,7 @@ function PostCardComponent({
               </div>
             )}
 
-            {!mediaFirst && mediaBlock}
+            {mediaBlock}
           </>
         </ContentSection>
         {renderActions()}
