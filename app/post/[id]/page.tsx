@@ -951,18 +951,6 @@ export default function PostPage() {
                   </div>
                 )}
 
-                {/* Sound / Voice — inline branded waveform player */}
-                {audioMedia && (
-                  <div className="mb-6">
-                    <AudioPlayer
-                      src={audioMedia.media_url}
-                      title={post.title || undefined}
-                      cover={isVoicePost ? null : audioCover}
-                      variant={isVoicePost ? "voice" : "card"}
-                    />
-                  </div>
-                )}
-
                 {post.title && (
                   <h1
                     className={`font-display text-[1.3rem] md:text-[1.6rem] ${titleColorClass} mb-3 md:mb-4 leading-tight ${
@@ -984,6 +972,18 @@ export default function PostPage() {
                     className={`font-body text-[0.95rem] md:text-[1.05rem] ${bodyColorClass} post-content ${textAlignmentClass} ${lineSpacingClass} ${dropCapEnabled ? "drop-cap-enabled" : ""}`}
                     dangerouslySetInnerHTML={{ __html: cleanHtmlForDisplay(post.content) }}
                   />
+                )}
+
+                {/* Sound / Voice — the track sits after the title and description */}
+                {audioMedia && (
+                  <div className="mt-5 md:mt-6">
+                    <AudioPlayer
+                      src={audioMedia.media_url}
+                      title={post.title || undefined}
+                      cover={isVoicePost ? null : audioCover}
+                      variant={isVoicePost ? "voice" : "card"}
+                    />
+                  </div>
                 )}
 
               {/* Media Gallery */}

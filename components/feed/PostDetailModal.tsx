@@ -793,18 +793,6 @@ function PostDetailModalComponent({
               </div>
             )}
 
-            {/* Sound / Voice — inline branded waveform player */}
-            {audioMedia && (
-              <div className="mb-6">
-                <AudioPlayer
-                  src={audioMedia.media_url}
-                  title={post.title || undefined}
-                  cover={isVoicePost ? null : audioCover}
-                  variant={isVoicePost ? "voice" : "card"}
-                />
-              </div>
-            )}
-
             {/* Post Content - Text color controlled by user styling */}
             <div className="flex-1 relative">
               {post.title && (
@@ -828,6 +816,18 @@ function PostDetailModalComponent({
                   className={`font-body text-[0.95rem] md:text-[1.1rem] post-content ${textColorClass} ${alignmentClass} ${lineSpacingClass} ${dropCapEnabled ? 'drop-cap-enabled' : ''}`}
                   dangerouslySetInnerHTML={createSafeHtml(post.content)}
                 />
+              )}
+
+              {/* Sound / Voice — the track sits after the title and description */}
+              {audioMedia && (
+                <div className="mt-5 md:mt-6 mb-6" onClick={(e) => e.stopPropagation()}>
+                  <AudioPlayer
+                    src={audioMedia.media_url}
+                    title={post.title || undefined}
+                    cover={isVoicePost ? null : audioCover}
+                    variant={isVoicePost ? "voice" : "card"}
+                  />
+                </div>
               )}
 
               {/* Media Gallery */}
