@@ -993,8 +993,6 @@ function PostDetailModalComponent({
           />
 
           {/* Actions - Floating action bar with adaptive colors */}
-          {/* Who reacted (Phase 6) */}
-          <ReactionSummary id={post.id} className="mt-4" />
           <div className={`post-actions-bar flex items-center gap-1.5 md:gap-2 mt-6 pt-4 md:pt-6 border-t flex-wrap z-20 ${borderColorClass} ${hasDarkBg ? 'dark-bg' : ''}`}>
             {/* Reaction Picker */}
             <ReactionPicker
@@ -1075,6 +1073,8 @@ function PostDetailModalComponent({
                 icons.bookmark
               )}
             </button>
+            {/* Who reacted (Phase 6) */}
+            <ReactionSummary id={post.id} className="basis-full mt-1" dark={hasDarkBg} />
           </div>
           </div>
         </div>

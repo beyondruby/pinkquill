@@ -124,8 +124,10 @@ export default function SingleTakePage({ params }: PageProps) {
       if (!found || cancelled) return;
       const scrollTo = (el: HTMLElement) => {
         el.scrollIntoView({ behavior: "smooth", block: "center" });
-        el.classList.add("highlight-comment");
-        setTimeout(() => el.classList.remove("highlight-comment"), 2000);
+        // Highlight the bubble itself, not the whole row with the avatar.
+        const bubble = el.querySelector<HTMLElement>("[data-comment-bubble]") ?? el;
+        bubble.classList.add("highlight-comment");
+        setTimeout(() => bubble.classList.remove("highlight-comment"), 2000);
         if (replyFromUrl) {
           const toggle = el.querySelector<HTMLButtonElement>("[data-reply-toggle]");
           if (toggle && toggle.getAttribute("aria-expanded") !== "true") toggle.click();
@@ -700,8 +702,6 @@ export default function SingleTakePage({ params }: PageProps) {
               </div>
 
               {/* Action Buttons */}
-              {/* Who reacted (Phase 6) */}
-              <ReactionSummary kind="take" id={id} className="px-4 md:px-6 pb-3" />
               <div className="flex items-center gap-1.5 md:gap-2 px-4 md:px-6 py-3 md:py-4 border-t border-border-light flex-wrap">
                 {/* Reaction Picker */}
                 <ReactionPicker
@@ -757,6 +757,8 @@ export default function SingleTakePage({ params }: PageProps) {
                 >
                   {isSaved ? icons.bookmarkFilled : icons.bookmark}
                 </button>
+                {/* Who reacted (Phase 6) */}
+                <ReactionSummary kind="take" id={id} className="basis-full mt-1" />
               </div>
             </article>
           </div>

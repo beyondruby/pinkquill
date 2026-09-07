@@ -273,7 +273,7 @@ function CommentItemComponent({
           />
         </Link>
         <div className="flex-1 min-w-0">
-          <div className="bg-skeleton/60 rounded-2xl px-4 py-2.5 relative">
+          <div data-comment-bubble className="bg-skeleton/60 rounded-2xl px-4 py-2.5 relative">
             <div className="flex items-center gap-2 mb-0.5">
               <Link
                 href={`/studio/${comment.author.username}`}

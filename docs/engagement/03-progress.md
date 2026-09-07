@@ -564,6 +564,18 @@ Not verified on a real touch device: long-press and haptics were written to
 the Touch Events + `navigator.vibrate` APIs but only right-click was
 exercised (no touch emulation available in this session).
 
+### Follow-up (2026-09-07, after review)
+
+- The post modal showed a purple box around the author's avatar: `useDialog`
+  focused the first control in the dialog (the avatar link) and Chrome paints
+  the `:focus-visible` ring on script-focused controls. Dialogs now focus
+  the panel itself; Tab still goes to the first control.
+- The who-reacted line moved under the action bar on every open surface
+  (it floated above the divider on the modal / page) and now bolds the
+  names: "**You** and **poet** reacted", icons 18 px with a surface ring.
+- The deep-link highlight is applied to the comment bubble, not the whole
+  row with the avatar.
+
 ### Known gaps left
 
 - Wording: the card line says "… reacted" rather than the plan's "Liked

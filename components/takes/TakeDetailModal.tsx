@@ -516,9 +516,7 @@ export default function TakeDetailModal({
             </div>
 
             {/* Actions */}
-            {/* Who reacted (Phase 6) */}
-            <ReactionSummary kind="take" id={take.id} className="mt-4" />
-            <div className="flex items-center gap-2 mt-auto pt-6 border-t border-border-light">
+            <div className="flex items-center gap-2 mt-auto pt-6 border-t border-border-light flex-wrap">
               {/* Reaction Picker */}
               <ReactionPicker
                 variant="pill"
@@ -580,6 +578,8 @@ export default function TakeDetailModal({
                   icons.bookmark
                 )}
               </button>
+              {/* Who reacted (Phase 6) */}
+              <ReactionSummary kind="take" id={take.id} className="basis-full mt-1" />
             </div>
           </div>
 

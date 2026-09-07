@@ -21,14 +21,14 @@ describe("tokenAtCaret", () => {
 
 describe("describeReactors", () => {
   it("names the viewer, the top reactor and the rest", () => {
-    expect(describeReactors(1, true, null)).toBe("You reacted");
-    expect(describeReactors(1, false, "poet")).toBe("poet reacted");
-    expect(describeReactors(2, true, "poet")).toBe("You and poet reacted");
-    expect(describeReactors(5, true, "poet")).toBe("You, poet and 3 others reacted");
-    expect(describeReactors(13, false, "poet")).toBe("poet and 12 others reacted");
+    expect(describeReactors(1, true, null).text).toBe("You reacted");
+    expect(describeReactors(1, false, "poet").text).toBe("poet reacted");
+    expect(describeReactors(2, true, "poet").text).toBe("You and poet reacted");
+    expect(describeReactors(5, true, "poet").text).toBe("You, poet and 3 others reacted");
+    expect(describeReactors(13, false, "poet").text).toBe("poet and 12 others reacted");
   });
   it("falls back to a count while the summary is unknown", () => {
-    expect(describeReactors(4, false, null)).toBe("4 reactions");
-    expect(describeReactors(1, false, null)).toBe("1 reaction");
+    expect(describeReactors(4, false, null).text).toBe("4 reactions");
+    expect(describeReactors(1, false, null).text).toBe("1 reaction");
   });
 });
