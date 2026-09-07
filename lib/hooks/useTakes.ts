@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactionType, ReactionCounts } from "@/lib/types";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { deleteOwnTake } from "@/lib/content-client";
 import { supabase } from "../supabase";
@@ -11,17 +12,9 @@ import { isAbortError } from "../utils/retry";
 // TYPES
 // ============================================================================
 
-export type TakeReactionType = 'admire' | 'snap' | 'ovation' | 'support' | 'inspired' | 'applaud';
-
-export interface TakeReactionCounts {
-  admire: number;
-  snap: number;
-  ovation: number;
-  support: number;
-  inspired: number;
-  applaud: number;
-  total: number;
-}
+// Takes share the post reaction model (Phase 1, docs/engagement/02-plan.md).
+export type TakeReactionType = ReactionType;
+export type TakeReactionCounts = ReactionCounts;
 
 export type TakeAspectRatio = '9:16' | '16:9' | '4:5' | '1:1' | '4:3';
 export type TakePlaybackSpeed = 0.25 | 0.5 | 0.75 | 1.0 | 1.5 | 2.0 | 3.0;
@@ -98,17 +91,17 @@ export interface Take {
     avatar_url: string | null;
   };
   // Counts
-  admires_count: number;
   reactions_count: number;
   comments_count: number;
   saves_count: number;
   relays_count: number;
   // User state
-  is_admired: boolean;
   is_saved: boolean;
   is_relayed: boolean;
   user_reaction_type: TakeReactionType | null;
-  reaction_counts: TakeReactionCounts;
+  /** Real per-type split when the source knew it (feed RPC); omitted otherwise
+   *  so the engagement store fetches it instead of showing zeros. */
+  reaction_counts?: TakeReactionCounts;
 }
 
 export interface TakeComment {
@@ -267,12 +260,10 @@ function takeFromRpcRow(row: TakesFeedRpcRow): Take {
       display_name: row.author_display_name,
       avatar_url: row.author_avatar_url,
     },
-    admires_count: reactionCounts.total,
     reactions_count: normalizeCount(row.reactions_count) || reactionCounts.total,
     comments_count: normalizeCount(row.comments_count),
     saves_count: normalizeCount(row.saves_count),
     relays_count: normalizeCount(row.relays_count),
-    is_admired: !!row.user_reaction_type,
     is_saved: row.is_saved ?? false,
     is_relayed: row.is_relayed ?? false,
     user_reaction_type: row.user_reaction_type,
@@ -509,13 +500,11 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
         // Author info
         author: authorMap.get(take.author_id) || { username: "unknown", display_name: null, avatar_url: null },
         // Counts
-        admires_count: reactionsCount[take.id] || 0,
         reactions_count: reactionsCount[take.id] || 0,
         comments_count: commentsCount[take.id] || 0,
         saves_count: savesCount[take.id] || 0,
         relays_count: relaysCount[take.id] || 0,
         // User state
-        is_admired: userReactionMap.has(take.id),
         is_saved: userSaveSet.has(take.id),
         is_relayed: userRelaySet.has(take.id),
         user_reaction_type: userReactionMap.get(take.id) || null,
@@ -598,112 +587,7 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
     return () => clearTimeout(timeoutId);
   }, [loading]);
 
-  // Toggle reaction (full reaction system)
-  const toggleReaction = useCallback(async (takeId: string, reactionType: TakeReactionType) => {
-    if (!userId) return;
-
-    const take = takesRef.current.find(t => t.id === takeId);
-    if (!take) return;
-
-    const currentReaction = take.user_reaction_type;
-    const isSameReaction = currentReaction === reactionType;
-
-    // Optimistic update
-    setTakes(prev => prev.map(t => {
-      if (t.id !== takeId) return t;
-
-      if (isSameReaction) {
-        // Removing reaction
-        const newReactionCounts = { ...t.reaction_counts };
-        newReactionCounts[reactionType] = Math.max(0, newReactionCounts[reactionType] - 1);
-        newReactionCounts.total = Math.max(0, newReactionCounts.total - 1);
-        return {
-          ...t,
-          is_admired: false,
-          user_reaction_type: null,
-          admires_count: Math.max(0, t.admires_count - 1),
-          reactions_count: Math.max(0, t.reactions_count - 1),
-          reaction_counts: newReactionCounts,
-        };
-      } else if (currentReaction) {
-        // Changing reaction (total count stays same, but individual counts change)
-        const newReactionCounts = { ...t.reaction_counts };
-        newReactionCounts[currentReaction] = Math.max(0, newReactionCounts[currentReaction] - 1);
-        newReactionCounts[reactionType] = newReactionCounts[reactionType] + 1;
-        return {
-          ...t,
-          user_reaction_type: reactionType,
-          reaction_counts: newReactionCounts,
-        };
-      } else {
-        // Adding new reaction
-        const newReactionCounts = { ...t.reaction_counts };
-        newReactionCounts[reactionType] = newReactionCounts[reactionType] + 1;
-        newReactionCounts.total = newReactionCounts.total + 1;
-        return {
-          ...t,
-          is_admired: true,
-          user_reaction_type: reactionType,
-          admires_count: t.admires_count + 1,
-          reactions_count: t.reactions_count + 1,
-          reaction_counts: newReactionCounts,
-        };
-      }
-    }));
-
-    try {
-      if (isSameReaction) {
-        // Remove reaction
-        const { error } = await supabase.from("take_reactions").delete()
-          .eq("take_id", takeId).eq("user_id", userId);
-
-        if (error) throw error;
-      } else if (currentReaction) {
-        // Update existing reaction
-        const { error } = await supabase.from("take_reactions")
-          .update({ reaction_type: reactionType })
-          .eq("take_id", takeId).eq("user_id", userId);
-
-        if (error) throw error;
-      } else {
-        // Insert new reaction
-        const { error } = await supabase.from("take_reactions").insert({
-          take_id: takeId,
-          user_id: userId,
-          reaction_type: reactionType,
-        });
-
-        if (error) throw error;
-      }
-    } catch {
-      // Revert on error
-      setTakes(prev => prev.map(t =>
-        t.id === takeId
-          ? {
-              ...t,
-              is_admired: take.is_admired,
-              user_reaction_type: take.user_reaction_type,
-              admires_count: take.admires_count,
-              reactions_count: take.reactions_count,
-              reaction_counts: take.reaction_counts,
-            }
-          : t
-      ));
-    }
-  }, [userId]);
-
-  // Simple toggle admire (for backward compatibility / double-tap)
-  const toggleAdmire = useCallback(async (takeId: string) => {
-    const take = takesRef.current.find(t => t.id === takeId);
-    if (!take) return;
-
-    // If already has any reaction, remove it; otherwise add admire
-    if (take.user_reaction_type) {
-      await toggleReaction(takeId, take.user_reaction_type);
-    } else {
-      await toggleReaction(takeId, 'admire');
-    }
-  }, [toggleReaction]);
+  // Reactions: components call useReaction("take", id) directly (lib/engagement).
 
   // Toggle save
   const toggleSave = useCallback(async (takeId: string) => {
@@ -842,8 +726,6 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
     hasMore,
     fetchMore,
     refetch: () => fetchTakes(true),
-    toggleAdmire,
-    toggleReaction,
     toggleSave,
     toggleRelay,
     deleteTake,
@@ -853,70 +735,6 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
 
 // ============================================================================
 // REACTION COUNTS HOOK (for individual take)
-// ============================================================================
-
-export function useTakeReactionCounts(takeId: string) {
-  const [counts, setCounts] = useState<TakeReactionCounts>({
-    admire: 0,
-    snap: 0,
-    ovation: 0,
-    support: 0,
-    inspired: 0,
-    applaud: 0,
-    total: 0,
-  });
-  const [loading, setLoading] = useState(true);
-
-  const fetchCounts = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .from("take_reactions")
-        .select("reaction_type")
-        .eq("take_id", takeId);
-
-      if (error) throw error;
-
-      const newCounts: TakeReactionCounts = {
-        admire: 0,
-        snap: 0,
-        ovation: 0,
-        support: 0,
-        inspired: 0,
-        applaud: 0,
-        total: 0,
-      };
-
-      if (data) {
-        data.forEach((r) => {
-          const type = r.reaction_type as TakeReactionType;
-          if (type in newCounts) {
-            newCounts[type]++;
-            newCounts.total++;
-          }
-        });
-      }
-
-      setCounts(newCounts);
-    } catch (err) {
-      console.warn("[useTakeReactionCounts] Error:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [takeId]);
-
-  useEffect(() => {
-    if (takeId) {
-      fetchCounts();
-    } else {
-      setLoading(false);
-    }
-  }, [takeId, fetchCounts]);
-
-  return { counts, loading, refetch: fetchCounts };
-}
-
-// ============================================================================
-// COMMENTS HOOK
 // ============================================================================
 
 export function useTakeComments(takeId: string, userId?: string) {
@@ -1558,17 +1376,14 @@ export function useUserTakes(username: string, viewerId?: string) {
             display_name: profileData.display_name,
             avatar_url: profileData.avatar_url,
           },
-          admires_count: reactionsCount[take.id] || 0,
           reactions_count: reactionsCount[take.id] || 0,
           comments_count: commentsCount[take.id] || 0,
           saves_count: savesCount[take.id] || 0,
           relays_count: relaysCount[take.id] || 0,
-          is_admired: userReactionMap.has(take.id),
           is_saved: userSaveSet.has(take.id),
           is_relayed: userRelaySet.has(take.id),
           user_reaction_type: userReactionMap.get(take.id) || null,
-          reaction_counts: { admire: 0, snap: 0, ovation: 0, support: 0, inspired: 0, applaud: 0, total: 0 },
-        }));
+          }));
 
         setTakes(processedTakes);
       } catch (err) {
@@ -1690,12 +1505,10 @@ export function useRelayedTakes(username: string, viewerId?: string) {
           return {
             ...take,
             author: author || { username: "unknown", display_name: null, avatar_url: null },
-            admires_count: reactionsCount[take.id] || 0,
             reactions_count: reactionsCount[take.id] || 0,
             comments_count: commentsCount[take.id] || 0,
             saves_count: savesCount[take.id] || 0,
             relays_count: relaysCount[take.id] || 0,
-            is_admired: false,
             is_saved: false,
             is_relayed: true,
             user_reaction_type: null,
@@ -1827,16 +1640,13 @@ export function useSavedTakes(userId?: string) {
         added_sound_volume: take.added_sound_volume ?? 100,
         sound: null,
         author: authorMap.get(take.author_id) || { username: "unknown", display_name: null, avatar_url: null },
-        admires_count: reactionsCount[take.id] || 0,
         reactions_count: reactionsCount[take.id] || 0,
         comments_count: commentsCount[take.id] || 0,
         saves_count: savesCount[take.id] || 0,
         relays_count: relaysCount[take.id] || 0,
-        is_admired: false,
         is_saved: true,
         is_relayed: false,
         user_reaction_type: null,
-        reaction_counts: { admire: 0, snap: 0, ovation: 0, support: 0, inspired: 0, applaud: 0, total: 0 },
       }));
 
       // Sort by save time (most recent first)

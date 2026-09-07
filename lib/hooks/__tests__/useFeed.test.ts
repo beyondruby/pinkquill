@@ -81,7 +81,7 @@ const mockPosts = [
     },
     media: [],
     community: null,
-    admires: [{ count: 5 }],
+    reactions: [{ count: 5 }],
     comments: [{ count: 3 }],
     relays: [{ count: 2 }],
   },
@@ -104,7 +104,7 @@ const mockPosts = [
     },
     media: [],
     community: null,
-    admires: [{ count: 10 }],
+    reactions: [{ count: 10 }],
     comments: [{ count: 7 }],
     relays: [{ count: 1 }],
   },
@@ -177,7 +177,7 @@ describe("useFeed", () => {
     });
 
     const firstPost = result.current.posts[0];
-    expect(firstPost.admires_count).toBe(5);
+    expect(firstPost.reactions_count).toBe(5);
     expect(firstPost.comments_count).toBe(3);
     expect(firstPost.relays_count).toBe(2);
   });

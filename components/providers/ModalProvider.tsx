@@ -3,8 +3,8 @@
 import { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef, ReactNode } from "react";
 import dynamic from "next/dynamic";
 import type { TakeUpdate } from "@/components/takes/TakeDetailModal";
-import { Take, TakeReactionType } from "@/lib/hooks/useTakes";
-import { PostStyling, JournalMetadata, CommunityFlair } from "@/lib/types";
+import { Take } from "@/lib/hooks/useTakes";
+import { PostStyling, JournalMetadata, CommunityFlair, ReactionType } from "@/lib/types";
 
 interface MediaItem {
   id: string;
@@ -49,11 +49,11 @@ interface Post {
   media?: MediaItem[];
   image?: string;
   stats: {
-    admires: number;
+    reactions?: number;
     comments: number;
     relays: number;
   };
-  isAdmired?: boolean;
+  reactionType?: ReactionType | null;
   isSaved?: boolean;
   isRelayed?: boolean;
   mentions?: TaggedUser[];
@@ -68,12 +68,13 @@ interface Post {
   flair?: CommunityFlair | null;
 }
 
+// Reactions no longer travel on this bus: every surface reads
+// lib/engagement/store.ts directly (Phase 1).
 export interface PostUpdate {
   postId: string;
-  field: "admires" | "comments" | "relays" | "saves" | "reactions";
+  field: "comments" | "relays" | "saves";
   isActive: boolean;
   countChange: number;
-  reactionType?: string | null;
 }
 
 type PostUpdateCallback = (update: PostUpdate) => void;
@@ -219,10 +220,6 @@ export function ModalProvider({ children }: { children: ReactNode }) {
       setSelectedPost((prev) => {
         if (!prev) return prev;
         const newStats = { ...prev.stats };
-        if (update.field === "admires") {
-          newStats.admires = Math.max(0, newStats.admires + update.countChange);
-          return { ...prev, stats: newStats, isAdmired: update.isActive };
-        }
         if (update.field === "relays") {
           newStats.relays = Math.max(0, newStats.relays + update.countChange);
           return { ...prev, stats: newStats, isRelayed: update.isActive };
@@ -268,14 +265,6 @@ export function ModalProvider({ children }: { children: ReactNode }) {
     if (selectedTake && selectedTake.id === update.takeId) {
       setSelectedTake((prev) => {
         if (!prev) return prev;
-        if (update.field === "reactions") {
-          return {
-            ...prev,
-            reactions_count: Math.max(0, prev.reactions_count + update.countChange),
-            user_reaction_type: update.reactionType as typeof prev.user_reaction_type,
-            is_admired: update.isActive,
-          };
-        }
         if (update.field === "relays") {
           return {
             ...prev,

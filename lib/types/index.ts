@@ -153,14 +153,12 @@ export interface Post {
   media: PostMedia[];
   community?: PostCommunity | null;
 
-  // Computed counts (from view or aggregation)
-  admires_count: number;
+  // Computed counts (from aggregation)
   reactions_count: number;
   comments_count: number;
   relays_count: number;
 
   // User-specific flags
-  user_has_admired: boolean;
   user_reaction_type: ReactionType | null;
   user_has_saved: boolean;
   user_has_relayed: boolean;
@@ -847,7 +845,6 @@ export interface RawPostQueryResult {
   media: PostMedia[];
   community?: PostCommunity | null;
   // Aggregate counts come as array with single object
-  admires: AggregateCount[] | null;
   reactions: AggregateCount[] | null;
   comments: AggregateCount[] | null;
   relays: AggregateCount[] | null;
@@ -879,18 +876,6 @@ export function getAggregateCount(aggregate: AggregateCount[] | null | undefined
   return aggregate?.[0]?.count ?? 0;
 }
 
-/**
- * Unified "heart" / interaction count for a post.
- * Pinkquill keeps a legacy `admires` table alongside the newer multi-reaction
- * `reactions` table — both are written to depending on which UI was used.
- * To show a single, never-undercounted number, take the larger of the two.
- */
-export function getInteractionCount(post: {
-  admires_count?: number | null;
-  reactions_count?: number | null;
-}): number {
-  return Math.max(post.reactions_count ?? 0, post.admires_count ?? 0);
-}
 
 // ============================================================================
 // COLLECTION TYPES

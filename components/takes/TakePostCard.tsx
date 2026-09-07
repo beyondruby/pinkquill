@@ -8,14 +8,15 @@ import Link from "next/link";
 import Image from "next/image";
 import { useModal } from "@/components/providers/ModalProvider";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { Take, RelayedTake, TakeReactionType, TakeReactionCounts } from "@/lib/hooks/useTakes";
+import { Take, RelayedTake } from "@/lib/hooks/useTakes";
+import { useReaction } from "@/lib/engagement/reactions";
 import { useBlock } from "@/lib/hooks/useInteractions";
 import { deleteOwnTake } from "@/lib/content-client";
 import ShareModal from "@/components/ui/ShareModal";
 import ReportModal from "@/components/ui/ReportModal";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import ActionMenu, { type ActionMenuItem } from "@/components/ui/ActionMenu";
-import TakeReactionPicker from "@/components/takes/TakeReactionPicker";
+import ReactionPicker from "@/components/feed/ReactionPicker";
 import { supabase } from "@/lib/supabase";
 import {
   HeartIcon,
@@ -52,18 +53,10 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const [isHovering, setIsHovering] = useState(false);
-  const [userReaction, setUserReaction] = useState<TakeReactionType | null>(take.user_reaction_type || null);
-  const [reactionCounts, setReactionCounts] = useState<TakeReactionCounts>(
-    take.reaction_counts || {
-      admire: 0,
-      snap: 0,
-      ovation: 0,
-      support: 0,
-      inspired: 0,
-      applaud: 0,
-      total: take.reactions_count || 0,
-    }
-  );
+  const reaction = useReaction("take", take.id, {
+    seed: { total: take.reactions_count, mine: take.user_reaction_type, counts: take.reaction_counts },
+    authorId: take.author_id,
+  });
   const [isSaved, setIsSaved] = useState(take.is_saved || false);
   const [isRelayedState, setIsRelayedState] = useState(take.is_relayed || false);
   const [relayCount, setRelayCount] = useState(take.relays_count || 0);
@@ -85,25 +78,7 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
     const unsubscribe = subscribeToTakeUpdates((update) => {
       if (update.takeId !== take.id) return;
 
-      if (update.field === "reactions") {
-        const newReactionType = update.reactionType as TakeReactionType | null;
-        const previousReaction = userReaction;
-        setUserReaction(newReactionType);
-        setReactionCounts((prev) => {
-          const newCounts = { ...prev };
-          // Decrement previous reaction type
-          if (previousReaction && newReactionType !== previousReaction) {
-            newCounts[previousReaction] = Math.max(0, newCounts[previousReaction] - 1);
-          }
-          // Increment new reaction type
-          if (newReactionType && newReactionType !== previousReaction) {
-            newCounts[newReactionType] = newCounts[newReactionType] + 1;
-          }
-          // Update total
-          newCounts.total = Math.max(0, prev.total + update.countChange);
-          return newCounts;
-        });
-      } else if (update.field === "relays") {
+      if (update.field === "relays") {
         setIsRelayedState(update.isActive);
         setRelayCount((prev) => Math.max(0, prev + update.countChange));
       } else if (update.field === "saves") {
@@ -112,7 +87,7 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
     });
 
     return unsubscribe;
-  }, [take.id, subscribeToTakeUpdates, userReaction]);
+  }, [take.id, subscribeToTakeUpdates]);
 
   const handleMouseEnter = () => {
     setIsHovering(true);
@@ -135,114 +110,10 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
       is_saved: isSaved,
       is_relayed: isRelayedState,
       relays_count: relayCount,
-      reactions_count: reactionCounts.total,
-      reaction_counts: reactionCounts,
-      user_reaction_type: userReaction,
+      reactions_count: reaction.counts.total,
+      reaction_counts: reaction.countsLoaded ? reaction.counts : undefined,
+      user_reaction_type: reaction.mine,
     });
-  };
-
-  // Reaction handler
-  const handleReaction = async (reactionType: TakeReactionType) => {
-    if (!user) return;
-
-    const isSameReaction = userReaction === reactionType;
-    const previousReaction = userReaction;
-
-    // Optimistic update
-    if (isSameReaction) {
-      // Removing reaction
-      setUserReaction(null);
-      setReactionCounts(prev => {
-        const newCounts = { ...prev };
-        newCounts[reactionType] = Math.max(0, newCounts[reactionType] - 1);
-        newCounts.total = Math.max(0, prev.total - 1);
-        return newCounts;
-      });
-    } else {
-      // Adding or changing reaction
-      setUserReaction(reactionType);
-      setReactionCounts(prev => {
-        const newCounts = { ...prev };
-        // Increment new reaction type
-        newCounts[reactionType] = newCounts[reactionType] + 1;
-        // Decrement previous reaction type if changing
-        if (previousReaction) {
-          newCounts[previousReaction] = Math.max(0, newCounts[previousReaction] - 1);
-        } else {
-          // New reaction, increment total
-          newCounts.total = prev.total + 1;
-        }
-        return newCounts;
-      });
-    }
-
-    // Notify modal
-    notifyTakeUpdate({
-      takeId: take.id,
-      field: "reactions",
-      isActive: !isSameReaction,
-      countChange: isSameReaction ? -1 : (previousReaction ? 0 : 1),
-      reactionType: isSameReaction ? null : reactionType,
-    });
-
-    try {
-      if (isSameReaction) {
-        await supabase.from("take_reactions").delete()
-          .eq("take_id", take.id)
-          .eq("user_id", user.id);
-      } else if (previousReaction) {
-        await supabase.from("take_reactions")
-          .update({ reaction_type: reactionType })
-          .eq("take_id", take.id)
-          .eq("user_id", user.id);
-      } else {
-        await supabase.from("take_reactions").insert({
-          take_id: take.id,
-          user_id: user.id,
-          reaction_type: reactionType,
-        });
-      }
-    } catch {
-      // Revert on error
-      setUserReaction(take.user_reaction_type);
-      setReactionCounts(take.reaction_counts || {
-        admire: 0, snap: 0, ovation: 0, support: 0, inspired: 0, applaud: 0,
-        total: take.reactions_count || 0,
-      });
-    }
-  };
-
-  const handleRemoveReaction = async () => {
-    if (!user || !userReaction) return;
-
-    const previousReaction = userReaction;
-    setUserReaction(null);
-    setReactionCounts(prev => {
-      const newCounts = { ...prev };
-      newCounts[previousReaction] = Math.max(0, newCounts[previousReaction] - 1);
-      newCounts.total = Math.max(0, prev.total - 1);
-      return newCounts;
-    });
-
-    notifyTakeUpdate({
-      takeId: take.id,
-      field: "reactions",
-      isActive: false,
-      countChange: -1,
-      reactionType: null,
-    });
-
-    try {
-      await supabase.from("take_reactions").delete()
-        .eq("take_id", take.id)
-        .eq("user_id", user.id);
-    } catch {
-      setUserReaction(take.user_reaction_type);
-      setReactionCounts(take.reaction_counts || {
-        admire: 0, snap: 0, ovation: 0, support: 0, inspired: 0, applaud: 0,
-        total: take.reactions_count || 0,
-      });
-    }
   };
 
   const handleSave = async (e: React.MouseEvent) => {
@@ -424,7 +295,7 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
               <svg viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
               </svg>
-              {formatCount(reactionCounts.total)}
+              {formatCount(reaction.counts.total)}
             </span>
             <span>
               <CommentIcon />
@@ -545,13 +416,14 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
         {/* Actions - same hierarchy as posts */}
         <div className="actions">
           <div className="actions-left">
-            <TakeReactionPicker
-              currentReaction={userReaction}
-              reactionCounts={reactionCounts}
-              onReact={handleReaction}
-              onRemoveReaction={handleRemoveReaction}
+            <ReactionPicker
+              currentReaction={reaction.mine}
+              reactionCounts={reaction.counts}
+              countsLoaded={reaction.countsLoaded}
+              onOpen={reaction.loadCounts}
+              onReact={(type) => void reaction.react(type)}
+              onRemoveReaction={() => void reaction.unreact()}
               disabled={!user}
-              compact
             />
             <button className="action-btn" onClick={(e) => { e.stopPropagation(); handleOpenModal(); }}>
               <CommentIcon />

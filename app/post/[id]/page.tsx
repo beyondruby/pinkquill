@@ -6,7 +6,8 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useComments } from "@/lib/hooks/useComments";
-import { useToggleSave, useToggleRelay, useToggleReaction, useReactionCounts, useUserReaction, useBlock } from "@/lib/hooks/useInteractions";
+import { useToggleSave, useToggleRelay, useBlock } from "@/lib/hooks/useInteractions";
+import { useReaction } from "@/lib/engagement/reactions";
 import { createNotification } from "@/lib/hooks/useNotifications";
 import type { ReactionType } from "@/lib/types";
 import { cleanHtmlForDisplay, stripHtmlPreserveLines } from "@/lib/utils/sanitize";
@@ -197,10 +198,13 @@ export default function PostPage() {
   const { toggle: toggleRelay } = useToggleRelay();
   const { comments, loading: commentsLoading, addComment, toggleLike, deleteComment, fetchReplies } = useComments(postId, user?.id);
 
-  // Reaction system hooks
-  const { react: toggleReaction, removeReaction } = useToggleReaction();
-  const { counts: reactionCounts } = useReactionCounts(postId);
-  const { reaction: userReaction, setReaction: setUserReaction } = useUserReaction(postId, user?.id);
+  // Reactions: shared store entry, per-type counts loaded on mount,
+  // re-read when the tab regains focus so other users' reactions show up.
+  const reaction = useReaction("post", postId, {
+    authorId: post?.author_id,
+    refreshOnFocus: true,
+    loadCounts: true,
+  });
 
   // Scroll to comment when navigating from notification
   useEffect(() => {
@@ -474,36 +478,16 @@ export default function PostPage() {
     fetchData();
   }, [fetchData]);
 
-  // Reaction handlers
+  // Reaction handlers — the store owns optimistic update, RPC, revert,
+  // toast and the notification.
   const handleReaction = async (reactionType: ReactionType) => {
-    if (!user || !post) return;
-
-    const isSameReaction = userReaction === reactionType;
-
-    // Optimistic update
-    if (isSameReaction) {
-      setUserReaction(null);
-    } else {
-      setUserReaction(reactionType);
-    }
-
-    // Database update (real-time subscription will update counts)
-    await toggleReaction(post.id, user.id, reactionType, userReaction);
-
-    // Create notification for reaction
-    if (!isSameReaction && post.author_id !== user.id) {
-      await createNotification(post.author_id, user.id, reactionType, post.id);
-    }
+    if (!post) return;
+    await reaction.react(reactionType);
   };
 
   const handleRemoveReaction = async () => {
-    if (!user || !post || !userReaction) return;
-
-    // Optimistic update
-    setUserReaction(null);
-
-    // Database update
-    await removeReaction(post.id, user.id);
+    if (!post) return;
+    await reaction.unreact();
   };
 
   const handleSave = async () => {
@@ -1131,8 +1115,10 @@ export default function PostPage() {
             <div className="flex items-center gap-1.5 md:gap-2 px-4 md:px-6 py-3 md:py-4 border-t border-border-light flex-wrap">
               {/* Reaction Picker */}
               <ReactionPicker
-                currentReaction={userReaction}
-                reactionCounts={reactionCounts}
+                currentReaction={reaction.mine}
+                reactionCounts={reaction.counts}
+                countsLoaded={reaction.countsLoaded}
+                onOpen={reaction.loadCounts}
                 onReact={handleReaction}
                 onRemoveReaction={handleRemoveReaction}
                 disabled={!user}

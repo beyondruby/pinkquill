@@ -145,7 +145,6 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
                 position,
                 created_at
               ),
-              admires:admires(count),
               reactions:reactions(count),
               comments:comments(count),
               relays:relays(count)
@@ -258,7 +257,7 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
 
   // Refresh feed counts when the tab regains focus. The user's own
   // interactions update optimistically via interaction hooks; this catches
-  // changes from other users without subscribing to admires/reactions/relays
+  // changes from other users without subscribing to reactions/relays
   // for every visible post in real-time (which produced massive realtime
   // egress). A 30s minimum gap prevents thrash if the user alt-tabs rapidly.
   useEffect(() => {
@@ -346,7 +345,7 @@ export function useSavedPosts(userId?: string): UseSavedPostsReturn {
       const savedTimestamps = new Map(savedData.map((s) => [s.post_id, s.created_at]));
 
       // Fetch posts and user interactions concurrently
-      const [postsResult, userAdmiresResult, userRelaysResult] = await Promise.all([
+      const [postsResult] = await Promise.all([
         supabase
           .from("posts")
           .select(
@@ -379,7 +378,6 @@ export function useSavedPosts(userId?: string): UseSavedPostsReturn {
               position,
               created_at
             ),
-            admires:admires(count),
             reactions:reactions(count),
             comments:comments(count),
             relays:relays(count)
@@ -387,8 +385,6 @@ export function useSavedPosts(userId?: string): UseSavedPostsReturn {
           )
           .in("id", postIds)
           .abortSignal(signal),
-        supabase.from("admires").select("post_id").eq("user_id", userId).in("post_id", postIds).abortSignal(signal),
-        supabase.from("relays").select("post_id").eq("user_id", userId).in("post_id", postIds).abortSignal(signal),
       ]);
 
       if (abortController.signal.aborted || !mountedRef.current) return;
@@ -398,11 +394,13 @@ export function useSavedPosts(userId?: string): UseSavedPostsReturn {
         return;
       }
 
+      // Viewer flags through the shared helper (reactions included); every
+      // post here is saved by definition.
+      const viewerFlags = await fetchUserPostFlags(userId, postIds, signal);
+      if (abortController.signal.aborted || !mountedRef.current) return;
       const savedFlags: UserPostFlags = {
-        admires: new Set((userAdmiresResult.data || []).map((a) => a.post_id)),
+        ...viewerFlags,
         saves: new Set(postsResult.data.map((p) => p.id)),
-        relays: new Set((userRelaysResult.data || []).map((r) => r.post_id)),
-        reactions: new Map(),
       };
 
       // Transform posts
@@ -522,7 +520,6 @@ export function useRelays(username: string) {
                 caption,
                 position
               ),
-              admires:admires(count),
               reactions:reactions(count),
               comments:comments(count),
               relays:relays(count)
@@ -560,7 +557,6 @@ export function useRelays(username: string) {
             caption: string | null;
             position: number;
           }[];
-          admires: { count: number }[] | null;
           reactions: { count: number }[] | null;
           comments: { count: number }[] | null;
           relays: { count: number }[] | null;
@@ -600,11 +596,9 @@ export function useRelays(username: string) {
               relayed_at: relay.created_at,
               original_author: post.author as PostAuthor,
               // Use counts from the aggregate query - no separate queries needed!
-              admires_count: getCount(post.admires),
               comments_count: getCount(post.comments),
               relays_count: getCount(post.relays),
               reactions_count: getCount(post.reactions),
-              user_has_admired: false,
               user_has_saved: false,
               user_has_relayed: false,
               user_reaction_type: null,

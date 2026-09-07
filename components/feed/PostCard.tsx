@@ -10,9 +10,10 @@ import { useModal } from "@/components/providers/ModalProvider";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useAuthModal } from "@/components/providers/AuthModalProvider";
 import { removeSelfAsCollaborator } from "@/lib/hooks.legacy";
-import { useToggleAdmire, useToggleSave, useToggleRelay, useToggleReaction, useReactionCounts, useUserReaction, useBlock } from "@/lib/hooks/useInteractions";
+import { useToggleSave, useToggleRelay, useBlock } from "@/lib/hooks/useInteractions";
+import { useReaction } from "@/lib/engagement/reactions";
 import { createNotification } from "@/lib/hooks/useNotifications";
-import type { ReactionType, ReactionCounts } from "@/lib/types";
+import type { ReactionType } from "@/lib/types";
 import { usePostViewTracker, useTrackPostImpression } from "@/lib/hooks/useTracking";
 
 const ShareModal = dynamic(() => import("@/components/ui/ShareModal"), { ssr: false });
@@ -102,7 +103,6 @@ function PostCardComponent({
   onPin,
   onUnpin,
   isPinned,
-  disableRealtimeSubscriptions = false,
   readOnly = false,
 }: {
   post: PostProps;
@@ -112,8 +112,6 @@ function PostCardComponent({
   onPin?: (postId: string) => void;
   onUnpin?: (postId: string) => void;
   isPinned?: boolean;
-  /** PERFORMANCE: Disable per-card real-time subscriptions when used in feed context */
-  disableRealtimeSubscriptions?: boolean;
   /** When true, disables commenting/interactions (e.g. muted community members) */
   readOnly?: boolean;
 }) {
@@ -121,44 +119,18 @@ function PostCardComponent({
   const { openPostModal, subscribeToUpdates, notifyUpdate } = useModal();
   const { user } = useAuth();
   const { openModal: openAuthModal } = useAuthModal();
-  const { toggle: toggleAdmire } = useToggleAdmire();
   const { toggle: toggleSave } = useToggleSave();
   const { toggle: toggleRelay } = useToggleRelay();
-  const { react: toggleReaction, removeReaction } = useToggleReaction();
 
-  const initialReactionTotal = Math.max(
-    0,
-    post.stats?.reactions ?? post.stats?.admires ?? 0
-  );
-  const initialReactionCounts = useMemo<ReactionCounts>(
-    () => ({
-      admire: initialReactionTotal,
-      snap: 0,
-      ovation: 0,
-      support: 0,
-      inspired: 0,
-      applaud: 0,
-      total: initialReactionTotal,
-    }),
-    [initialReactionTotal]
-  );
-
-  // Real-time reaction hooks - disabled in feed context to reduce subscription count
-  const { counts: reactionCounts, refetch: refetchReactionCounts } = useReactionCounts(post.id, {
-    disableRealtime: disableRealtimeSubscriptions,
-    skipInitialFetch: disableRealtimeSubscriptions,
-    initialCounts: initialReactionCounts,
-  });
-  const { reaction: userReaction, setReaction: setUserReaction } = useUserReaction(post.id, user?.id, {
-    disableRealtime: disableRealtimeSubscriptions,
-    skipInitialFetch: disableRealtimeSubscriptions,
-    initialReaction: post.reactionType ?? null,
+  // Reactions: one shared entry per post (lib/engagement), seeded from the
+  // list row. Every other surface showing this post reads the same entry.
+  const reaction = useReaction("post", post.id, {
+    seed: { total: post.stats?.reactions, mine: post.reactionType },
+    authorId: post.authorId,
   });
 
-  const [isAdmired, setIsAdmired] = useState(post.isAdmired || false);
   const [isSaved, setIsSaved] = useState(post.isSaved || false);
   const [isRelayed, setIsRelayed] = useState(post.isRelayed || false);
-  const [admireCount, setAdmireCount] = useState(post.stats?.admires ?? 0);
   const [relayCount, setRelayCount] = useState(post.stats?.relays ?? 0);
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
   const [showContent, setShowContent] = useState(!post.contentWarning);
@@ -209,19 +181,12 @@ function PostCardComponent({
   const audioCover = visualMedia.find((m) => m.media_type === "image")?.media_url || null;
   const postUrl = typeof window !== 'undefined' ? `${window.location.origin}/post/${post.id}` : `/post/${post.id}`;
 
-  // Subscribe to updates from modal (reactions are handled by real-time hooks)
+  // Subscribe to save/relay updates from the modal (reactions live in the store)
   useEffect(() => {
     const unsubscribe = subscribeToUpdates((update) => {
       if (update.postId !== post.id) return;
 
-      if (update.field === "admires") {
-        setIsAdmired(update.isActive);
-        setAdmireCount((prev) => Math.max(0, prev + update.countChange));
-      } else if (update.field === "reactions") {
-        // Reactions are now handled by real-time hooks (useUserReaction, useReactionCounts)
-        // This is kept for modal sync - optimistic updates from modal
-        setUserReaction((update.reactionType as ReactionType) || null);
-      } else if (update.field === "relays") {
+      if (update.field === "relays") {
         setIsRelayed(update.isActive);
         setRelayCount((prev) => Math.max(0, prev + update.countChange));
       } else if (update.field === "saves") {
@@ -230,7 +195,7 @@ function PostCardComponent({
     });
 
     return unsubscribe;
-  }, [post.id, subscribeToUpdates, setUserReaction]);
+  }, [post.id, subscribeToUpdates]);
 
   // Open post modal - memoized to prevent re-creation
   const handleOpenModal = useCallback(() => {
@@ -241,11 +206,11 @@ function PostCardComponent({
 
     openPostModal({
       ...post,
-      isAdmired,
       isSaved,
       isRelayed,
+      reactionType: reaction.mine,
       stats: {
-        admires: admireCount,
+        reactions: reaction.counts.total,
         comments: post.stats?.comments ?? 0,
         relays: relayCount,
       },
@@ -253,104 +218,19 @@ function PostCardComponent({
       hashtags: post.hashtags || [],
       collaborators: post.collaborators || [],
     });
-  }, [post, isAdmired, isSaved, isRelayed, admireCount, relayCount, openPostModal]);
+  }, [post, isSaved, isRelayed, reaction.mine, reaction.counts.total, relayCount, openPostModal]);
 
-  // Handle reaction (new reaction system with real-time) - memoized
+  // Reaction handlers — the store does optimistic update, RPC, revert, toast
+  // and the "new reaction" notification; the card only forwards intent.
   const handleReaction = useCallback(async (reactionType: ReactionType) => {
-    if (!user) {
-      openAuthModal();
-      return;
-    }
-
-    const wasReacted = userReaction !== null;
-    const isSameReaction = userReaction === reactionType;
-    const previousReaction = userReaction;
-
-    // Optimistic update for immediate feedback
-    if (isSameReaction) {
-      setUserReaction(null);
-    } else {
-      setUserReaction(reactionType);
-    }
-
-    // Notify modal of changes (before try-catch for immediate feedback)
-    notifyUpdate({
-      postId: post.id,
-      field: "reactions",
-      isActive: !isSameReaction,
-      countChange: isSameReaction ? -1 : (wasReacted ? 0 : 1),
-      reactionType: isSameReaction ? null : reactionType,
-    });
-
-    try {
-      // Perform database update (real-time subscription will update counts)
-      await toggleReaction(post.id, user.id, reactionType, userReaction);
-
-      // Send notification for new reactions (not removals or changes)
-      if (!wasReacted && !isSameReaction) {
-        await createNotification(post.authorId, user.id, reactionType, post.id);
-      }
-
-      if (disableRealtimeSubscriptions) {
-        await refetchReactionCounts();
-      }
-    } catch {
-      // Revert on error
-      setUserReaction(previousReaction);
-      actionToast.reactionError();
-    }
-  }, [user, openAuthModal, userReaction, post.id, post.authorId, notifyUpdate, toggleReaction, setUserReaction, disableRealtimeSubscriptions, refetchReactionCounts]);
+    if (readOnly) return;
+    await reaction.react(reactionType);
+  }, [readOnly, reaction]);
 
   const handleRemoveReaction = useCallback(async () => {
-    if (!user) {
-      openAuthModal();
-      return;
-    }
-    if (!userReaction) return;
-
-    const previousReaction = userReaction;
-
-    // Optimistic update
-    setUserReaction(null);
-
-    // Notify modal
-    notifyUpdate({
-      postId: post.id,
-      field: "reactions",
-      isActive: false,
-      countChange: -1,
-      reactionType: null,
-    });
-
-    try {
-      // Perform database update (real-time subscription will update counts)
-      await removeReaction(post.id, user.id);
-      if (disableRealtimeSubscriptions) {
-        await refetchReactionCounts();
-      }
-    } catch {
-      // Revert on error
-      setUserReaction(previousReaction);
-      actionToast.reactionError();
-    }
-  }, [user, openAuthModal, userReaction, post.id, notifyUpdate, removeReaction, setUserReaction, disableRealtimeSubscriptions, refetchReactionCounts]);
-
-  // Unified admire handler: delegates to reaction system with 'admire' type
-  // This eliminates the dual-system conflict between legacy admires and reactions
-  const handleAdmire = useCallback(async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!user) {
-      openAuthModal();
-      return;
-    }
-
-    // If already reacted with 'admire', remove it; otherwise set 'admire' reaction
-    if (userReaction === 'admire') {
-      await handleRemoveReaction();
-    } else {
-      await handleReaction('admire' as ReactionType);
-    }
-  }, [user, openAuthModal, userReaction, handleRemoveReaction, handleReaction]);
+    if (readOnly) return;
+    await reaction.unreact();
+  }, [readOnly, reaction]);
 
   const handleSave = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -576,10 +456,12 @@ function PostCardComponent({
         <div className="actions-left">
         {/* Reaction Picker with real-time counts */}
         <ReactionPicker
-          currentReaction={userReaction}
-          reactionCounts={reactionCounts}
-          onReact={readOnly ? () => {} : handleReaction}
-          onRemoveReaction={readOnly ? () => {} : handleRemoveReaction}
+          currentReaction={reaction.mine}
+          reactionCounts={reaction.counts}
+          countsLoaded={reaction.countsLoaded}
+          onOpen={reaction.loadCounts}
+          onReact={handleReaction}
+          onRemoveReaction={handleRemoveReaction}
           disabled={readOnly}
         />
         <button className="action-btn" aria-label={`${post.stats?.comments ?? 0} comments`} disabled={readOnly} style={readOnly ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}>
@@ -1235,12 +1117,10 @@ function PostCardComponent({
               caption: m.caption,
               position: m.position,
             })) || [],
-            admires_count: post.stats.admires,
-            reactions_count: post.stats.reactions || 0,
+            reactions_count: reaction.counts.total,
             comments_count: post.stats.comments,
             relays_count: post.stats.relays,
-            user_has_admired: post.isAdmired || false,
-            user_reaction_type: post.reactionType || null,
+            user_reaction_type: reaction.mine,
             user_has_saved: post.isSaved || false,
             user_has_relayed: post.isRelayed || false,
           }}
@@ -1388,11 +1268,9 @@ const PostCard = memo(PostCardComponent, (prevProps, nextProps) => {
   // Custom comparison: only re-render if these specific props change
   return (
     prevProps.post.id === nextProps.post.id &&
-    prevProps.post.stats?.admires === nextProps.post.stats?.admires &&
     prevProps.post.stats?.reactions === nextProps.post.stats?.reactions &&
     prevProps.post.stats?.comments === nextProps.post.stats?.comments &&
     prevProps.post.stats?.relays === nextProps.post.stats?.relays &&
-    prevProps.post.isAdmired === nextProps.post.isAdmired &&
     prevProps.post.isSaved === nextProps.post.isSaved &&
     prevProps.post.isRelayed === nextProps.post.isRelayed &&
     prevProps.post.reactionType === nextProps.post.reactionType &&
@@ -1401,7 +1279,6 @@ const PostCard = memo(PostCardComponent, (prevProps, nextProps) => {
     prevProps.isPinned === nextProps.isPinned &&
     !!prevProps.onPin === !!nextProps.onPin &&
     !!prevProps.onUnpin === !!nextProps.onUnpin &&
-    prevProps.disableRealtimeSubscriptions === nextProps.disableRealtimeSubscriptions &&
     prevProps.readOnly === nextProps.readOnly
   );
 });

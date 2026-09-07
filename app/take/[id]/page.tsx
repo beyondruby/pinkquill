@@ -6,11 +6,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useMuted, useVolume, TakeReactionType, TakeReactionCounts } from "@/lib/hooks/useTakes";
+import { useMuted, useVolume, TakeReactionType } from "@/lib/hooks/useTakes";
+import { useReaction } from "@/lib/engagement/reactions";
 import { useBlock } from "@/lib/hooks/useInteractions";
 import { useTakeComments } from "@/lib/hooks/useTakes";
 import { deleteOwnTake } from "@/lib/content-client";
-import TakeReactionPicker from "@/components/takes/TakeReactionPicker";
+import ReactionPicker from "@/components/feed/ReactionPicker";
 import TakeCommentItem from "@/components/takes/TakeCommentItem";
 import PostTags from "@/components/feed/PostTags";
 import ShareModal from "@/components/ui/ShareModal";
@@ -57,18 +58,8 @@ export default function SingleTakePage({ params }: PageProps) {
   const [error, setError] = useState<string | null>(null);
 
   // Interaction states
-  const [reactionCounts, setReactionCounts] = useState<TakeReactionCounts>({
-    admire: 0,
-    snap: 0,
-    ovation: 0,
-    support: 0,
-    inspired: 0,
-    applaud: 0,
-    total: 0,
-  });
   const [savesCount, setSavesCount] = useState(0);
   const [relaysCount, setRelaysCount] = useState(0);
-  const [userReaction, setUserReaction] = useState<TakeReactionType | null>(null);
   const [isSaved, setIsSaved] = useState(false);
   const [isRelayed, setIsRelayed] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -208,8 +199,7 @@ export default function SingleTakePage({ params }: PageProps) {
       setShowContent(!takeData.content_warning);
 
       // Fetch counts, tags, collaborators, and mentions
-      const [reactionsRes, savesRes, relaysRes, tagsRes, collabRes, mentionsRes] = await Promise.all([
-        supabase.from("take_reactions").select("reaction_type").eq("take_id", id),
+      const [savesRes, relaysRes, tagsRes, collabRes, mentionsRes] = await Promise.all([
         supabase.from("take_saves").select("id", { count: "exact" }).eq("take_id", id),
         supabase.from("take_relays").select("id", { count: "exact" }).eq("take_id", id),
         supabase.from("take_tags").select("tag").eq("take_id", id),
@@ -217,23 +207,6 @@ export default function SingleTakePage({ params }: PageProps) {
         supabase.from("take_mentions").select("user_id").eq("take_id", id),
       ]);
 
-      // Calculate reaction counts by type
-      const counts: TakeReactionCounts = {
-        admire: 0,
-        snap: 0,
-        ovation: 0,
-        support: 0,
-        inspired: 0,
-        applaud: 0,
-        total: 0,
-      };
-      (reactionsRes.data || []).forEach((r: { reaction_type: TakeReactionType }) => {
-        if (r.reaction_type in counts) {
-          counts[r.reaction_type]++;
-          counts.total++;
-        }
-      });
-      setReactionCounts(counts);
       setSavesCount(savesRes.count || 0);
       setRelaysCount(relaysRes.count || 0);
       setHashtags(tagsRes.data?.map(t => t.tag) || []);
@@ -272,14 +245,12 @@ export default function SingleTakePage({ params }: PageProps) {
 
       // Fetch user interactions
       if (user) {
-        const [userReactionRes, userSaveRes, userRelayRes, followRes] = await Promise.all([
-          supabase.from("take_reactions").select("reaction_type").eq("take_id", id).eq("user_id", user.id).maybeSingle(),
+        const [userSaveRes, userRelayRes, followRes] = await Promise.all([
           supabase.from("take_saves").select("take_id").eq("take_id", id).eq("user_id", user.id).maybeSingle(),
           supabase.from("take_relays").select("take_id").eq("take_id", id).eq("user_id", user.id).maybeSingle(),
           supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", user.id).eq("following_id", takeData.author_id),
         ]);
 
-        setUserReaction(userReactionRes.data?.reaction_type as TakeReactionType || null);
         setIsSaved(!!userSaveRes.data);
         setIsRelayed(!!userRelayRes.data);
         setIsFollowing((followRes.count ?? 0) > 0);
@@ -307,60 +278,23 @@ export default function SingleTakePage({ params }: PageProps) {
     }
   }, [volume, isMuted]);
 
+  // Reactions: shared store entry (counts + own reaction fetched on mount,
+  // re-read on focus); the store owns optimistic update, RPC, revert, toast.
+  const reaction = useReaction("take", id, {
+    authorId: take?.author_id,
+    refreshOnFocus: true,
+    loadCounts: true,
+  });
+
   // Handlers
   const handleReaction = async (type: TakeReactionType) => {
-    if (!user || !take) return;
-
-    const isSameReaction = userReaction === type;
-    const previousReaction = userReaction;
-
-    // Optimistic update
-    if (isSameReaction) {
-      // Removing reaction
-      setUserReaction(null);
-      setReactionCounts((prev) => ({
-        ...prev,
-        [type]: Math.max(0, prev[type] - 1),
-        total: Math.max(0, prev.total - 1),
-      }));
-    } else {
-      // Adding new reaction or changing reaction
-      setUserReaction(type);
-      setReactionCounts((prev) => {
-        const newCounts = { ...prev, [type]: prev[type] + 1 };
-        if (previousReaction) {
-          // Changing from one reaction to another
-          newCounts[previousReaction] = Math.max(0, newCounts[previousReaction] - 1);
-        } else {
-          // New reaction (total increases)
-          newCounts.total = prev.total + 1;
-        }
-        return newCounts;
-      });
-    }
-
-    // Database update
-    if (isSameReaction) {
-      await supabase.from("take_reactions").delete().eq("take_id", take.id).eq("user_id", user.id);
-    } else {
-      await supabase.from("take_reactions").upsert({
-        take_id: take.id,
-        user_id: user.id,
-        reaction_type: type,
-      });
-    }
+    if (!take) return;
+    await reaction.react(type);
   };
 
   const handleRemoveReaction = async () => {
-    if (!user || !take || !userReaction) return;
-    const previousReaction = userReaction;
-    setUserReaction(null);
-    setReactionCounts((prev) => ({
-      ...prev,
-      [previousReaction]: Math.max(0, prev[previousReaction] - 1),
-      total: Math.max(0, prev.total - 1),
-    }));
-    await supabase.from("take_reactions").delete().eq("take_id", take.id).eq("user_id", user.id);
+    if (!take) return;
+    await reaction.unreact();
   };
 
   const handleSave = async () => {
@@ -697,13 +631,15 @@ export default function SingleTakePage({ params }: PageProps) {
               {/* Action Buttons */}
               <div className="flex items-center gap-2 px-6 py-4 border-t border-border-light">
                 {/* Reaction Picker */}
-                <TakeReactionPicker
-                  currentReaction={userReaction}
-                  reactionCounts={reactionCounts}
+                <ReactionPicker
+                  variant="pill"
+                  currentReaction={reaction.mine}
+                  reactionCounts={reaction.counts}
+                  countsLoaded={reaction.countsLoaded}
+                  onOpen={reaction.loadCounts}
                   onReact={handleReaction}
                   onRemoveReaction={handleRemoveReaction}
                   disabled={!user}
-                  standardStyle
                 />
 
                 <button

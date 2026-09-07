@@ -173,7 +173,6 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
             position,
             created_at
           ),
-          admires:admires(count),
           reactions:reactions(count),
           comments:comments(count),
           relays:relays(count)
@@ -214,10 +213,10 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
 
       const worksCount = postsData.data?.length || 0;
 
-      // Calculate total admires
+      // Profile "admires" stat = every reaction received across these posts.
       let totalAdmires = 0;
       (postsData.data || []).forEach((post) => {
-        totalAdmires += getAggregateCount(post.admires as AggregateCount[] | null);
+        totalAdmires += getAggregateCount(post.reactions as AggregateCount[] | null);
       });
 
       setProfile({

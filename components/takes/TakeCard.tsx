@@ -5,13 +5,14 @@ import "./takes.css";
 import { useState, useCallback, useRef, useEffect, useMemo, memo, type CSSProperties } from "react";
 import Link from "next/link";
 import TakePlayer from "./TakePlayer";
-import TakeReactionPicker from "./TakeReactionPicker";
+import ReactionPicker from "@/components/feed/ReactionPicker";
+import { useReaction } from "@/lib/engagement/reactions";
 import ReportModal from "@/components/ui/ReportModal";
 import ShareModal from "@/components/ui/ShareModal";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import { CommentIcon } from "@/components/ui/Icons";
 import ActionMenu from "@/components/ui/ActionMenu";
-import { Take, TakeReactionType, TakeReactionCounts } from "@/lib/hooks/useTakes";
+import { Take } from "@/lib/hooks/useTakes";
 import { useTrackTakeImpression, useTrackTakeView } from "@/lib/hooks/useTracking";
 import { getOptimizedAvatarUrl } from "@/lib/utils/image";
 
@@ -22,11 +23,8 @@ interface TakeCardProps {
   volume: number;
   isFollowing: boolean;
   isOwnTake: boolean;
-  reactionCounts: TakeReactionCounts;
   onToggleMute: () => void;
   onVolumeChange: (volume: number) => void;
-  onToggleAdmire: () => void;
-  onToggleReaction: (type: TakeReactionType) => void;
   onToggleSave: () => void;
   onToggleRelay: () => void;
   onToggleFollow: () => void;
@@ -64,11 +62,8 @@ function TakeCard({
   volume,
   isFollowing,
   isOwnTake,
-  reactionCounts,
   onToggleMute,
   onVolumeChange,
-  onToggleAdmire,
-  onToggleReaction,
   onToggleSave,
   onToggleRelay,
   onToggleFollow,
@@ -78,6 +73,10 @@ function TakeCard({
   onHide,
 }: TakeCardProps) {
   const [showHeart, setShowHeart] = useState(false);
+  const reaction = useReaction("take", take.id, {
+    seed: { total: take.reactions_count, mine: take.user_reaction_type, counts: take.reaction_counts },
+    authorId: take.author_id,
+  });
   const [heartPosition, setHeartPosition] = useState({ x: 0, y: 0 });
   const [captionExpanded, setCaptionExpanded] = useState(false);
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
@@ -109,8 +108,8 @@ function TakeCard({
   const volumeRef = useRef<HTMLDivElement>(null);
 
   const handleDoubleTap = useCallback((e?: React.MouseEvent) => {
-    if (!take.is_admired) {
-      onToggleAdmire();
+    if (!reaction.mine) {
+      void reaction.toggleDefault();
     }
     if (e) {
       const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -123,7 +122,7 @@ function TakeCard({
     }
     setShowHeart(true);
     setTimeout(() => setShowHeart(false), 800);
-  }, [take.is_admired, onToggleAdmire]);
+  }, [reaction]);
 
   const caption = take.caption || "";
   const wordCount = getWordCount(caption);
@@ -422,10 +421,14 @@ function TakeCard({
         </div>
 
         {/* Reactions - using ReactionPicker */}
-        <TakeReactionPicker
-          currentReaction={take.user_reaction_type}
-          reactionCounts={reactionCounts}
-          onReact={onToggleReaction}
+        <ReactionPicker
+          variant="overlay"
+          currentReaction={reaction.mine}
+          reactionCounts={reaction.counts}
+          countsLoaded={reaction.countsLoaded}
+          onOpen={reaction.loadCounts}
+          onReact={(type) => void reaction.react(type)}
+          onRemoveReaction={() => void reaction.unreact()}
         />
 
         {/* Comments */}

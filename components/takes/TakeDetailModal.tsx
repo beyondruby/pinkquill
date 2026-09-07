@@ -5,24 +5,26 @@ import { getTimeAgo } from "@/lib/utils/time";
 import Link from "next/link";
 import Modal from "@/components/ui/Modal";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useTakeComments, useTakeReactionCounts, TakeReactionType, Take } from "@/lib/hooks/useTakes";
+import { useTakeComments, TakeReactionType, Take } from "@/lib/hooks/useTakes";
+import { useReaction } from "@/lib/engagement/reactions";
 import { deleteOwnTake } from "@/lib/content-client";
 import ShareModal from "@/components/ui/ShareModal";
 import ReportModal from "@/components/ui/ReportModal";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import ActionMenu, { type ActionMenuItem } from "@/components/ui/ActionMenu";
-import TakeReactionPicker from "@/components/takes/TakeReactionPicker";
+import ReactionPicker from "@/components/feed/ReactionPicker";
 import TakeCommentItem from "@/components/takes/TakeCommentItem";
 import PostTags from "@/components/feed/PostTags";
 import { supabase } from "@/lib/supabase";
 import { CommentIcon, icons } from "@/components/ui/Icons";
 
+// Reactions no longer travel on this bus — every take surface reads
+// lib/engagement/store.ts directly (Phase 1).
 export interface TakeUpdate {
   takeId: string;
-  field: "reactions" | "comments" | "relays" | "saves";
+  field: "comments" | "relays" | "saves";
   isActive: boolean;
   countChange: number;
-  reactionType?: TakeReactionType | null;
 }
 
 interface TakeDetailModalProps {
@@ -47,7 +49,6 @@ export default function TakeDetailModal({
   const [isSaved, setIsSaved] = useState(false);
   const [isRelayed, setIsRelayed] = useState(false);
   const [relayCount, setRelayCount] = useState(0);
-  const [userReaction, setUserReaction] = useState<TakeReactionType | null>(null);
   const [commentText, setCommentText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -69,7 +70,12 @@ export default function TakeDetailModal({
   }>>([]);
 
   const { comments, loading: commentsLoading, addComment, toggleLike, deleteComment } = useTakeComments(take?.id || "", user?.id);
-  const { counts: reactionCounts } = useTakeReactionCounts(take?.id || "");
+  const reaction = useReaction("take", take?.id || "", {
+    seed: take ? { total: take.reactions_count, mine: take.user_reaction_type, counts: take.reaction_counts } : undefined,
+    authorId: take?.author_id,
+    refreshOnFocus: true,
+    loadCounts: true,
+  });
 
   const takeUrl = typeof window !== 'undefined' && take ? `${window.location.origin}/take/${take.id}` : '';
   const isOwner = user && take?.author_id && user.id === take.author_id;
@@ -81,10 +87,9 @@ export default function TakeDetailModal({
       setIsSaved(take.is_saved || false);
       setIsRelayed(take.is_relayed || false);
       setRelayCount(take.relays_count || 0);
-      setUserReaction(take.user_reaction_type || null);
       setShowContent(!take.content_warning);
     }
-  }, [take?.id, take?.is_saved, take?.is_relayed, take?.relays_count, take?.reactions_count, take?.user_reaction_type, take?.content_warning]);
+  }, [take?.id, take?.is_saved, take?.is_relayed, take?.relays_count, take?.content_warning]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   // Fetch hashtags, collaborators, and mentions when take changes
@@ -225,70 +230,13 @@ export default function TakeDetailModal({
 
   if (!take) return null;
 
-  // Reaction handler
+  // Reaction handlers — the store owns optimistic update, RPC, revert, toast.
   const handleReaction = async (reactionType: TakeReactionType) => {
-    if (!user) return;
-
-    const isSameReaction = userReaction === reactionType;
-
-    // Optimistic update
-    if (isSameReaction) {
-      setUserReaction(null);
-    } else {
-      setUserReaction(reactionType);
-    }
-
-    try {
-      if (isSameReaction) {
-        await supabase.from("take_reactions").delete()
-          .eq("take_id", take.id)
-          .eq("user_id", user.id);
-      } else if (userReaction) {
-        await supabase.from("take_reactions")
-          .update({ reaction_type: reactionType })
-          .eq("take_id", take.id)
-          .eq("user_id", user.id);
-      } else {
-        await supabase.from("take_reactions").insert({
-          take_id: take.id,
-          user_id: user.id,
-          reaction_type: reactionType,
-        });
-      }
-    } catch {
-      // Revert on error
-      setUserReaction(take.user_reaction_type);
-    }
-
-    onTakeUpdate?.({
-      takeId: take.id,
-      field: "reactions",
-      isActive: !isSameReaction,
-      countChange: isSameReaction ? -1 : (userReaction ? 0 : 1),
-      reactionType: isSameReaction ? null : reactionType,
-    });
+    await reaction.react(reactionType);
   };
 
   const handleRemoveReaction = async () => {
-    if (!user || !userReaction) return;
-
-    setUserReaction(null);
-
-    try {
-      await supabase.from("take_reactions").delete()
-        .eq("take_id", take.id)
-        .eq("user_id", user.id);
-    } catch {
-      setUserReaction(take.user_reaction_type);
-    }
-
-    onTakeUpdate?.({
-      takeId: take.id,
-      field: "reactions",
-      isActive: false,
-      countChange: -1,
-      reactionType: null,
-    });
+    await reaction.unreact();
   };
 
   const handleSave = async () => {
@@ -546,13 +494,15 @@ export default function TakeDetailModal({
             {/* Actions */}
             <div className="flex items-center gap-2 mt-auto pt-6 border-t border-border-light">
               {/* Reaction Picker */}
-              <TakeReactionPicker
-                currentReaction={userReaction}
-                reactionCounts={reactionCounts}
+              <ReactionPicker
+                variant="pill"
+                currentReaction={reaction.mine}
+                reactionCounts={reaction.counts}
+                countsLoaded={reaction.countsLoaded}
+                onOpen={reaction.loadCounts}
                 onReact={handleReaction}
                 onRemoveReaction={handleRemoveReaction}
                 disabled={!user}
-                standardStyle
               />
 
               {/* Comment Button */}

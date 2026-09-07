@@ -55,12 +55,10 @@ function transformPost(post: Post) {
     contentWarning: post.content_warning || undefined,
     media: post.media || [],
     stats: {
-      admires: post.admires_count,
       reactions: post.reactions_count,
       comments: post.comments_count,
       relays: post.relays_count,
     },
-    isAdmired: post.user_has_admired,
     reactionType: post.user_reaction_type,
     isSaved: post.user_has_saved,
     isRelayed: post.user_has_relayed,
@@ -314,7 +312,7 @@ export default function CommunityFeedPage() {
                       onModeratorDelete={handleModeratorDeletePost}
                       isPinned={true}
                       onUnpin={isAdmin ? handleUnpin : undefined}
-                      disableRealtimeSubscriptions={true}
+                     
                       readOnly={!canInteract}
                     />
                   </div>
@@ -340,7 +338,7 @@ export default function CommunityFeedPage() {
                   isPinned={isPinned(post.id)}
                   onPin={isAdmin && canPin && !isPinned(post.id) ? handlePin : undefined}
                   onUnpin={isAdmin && isPinned(post.id) ? handleUnpin : undefined}
-                  disableRealtimeSubscriptions={true}
+                 
                   readOnly={!canInteract}
                 />
               </div>

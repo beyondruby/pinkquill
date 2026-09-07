@@ -20,6 +20,7 @@ import { HeartIcon, CommentIcon, PlayIcon } from "@/components/ui/Icons";
 import { getPostTypeTheme } from "@/lib/feed-view/post-type-theme";
 import { getExcerpt, stripHtmlPreserveLines } from "@/lib/utils/sanitize";
 import { firstVisualMedia } from "./useTileActions";
+import { useReaction } from "@/lib/engagement/reactions";
 import type { PostProps } from "./PostCard/types";
 import type { Post } from "@/lib/types";
 
@@ -115,7 +116,11 @@ function StreamRow({
   }, [cw, post.content, post.title, post.author.name, theme.label]);
 
   const media = cw ? null : firstVisualMedia(post);
-  const admires = post.stats?.reactions ?? post.stats?.admires ?? 0;
+  // Same store entry as the expanded card / modal, so the row never disagrees.
+  const reaction = useReaction("post", post.id, {
+    seed: { total: post.stats?.reactions, mine: post.reactionType },
+  });
+  const admires = reaction.counts.total;
   const comments = post.stats?.comments ?? 0;
   const handle = post.author.handle.replace("@", "");
 
@@ -213,7 +218,7 @@ function StreamRow({
 
       {expanded && (
         <div className="pq-stream-expanded home-feed-modern">
-          <PostCard post={post} onPostDeleted={onPostDeleted} disableRealtimeSubscriptions={true} />
+          <PostCard post={post} onPostDeleted={onPostDeleted} />
         </div>
       )}
     </>

@@ -704,9 +704,9 @@ function getTimeRangeStart(timeRange: 'today' | 'week' | 'month' | 'year' | 'all
 }
 
 // Calculate hot score using Reddit-style algorithm
-function calculateHotScore(admiresCount: number, commentsCount: number, relaysCount: number, createdAt: string): number {
+function calculateHotScore(reactionsCount: number, commentsCount: number, relaysCount: number, createdAt: string): number {
   const hoursAge = Math.max(0, (Date.now() - new Date(createdAt).getTime()) / 3600000);
-  const engagementScore = admiresCount + (commentsCount * 2) + (relaysCount * 1.5);
+  const engagementScore = reactionsCount + (commentsCount * 2) + (relaysCount * 1.5);
   return engagementScore / Math.pow(hoursAge + 2, 1.5);
 }
 
@@ -790,7 +790,6 @@ export function useCommunityPosts(
             position,
             created_at
           ),
-          admires_agg:admires(count),
           comments_agg:comments(count),
           relays_agg:relays(count),
           reactions_agg:reactions(count)
@@ -839,14 +838,14 @@ export function useCommunityPosts(
       // Sort by engagement for 'top' or hot score for 'hot'
       if (sortBy === 'top') {
         enrichedPosts.sort((a, b) => {
-          const aScore = a.admires_count + a.comments_count * 2;
-          const bScore = b.admires_count + b.comments_count * 2;
+          const aScore = a.reactions_count + a.comments_count * 2;
+          const bScore = b.reactions_count + b.comments_count * 2;
           return bScore - aScore;
         });
       } else if (sortBy === 'hot') {
         enrichedPosts.sort((a, b) => {
-          const aScore = calculateHotScore(a.admires_count, a.comments_count, a.relays_count, a.created_at);
-          const bScore = calculateHotScore(b.admires_count, b.comments_count, b.relays_count, b.created_at);
+          const aScore = calculateHotScore(a.reactions_count, a.comments_count, a.relays_count, a.created_at);
+          const bScore = calculateHotScore(b.reactions_count, b.comments_count, b.relays_count, b.created_at);
           return bScore - aScore;
         });
       }

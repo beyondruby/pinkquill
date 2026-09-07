@@ -258,11 +258,9 @@ function transformPostForCard(post: {
   content_warning: string | null;
   created_at: string;
   media: { id: string; media_url: string; media_type: "image" | "video" | "audio"; caption: string | null; position: number }[];
-  admires_count: number;
   reactions_count?: number;
   comments_count: number;
   relays_count: number;
-  user_has_admired: boolean;
   user_has_saved: boolean;
   user_has_relayed: boolean;
   user_reaction_type: string | null;
@@ -304,12 +302,10 @@ function transformPostForCard(post: {
     contentWarning: post.content_warning || undefined,
     media: post.media,
     stats: {
-      admires: post.admires_count || 0,
-      reactions: post.reactions_count || post.admires_count || 0,
+      reactions: post.reactions_count || 0,
       comments: post.comments_count || 0,
       relays: post.relays_count || 0,
     },
-    isAdmired: post.user_has_admired,
     isSaved: post.user_has_saved,
     isRelayed: post.user_has_relayed,
     reactionType: post.user_reaction_type,
@@ -671,7 +667,7 @@ export default function ExplorePageContent() {
                     key={post.id}
                     post={transformPostForCard(post)}
                     onPostDeleted={handlePostDeleted}
-                    disableRealtimeSubscriptions={true}
+                   
                   />
                 ))}
 

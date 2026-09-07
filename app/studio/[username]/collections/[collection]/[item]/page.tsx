@@ -81,13 +81,12 @@ export default function CollectionItemPage() {
           caption: m.caption || null,
           position: index,
         })),
+        // Counts and the viewer's reaction are unknown here; the engagement
+        // store fetches them (Phase 1). Comments/relays stay 0 until Phase 2.
         stats: {
-          admires: 0,
-          reactions: 0,
           comments: 0,
           relays: 0,
         },
-        isAdmired: false,
         isSaved: false,
         isRelayed: false,
       };
@@ -167,7 +166,7 @@ export default function CollectionItemPage() {
             <PostCard
               key={post.id}
               post={post}
-              disableRealtimeSubscriptions={true}
+             
             />
           ))}
         </div>

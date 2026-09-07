@@ -54,7 +54,7 @@ export type PostType =
   | "quote";
 
 export interface PostStats {
-  admires: number;
+  /** Reaction total from the list row; `undefined` = unknown, the engagement store fetches it. */
   reactions?: number;
   comments: number;
   relays: number;
@@ -76,7 +76,7 @@ export interface PostProps {
   audioDuration?: string;
   videoDuration?: string;
   stats: PostStats;
-  isAdmired?: boolean;
+  /** Viewer's reaction from the list row; `undefined` = unknown (fetched), `null` = none. */
   reactionType?: ReactionType | null;
   isSaved?: boolean;
   isRelayed?: boolean;

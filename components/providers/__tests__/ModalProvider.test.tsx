@@ -14,7 +14,7 @@ function Controls() {
     <button onClick={() => openPostModal({
       id: "test-post", author: { name: "Creator", handle: "creator", avatar: "" },
       type: "visual", typeLabel: "Visual", timeAgo: "Now", content: "",
-      stats: { admires: 0, comments: 0, relays: 0 },
+      stats: { reactions: 0, comments: 0, relays: 0 },
     })}>Open</button>
     <button onClick={closePostModal}>Close</button>
   </>;

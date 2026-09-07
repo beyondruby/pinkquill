@@ -273,13 +273,13 @@ function GalleryTile({ post }: { post: PostProps }) {
           <button
             type="button"
             onClick={actions.onAdmire}
-            disabled={actions.admiring}
-            aria-busy={actions.admiring}
-            aria-label={actions.isAdmired ? "Remove admire" : "Admire post"}
-            aria-pressed={actions.isAdmired}
+            disabled={actions.reacting}
+            aria-busy={actions.reacting}
+            aria-label={actions.isReacted ? "Remove reaction" : "Admire post"}
+            aria-pressed={actions.isReacted}
           >
-            <HeartIcon size="sm" filled={actions.isAdmired} />
-            <span>{actions.admireCount}</span>
+            <HeartIcon size="sm" filled={actions.isReacted} />
+            <span>{actions.reactionCount}</span>
           </button>
           <button
             type="button"

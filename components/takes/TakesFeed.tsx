@@ -1,6 +1,7 @@
 "use client";
 
 import "./takes.css";
+import { toggleDefaultReaction } from "@/lib/engagement/store";
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Link from "next/link";
@@ -38,8 +39,6 @@ export default function TakesFeed({
     hasMore,
     fetchMore,
     refetch,
-    toggleAdmire,
-    toggleReaction,
     toggleSave,
     toggleRelay,
     deleteTake,
@@ -146,7 +145,9 @@ export default function TakesFeed({
           toggleMute();
           break;
         case "l":
-          if (visibleTakes[activeIndex]) toggleAdmire(visibleTakes[activeIndex].id);
+          if (visibleTakes[activeIndex] && user?.id) {
+            void toggleDefaultReaction("take", visibleTakes[activeIndex].id, user.id);
+          }
           break;
         case "c":
           if (visibleTakes[activeIndex]) {
@@ -162,7 +163,7 @@ export default function TakesFeed({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [activeIndex, visibleTakes, commentsPanelOpen, toggleMute, toggleAdmire]);
+  }, [activeIndex, visibleTakes, commentsPanelOpen, toggleMute, user?.id]);
 
   const handleOpenComments = useCallback((takeId: string) => {
     setCommentsTakeId(takeId);
@@ -356,11 +357,8 @@ export default function TakesFeed({
                 volume={volume}
                 isFollowing={following.has(take.author_id) || take.author_id === user?.id}
                 isOwnTake={take.author_id === user?.id}
-                reactionCounts={take.reaction_counts}
                 onToggleMute={toggleMute}
                 onVolumeChange={setVolume}
-                onToggleAdmire={() => toggleAdmire(take.id)}
-                onToggleReaction={(type) => toggleReaction(take.id, type)}
                 onToggleSave={() => toggleSave(take.id)}
                 onToggleRelay={() => toggleRelay(take.id)}
                 onToggleFollow={() => toggleFollow(take.author_id)}

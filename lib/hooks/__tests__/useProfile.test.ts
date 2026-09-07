@@ -101,7 +101,7 @@ const mockPosts = [
     },
     media: [],
     community: null,
-    admires: [{ count: 5 }],
+    reactions: [{ count: 5 }],
     comments: [{ count: 3 }],
   },
 ];

@@ -152,7 +152,7 @@ function calculatePostScore(
     author_id: string;
     type: string;
     created_at: string;
-    admires_count: number;
+    reactions_count: number;
     comments_count: number;
     relays_count: number;
   },
@@ -162,7 +162,7 @@ function calculatePostScore(
 
   // Base engagement score
   const engagementScore = calculateEngagementScore(
-    post.admires_count,
+    post.reactions_count,
     post.comments_count,
     post.relays_count
   );
@@ -173,7 +173,7 @@ function calculatePostScore(
   score *= timeDecay;
 
   // Trending boost
-  if (isTrending(post.admires_count, post.comments_count, post.relays_count, post.created_at)) {
+  if (isTrending(post.reactions_count, post.comments_count, post.relays_count, post.created_at)) {
     score *= WEIGHTS.TRENDING_BOOST;
   }
 
@@ -237,7 +237,7 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
 
     try {
       const admiresQuery = supabase
-        .from("admires")
+        .from("reactions")
         .select(`
           post_id,
           post:posts (
@@ -384,7 +384,6 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
               created_at
             ),
             ${POST_RELATIONS_SELECT},
-            admires:admires(count),
             reactions:reactions(count),
             comments:comments(count),
             relays:relays(count)
@@ -449,7 +448,7 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
                 author_id: post.author_id,
                 type: post.type,
                 created_at: post.created_at,
-                admires_count: post.admires_count,
+                reactions_count: post.reactions_count,
                 comments_count: post.comments_count,
                 relays_count: post.relays_count,
               },
@@ -474,7 +473,7 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
           for (const post of transformedPosts) {
             const ageHours = Math.max(1, (now - new Date(post.created_at).getTime()) / hoursInMs);
             const engagement = calculateEngagementScore(
-              post.admires_count,
+              post.reactions_count,
               post.comments_count,
               post.relays_count
             );
@@ -498,14 +497,14 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
 
           for (const post of transformedPosts) {
             let score = calculateEngagementScore(
-              post.admires_count,
+              post.reactions_count,
               post.comments_count,
               post.relays_count
             );
 
             score *= calculateTimeDecay(post.created_at);
 
-            if (isTrending(post.admires_count, post.comments_count, post.relays_count, post.created_at)) {
+            if (isTrending(post.reactions_count, post.comments_count, post.relays_count, post.created_at)) {
               score *= WEIGHTS.TRENDING_BOOST;
             }
 

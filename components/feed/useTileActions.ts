@@ -1,14 +1,16 @@
 "use client";
 
 // Lightweight interaction hook for feed tiles/rows that are NOT the full
-// classic card: admire + save with optimistic updates, modal open on
-// activate, and sync with updates coming back from the post modal.
+// classic card: heart (default reaction) + save with optimistic updates,
+// modal open on activate. Reaction state comes from the shared engagement
+// store, so a tile, the card, and the modal always show the same thing.
 
 import { useCallback, useEffect, useState, useRef } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useAuthModal } from "@/components/providers/AuthModalProvider";
 import { useModal } from "@/components/providers/ModalProvider";
-import { useToggleAdmire, useToggleSave } from "@/lib/hooks/useInteractions";
+import { useToggleSave } from "@/lib/hooks/useInteractions";
+import { useReaction } from "@/lib/engagement/reactions";
 import { createNotification } from "@/lib/hooks/useNotifications";
 import { useTrackPostImpression } from "@/lib/hooks/useTracking";
 import { actionToast } from "@/lib/utils/toast";
@@ -18,15 +20,14 @@ export function useTileActions(post: PostProps) {
   const { user } = useAuth();
   const { openModal: openAuthModal } = useAuthModal();
   const { openPostModal, subscribeToUpdates, notifyUpdate } = useModal();
-  const { toggle: toggleAdmire } = useToggleAdmire();
   const { toggle: toggleSave } = useToggleSave();
+  const reaction = useReaction("post", post.id, {
+    seed: { total: post.stats?.reactions, mine: post.reactionType },
+    authorId: post.authorId,
+  });
 
-  const [isAdmired, setIsAdmired] = useState(post.isAdmired || false);
-  const [admireCount, setAdmireCount] = useState(post.stats?.admires ?? 0);
   const [isSaved, setIsSaved] = useState(post.isSaved || false);
-  const admirePending = useRef(false);
   const savePending = useRef(false);
-  const [admiring, setAdmiring] = useState(false);
   const [saving, setSaving] = useState(false);
   const commentCount = post.stats?.comments ?? 0;
 
@@ -35,10 +36,7 @@ export function useTileActions(post: PostProps) {
   useEffect(() => {
     const unsub = subscribeToUpdates((update) => {
       if (update.postId !== post.id) return;
-      if (update.field === "admires") {
-        setIsAdmired(update.isActive);
-        setAdmireCount((n) => Math.max(0, n + update.countChange));
-      } else if (update.field === "saves") {
+      if (update.field === "saves") {
         setIsSaved(update.isActive);
       }
     });
@@ -51,10 +49,10 @@ export function useTileActions(post: PostProps) {
       .filter((u): u is NonNullable<typeof u> => u !== null && u !== undefined);
     openPostModal({
       ...post,
-      isAdmired,
       isSaved,
+      reactionType: reaction.mine,
       stats: {
-        admires: admireCount,
+        reactions: reaction.counts.total,
         comments: commentCount,
         relays: post.stats?.relays ?? 0,
       },
@@ -62,34 +60,14 @@ export function useTileActions(post: PostProps) {
       hashtags: post.hashtags || [],
       collaborators: post.collaborators || [],
     });
-  }, [post, isAdmired, isSaved, admireCount, commentCount, openPostModal]);
+  }, [post, isSaved, reaction.mine, reaction.counts.total, commentCount, openPostModal]);
 
   const onAdmire = useCallback(
     async (e: React.MouseEvent | React.KeyboardEvent) => {
       e.stopPropagation();
-      if (!user) {
-        openAuthModal();
-        return;
-      }
-      if (admirePending.current) return;
-      admirePending.current = true;
-      setAdmiring(true);
-      const next = !isAdmired;
-      notifyUpdate({ postId: post.id, field: "admires", isActive: next, countChange: next ? 1 : -1 });
-      try {
-        await toggleAdmire(post.id, user.id, isAdmired);
-        if (next && post.authorId !== user.id) {
-          void createNotification(post.authorId, user.id, "admire", post.id).catch(console.error);
-        }
-      } catch {
-        notifyUpdate({ postId: post.id, field: "admires", isActive: !next, countChange: next ? -1 : 1 });
-        actionToast.reactionError();
-      } finally {
-        admirePending.current = false;
-        setAdmiring(false);
-      }
+      await reaction.toggleDefault();
     },
-    [user, openAuthModal, isAdmired, post.id, post.authorId, notifyUpdate, toggleAdmire]
+    [reaction]
   );
 
   const onSave = useCallback(
@@ -133,7 +111,18 @@ export function useTileActions(post: PostProps) {
     [onCardActivate]
   );
 
-  return { admiring, saving, isAdmired, admireCount, isSaved, commentCount, onCardActivate, onAdmire, onSave, onKeyDown };
+  return {
+    reacting: reaction.pending,
+    saving,
+    isReacted: reaction.mine !== null,
+    reactionCount: reaction.counts.total,
+    isSaved,
+    commentCount,
+    onCardActivate,
+    onAdmire,
+    onSave,
+    onKeyDown,
+  };
 }
 
 export function firstVisualMedia(post: PostProps) {

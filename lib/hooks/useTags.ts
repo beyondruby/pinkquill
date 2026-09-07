@@ -232,7 +232,6 @@ export function useTagPosts(tagName: string, userId?: string): UseTagPostsReturn
           tags:post_tags (
             tag:tags(name)
           ),
-          admires:admires(count),
           reactions:reactions(count),
           comments:comments(count),
           relays:relays(count)

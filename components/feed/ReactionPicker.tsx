@@ -120,12 +120,25 @@ const reactions: Reaction[] = [
   { type: 'applaud', label: 'Applaud', icon: reactionIcons.applaud },
 ];
 
+export type ReactionPickerVariant = "card" | "pill" | "overlay";
+
 interface ReactionPickerProps {
   currentReaction: ReactionType | null;
   reactionCounts: ReactionCounts;
+  /** False while only the total is known (list rows); per-type numbers are
+   *  hidden until `onOpen` has loaded them. */
+  countsLoaded?: boolean;
   onReact: (type: ReactionType) => void;
   onRemoveReaction: () => void;
+  /** Fired when the picker opens — load per-type counts here. */
+  onOpen?: () => void;
   disabled?: boolean;
+  /**
+   * card    — `.action-btn` inside a feed card / detail modal (default)
+   * pill    — rounded pill used on the take modal and /take/[id]
+   * overlay — vertical `.tiktok-action-btn` on the takes feed
+   */
+  variant?: ReactionPickerVariant;
 }
 
 export function getReactionIcon(type: ReactionType): React.ReactNode {
@@ -140,9 +153,12 @@ export function getReactionLabel(type: ReactionType): string {
 export default function ReactionPicker({
   currentReaction,
   reactionCounts,
+  countsLoaded = true,
   onReact,
   onRemoveReaction,
+  onOpen,
   disabled = false,
+  variant = "card",
 }: ReactionPickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [hoveredReaction, setHoveredReaction] = useState<ReactionType | null>(null);
@@ -213,6 +229,15 @@ export default function ReactionPicker({
       setHoveredReaction(null);
     }, 150);
   };
+
+  // Let the owner load per-type counts the moment the popup opens
+  const onOpenRef = useRef(onOpen);
+  useEffect(() => {
+    onOpenRef.current = onOpen;
+  }, [onOpen]);
+  useEffect(() => {
+    if (isOpen) onOpenRef.current?.();
+  }, [isOpen]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -373,21 +398,65 @@ export default function ReactionPicker({
       onMouseLeave={handleMouseLeave}
     >
       {/* Main Button */}
-      <button
-        ref={buttonRef}
-        className={`action-btn reaction-picker-trigger group/reaction ${currentReaction ? 'active' : ''}`}
-        onClick={handleMainClick}
-        onKeyDown={handleMainButtonKeyDown}
-        disabled={disabled}
-        aria-label={currentReaction ? `Remove ${getReactionLabel(currentReaction)} reaction` : 'Add reaction'}
-        aria-haspopup="listbox"
-        aria-expanded={isOpen}
-      >
-        <span className={`w-[1.1rem] h-[1.1rem] transition-transform duration-200 ${currentReaction ? 'scale-110' : 'group-hover/reaction:scale-110'}`}>
-          {displayIcon}
-        </span>
-        <span className="action-count">{reactionCounts.total}</span>
-      </button>
+      {variant === "card" && (
+        <button
+          ref={buttonRef}
+          className={`action-btn reaction-picker-trigger group/reaction ${currentReaction ? 'active' : ''}`}
+          onClick={handleMainClick}
+          onKeyDown={handleMainButtonKeyDown}
+          disabled={disabled}
+          aria-label={currentReaction ? `Remove ${getReactionLabel(currentReaction)} reaction` : 'Add reaction'}
+          aria-haspopup="listbox"
+          aria-expanded={isOpen}
+        >
+          <span className={`w-[1.1rem] h-[1.1rem] transition-transform duration-200 ${currentReaction ? 'scale-110' : 'group-hover/reaction:scale-110'}`}>
+            {displayIcon}
+          </span>
+          <span className="action-count">{reactionCounts.total}</span>
+        </button>
+      )}
+      {variant === "pill" && (
+        <button
+          ref={buttonRef}
+          className={`reaction-picker-trigger flex items-center gap-1.5 px-4 py-2.5 rounded-full transition-all ${
+            currentReaction
+              ? 'bg-pink-vivid/10 text-pink-vivid'
+              : 'bg-skeleton/70 text-muted hover:bg-purple-50 hover:text-accent'
+          } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+          onClick={handleMainClick}
+          onKeyDown={handleMainButtonKeyDown}
+          disabled={disabled}
+          aria-label={currentReaction ? `Remove ${getReactionLabel(currentReaction)} reaction` : 'Add reaction'}
+          aria-haspopup="listbox"
+          aria-expanded={isOpen}
+        >
+          <span className={`w-5 h-5 transition-transform duration-200 ${currentReaction ? 'scale-110' : ''}`}>
+            {displayIcon}
+          </span>
+          {reactionCounts.total > 0 && (
+            <span className="text-sm font-medium">{reactionCounts.total}</span>
+          )}
+        </button>
+      )}
+      {variant === "overlay" && (
+        <button
+          ref={buttonRef}
+          className={`tiktok-action-btn ${currentReaction ? 'active' : ''}`}
+          onClick={handleMainClick}
+          onKeyDown={handleMainButtonKeyDown}
+          disabled={disabled}
+          aria-label={currentReaction ? `Remove ${getReactionLabel(currentReaction)} reaction` : 'Add reaction'}
+          aria-haspopup="listbox"
+          aria-expanded={isOpen}
+        >
+          <div className="tiktok-action-icon">
+            <span className={`w-6 h-6 transition-transform duration-200 ${currentReaction ? 'scale-110' : ''}`}>
+              {displayIcon}
+            </span>
+          </div>
+          <span>{reactionCounts.total}</span>
+        </button>
+      )}
 
       {/* Main button tooltip - rendered via portal to avoid clipping */}
       {isMounted && showMainTooltip && !isOpen && createPortal(
@@ -416,7 +485,11 @@ export default function ReactionPicker({
       {/* Reaction Picker Popup */}
       {isOpen && (
         <div
-          className="reaction-picker-dropdown absolute bottom-full left-0 mb-2 z-50 animate-reactionPop"
+          className={
+            variant === "overlay"
+              ? "absolute right-full bottom-0 mr-2 z-50 animate-fadeIn"
+              : "reaction-picker-dropdown absolute bottom-full left-0 mb-2 z-50 animate-reactionPop"
+          }
           onMouseEnter={() => {
             if (timeoutRef.current) clearTimeout(timeoutRef.current);
           }}
@@ -464,7 +537,7 @@ export default function ReactionPicker({
                     } ${isHovered || isFocused ? 'scale-110' : ''}`}
                     role="option"
                     aria-selected={isSelected}
-                    aria-label={`${reaction.label} (${count} reactions)`}
+                    aria-label={countsLoaded ? `${reaction.label} (${count} reactions)` : reaction.label}
                     tabIndex={isFocused ? 0 : -1}
                   >
                     {/* Icon */}
@@ -472,11 +545,11 @@ export default function ReactionPicker({
                       {reaction.icon}
                     </span>
 
-                    {/* Count */}
-                    <span className={`text-[0.65rem] font-ui font-semibold mt-0.5 ${
+                    {/* Count (blank until the real per-type split is loaded) */}
+                    <span className={`text-[0.65rem] font-ui font-semibold mt-0.5 min-h-[0.9rem] ${
                       isSelected ? 'text-purple-primary' : count > 0 ? 'text-ink' : 'text-muted'
                     }`}>
-                      {count}
+                      {countsLoaded ? count : ""}
                     </span>
 
 
@@ -489,8 +562,8 @@ export default function ReactionPicker({
               })}
             </div>
 
-            {/* Active reactions summary (only if there are reactions) */}
-            {activeReactions.length > 0 && (
+            {/* Active reactions summary (only once the real split is known) */}
+            {countsLoaded && activeReactions.length > 0 && (
               <div className="px-3 py-2 border-t border-border-light bg-gradient-to-r from-purple-primary/[0.02] to-pink-vivid/[0.02]">
                 <div className="flex items-center gap-1.5 flex-wrap">
                   {activeReactions.slice(0, 4).map((reaction) => (
@@ -511,10 +584,16 @@ export default function ReactionPicker({
             )}
           </div>
 
-          {/* Arrow pointing down */}
-          <div className="absolute top-full left-6 -mt-1">
-            <div className="w-3 h-3 bg-surface rotate-45 border-r border-b border-border-light" />
-          </div>
+          {/* Arrow */}
+          {variant === "overlay" ? (
+            <div className="absolute top-1/2 -right-1 -translate-y-1/2">
+              <div className="w-2 h-2 bg-surface rotate-45 border-r border-t border-border-light" />
+            </div>
+          ) : (
+            <div className="absolute top-full left-6 -mt-1">
+              <div className="w-3 h-3 bg-surface rotate-45 border-r border-b border-border-light" />
+            </div>
+          )}
         </div>
       )}
 

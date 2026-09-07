@@ -13,7 +13,8 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { useAuthModal } from "@/components/providers/AuthModalProvider";
 import { removeSelfAsCollaborator } from "@/lib/hooks.legacy";
 import { useComments } from "@/lib/hooks/useComments";
-import { useToggleSave, useToggleRelay, useToggleReaction, useReactionCounts, useUserReaction, useBlock } from "@/lib/hooks/useInteractions";
+import { useToggleSave, useToggleRelay, useBlock } from "@/lib/hooks/useInteractions";
+import { useReaction } from "@/lib/engagement/reactions";
 import { createNotification } from "@/lib/hooks/useNotifications";
 import type { ReactionType } from "@/lib/types";
 import { showToast } from "@/lib/utils/toast";
@@ -100,11 +101,11 @@ interface Post {
   media?: MediaItem[];
   image?: string;
   stats: {
-    admires: number;
+    reactions?: number;
     comments: number;
     relays: number;
   };
-  isAdmired?: boolean;
+  reactionType?: ReactionType | null;
   isSaved?: boolean;
   isRelayed?: boolean;
   mentions?: TaggedUser[];
@@ -191,10 +192,14 @@ function PostDetailModalComponent({
   const { toggle: toggleSave } = useToggleSave();
   const { toggle: toggleRelay } = useToggleRelay();
 
-  // Reaction system hooks
-  const { react: toggleReaction, removeReaction } = useToggleReaction();
-  const { counts: reactionCounts } = useReactionCounts(post?.id || "");
-  const { reaction: userReaction, setReaction: setUserReaction } = useUserReaction(post?.id || "", user?.id);
+  // Reactions: shared store entry (seeded from the card that opened us),
+  // full per-type counts loaded on open, re-read when the tab regains focus.
+  const reaction = useReaction("post", post?.id || "", {
+    seed: post ? { total: post.stats.reactions, mine: post.reactionType } : undefined,
+    authorId: post?.authorId,
+    refreshOnFocus: true,
+    loadCounts: true,
+  });
 
   const audioMedia = post?.media?.find((m) => m.media_type === "audio") || null;
   const visualMediaList = (post?.media || []).filter((m) => m.media_type !== "audio");
@@ -382,62 +387,17 @@ function PostDetailModalComponent({
         ]
       : [];
 
-  // Reaction handlers - memoized with useCallback to prevent unnecessary re-renders
+  // Reaction handlers — optimistic update, RPC, revert, toast and the
+  // notification all live in the store; the modal only forwards intent.
   const handleReaction = useCallback(async (reactionType: ReactionType) => {
-    if (!user || !post) {
-      openAuthModal();
-      return;
-    }
-
-    const isSameReaction = userReaction === reactionType;
-
-    // Optimistic update
-    if (isSameReaction) {
-      setUserReaction(null);
-    } else {
-      setUserReaction(reactionType);
-    }
-
-    // Database update (real-time subscription will update counts)
-    await toggleReaction(post.id, user.id, reactionType, userReaction);
-
-    // Create notification for reaction (use actual reaction type)
-    if (!isSameReaction && post.authorId && post.authorId !== user.id) {
-      await createNotification(post.authorId, user.id, reactionType, post.id);
-    }
-
-    // Notify other components
-    onPostUpdate?.({
-      postId: post.id,
-      field: "reactions",
-      isActive: !isSameReaction,
-      countChange: isSameReaction ? -1 : (userReaction ? 0 : 1),
-      reactionType: isSameReaction ? null : reactionType,
-    });
-  }, [user, post, openAuthModal, userReaction, setUserReaction, toggleReaction, onPostUpdate]);
+    if (!post) return;
+    await reaction.react(reactionType);
+  }, [post, reaction]);
 
   const handleRemoveReaction = useCallback(async () => {
-    if (!user || !post) {
-      openAuthModal();
-      return;
-    }
-    if (!userReaction) return;
-
-    // Optimistic update
-    setUserReaction(null);
-
-    // Database update
-    await removeReaction(post.id, user.id);
-
-    // Notify other components
-    onPostUpdate?.({
-      postId: post.id,
-      field: "reactions",
-      isActive: false,
-      countChange: -1,
-      reactionType: null,
-    });
-  }, [user, post, openAuthModal, userReaction, setUserReaction, removeReaction, onPostUpdate]);
+    if (!post) return;
+    await reaction.unreact();
+  }, [post, reaction]);
 
   const handleSave = useCallback(async () => {
     if (!user || !post) {
@@ -1027,8 +987,10 @@ function PostDetailModalComponent({
           <div className={`post-actions-bar flex items-center gap-1.5 md:gap-2 mt-6 pt-4 md:pt-6 border-t flex-wrap z-20 ${borderColorClass} ${hasDarkBg ? 'dark-bg' : ''}`}>
             {/* Reaction Picker */}
             <ReactionPicker
-              currentReaction={userReaction}
-              reactionCounts={reactionCounts}
+              currentReaction={reaction.mine}
+              reactionCounts={reaction.counts}
+              countsLoaded={reaction.countsLoaded}
+              onOpen={reaction.loadCounts}
               onReact={handleReaction}
               onRemoveReaction={handleRemoveReaction}
             />
