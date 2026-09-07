@@ -20,7 +20,6 @@
 import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useAuthModal } from "@/components/providers/AuthModalProvider";
-import { createNotification } from "@/lib/hooks/useNotifications";
 import { usePollOnFocus } from "@/lib/hooks/usePollOnFocus";
 import { actionToast } from "@/lib/utils/toast";
 import type { ReactionType, ReactionCounts } from "@/lib/types";
@@ -46,7 +45,7 @@ export interface UseReactionOptions {
   /** Values from the list row this surface was rendered from. `mine`
    *  undefined = unknown (fetched); `total` undefined = unknown (fetched). */
   seed?: Omit<ReactionSeed, "viewerId">;
-  /** Post/take author — a brand-new reaction on a post notifies them. */
+  /** Post/take author (kept for callers; notifications are DB triggers now). */
   authorId?: string | null;
   /** Re-read counts + own reaction when the tab regains focus (open post). */
   refreshOnFocus?: boolean;
@@ -83,7 +82,7 @@ export function useReaction(kind: EngagementKind, id: string, options: UseReacti
   const { user } = useAuth();
   const { openModal: openAuthModal } = useAuthModal();
   const viewerId = user?.id ?? null;
-  const { authorId, refreshOnFocus = false, loadCounts: wantCounts = false, loadComments: wantComments = false } = options;
+  const { refreshOnFocus = false, loadCounts: wantCounts = false, loadComments: wantComments = false } = options;
   const seedTotal = options.seed?.total;
   const seedMine = options.seed?.mine;
   const seedCounts = options.seed?.counts;
@@ -124,18 +123,11 @@ export function useReaction(kind: EngagementKind, id: string, options: UseReacti
     if (refreshOnFocus && id) void refreshReaction(kind, id);
   });
 
-  const afterWrite = useCallback(
-    (result: ReactionWriteResult, userId: string) => {
-      if (!result.ok) {
-        if (result.error !== "pending") actionToast.reactionError();
-        return;
-      }
-      if (kind === "post" && result.added && result.mine && authorId && authorId !== userId) {
-        void createNotification(authorId, userId, result.mine, id).catch(() => {});
-      }
-    },
-    [kind, id, authorId]
-  );
+  // Notifications are created by database triggers (Phase 3); the client
+  // only reports failures.
+  const afterWrite = useCallback((result: ReactionWriteResult) => {
+    if (!result.ok && result.error !== "pending") actionToast.reactionError();
+  }, []);
 
   const react = useCallback(
     async (type: ReactionType) => {
@@ -146,7 +138,7 @@ export function useReaction(kind: EngagementKind, id: string, options: UseReacti
       const current = getReaction(kind, id);
       const mine = current.mineFor === user.id ? current.mine : null;
       const result = mine === type ? await clearReaction(kind, id, user.id) : await setReaction(kind, id, user.id, type);
-      afterWrite(result, user.id);
+      afterWrite(result);
       return result;
     },
     [user, openAuthModal, kind, id, afterWrite]
@@ -158,7 +150,7 @@ export function useReaction(kind: EngagementKind, id: string, options: UseReacti
       return null;
     }
     const result = await clearReaction(kind, id, user.id);
-    afterWrite(result, user.id);
+    afterWrite(result);
     return result;
   }, [user, openAuthModal, kind, id, afterWrite]);
 
@@ -168,7 +160,7 @@ export function useReaction(kind: EngagementKind, id: string, options: UseReacti
       return null;
     }
     const result = await toggleDefaultReaction(kind, id, user.id);
-    afterWrite(result, user.id);
+    afterWrite(result);
     return result;
   }, [user, openAuthModal, kind, id, afterWrite]);
 

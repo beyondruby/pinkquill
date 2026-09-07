@@ -8,7 +8,6 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { useComments, COMMENT_MAX_LENGTH } from "@/lib/hooks/useComments";
 import { useToggleSave, useToggleRelay, useBlock } from "@/lib/hooks/useInteractions";
 import { useReaction } from "@/lib/engagement/reactions";
-import { createNotification } from "@/lib/hooks/useNotifications";
 import { actionToast } from "@/lib/utils/toast";
 import type { ReactionType } from "@/lib/types";
 import { cleanHtmlForDisplay, stripHtmlPreserveLines } from "@/lib/utils/sanitize";
@@ -541,10 +540,6 @@ export default function PostPage() {
     setRelayCount(prev => newIsRelayed ? prev + 1 : Math.max(0, prev - 1));
 
     await toggleRelay(post.id, user.id, !newIsRelayed);
-
-    if (newIsRelayed && post.author_id !== user.id) {
-      await createNotification(post.author_id, user.id, "relay", post.id);
-    }
   };
 
   const handleAddComment = async () => {

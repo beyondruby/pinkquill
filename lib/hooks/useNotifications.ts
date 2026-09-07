@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "../supabase";
-import type { Notification, NotificationType } from "../types";
+import type { Notification, NotificationType, ReactionType } from "../types";
 import { isRetryableError, retryWithBackoff } from "../utils/retry";
 import { useUserEvent } from "@/components/providers/UserEventsProvider";
 import { usePollOnFocus } from "./usePollOnFocus";
@@ -99,6 +99,10 @@ export function useNotifications(userId?: string, mutedTypes?: NotificationType[
                 content,
                 type
               ),
+              take:takes (
+                caption,
+                thumbnail_url
+              ),
               community:communities (
                 name,
                 slug,
@@ -159,13 +163,22 @@ export function useNotifications(userId?: string, mutedTypes?: NotificationType[
       return;
     }
     if (payload.op === "UPDATE") {
-      setNotifications((prev) =>
-        prev.map((n) =>
+      // A reaction changed in place: the trigger re-labels the row (type,
+      // created_at) and marks it unread again.
+      setNotifications((prev) => {
+        const next = prev.map((n) =>
           n.id === payload.id
-            ? { ...n, read: payload.read ?? n.read }
+            ? {
+                ...n,
+                read: payload.read ?? n.read,
+                type: (payload.type as NotificationType | undefined) ?? n.type,
+                reaction_type: (payload.type as ReactionType | undefined) ?? n.reaction_type,
+                created_at: typeof payload.created_at === "string" ? payload.created_at : n.created_at,
+              }
             : n
-        )
-      );
+        );
+        return next.sort((a, b) => (a.created_at < b.created_at ? 1 : a.created_at > b.created_at ? -1 : 0));
+      });
       return;
     }
 
@@ -187,6 +200,10 @@ export function useNotifications(userId?: string, mutedTypes?: NotificationType[
           title,
           content,
           type
+        ),
+        take:takes (
+          caption,
+          thumbnail_url
         ),
         community:communities (
           name,

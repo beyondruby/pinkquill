@@ -379,6 +379,10 @@ export interface Notification {
   actor_id: string;
   type: NotificationType;
   post_id: string | null;
+  /** Set instead of post_id for activity on a take (Phase 3). */
+  take_id?: string | null;
+  /** The reaction for reaction-type rows (same value as `type`). */
+  reaction_type?: ReactionType | null;
   comment_id: string | null;
   community_id: string | null;
   order_id: string | null;
@@ -395,7 +399,11 @@ export interface Notification {
     title: string | null;
     content: string;
     type: string;
-  };
+  } | null;
+  take?: {
+    caption: string | null;
+    thumbnail_url: string | null;
+  } | null;
   community?: {
     name: string;
     slug: string;

@@ -2289,19 +2289,7 @@ export default function CreatePost() {
                 )
               );
             }
-
-            if (taggedPeople.length > 0) {
-              await Promise.all(
-                taggedPeople.map((mention) =>
-                  createNotification(
-                    mention.id,
-                    user.id,
-                    "mention",
-                    postId
-                  )
-                )
-              );
-            }
+            // Mention notifications are created by the post_mentions trigger.
           } catch (notificationErr) {
             console.warn("Could not create collaboration/mention notifications:", notificationErr);
           }

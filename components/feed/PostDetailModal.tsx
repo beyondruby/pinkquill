@@ -15,7 +15,6 @@ import { removeSelfAsCollaborator } from "@/lib/hooks.legacy";
 import { useComments, COMMENT_MAX_LENGTH } from "@/lib/hooks/useComments";
 import { useToggleSave, useToggleRelay, useBlock } from "@/lib/hooks/useInteractions";
 import { useReaction } from "@/lib/engagement/reactions";
-import { createNotification } from "@/lib/hooks/useNotifications";
 import type { ReactionType } from "@/lib/types";
 import { showToast, actionToast } from "@/lib/utils/toast";
 import type { PostUpdate } from "@/components/providers/ModalProvider";
@@ -430,13 +429,8 @@ function PostDetailModalComponent({
       countChange: 0,
     });
 
-    // Database update
+    // Database update (notifications are DB triggers)
     await toggleSave(post.id, user.id, isSaved);
-
-    // Create notification when saving (not when unsaving)
-    if (newIsSaved && post.authorId && post.authorId !== user.id) {
-      await createNotification(post.authorId, user.id, 'save', post.id);
-    }
   }, [user, post, openAuthModal, isSaved, onPostUpdate, toggleSave]);
 
   const handleRelay = useCallback(async () => {
@@ -462,13 +456,8 @@ function PostDetailModalComponent({
       countChange,
     });
 
-    // Database update
+    // Database update (notifications are DB triggers)
     await toggleRelay(post.id, user.id, isRelayed);
-
-    // Create notification for relay
-    if (newIsRelayed && post.authorId && post.authorId !== user.id) {
-      await createNotification(post.authorId, user.id, "relay", post.id);
-    }
   }, [user, post, openAuthModal, isRelayed, onPostUpdate, toggleRelay]);
 
   const handleAddComment = useCallback(async () => {

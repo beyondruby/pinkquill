@@ -35,6 +35,7 @@ interface NotificationRow {
   actor_id: string | null;
   type: string;
   post_id: string | null;
+  take_id: string | null;
   comment_id: string | null;
   community_id: string | null;
   order_id: string | null;
@@ -120,6 +121,7 @@ async function recentlyEmailedSameSubject(n: NotificationRow, minutes: number): 
     .neq("id", n.id)
     .gte("emailed_at", since);
   if (n.post_id) query = query.eq("post_id", n.post_id);
+  else if (n.take_id) query = query.eq("take_id", n.take_id);
   else if (n.community_id) query = query.eq("community_id", n.community_id);
   else if (n.actor_id) query = query.eq("actor_id", n.actor_id);
   else return false;
@@ -130,7 +132,7 @@ async function recentlyEmailedSameSubject(n: NotificationRow, minutes: number): 
 async function handleNotification(id: string) {
   const { data: n, error: nErr } = await supabaseAdmin
     .from("notifications")
-    .select("id, user_id, actor_id, type, post_id, comment_id, community_id, order_id, content, read, emailed_at, metadata")
+    .select("id, user_id, actor_id, type, post_id, take_id, comment_id, community_id, order_id, content, read, emailed_at, metadata")
     .eq("id", id)
     .maybeSingle<NotificationRow>();
   if (nErr) return NextResponse.json({ error: nErr.message }, { status: 500 });
@@ -149,15 +151,18 @@ async function handleNotification(id: string) {
   if (await overHourlyCap(n.user_id)) return NextResponse.json({ skipped: "rate_limited" });
   if (await recentlyEmailedSameSubject(n, category.coalesceMinutes)) return NextResponse.json({ skipped: "coalesced" });
 
-  const [{ data: actor }, { data: post }, { data: comment }, { data: community }] = await Promise.all([
+  const [{ data: actor }, { data: post }, { data: take }, { data: comment }, { data: community }] = await Promise.all([
     n.actor_id
       ? supabaseAdmin.from("profiles").select("username, display_name, avatar_url").eq("id", n.actor_id).maybeSingle<{ username: string | null; display_name: string | null; avatar_url: string | null }>()
       : Promise.resolve({ data: null }),
     n.post_id
       ? supabaseAdmin.from("posts").select("id, title, type, content").eq("id", n.post_id).maybeSingle<{ id: string; title: string | null; type: string | null; content: string | null }>()
       : Promise.resolve({ data: null }),
+    n.take_id
+      ? supabaseAdmin.from("takes").select("id, caption").eq("id", n.take_id).maybeSingle<{ id: string; caption: string | null }>()
+      : Promise.resolve({ data: null }),
     n.comment_id
-      ? supabaseAdmin.from("comments").select("id, content").eq("id", n.comment_id).maybeSingle<{ id: string; content: string | null }>()
+      ? supabaseAdmin.from(n.take_id ? "take_comments" : "comments").select("id, content").eq("id", n.comment_id).maybeSingle<{ id: string; content: string | null }>()
       : Promise.resolve({ data: null }),
     n.community_id
       ? supabaseAdmin.from("communities").select("name, slug").eq("id", n.community_id).maybeSingle<{ name: string; slug: string }>()
@@ -170,7 +175,15 @@ async function handleNotification(id: string) {
     recipient: { name: recipient.name, email: recipient.email },
     actor: actor ? { name: actor.display_name || actor.username || "Someone", username: actor.username, avatarUrl: actor.avatar_url } : null,
     content: n.content,
-    post: post ? { id: post.id, title: post.title, type: post.type, excerpt: plain(post.content) } : n.post_id ? { id: n.post_id, title: null, type: null, excerpt: null } : null,
+    post: post
+      ? { id: post.id, title: post.title, type: post.type, excerpt: plain(post.content) }
+      : n.post_id
+        ? { id: n.post_id, title: null, type: null, excerpt: null }
+        : take
+          ? { id: take.id, title: take.caption, type: "take", excerpt: null, kind: "take" as const }
+          : n.take_id
+            ? { id: n.take_id, title: null, type: "take", excerpt: null, kind: "take" as const }
+            : null,
     comment: comment ? { id: comment.id, content: comment.content } : n.comment_id ? { id: n.comment_id, content: null } : null,
     community: community ?? null,
     order: n.order_id

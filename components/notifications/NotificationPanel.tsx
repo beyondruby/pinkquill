@@ -751,10 +751,43 @@ function getNotificationIcon(type: string) {
   }
 }
 
-function getNotificationMessage(notification: Notification): { actor: string; action: string } {
-  const actorName = notification.actor?.display_name || notification.actor?.username || "Someone";
+const REACTION_TYPES = new Set(["admire", "snap", "ovation", "support", "inspired", "applaud"]);
+
+/** Consecutive reactions on the same post/take collapse into one row. */
+export interface NotificationGroup {
+  key: string;
+  items: Notification[];
+}
+
+export function groupNotifications(list: Notification[]): NotificationGroup[] {
+  const groups: NotificationGroup[] = [];
+  for (const n of list) {
+    const subject = n.post_id ?? n.take_id ?? null;
+    const last = groups[groups.length - 1];
+    if (
+      subject &&
+      REACTION_TYPES.has(n.type) &&
+      last &&
+      REACTION_TYPES.has(last.items[0].type) &&
+      (last.items[0].post_id ?? last.items[0].take_id) === subject &&
+      !last.items.some((x) => x.actor_id === n.actor_id)
+    ) {
+      last.items.push(n);
+    } else {
+      groups.push({ key: n.id, items: [n] });
+    }
+  }
+  return groups;
+}
+
+function getNotificationMessage(notification: Notification, others = 0): { actor: string; action: string } {
+  const baseActor = notification.actor?.display_name || notification.actor?.username || "Someone";
+  const actorName = others > 0 ? `${baseActor} and ${others} other${others === 1 ? "" : "s"}` : baseActor;
   const communityName = notification.community?.name || "a community";
-  const postType = notification.post?.type || 'post';
+  const postType = notification.take_id ? "take" : notification.post?.type || 'post';
+  if (others > 0 && REACTION_TYPES.has(notification.type)) {
+    return { actor: actorName, action: `reacted to your ${postType}` };
+  }
 
   switch (notification.type) {
     case 'admire':
@@ -874,14 +907,20 @@ function getNotificationMessage(notification: Notification): { actor: string; ac
 
 function NotificationItem({
   notification,
+  group,
   onMarkAsRead,
   onClose
 }: {
   notification: Notification;
+  /** Every row folded into this line (the first one is `notification`). */
+  group?: Notification[];
   onMarkAsRead: (id: string) => Promise<void>;
   onClose: () => void;
 }) {
   const router = useRouter();
+  const items = group && group.length > 0 ? group : [notification];
+  const others = items.length - 1;
+  const isRead = items.every((n) => n.read);
   const opensCommunityInbox =
     notification.type === "community_join_approved" ||
     notification.type === "community_role_change" ||
@@ -916,14 +955,18 @@ function NotificationItem({
         return `/post/${notification.post_id}`;
       }
     }
-    // Reply and comment_like notifications link to post with comment anchor
-    if ((notification.type === 'reply' || notification.type === 'comment_like') &&
-        notification.post_id && notification.comment_id) {
-      return `/post/${notification.post_id}?comment=${notification.comment_id}`;
+    // Comment-scoped notifications open the thread at that comment.
+    const base = notification.take_id
+      ? `/take/${notification.take_id}`
+      : notification.post_id
+        ? `/post/${notification.post_id}`
+        : null;
+    if (base && notification.comment_id &&
+        (notification.type === 'reply' || notification.type === 'comment_like' ||
+         notification.type === 'comment' || notification.type === 'mention')) {
+      return `${base}?comment=${notification.comment_id}`;
     }
-    if (notification.post_id) {
-      return `/post/${notification.post_id}`;
-    }
+    if (base) return base;
     return notification.actor?.username ? `/studio/${notification.actor.username}` : '#';
   };
 
@@ -931,27 +974,25 @@ function NotificationItem({
 
   const handleClick = async (event: MouseEvent<HTMLAnchorElement>) => {
     event.preventDefault();
-    if (!notification.read) {
-      await onMarkAsRead(notification.id);
-    }
+    await Promise.all(items.filter((n) => !n.read).map((n) => onMarkAsRead(n.id)));
     onClose();
     router.push(notificationLink);
   };
 
-  const message = getNotificationMessage(notification);
+  const message = getNotificationMessage(notification, others);
 
   return (
     <Link
       href={notificationLink}
       onClick={handleClick}
       className={`group relative flex gap-3 p-3 rounded-2xl cursor-pointer transition-all duration-300 block ${
-        notification.read
+        isRead
           ? "hover:bg-subtle"
           : "bg-gradient-to-r from-purple-primary/[0.04] via-pink-vivid/[0.03] to-orange-warm/[0.02]"
       }`}
     >
       {/* Unread indicator line */}
-      {!notification.read && (
+      {!isRead && (
         <div className="absolute left-0 top-3 bottom-3 w-[3px] rounded-full bg-gradient-to-b from-purple-primary via-pink-vivid to-orange-warm" />
       )}
 
@@ -1008,10 +1049,15 @@ function NotificationItem({
           </p>
         )}
 
-        {/* Post preview */}
+        {/* Post / take preview */}
         {notification.post && notification.type !== 'follow' && !notification.type.startsWith('community_') && !notification.order_id && !notification.content && (
           <p className="font-body text-[0.78rem] text-muted/60 mt-1 line-clamp-1 truncate">
-            {notification.post.title || notification.post.content?.substring(0, 60)}...
+            {notification.post.title || notification.post.content?.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().substring(0, 60)}...
+          </p>
+        )}
+        {!notification.post && notification.take?.caption && !notification.content && (
+          <p className="font-body text-[0.78rem] text-muted/60 mt-1 line-clamp-1 truncate">
+            {notification.take.caption}
           </p>
         )}
 
@@ -1235,10 +1281,11 @@ function NotificationPanelContent({ onClose }: { onClose: () => void }) {
               )}
 
               {/* Regular Notifications */}
-              {regularNotifications.map((notification) => (
+              {groupNotifications(regularNotifications).map((g) => (
                 <NotificationItem
-                  key={notification.id}
-                  notification={notification}
+                  key={g.key}
+                  notification={g.items[0]}
+                  group={g.items}
                   onMarkAsRead={markAsRead}
                   onClose={onClose}
                 />

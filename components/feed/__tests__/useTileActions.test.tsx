@@ -40,13 +40,12 @@ describe('optimistic feed actions', () => {
     expect(first.result.current.isReacted).toBe(false);
     expect(first.result.current.reacting).toBe(false); expect(mocks.error).toHaveBeenCalledTimes(1);
   });
-  it('writes the server answer back to every view and notifies the author once', async () => {
+  it('writes the server answer back to every view without a client-side notification', async () => {
     mocks.rpc.mockResolvedValue({ data: { mine: 'admire', previous: null, changed: true, counts: counts(7) }, error: null });
     const first = renderHook(() => useTileActions(post)); const second = renderHook(() => useTileActions(post));
     await act(async () => { await first.result.current.onAdmire(event()); });
     expect(first.result.current.reactionCount).toBe(7); expect(second.result.current.reactionCount).toBe(7);
-    expect(mocks.notification).toHaveBeenCalledTimes(1);
-    expect(mocks.notification).toHaveBeenCalledWith('author', 'viewer', 'admire', 'post');
+    expect(mocks.notification).not.toHaveBeenCalled();
   });
   it('rolls back saved state across views', async () => {
     mocks.save.mockRejectedValue(new Error('offline'));

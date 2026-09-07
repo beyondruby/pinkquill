@@ -11,7 +11,6 @@ import { useAuthModal } from "@/components/providers/AuthModalProvider";
 import { useModal } from "@/components/providers/ModalProvider";
 import { useToggleSave } from "@/lib/hooks/useInteractions";
 import { useReaction } from "@/lib/engagement/reactions";
-import { createNotification } from "@/lib/hooks/useNotifications";
 import { useTrackPostImpression } from "@/lib/hooks/useTracking";
 import { actionToast } from "@/lib/utils/toast";
 import type { PostProps } from "./PostCard/types";
@@ -86,9 +85,6 @@ export function useTileActions(post: PostProps) {
         await toggleSave(post.id, user.id, isSaved);
         if (next) actionToast.postSaved();
         else actionToast.postUnsaved();
-        if (next && post.authorId !== user.id) {
-          void createNotification(post.authorId, user.id, "save", post.id).catch(console.error);
-        }
       } catch {
         notifyUpdate({ postId: post.id, field: "saves", isActive: !next, countChange: 0 });
         actionToast.genericError("save post");

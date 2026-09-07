@@ -16,7 +16,7 @@ export interface NotificationEmailInput {
   actor: { name: string; username: string | null; avatarUrl: string | null } | null;
   /** The notification's own `content` (comment text, reason, system line). */
   content: string | null;
-  post: { id: string; title: string | null; type: string | null; excerpt: string | null } | null;
+  post: { id: string; title: string | null; type: string | null; excerpt: string | null; kind?: "post" | "take" } | null;
   comment: { id: string; content: string | null } | null;
   community: { name: string; slug: string } | null;
   order: {
@@ -323,7 +323,11 @@ export function renderNotificationEmail(input: NotificationEmailInput): Rendered
 
   const actorName = input.actor?.name || (input.order ? (input.order.role === "seller" ? "The buyer" : "The creator") : "Someone");
   const phrase = postPhrase(input.post);
-  const postUrl = input.post ? `${input.urls.base}/post/${input.post.id}` : input.actor?.username ? `${input.urls.base}/studio/${input.actor.username}` : input.urls.base;
+  const postUrl = input.post
+    ? `${input.urls.base}/${input.post.kind === "take" ? "take" : "post"}/${input.post.id}`
+    : input.actor?.username
+      ? `${input.urls.base}/studio/${input.actor.username}`
+      : input.urls.base;
   const orderTitle = input.order?.title || (input.order?.listingType === "service" ? "your commission" : "your order");
   const c: Ctx = {
     actor: actorName,

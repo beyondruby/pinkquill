@@ -12,7 +12,6 @@ import { useAuthModal } from "@/components/providers/AuthModalProvider";
 import { removeSelfAsCollaborator } from "@/lib/hooks.legacy";
 import { useToggleSave, useToggleRelay, useBlock } from "@/lib/hooks/useInteractions";
 import { useReaction } from "@/lib/engagement/reactions";
-import { createNotification } from "@/lib/hooks/useNotifications";
 import type { ReactionType } from "@/lib/types";
 import { usePostViewTracker, useTrackPostImpression } from "@/lib/hooks/useTracking";
 
@@ -259,11 +258,6 @@ function PostCardComponent({
       } else {
         actionToast.postUnsaved();
       }
-
-      // Create notification when saving (not when unsaving)
-      if (newIsSaved && post.authorId !== user.id) {
-        await createNotification(post.authorId, user.id, 'save', post.id);
-      }
     } catch {
       // Revert on error
       setIsSaved(!newIsSaved);
@@ -301,10 +295,6 @@ function PostCardComponent({
         actionToast.postRelayed();
       } else {
         actionToast.postUnrelayed();
-      }
-
-      if (newIsRelayed) {
-        await createNotification(post.authorId, user.id, 'relay', post.id);
       }
     } catch {
       // Revert on error

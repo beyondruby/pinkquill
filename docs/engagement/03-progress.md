@@ -8,9 +8,9 @@ Read `00-system-map.md` (what existed), `01-findings.md` (root causes),
 | Phase | State | Date |
 |---|---|---|
 | 1 — Reactions save, sync, count, display correctly | **done** (merged to `main`) | 2026-09-07 |
-| 2 — Comments, likes, replies | **done** (branch `fix/engagement-phase2`, merged to `main`) | 2026-09-07 |
-| 3 — Notifications via DB triggers | next | |
-| 4 — Security | | |
+| 2 — Comments, likes, replies | **done** (merged to `main`) | 2026-09-07 |
+| 3 — Notifications via DB triggers | **done** (branch `fix/engagement-phase3`, merged to `main`) | 2026-09-07 |
+| 4 — Security | next | |
 | 5 — Load / live events | | |
 | 6 — UI/UX | | |
 
@@ -219,12 +219,88 @@ No console errors on any step.
   the count refreshes on tab focus (Phase 5 live events).
 - No `@` autocomplete in the composer (Phase 6).
 
+---
+
+## Phase 3 — what changed (2026-09-07)
+
+### Database (`supabase/migrations/20260909_engagement_phase3_notifications.sql`, applied to prod)
+
+- Every engagement notification is now created by a trigger, never by the
+  browser: `reactions_notify`, `take_reactions_notify` (AFTER INSERT /
+  UPDATE OF reaction_type / DELETE — one row per actor+content, re-labelled
+  in place on change with `read=false` + fresh `created_at`, deleted on
+  un-react), `comments_notify_insert` + `comments_notify_delete` (BEFORE
+  DELETE) and the take twins, `comment_likes_notify`,
+  `take_comment_likes_notify`, `post_mentions_notify`, `take_mentions_notify`,
+  `relays_notify`, `saves_notify`, `take_relays_notify`, `take_saves_notify`.
+- Shared rules in `engagement_notify_allowed(recipient, actor, category)`:
+  no self-notification, none across a block in either direction, none when
+  the recipient muted the category (`profiles.notification_preferences`).
+- Comment rows notify the content author (`comment`, comment_id = the
+  comment), the person answered (`reply`), and every `@name` that resolves
+  to a profile (`mention`), each person at most once per comment; resolved
+  handles are stored in `comment_mentions` / `take_comment_mentions`.
+- Take rows set `take_id` (post_id stays NULL); reaction rows set
+  `reaction_type`; `notifications.comment_id` FK dropped (take comment ids
+  live in another table; the BEFORE DELETE triggers do the cleanup).
+- `notify_notification_change` also broadcasts an UPDATE when a row's type
+  changes so the panel re-labels live.
+- Backfill: orphaned reaction / comment_like / reply / save / relay rows
+  deleted; `reaction_type` filled; take relays moved from `post_id` to
+  `take_id`.
+
+### Client
+
+- Removed every client-side engagement `createNotification` / raw insert:
+  `lib/engagement/reactions.ts`, `lib/hooks/useComments.ts`,
+  `components/feed/{useTileActions,PostCard,PostDetailModal}.tsx`,
+  `app/post/[id]/page.tsx`, `lib/hooks/useTakes.ts` (relay),
+  `components/create/CreatePost.tsx` (mention). `createNotification` stays
+  for community / collaboration / follow flows until Phase 4.
+- `Notification` type gains `take_id`, `reaction_type`, `take`;
+  `useNotifications` joins `take:takes(caption, thumbnail_url)` and patches
+  `type` / `created_at` on UPDATE events.
+- `NotificationPanel`: links resolve takes (`/take/<id>`), and `comment` /
+  `mention` rows deep-link with `?comment=`; message says "your take";
+  `groupNotifications()` folds consecutive reactions on the same post/take
+  from different people into "A and N others reacted to your post" (one row,
+  unread if any is unread, click marks all read). Tests in
+  `components/notifications/__tests__/groupNotifications.test.ts`.
+- Email route + templates: take rows load the take, link to `/take/<id>`,
+  coalesce per take.
+- Tests: 32 files, 214 passed; `tsc` clean; `next build` clean.
+
+### Tested (two accounts + a third for mentions, 2026-09-07)
+
+Through the RPCs as `hadi` (A), `poet` (B) and `hii` (C), then the panel in
+Chrome as A.
+
+| Step | Result |
+|---|---|
+| A reacts admire → snap on B's post | B has exactly one row, type/reaction_type `snap`, unread |
+| A un-reacts | row gone |
+| A comments "hey @poet and @hii and @nobody_here" | B gets `comment` with comment_id (no duplicate mention); C gets `mention`; unknown handle ignored; both in `comment_mentions` |
+| B likes then unlikes A's comment | `comment_like` appears for A, then disappears |
+| A deletes the comment | its `comment` and `mention` rows gone; zero orphaned comment notifications |
+| B mutes "Post activity", A reacts | no row created |
+| C blocks A, A mentions @hii | no row created |
+| A reacts on C's take | row with `take_id`, post_id NULL |
+| B and C react to A's post | A's panel shows one grouped row |
+
+### Known gaps left for later phases
+
+- Community / collaboration / follow notifications are still client inserts
+  and the `notifications` INSERT policy is still open (Phase 4).
+- Mentioning a private account in a comment notifies them regardless of
+  follow state (Phase 4 privacy rules).
+- Grouped rows show one avatar and a text count; stacked avatars are Phase 6.
+
 ## Next session
 
-Phase 3 (notifications). Start from `02-plan.md` §Phase 3. Migration name:
-`20260909_engagement_phase3_notifications.sql`. The client-side
-`createNotification` calls to remove are in `lib/hooks/useComments.ts`
-(`notify`), `lib/engagement/reactions.ts` (`afterWrite`),
-`components/feed/useTileActions.ts` (save), `PostCard`/`PostDetailModal`/
-`app/post/[id]` (save, relay), `lib/hooks/useTakes.ts` (relay),
-`components/create/CreatePost.tsx` (mention).
+Phase 4 (security). Start from `02-plan.md` §Phase 4. Migration name:
+`20260910_engagement_phase4_security.sql`. Remaining client notification
+inserts to move server-side: `lib/hooks.legacy.ts` (community role/mute/ban,
+collaboration accept/decline/remove), `lib/hooks/useProfile.ts` (follow,
+follow_request, follow_request_accepted),
+`components/communities/ModQueue/ModQueuePage.tsx` (warning),
+`components/create/CreatePost.tsx` (collaboration_invite).

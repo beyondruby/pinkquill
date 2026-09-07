@@ -43,6 +43,8 @@ export interface NotificationChangePayload {
   read?: boolean;
   /** Prior read state (UPDATE/DELETE only). */
   was_read?: boolean | null;
+  /** New timestamp when a reaction notification was re-labelled in place. */
+  created_at?: string;
 }
 
 export interface FollowChangePayload {

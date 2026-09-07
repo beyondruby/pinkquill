@@ -82,7 +82,7 @@ describe("useComments (post)", () => {
     expect(result.current.hasMore).toBe(false); // < page size
   });
 
-  it("adds a comment optimistically, confirms it from the RPC, updates the shared count and notifies the author", async () => {
+  it("adds a comment optimistically, confirms it from the RPC and updates the shared count", async () => {
     seedReaction("post", "post-1", { comments: 1 });
     let resolveRpc!: (v: unknown) => void;
     mocks.rpc.mockReturnValue(new Promise((r) => (resolveRpc = r)));
@@ -115,7 +115,8 @@ describe("useComments (post)", () => {
     expect(result.current.comments[0].id).toBe("new-1");
     expect(result.current.comments[0].pending).toBeFalsy();
     expect(getReaction("post", "post-1").comments).toBe(5);
-    expect(mocks.notification).toHaveBeenCalledWith("author-1", "viewer", "comment", "post-1", "hello", undefined, "new-1");
+    // Notifications are database triggers now: nothing is inserted from the client.
+    expect(mocks.notification).not.toHaveBeenCalled();
   });
 
   it("rolls the optimistic comment back when the RPC fails", async () => {
@@ -132,7 +133,7 @@ describe("useComments (post)", () => {
     expect(getReaction("post", "post-1").comments).toBe(1);
   });
 
-  it("notifies the replied-to user and the post author on a reply", async () => {
+  it("attaches a reply under its parent without client-side notifications", async () => {
     mocks.rpc.mockResolvedValue({
       data: { id: "r1", created_at: "2026-09-01T00:00:02Z", parent_id: "c1", reply_to_user_id: "bob-id", comments_count: 3 },
       error: null,
@@ -142,8 +143,7 @@ describe("useComments (post)", () => {
     await act(async () => {
       await result.current.addComment("hi bob", { parentId: "c1", replyToUserId: "bob-id" });
     });
-    expect(mocks.notification).toHaveBeenCalledWith("bob-id", "viewer", "reply", "post-1", "hi bob", undefined, "r1");
-    expect(mocks.notification).toHaveBeenCalledWith("author-1", "viewer", "comment", "post-1", "hi bob", undefined, "r1");
+    expect(mocks.notification).not.toHaveBeenCalled();
     expect(result.current.comments[0].replies_count).toBe(2);
   });
 

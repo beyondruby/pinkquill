@@ -19,7 +19,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../supabase";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { createNotification } from "./useNotifications";
 import { bumpComments, setCommentsCount, type EngagementKind } from "@/lib/engagement/store";
 import type { Comment } from "../types";
 import { isAbortError } from "../utils/retry";
@@ -110,7 +109,7 @@ export interface AddCommentOptions {
 }
 
 export interface UseCommentsOptions {
-  /** Post/take author, for the `comment` notification (posts only until Phase 3). */
+  /** Post/take author (kept for callers; notifications are DB triggers now). */
   authorId?: string | null;
 }
 
@@ -134,7 +133,6 @@ export function useComments(kind: EngagementKind, id: string, options: UseCommen
   const cfg = CONFIG[kind];
   const { user, profile } = useAuth();
   const userId = user?.id;
-  const authorId = options.authorId ?? null;
 
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -418,19 +416,7 @@ export function useComments(kind: EngagementKind, id: string, options: UseCommen
         );
         setCommentsCount(kind, id, result.comments_count);
 
-        // Notifications (posts only until Phase 3 moves them into the DB).
-        if (kind === "post") {
-          const notify = (to: string | null | undefined, type: "comment" | "reply") => {
-            if (!to || to === uid) return;
-            void createNotification(to, uid, type, id, trimmed.substring(0, 100), undefined, result.id).catch(() => {});
-          };
-          if (parentId) {
-            notify(result.reply_to_user_id, "reply");
-            if (authorId && authorId !== result.reply_to_user_id) notify(authorId, "comment");
-          } else {
-            notify(authorId, "comment");
-          }
-        }
+        // Notifications: database triggers (Phase 3).
 
         return { success: true, comment: confirmed };
       } catch (err) {
@@ -440,7 +426,7 @@ export function useComments(kind: EngagementKind, id: string, options: UseCommen
         return { success: false, error: message };
       }
     },
-    [kind, id, cfg.addRpc, cfg.addArg, cfg.table, selectReply, profile, authorId]
+    [kind, id, cfg.addRpc, cfg.addArg, cfg.table, selectReply, profile]
   );
 
   // ---- like ----------------------------------------------------------------
