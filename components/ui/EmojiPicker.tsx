@@ -1,12 +1,24 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useLayoutEffect, type CSSProperties, type RefObject } from "react";
+import { createPortal } from "react-dom";
 
 interface EmojiPickerProps {
   onSelect: (emoji: string) => void;
   isOpen: boolean;
   onClose: () => void;
+  /**
+   * The button that opened the picker. When given, the picker renders in a
+   * portal with fixed positioning next to that button, so it is never clipped
+   * by a scrolling comment list or a modal's overflow. It opens above the
+   * button when there is room, otherwise below, and stays inside the viewport.
+   */
+  anchorRef?: RefObject<HTMLElement | null>;
 }
+
+const PICKER_WIDTH = 320;
+const VIEWPORT_PAD = 8;
+const GAP = 8;
 
 // Common emoji categories
 const EMOJI_CATEGORIES = {
@@ -22,15 +34,58 @@ const EMOJI_CATEGORIES = {
   "Symbols": ["✨", "⭐", "🌟", "💫", "✴️", "🔥", "💥", "💢", "💦", "💨", "🕳️", "💣", "💬", "👁️‍🗨️", "🗨️", "🗯️", "💭", "💤", "🎵", "🎶", "🔔", "🔕", "📣", "📢", "🏴", "🚩", "🏳️", "🏳️‍🌈", "🏳️‍⚧️", "🏴‍☠️"],
 };
 
-export default function EmojiPicker({ onSelect, isOpen, onClose }: EmojiPickerProps) {
+export default function EmojiPicker({ onSelect, isOpen, onClose, anchorRef }: EmojiPickerProps) {
   const [activeCategory, setActiveCategory] = useState<string>("Smileys");
   const [searchQuery, setSearchQuery] = useState("");
   const pickerRef = useRef<HTMLDivElement>(null);
+  const [anchored, setAnchored] = useState<CSSProperties | null>(null);
+  const portaled = !!anchorRef;
 
-  // Close on click outside
+  // Anchored mode: place the picker beside its button, inside the viewport,
+  // and follow it while the page or a comment list scrolls.
+  useLayoutEffect(() => {
+    if (!isOpen || !anchorRef) return;
+    const place = () => {
+      const anchor = anchorRef.current;
+      const picker = pickerRef.current;
+      if (!anchor) return;
+      const rect = anchor.getBoundingClientRect();
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const width = Math.min(PICKER_WIDTH, vw - VIEWPORT_PAD * 2);
+      const height = picker?.offsetHeight || 340;
+      const roomAbove = rect.top - VIEWPORT_PAD - GAP;
+      const roomBelow = vh - rect.bottom - VIEWPORT_PAD - GAP;
+      const above = roomAbove >= height || roomAbove >= roomBelow;
+      const top = above
+        ? Math.max(VIEWPORT_PAD, rect.top - GAP - height)
+        : Math.min(rect.bottom + GAP, vh - VIEWPORT_PAD - height);
+      // Right edge sits on the button's right edge, clamped to the viewport.
+      const left = Math.min(Math.max(VIEWPORT_PAD, rect.right - width), vw - VIEWPORT_PAD - width);
+      setAnchored({
+        position: "fixed",
+        top: Math.max(VIEWPORT_PAD, top),
+        left,
+        width,
+        maxHeight: vh - VIEWPORT_PAD * 2,
+        zIndex: "var(--z-popover)",
+      });
+    };
+    place();
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+    };
+  }, [isOpen, anchorRef, activeCategory, searchQuery]);
+
+  // Close on click outside (the opening button toggles itself, so it is exempt)
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (anchorRef?.current?.contains(target)) return;
+      if (pickerRef.current && !pickerRef.current.contains(target)) {
         onClose();
       }
     };
@@ -42,7 +97,7 @@ export default function EmojiPicker({ onSelect, isOpen, onClose }: EmojiPickerPr
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, anchorRef]);
 
   // Close on escape
   useEffect(() => {
@@ -81,10 +136,15 @@ export default function EmojiPicker({ onSelect, isOpen, onClose }: EmojiPickerPr
 
   const emojis = getFilteredEmojis();
 
-  return (
+  const picker = (
     <div
       ref={pickerRef}
-      className="absolute bottom-full mb-2 right-0 w-[320px] bg-surface rounded-2xl shadow-xl border border-border-light overflow-hidden z-50"
+      role="dialog"
+      aria-label="Choose an emoji"
+      style={portaled ? (anchored ?? { position: "fixed", visibility: "hidden" }) : undefined}
+      className={`bg-surface rounded-2xl shadow-xl border border-border-light overflow-hidden flex flex-col ${
+        portaled ? "" : "absolute bottom-full mb-2 right-0 w-[320px] z-50"
+      }`}
     >
       {/* Search */}
       <div className="p-3 border-b border-border-light">
@@ -117,7 +177,7 @@ export default function EmojiPicker({ onSelect, isOpen, onClose }: EmojiPickerPr
       )}
 
       {/* Emoji grid */}
-      <div className="p-2 max-h-[200px] overflow-y-auto">
+      <div className="p-2 max-h-[200px] overflow-y-auto min-h-0">
         <div className="grid grid-cols-8 gap-1">
           {emojis.map((emoji, index) => (
             <button
@@ -135,4 +195,9 @@ export default function EmojiPicker({ onSelect, isOpen, onClose }: EmojiPickerPr
       </div>
     </div>
   );
+
+  if (portaled) {
+    return typeof document === "undefined" ? null : createPortal(picker, document.body);
+  }
+  return picker;
 }

@@ -104,6 +104,7 @@ export default function CommentComposer({
   const [acIndex, setAcIndex] = useState(0);
   const [acLoading, setAcLoading] = useState(false);
   const [emojiOpen, setEmojiOpen] = useState(false);
+  const emojiButtonRef = useRef<HTMLButtonElement>(null);
   const [dismissedToken, setDismissedToken] = useState<string | null>(null);
 
   const length = value.length;
@@ -295,6 +296,7 @@ export default function CommentComposer({
             }`}
           />
           <button
+            ref={emojiButtonRef}
             type="button"
             onClick={() => setEmojiOpen((o) => !o)}
             disabled={disabled}
@@ -355,17 +357,17 @@ export default function CommentComposer({
           </ul>
         )}
 
+        {/* Rendered in a portal beside the button so scrolling lists and modals never clip it */}
         {emojiOpen && (
-          <div className="absolute right-0 bottom-full mb-2 z-40">
-            <EmojiPicker
-              isOpen={emojiOpen}
-              onClose={() => setEmojiOpen(false)}
-              onSelect={(emoji) => {
-                insertAtCaret(emoji);
-                setEmojiOpen(false);
-              }}
-            />
-          </div>
+          <EmojiPicker
+            isOpen={emojiOpen}
+            anchorRef={emojiButtonRef}
+            onClose={() => setEmojiOpen(false)}
+            onSelect={(emoji) => {
+              insertAtCaret(emoji);
+              setEmojiOpen(false);
+            }}
+          />
         )}
       </div>
 
