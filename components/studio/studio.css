@@ -1,148 +1,176 @@
-/* Studio (public profile). Owned by Phase 6: the top (cover, identity,
-   actions, counts, About, private note, tabs, loading), the works bar, the
-   pin sheet rows, collections and the collection item page. The post tiles
-   and rows themselves are the shared feed treatments (.pq-tile, .pq-stream-*). */
+/* studio styles — moved out of app/globals.css (Phase 8) so they load only on the routes
+   that render these components. Class names are unchanged. */
 
-@layer components {
-  .pq-studio { padding-block-end: 3rem; }
-  .pq-studio-top { display: grid; gap: 0; margin-block-end: 1.5rem; }
-
-  .pq-studio-cover { display: block; inline-size: 100%; aspect-ratio: 4 / 1; min-block-size: 7rem; max-block-size: 16rem; object-fit: cover; border-radius: var(--radius-card); background: var(--color-tint); }
-
-  .pq-studio-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 0.75rem 1.25rem; align-items: end; padding-block: 1rem 1.25rem; }
-  .pq-studio-head--overlap { margin-block-start: -2.75rem; }
-  @media (min-width: 768px) {
-    .pq-studio-head--overlap { margin-block-start: -3.5rem; }
-  }
-  .pq-studio-avatar { inline-size: 5.5rem; block-size: 5.5rem; border-radius: 999px; object-fit: cover; background: var(--color-tint); border: 4px solid var(--color-canvas); flex: none; }
-  @media (min-width: 768px) { .pq-studio-avatar { inline-size: 8rem; block-size: 8rem; } }
-  .pq-studio-id { min-inline-size: 0; display: grid; gap: 0.2rem; padding-block-end: 0.25rem; }
-  .pq-studio-name { margin: 0; display: flex; align-items: center; gap: 0.5rem; font-family: var(--font-display); font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.125rem); font-weight: 600; letter-spacing: -0.01em; line-height: 1.15; color: var(--color-ink); overflow-wrap: anywhere; }
-  .pq-studio-verified { inline-size: 1.125rem; block-size: 1.125rem; border-radius: 999px; background: var(--color-ink); color: var(--color-canvas); display: inline-flex; align-items: center; justify-content: center; flex: none; }
-  .pq-studio-verified svg { inline-size: 0.7rem; block-size: 0.7rem; }
-  .pq-studio-handle { margin: 0; font-family: var(--font-ui); font-size: 0.875rem; color: var(--color-subdued); }
-  .pq-studio-tagline { margin: 0.25rem 0 0; font-family: var(--font-body); font-size: 1rem; line-height: 1.5; color: var(--color-ink); max-inline-size: 40rem; }
-
-  /* The menu alone sits beside the name; once there are buttons the row drops below on phones. */
-  .pq-studio-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 0.5rem; align-self: start; }
-  .pq-studio-actions:has(> .pq-button) { grid-column: 1 / -1; align-self: end; }
-  .pq-studio-actions > .pq-button { flex: 1 1 auto; white-space: nowrap; }
-  .pq-studio-actions .pq-button svg { inline-size: 1.125rem; block-size: 1.125rem; flex: none; }
-  @media (min-width: 768px) {
-    .pq-studio-actions:has(> .pq-button) { grid-column: auto; padding-block-end: 0.25rem; }
-    .pq-studio-actions > .pq-button { flex: none; }
-  }
-
-  .pq-studio-metrics { display: flex; flex-wrap: wrap; gap: 0.25rem 1.5rem; padding-block-end: 1.25rem; font-family: var(--font-ui); }
-  .pq-studio-metrics--centered { justify-content: center; padding-block: 0.75rem 0; }
-  .pq-studio-metric { display: inline-flex; align-items: baseline; gap: 0.35rem; padding: 0.25rem 0; margin: 0; background: none; border: 0; font: inherit; font-size: 0.9375rem; color: var(--color-subdued); border-radius: var(--radius-control); }
-  .pq-studio-metric strong { font-weight: 600; font-size: 1.0625rem; color: var(--color-ink); }
-  button.pq-studio-metric { cursor: pointer; }
-  button.pq-studio-metric:hover { color: var(--color-ink); text-decoration: underline; }
-  button.pq-studio-metric:focus-visible { outline: 2px solid var(--color-action); outline-offset: 2px; }
-
-  .pq-studio-about { display: grid; gap: 0.875rem; padding: 1.25rem; background: var(--color-surface); border: 1px solid var(--color-line); border-radius: var(--radius-card); }
-  .pq-studio-bio { margin: 0; font-family: var(--font-body); font-size: 1rem; line-height: 1.65; color: var(--color-ink); max-inline-size: 44rem; white-space: pre-line; }
-  .pq-studio-facts { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; font-family: var(--font-ui); font-size: 0.875rem; color: var(--color-subdued); }
-  .pq-studio-facts li { display: inline-flex; align-items: center; gap: 0.4rem; }
-  .pq-studio-facts svg { inline-size: 1rem; block-size: 1rem; flex: none; }
-  .pq-studio-about__foot:first-child { padding-block-start: 0; border-block-start: 0; }
-  .pq-studio-about__foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; padding-block-start: 0.875rem; border-block-start: 1px solid var(--color-line); }
-  .pq-studio-links { display: flex; flex-wrap: wrap; gap: 0.25rem; }
-  .pq-studio-links:empty { display: none; }
-  .pq-studio-links a { display: inline-flex; align-items: center; justify-content: center; inline-size: 2.25rem; block-size: 2.25rem; border-radius: var(--radius-control); color: var(--color-subdued); }
-  .pq-studio-links a:hover { background: var(--color-tint); color: var(--color-ink); }
-  .pq-studio-links svg { inline-size: 1.05rem; block-size: 1.05rem; }
-  .pq-studio-communities { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.25rem 0.625rem 0.25rem 0.25rem; margin: 0; border: 0; background: none; border-radius: 999px; font-family: var(--font-ui); font-size: 0.8125rem; color: var(--color-subdued); cursor: pointer; }
-  .pq-studio-communities:hover { background: var(--color-tint); color: var(--color-ink); }
-  .pq-studio-stack { display: flex; }
-  .pq-studio-stack > * { inline-size: 1.75rem; block-size: 1.75rem; border-radius: 999px; border: 2px solid var(--color-surface); background: var(--color-tint); object-fit: cover; display: inline-flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 600; color: var(--color-ink); }
-  .pq-studio-stack > * + * { margin-inline-start: -0.5rem; }
-  .pq-studio-joined { display: inline-flex; align-items: center; gap: 0.4rem; margin-inline-start: auto; font-family: var(--font-ui); font-size: 0.8125rem; color: var(--color-subdued); }
-  .pq-studio-joined svg { inline-size: 1rem; block-size: 1rem; }
-
-  .pq-studio-private { margin-block-end: 0.5rem; }
-  .pq-studio-private__mark { display: inline-flex; inline-size: 2.75rem; block-size: 2.75rem; align-items: center; justify-content: center; border-radius: 999px; background: var(--color-tint); color: var(--color-ink); margin-block-end: 0.75rem; }
-  .pq-studio-private__mark svg { inline-size: 1.25rem; block-size: 1.25rem; }
-
-  .pq-studio-tabs { margin-block-end: 1.25rem; }
-  .pq-studio-filters { margin-block-end: 1.25rem; }
-  .pq-studio-section { position: relative; }
-
-  /* Communities sheet rows */
-  .pq-studio-community { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; text-decoration: none; color: inherit; border-block-end: 1px solid var(--color-line); }
-  .pq-studio-community:last-child { border-block-end: 0; }
-  .pq-studio-community:hover { background: var(--color-tint); }
-  .pq-studio-community__text { min-inline-size: 0; display: grid; gap: 0.1rem; }
-  .pq-studio-community__name { font-family: var(--font-ui); font-weight: 600; font-size: 0.9375rem; color: var(--color-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .pq-studio-community__meta { font-family: var(--font-ui); font-size: 0.8125rem; color: var(--color-subdued); }
-
-  .pq-studio-community__mark { inline-size: 2.5rem; block-size: 2.5rem; border-radius: 999px; background: var(--color-tint); overflow: hidden; display: inline-flex; align-items: center; justify-content: center; font-family: var(--font-ui); font-weight: 600; color: var(--color-ink); flex: none; }
-  .pq-studio-community__mark img { inline-size: 100%; block-size: 100%; object-fit: cover; }
-
-  /* Route loading state */
-  .pq-studio-loading { display: grid; gap: 0.75rem; }
-  .pq-studio-loading > * { display: block; background: var(--color-tint); border-radius: var(--radius-control); animation: pq-studio-pulse 1.4s ease-in-out infinite; }
-  .pq-studio-loading__cover { aspect-ratio: 4 / 1; max-block-size: 16rem; border-radius: var(--radius-card); }
-  .pq-studio-loading__avatar { inline-size: 5.5rem; block-size: 5.5rem; border-radius: 999px; margin-block-start: -2.75rem; margin-inline-start: 0.5rem; border: 4px solid var(--color-canvas); }
-  @media (min-width: 768px) { .pq-studio-loading__avatar { inline-size: 8rem; block-size: 8rem; margin-block-start: -3.5rem; } }
-  .pq-studio-loading__line { block-size: 0.875rem; max-inline-size: 100%; }
-  @keyframes pq-studio-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
-  @media (prefers-reduced-motion: reduce) { .pq-studio-loading > * { animation: none; } }
-
-  /* ---- Works bar, pinned section, pin sheet ------------------------------- */
-  .pq-studio-works__bar { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-block-end: 1.25rem; }
-  .pq-studio-works__bar .pq-chip-scroll { min-inline-size: 0; flex: 1 1 auto; }
-  .pq-studio-subhead { margin: 0 0 0.75rem; font-family: var(--font-ui); font-size: 0.8125rem; font-weight: 600; color: var(--color-subdued); }
-  .pq-studio-pinned { margin-block-end: 1.5rem; }
-  .pq-pin-row { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border-block-end: 1px solid var(--color-line); }
-  .pq-pin-row:last-child { border-block-end: 0; }
-  .pq-pin-row__text { min-inline-size: 0; flex: 1; display: grid; gap: 0.125rem; }
-  .pq-pin-row__title { font-family: var(--font-ui); font-size: 0.9375rem; font-weight: 500; color: var(--color-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .pq-pin-row__meta { display: inline-flex; align-items: center; gap: 0.35rem; font-family: var(--font-ui); font-size: 0.75rem; color: var(--color-subdued); }
-
-  /* ---- Collections --------------------------------------------------------- */
-  .pq-collections { display: grid; gap: 1rem; }
-  .pq-collection { background: var(--color-surface); border: 1px solid var(--color-line); border-radius: var(--radius-card); padding: 1rem 1.25rem; }
-  .pq-collection__head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 0.5rem 0.875rem; align-items: start; }
-  .pq-collection__mark { inline-size: 2.75rem; block-size: 2.75rem; border-radius: var(--radius-control); background: var(--color-tint); color: var(--color-ink); display: inline-flex; align-items: center; justify-content: center; overflow: hidden; flex: none; }
-  .pq-collection__mark svg { inline-size: 1.375rem; block-size: 1.375rem; }
-  .pq-collection__mark img { inline-size: 100%; block-size: 100%; object-fit: cover; }
-  .pq-collection__mark--emoji { font-size: 1.5rem; }
-  .pq-collection__text { min-inline-size: 0; display: grid; gap: 0.125rem; }
-  .pq-collection__name { margin: 0; font-family: var(--font-display); font-size: 1.125rem; font-weight: 600; color: var(--color-ink); overflow-wrap: anywhere; }
-  .pq-collection__meta { margin: 0; font-family: var(--font-ui); font-size: 0.8125rem; color: var(--color-subdued); }
-  .pq-collection__desc { margin: 0.25rem 0 0; font-family: var(--font-body); font-size: 0.9375rem; line-height: 1.5; color: var(--color-ink); max-inline-size: 40rem; }
-  .pq-collection__actions { display: flex; align-items: center; gap: 0.125rem; }
-  .pq-collection__toggle svg { transition: transform 150ms; }
-  .pq-collection__toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
-  @media (prefers-reduced-motion: reduce) { .pq-collection__toggle svg { transition: none; } }
-  .pq-collection__items { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-block-start: 1rem; }
-  @media (min-width: 640px) { .pq-collection__items { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-  @media (min-width: 1024px) { .pq-collection__items { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
-  .pq-collection-item { position: relative; display: grid; gap: 0.25rem; min-inline-size: 0; }
-  .pq-collection-item__tile { display: block; aspect-ratio: 1; border-radius: var(--radius-card); overflow: hidden; background: var(--color-tint); border: 1px solid var(--color-line); }
-  .pq-collection-item__tile:hover { border-color: var(--color-line-strong); }
-  .pq-collection-item__tile:focus-visible { outline: 3px solid var(--color-action); outline-offset: 2px; }
-  .pq-collection-item__tile img { inline-size: 100%; block-size: 100%; object-fit: cover; display: block; }
-  .pq-collection-item__blank { inline-size: 100%; block-size: 100%; display: grid; place-items: center; color: var(--color-subdued); }
-  .pq-collection-item__blank svg { inline-size: 1.75rem; block-size: 1.75rem; }
-  .pq-collection-item__remove { position: absolute; top: 0.375rem; right: 0.375rem; inline-size: 2rem; block-size: 2rem; min-inline-size: 2rem; background: var(--color-surface); border: 1px solid var(--color-line); }
-  .pq-collection-item__remove svg { inline-size: 0.875rem; block-size: 0.875rem; }
-  .pq-collection-item__name { font-family: var(--font-ui); font-size: 0.875rem; font-weight: 500; color: var(--color-ink); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-block-start: 0.25rem; }
-  .pq-collection-item__name:hover { text-decoration: underline; }
-  .pq-collection-item__meta { font-family: var(--font-ui); font-size: 0.75rem; color: var(--color-subdued); }
-  .pq-collection__empty { margin: 1rem 0 0; padding: 1.25rem; text-align: center; font-family: var(--font-body); font-size: 0.9375rem; color: var(--color-subdued); background: var(--color-tint); border-radius: var(--radius-control); }
-
-  /* ---- Collection item page --------------------------------------------- */
-  .pq-crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 0.375rem; margin-block-end: 1.25rem; font-family: var(--font-ui); font-size: 0.8125rem; color: var(--color-subdued); }
-  .pq-crumbs a { color: inherit; text-decoration: none; }
-  .pq-crumbs a:hover { color: var(--color-ink); text-decoration: underline; }
-  .pq-collection-item-head { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; margin-block-end: 1.5rem; }
-  @media (min-width: 640px) { .pq-collection-item-head:has(.pq-collection-item-head__cover) { grid-template-columns: 10rem minmax(0, 1fr); align-items: start; } }
-  .pq-collection-item-head__cover { inline-size: 100%; max-inline-size: 10rem; aspect-ratio: 1; object-fit: cover; border-radius: var(--radius-card); background: var(--color-tint); }
-  .pq-collection-item-head__text { display: grid; gap: 0.375rem; }
-  .pq-collection-item-head__name { margin: 0; font-family: var(--font-display); font-size: clamp(1.5rem, 1.1rem + 1.4vw, 2rem); font-weight: 600; letter-spacing: -0.01em; color: var(--color-ink); }
-  .pq-collection-item-head__desc { margin: 0; font-family: var(--font-body); font-size: 1rem; line-height: 1.55; color: var(--color-ink); max-inline-size: 40rem; }
-  .pq-collection-item-head__meta { margin: 0; font-family: var(--font-ui); font-size: 0.875rem; color: var(--color-subdued); }
+/* Masonry Layout */
+.studio-works-grid {
+  columns: 3;
+  column-gap: 1.5rem;
 }
+
+@media (max-width: 900px) {
+  .studio-works-grid {
+    columns: 2;
+    column-gap: 1.25rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .studio-works-grid {
+    columns: 1;
+  }
+}
+
+
+/* Empty State */
+.studio-works-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 4rem 2rem;
+  background: var(--color-subtle);
+  border-radius: 12px;
+}
+
+.studio-works-empty-icon {
+  width: 50px;
+  height: 50px;
+  margin: 0 auto 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.studio-works-empty-icon svg {
+  width: 28px;
+  height: 28px;
+  color: var(--muted-text);
+  opacity: 0.4;
+}
+
+.studio-works-empty-text {
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  font-style: italic;
+  color: var(--muted-text);
+}
+
+
+/* Relay Badge */
+.studio-relay-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-purple-primary) 90%, transparent) 0%, color-mix(in srgb, var(--color-pink-vivid) 85%, transparent) 100%);
+  border-radius: 20px;
+  color: var(--color-on-accent);
+  font-family: var(--font-ui);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  z-index: 10;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--color-purple-primary) 30%, transparent);
+}
+
+.studio-relay-badge svg {
+  width: 12px;
+  height: 12px;
+}
+
+
+/* Relay Footer */
+.studio-relay-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.04);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.studio-relay-author {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.studio-relay-author-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid color-mix(in srgb, var(--color-purple-primary) 10%, transparent);
+}
+
+.studio-relay-author-name {
+  font-family: var(--font-ui);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.studio-relay-stats {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.studio-relay-stat {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  color: var(--muted-text);
+}
+
+.studio-relay-stat svg {
+  width: 14px;
+  height: 14px;
+}
+
+
+/* ========== STUDIO COVER - WATERCOLOR AESTHETIC ========== */
+
+/* Soft Watercolor Background - Brand Colors */
+.studio-cover-watercolor {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 20% 30%, color-mix(in srgb, var(--color-purple-primary) 8%, transparent) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, color-mix(in srgb, var(--color-pink-vivid) 5%, transparent) 0%, transparent 45%),
+    radial-gradient(ellipse at 60% 80%, color-mix(in srgb, var(--color-orange-warm) 5%, transparent) 0%, transparent 50%),
+    radial-gradient(ellipse at 10% 70%, color-mix(in srgb, var(--color-purple-primary) 4%, transparent) 0%, transparent 40%),
+    linear-gradient(135deg, var(--color-subtle) 0%, var(--color-surface) 50%, var(--color-subtle) 100%);
+  pointer-events: none;
+}
+
+
+/* Ink Splash Accents */
+.studio-ink-splash {
+  position: absolute;
+  background: radial-gradient(ellipse, color-mix(in srgb, var(--color-purple-primary) 8%, transparent) 0%, transparent 70%);
+  border-radius: 40% 60% 55% 45% / 55% 45% 60% 40%;
+  pointer-events: none;
+}
+
+.studio-ink-splash.splash-1 {
+  width: 300px;
+  height: 200px;
+  top: 10%;
+  right: 5%;
+  transform: rotate(-15deg);
+}
+
+.studio-ink-splash.splash-2 {
+  width: 200px;
+  height: 150px;
+  bottom: 20%;
+  left: 10%;
+  transform: rotate(20deg);
+  background: radial-gradient(ellipse, color-mix(in srgb, var(--color-pink-vivid) 6%, transparent) 0%, transparent 70%);
+}
+

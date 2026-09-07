@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import AppShell from "@/components/layout/AppShell";
 
 interface Props {
   params: Promise<{ tag: string }>;
@@ -12,14 +11,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   return {
     title: `#${tagName} | PinkQuill`,
-    description: `Explore posts tagged with #${tagName} on Pinkquill.`,
+    description: `Explore posts tagged with #${tagName} on Quill.`,
     openGraph: {
       title: `#${tagName} | PinkQuill`,
-      description: `Explore posts tagged with #${tagName} on Pinkquill.`,
+      description: `Explore posts tagged with #${tagName} on Quill.`,
     },
   };
 }
 
 export default function TagLayout({ children }: Props) {
-  return <AppShell>{children}</AppShell>;
+  return <>{children}</>;
 }

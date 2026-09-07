@@ -6,8 +6,6 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useDiscoverCommunities } from "@/lib/hooks.legacy";
 import { useTrendingTags } from "@/lib/hooks/useTags";
-import Button from "@/components/ui/Button";
-import { DEFAULT_AVATAR } from "@/lib/utils/image";
 
 interface SuggestedUser {
   id: string;
@@ -30,21 +28,24 @@ function SectionCard({
   showMoreLabel?: string;
 }) {
   return (
-    <section className="bg-surface rounded-card border border-line overflow-hidden" aria-label={title}>
-      <div className="px-4 pt-3.5 pb-2.5">
-        <h2 className="font-ui text-[0.9375rem] font-semibold text-ink">{title}</h2>
+    <div className="bg-surface rounded-2xl border border-border-light shadow-sm overflow-hidden">
+      <div className="px-4 py-3">
+        <h2 className="font-display text-base font-bold bg-gradient-to-r from-purple-primary to-pink-vivid bg-clip-text text-transparent">
+          {title}
+        </h2>
       </div>
-      <div>{children}</div>
+      <div className="border-t border-border-light">
+        {children}
+      </div>
       {showMoreHref && (
         <Link
           href={showMoreHref}
-          className="flex items-center min-h-11 px-4 text-sm font-ui font-medium border-t border-line hover:bg-tint transition-colors"
-          style={{ color: "var(--color-action-ink)" }}
+          className="block px-4 py-2.5 text-sm font-ui font-medium text-purple-primary hover:bg-accent/5 transition-colors border-t border-border-light"
         >
           {showMoreLabel}
         </Link>
       )}
-    </section>
+    </div>
   );
 }
 
@@ -54,7 +55,7 @@ function TrendingSection() {
   if (loading) {
     return (
       <SectionCard title="Trending">
-        <div className="divide-y divide-line">
+        <div className="divide-y divide-border-light">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="px-4 py-3 animate-pulse">
               <div className="h-3 bg-skeleton rounded w-20 mb-2" />
@@ -70,17 +71,26 @@ function TrendingSection() {
 
   return (
     <SectionCard title="Trending" showMoreHref="/explore">
-      <div className="divide-y divide-line">
-        {tags.map((tag) => (
+      <div className="divide-y divide-border-light">
+        {tags.map((tag, index) => (
           <Link
             key={tag.name}
             href={`/tag/${encodeURIComponent(tag.name)}`}
-            className="block px-4 py-3 hover:bg-tint transition-colors"
+            className="block px-4 py-3 hover:bg-gradient-to-r hover:from-purple-primary/5 hover:to-pink-vivid/5 transition-colors group"
           >
-            <p className="font-ui font-medium text-ink text-sm">#{tag.name}</p>
-            <p className="text-xs text-subdued font-body mt-0.5">
-              {tag.post_count.toLocaleString()} {tag.post_count === 1 ? "post" : "posts"}
-            </p>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-ui font-semibold text-ink text-[0.9rem] group-hover:text-accent transition-colors">
+                  #{tag.name}
+                </p>
+                <p className="text-xs text-muted font-body mt-0.5">
+                  {tag.post_count.toLocaleString()} posts
+                </p>
+              </div>
+              <span className="text-xs font-ui text-muted/60">
+                #{index + 1}
+              </span>
+            </div>
           </Link>
         ))}
       </div>
@@ -199,15 +209,15 @@ function WhoToFollowSection() {
   if (loading) {
     return (
       <SectionCard title="Creators to follow">
-        <div className="divide-y divide-line">
+        <div className="divide-y divide-border-light">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="px-4 py-3 flex items-center gap-3 animate-pulse">
-              <div className="w-9 h-9 rounded-full bg-skeleton" />
+              <div className="w-10 h-10 rounded-full bg-skeleton" />
               <div className="flex-1">
                 <div className="h-4 bg-skeleton rounded w-24 mb-1" />
                 <div className="h-3 bg-skeleton rounded w-16" />
               </div>
-              <div className="h-9 w-16 bg-skeleton rounded-control" />
+              <div className="h-8 w-16 bg-skeleton rounded-full" />
             </div>
           ))}
         </div>
@@ -219,7 +229,7 @@ function WhoToFollowSection() {
 
   return (
     <SectionCard title="Creators to follow" showMoreHref="/explore" showMoreLabel="Discover more">
-      <div className="divide-y divide-line">
+      <div className="divide-y divide-border-light">
         {suggestedUsers.map((suggestedUser) => {
           const isFollowing = followingIds.has(suggestedUser.id);
           return (
@@ -227,34 +237,37 @@ function WhoToFollowSection() {
               key={suggestedUser.id}
               className="px-4 py-3 flex items-center gap-3"
             >
-              <Link href={`/studio/${suggestedUser.username}`} className="flex-shrink-0" aria-label={`${suggestedUser.display_name || suggestedUser.username}'s studio`}>
-                <img
-                  src={suggestedUser.avatar_url || DEFAULT_AVATAR}
-                  alt=""
-                  className="pq-avatar"
-                  width={36}
-                  height={36}
-                />
+              <Link href={`/studio/${suggestedUser.username}`} className="flex-shrink-0">
+                <div className="relative">
+                  <div className="absolute -inset-0.5 bg-gradient-to-br from-orange-warm via-pink-vivid to-purple-primary rounded-full opacity-0 hover:opacity-100 transition-opacity" />
+                  <img
+                    src={suggestedUser.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&q=80"}
+                    alt=""
+                    className="relative w-10 h-10 rounded-full object-cover border-2 border-white"
+                  />
+                </div>
               </Link>
               <div className="flex-1 min-w-0">
-                <Link href={`/studio/${suggestedUser.username}`} className="block min-w-0">
-                  <p className="font-ui font-medium text-ink text-sm truncate">
+                <Link href={`/studio/${suggestedUser.username}`}>
+                  <p className="font-ui font-semibold text-ink text-sm truncate hover:text-accent transition-colors">
                     {suggestedUser.display_name || suggestedUser.username}
                   </p>
-                  <p className="text-subdued text-xs font-body truncate">
+                  <p className="text-muted text-xs font-body truncate">
                     @{suggestedUser.username}
                   </p>
                 </Link>
               </div>
               {user && user.id !== suggestedUser.id && (
-                <Button
-                  size="sm"
-                  variant={isFollowing ? "secondary" : "outline"}
+                <button
                   onClick={() => handleFollow(suggestedUser.id)}
-                  aria-pressed={isFollowing}
+                  className={`px-3 py-1.5 rounded-full font-ui text-xs font-semibold transition-all ${
+                    isFollowing
+                      ? "bg-surface border border-border-light text-ink hover:border-red-300 hover:text-red-500"
+                      : "bg-gradient-to-r from-purple-primary to-pink-vivid text-on-accent hover:shadow-md hover:shadow-pink-vivid/20"
+                  }`}
                 >
                   {isFollowing ? "Following" : "Follow"}
-                </Button>
+                </button>
               )}
             </div>
           );
@@ -270,10 +283,10 @@ function CommunitiesSection() {
   if (loading) {
     return (
       <SectionCard title="Communities">
-        <div className="divide-y divide-line">
+        <div className="divide-y divide-border-light">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="px-4 py-3 flex items-center gap-3 animate-pulse">
-              <div className="w-9 h-9 rounded-[0.625rem] bg-skeleton" />
+              <div className="w-10 h-10 rounded-xl bg-skeleton" />
               <div className="flex-1">
                 <div className="h-4 bg-skeleton rounded w-24 mb-1" />
                 <div className="h-3 bg-skeleton rounded w-16" />
@@ -289,31 +302,31 @@ function CommunitiesSection() {
 
   return (
     <SectionCard title="Communities" showMoreHref="/community" showMoreLabel="Explore communities">
-      <div className="divide-y divide-line">
+      <div className="divide-y divide-border-light">
         {trending.map((community) => (
           <Link
             key={community.id}
             href={`/community/${community.slug}`}
-            className="px-4 py-3 flex items-center gap-3 hover:bg-tint transition-colors"
+            className="px-4 py-3 flex items-center gap-3 hover:bg-gradient-to-r hover:from-purple-primary/5 hover:to-pink-vivid/5 transition-colors group"
           >
             {community.avatar_url ? (
               <img
                 src={community.avatar_url}
                 alt=""
-                className="w-9 h-9 rounded-[0.625rem] object-cover"
+                className="w-10 h-10 rounded-xl object-cover"
               />
             ) : (
-              <div className="w-9 h-9 rounded-[0.625rem] flex items-center justify-center" style={{ background: "var(--color-action-soft)", color: "var(--color-action-ink)" }}>
-                <span className="font-ui text-sm font-semibold">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center">
+                <span className="font-ui text-sm font-bold text-on-accent">
                   {community.name.charAt(0).toUpperCase()}
                 </span>
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <p className="font-ui font-medium text-ink text-sm truncate">
+              <p className="font-ui font-semibold text-ink text-sm truncate group-hover:text-accent transition-colors">
                 {community.name}
               </p>
-              <p className="text-subdued text-xs font-body">
+              <p className="text-muted text-xs font-body">
                 {(community.member_count || 0).toLocaleString()} {community.member_count === 1 ? "member" : "members"}
               </p>
             </div>
@@ -326,7 +339,7 @@ function CommunitiesSection() {
 
 export default function RightSidebar() {
   return (
-    <aside className="hidden lg:block fixed right-0 top-(--pq-topbar) bottom-0 w-[280px] border-l border-line overflow-y-auto bg-canvas" aria-label="Discover">
+    <aside className="hidden lg:block fixed right-0 top-0 bottom-0 w-[280px] border-l border-border-light overflow-y-auto bg-subtle/50">
       <div className="p-4 space-y-4">
         {/* Trending */}
         <TrendingSection />
@@ -339,21 +352,21 @@ export default function RightSidebar() {
 
         {/* Footer */}
         <nav className="px-1 pt-2">
-          <div className="flex flex-wrap gap-x-2 gap-y-1 text-xs text-subdued font-body">
-            <Link href="/terms" className="hover:text-ink transition-colors">Terms</Link>
-            <span aria-hidden="true">·</span>
-            <Link href="/privacy" className="hover:text-ink transition-colors">Privacy</Link>
-            <span aria-hidden="true">·</span>
-            <Link href="/community-guidelines" className="hover:text-ink transition-colors">Guidelines</Link>
-            <span aria-hidden="true">·</span>
-            <Link href="/marketplace-guidelines" className="hover:text-ink transition-colors">Marketplace</Link>
-            <span aria-hidden="true">·</span>
-            <Link href="/about" className="hover:text-ink transition-colors">About</Link>
-            <span aria-hidden="true">·</span>
-            <Link href="/help" className="hover:text-ink transition-colors">Help</Link>
+          <div className="flex flex-wrap gap-x-2 gap-y-1 text-[0.7rem] text-muted/70 font-body">
+            <Link href="/terms" className="hover:text-accent transition-colors">Terms</Link>
+            <span>·</span>
+            <Link href="/privacy" className="hover:text-accent transition-colors">Privacy</Link>
+            <span>·</span>
+            <Link href="/community-guidelines" className="hover:text-accent transition-colors">Guidelines</Link>
+            <span>·</span>
+            <Link href="/marketplace-guidelines" className="hover:text-accent transition-colors">Marketplace</Link>
+            <span>·</span>
+            <Link href="/about" className="hover:text-accent transition-colors">About</Link>
+            <span>·</span>
+            <Link href="/help" className="hover:text-accent transition-colors">Help</Link>
           </div>
-          <p className="text-xs text-subdued font-body mt-2">
-            © {new Date().getFullYear()} Pinkquill
+          <p className="text-[0.65rem] text-muted font-body mt-2">
+            © 2025 PinkQuill
           </p>
         </nav>
       </div>
