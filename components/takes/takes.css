@@ -308,7 +308,7 @@
 .takes-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 1px;
+  gap: 4px; /* same gutter and corner as the profile's Gallery sub-view (Phase 3) */
 }
 
 .take-grid-card {
@@ -317,6 +317,12 @@
   overflow: hidden;
   cursor: pointer;
   background: #1a1a1a;
+  border-radius: 2px;
+}
+
+@media (min-width: 640px) {
+  .takes-grid { gap: 8px; }
+  .take-grid-card { border-radius: 8px; }
 }
 
 .take-grid-thumbnail {

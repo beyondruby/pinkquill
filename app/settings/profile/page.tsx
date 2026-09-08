@@ -275,7 +275,7 @@ export default function EditProfilePage() {
               <img
                 src={form.cover_url}
                 alt="Cover"
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover opacity-30"
               />
             )}
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -356,6 +356,7 @@ export default function EditProfilePage() {
             value={form.display_name}
             onChange={handleChange}
             placeholder="Your display name"
+            maxLength={50}
             className="w-full px-4 py-3 rounded-xl bg-skeleton/60 border-none outline-none font-body text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-purple-primary/20 transition-all"
           />
         </div>
@@ -428,6 +429,7 @@ export default function EditProfilePage() {
             value={form.role}
             onChange={handleChange}
             placeholder="e.g., Writer, Poet, Artist"
+            maxLength={60}
             className="w-full px-4 py-3 rounded-xl bg-skeleton/60 border-none outline-none font-body text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-purple-primary/20 transition-all"
           />
         </div>
@@ -443,6 +445,7 @@ export default function EditProfilePage() {
             value={form.location}
             onChange={handleChange}
             placeholder="Where are you based?"
+            maxLength={60}
             className="w-full px-4 py-3 rounded-xl bg-skeleton/60 border-none outline-none font-body text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-purple-primary/20 transition-all"
           />
         </div>
@@ -458,6 +461,7 @@ export default function EditProfilePage() {
             value={form.education}
             onChange={handleChange}
             placeholder="Your educational background"
+            maxLength={60}
             className="w-full px-4 py-3 rounded-xl bg-skeleton/60 border-none outline-none font-body text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-purple-primary/20 transition-all"
           />
         </div>
@@ -473,6 +477,7 @@ export default function EditProfilePage() {
             value={form.languages}
             onChange={handleChange}
             placeholder="e.g., English, Spanish, French"
+            maxLength={60}
             className="w-full px-4 py-3 rounded-xl bg-skeleton/60 border-none outline-none font-body text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-purple-primary/20 transition-all"
           />
           <p className="font-body text-xs text-muted mt-2">

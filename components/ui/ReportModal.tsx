@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useRef, useState } from "react";
+import { useDialog } from "@/lib/hooks/useDialog";
 import Button from "./Button";
 
 interface ReportModalProps {
@@ -27,6 +28,18 @@ export default function ReportModal({ isOpen, onClose, onSubmit, submitting, sub
   const [selectedReason, setSelectedReason] = useState<string | null>(null);
   const [details, setDetails] = useState("");
   const [step, setStep] = useState<"select" | "details">("select");
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+
+  const handleClose = () => {
+    setSelectedReason(null);
+    setDetails("");
+    setStep("select");
+    onClose();
+  };
+
+  // Escape, focus trap and body scroll lock like every other dialog (P-34).
+  useDialog(isOpen, dialogRef, handleClose, submitting);
 
   if (!isOpen) return null;
 
@@ -40,13 +53,6 @@ export default function ReportModal({ isOpen, onClose, onSubmit, submitting, sub
     await onSubmit(selectedReason, details.trim() || undefined);
   };
 
-  const handleClose = () => {
-    setSelectedReason(null);
-    setDetails("");
-    setStep("select");
-    onClose();
-  };
-
   const handleBack = () => {
     setStep("select");
   };
@@ -57,7 +63,14 @@ export default function ReportModal({ isOpen, onClose, onSubmit, submitting, sub
         className="fixed inset-0 bg-black/40 backdrop-blur-sm z-(--z-modal) animate-fadeIn"
         onClick={() => !submitting && handleClose()}
       />
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] bg-surface rounded-2xl shadow-modal z-(--z-modal) overflow-hidden animate-scaleIn">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        className="pq-confirm-card fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] max-w-[calc(100vw-2rem)] bg-surface rounded-2xl shadow-modal z-(--z-modal) overflow-hidden animate-scaleIn"
+      >
         {submitted ? (
           /* Success State */
           <div className="p-10 text-center">
@@ -76,7 +89,7 @@ export default function ReportModal({ isOpen, onClose, onSubmit, submitting, sub
           <>
             {/* Header */}
             <div className="px-6 pt-7 pb-5">
-              <h3 className="font-display text-[1.4rem] text-ink mb-1">{title}</h3>
+              <h3 id={titleId} className="font-display text-[1.4rem] text-ink mb-1">{title}</h3>
               <p className="font-body text-[0.9rem] text-muted italic">Your report is anonymous</p>
             </div>
 

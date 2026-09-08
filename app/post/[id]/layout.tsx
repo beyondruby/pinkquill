@@ -29,7 +29,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const plainContent = post.content
     ? post.content.replace(/<[^>]*>/g, "").slice(0, 160)
     : "";
-  const description = plainContent || `A ${post.type || "post"} by ${authorName} on Quill.`;
+  const description = plainContent || `A ${post.type || "post"} by ${authorName} on PinkQuill.`;
 
   return {
     title: `${title} | PinkQuill`,

@@ -12,12 +12,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("display_name, bio")
+    .select("display_name, bio, avatar_url")
     .eq("username", username)
     .single();
 
   const displayName = profile?.display_name || `@${username}`;
-  const description = profile?.bio || `Check out ${displayName}'s studio on Quill.`;
+  const description = profile?.bio || `Check out ${displayName}'s studio on PinkQuill.`;
+  const url = `https://www.pinkquill.com/studio/${username}`;
 
   return {
     title: `${displayName} | PinkQuill`,
@@ -25,6 +26,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       title: `${displayName} | PinkQuill`,
       description,
+      url,
+      type: "profile",
+      images: profile?.avatar_url ? [{ url: profile.avatar_url }] : undefined,
     },
   };
 }

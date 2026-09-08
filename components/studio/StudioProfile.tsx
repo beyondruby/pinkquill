@@ -7,10 +7,9 @@ import "./studio.css";
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
-import { toModalPost } from "@/lib/posts/toPostProps";
+import { toModalPost, DEFAULT_AVATAR } from "@/lib/posts/toPostProps";
 import { formatCount } from "@/lib/utils/format";
 import { stripHtml } from "@/lib/utils/sanitize";
-import { submitReport } from "@/lib/reports";
 import { getOrCreateConversation } from "@/lib/messaging/conversations";
 import { fetchCollaboratedPosts, useCommunities, COLLAB_SELF_REMOVED_EVENT } from "@/lib/hooks.legacy";
 import type { CollabSelfRemovedDetail } from "@/lib/hooks.legacy";
@@ -21,6 +20,11 @@ import { usePinnedPosts } from "@/lib/hooks/usePinnedPosts";
 import { useProfile, useFollow } from "@/lib/hooks/useProfile";
 import type { FollowStatus } from "@/lib/types";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import ReportModal from "@/components/ui/ReportModal";
+import { BLOCK_COPY } from "@/components/feed/post-detail/copy";
+import { useReportFlow } from "@/components/feed/post-detail/flows";
+import { useAuthModal } from "@/components/providers/AuthModalProvider";
+import StudioSkeleton from "./StudioSkeleton";
 import { CommentIcon } from "@/components/ui/Icons";
 import { getTimeAgo, shortDate, fullDate, formatDate, mediumDate, monthYear } from "@/lib/utils/time";
 import { parseSocialLinks, getSocialUrl } from "@/lib/utils/social";
@@ -48,40 +52,19 @@ import ReactionCount from "@/components/feed/ReactionCount";
 import CommentCount from "@/components/feed/CommentCount";
 
 
-// Custom hook for scroll-triggered card reveal
-function useScrollReveal() {
-  const [revealedCards, setRevealedCards] = useState<Set<string>>(new Set());
-  const observerRef = useRef<IntersectionObserver | null>(null);
-
-  useEffect(() => {
-    observerRef.current = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const id = entry.target.getAttribute('data-post-id');
-            if (id) {
-              setRevealedCards((prev) => new Set([...prev, id]));
-              // Unobserve after revealing to avoid re-triggering
-              observerRef.current?.unobserve(entry.target);
-            }
-          }
-        });
-      },
-      { threshold: 0.1, rootMargin: '50px' }
-    );
-
-    return () => observerRef.current?.disconnect();
-  }, []);
-
-  const observeCard = useCallback((element: HTMLElement | null) => {
-    if (element && observerRef.current) {
-      observerRef.current.observe(element);
-    }
-  }, []);
-
-  return { revealedCards, observeCard };
+// Keyboard access for tiles and stat cells that only had onClick (P-34).
+function pressKeys(onPress: () => void) {
+  return {
+    role: "button" as const,
+    tabIndex: 0,
+    onKeyDown: (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onPress();
+      }
+    },
+  };
 }
-
 
 // Social platform icons (using brand colors)
 const socialIcons: Record<string, { icon: React.ReactNode; color: string }> = {
@@ -585,7 +568,7 @@ function CollectionCard({
                     )}
 
                     {/* Overlay with name */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover/item:opacity-100 transition-opacity duration-300">
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover/item:opacity-100 studio-touch-reveal transition-opacity duration-300">
                       <div className="absolute bottom-0 left-0 right-0 p-3">
                         <p className="font-ui text-sm font-medium text-white truncate">
                           {item.name}
@@ -605,7 +588,7 @@ function CollectionCard({
                           e.stopPropagation();
                           setDeleteItemTarget(item.id);
                         }}
-                        className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white opacity-0 group-hover/item:opacity-100 hover:bg-red-500 transition-all"
+                        className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white opacity-0 group-hover/item:opacity-100 studio-touch-reveal hover:bg-red-500 transition-all"
                         title="Delete item"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -704,7 +687,12 @@ function excerptOf(id: string, content: string | null | undefined, length: numbe
   const key = `${id}:${length}:${content.length}`;
   const hit = excerptCache.get(key);
   if (hit !== undefined) return hit;
-  const value = stripHtml(content).substring(0, length);
+  const plain = stripHtml(content);
+  let value = plain.substring(0, length);
+  if (plain.length > length) {
+    const cut = value.lastIndexOf(" ");
+    if (cut > length * 0.6) value = value.substring(0, cut);
+  }
   if (excerptCache.size > 2000) excerptCache.clear();
   excerptCache.set(key, value);
   return value;
@@ -748,6 +736,8 @@ function StudioTabButton({
     <button
       onClick={onClick}
       aria-label={label}
+      role="tab"
+      aria-selected={active}
       className={`flex-1 min-w-0 relative flex items-center justify-center gap-2 py-3 md:py-3 font-ui text-[13px] font-medium transition-colors duration-200 ${
         active
           ? "text-accent-2"
@@ -775,6 +765,8 @@ function StudioSubTabButton({
   return (
     <button
       onClick={onClick}
+      role="tab"
+      aria-selected={active}
       className={`shrink-0 px-3.5 py-1.5 rounded-full font-ui text-xs font-medium transition-all duration-200 whitespace-nowrap ${
         active
           ? "bg-accent/15 text-accent"
@@ -856,7 +848,6 @@ export default function StudioProfile({ username }: StudioProfileProps) {
   const { toggleCollapse } = useToggleCollectionCollapse();
   const { reorderCollections } = useReorderCollections();
   const { pinnedPostIds, isPinned, canPin, pinPost, unpinPost } = usePinnedPosts(profile?.id);
-  const { revealedCards, observeCard } = useScrollReveal();
   const [pageLoaded, setPageLoaded] = useState(false);
   const [showCommunitiesModal, setShowCommunitiesModal] = useState(false);
   // Follow / block status come from useProfile's single lookup; the page only
@@ -890,6 +881,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
   };
   const [followLoading, setFollowLoading] = useState(false);
   const [messageLoading, setMessageLoading] = useState(false);
+  const { openModal: openAuthModal } = useAuthModal();
   const [showFollowersModal, setShowFollowersModal] = useState(false);
   const [followersModalTab, setFollowersModalTab] = useState<"followers" | "following">("followers");
   const [showShareModal, setShowShareModal] = useState(false);
@@ -898,10 +890,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
   const setIsBlocked = (value: boolean) => setBlockOverride(profile ? { id: profile.id, value } : null);
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
   const [blockLoading, setBlockLoading] = useState(false);
-  const [showReportModal, setShowReportModal] = useState(false);
-  const [reportReason, setReportReason] = useState("");
-  const [reportLoading, setReportLoading] = useState(false);
-  const [reportSuccess, setReportSuccess] = useState(false);
+  const report = useReportFlow(profile ? { type: "user", reportedUserId: profile.id } : null);
   const [collaboratedPosts, setCollaboratedPosts] = useState<Post[]>([]);
 
   // Trigger page load animation
@@ -916,6 +905,10 @@ export default function StudioProfile({ username }: StudioProfileProps) {
     const tab = searchParams?.get("tab");
     if (tab === "posts" || tab === "takes" || tab === "relays" || tab === "store" || tab === "commissions" || tab === "collections") {
       setActiveTab(tab);
+    }
+    const view = searchParams?.get("view");
+    if (view === "all" || view === "gallery" || view === "poems" || view === "journals" || view === "communities") {
+      setPostViewMode(view);
     }
   }, [searchParams]);
 
@@ -932,8 +925,22 @@ export default function StudioProfile({ username }: StudioProfileProps) {
   useTrackProfileView(isOwnProfile ? undefined : profile?.id, "direct");
 
   // Post view modes
-  type PostViewMode = "all" | "blog" | "gallery" | "poems" | "journals" | "communities";
+  type PostViewMode = "all" | "gallery" | "poems" | "journals" | "communities";
   const [postViewMode, setPostViewMode] = useState<PostViewMode>("all");
+
+  // Refresh and Back keep the tab and sub-tab: they live in ?tab= / ?view=
+  // (P-36). Native replaceState keeps Next's history entry (the modal's
+  // pushState contract in ModalProvider relies on it).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    const wantTab = activeTab === "posts" ? null : activeTab;
+    const wantView = activeTab === "posts" && postViewMode !== "all" ? postViewMode : null;
+    if ((url.searchParams.get("tab") ?? null) === wantTab && (url.searchParams.get("view") ?? null) === wantView) return;
+    if (wantTab) url.searchParams.set("tab", wantTab); else url.searchParams.delete("tab");
+    if (wantView) url.searchParams.set("view", wantView); else url.searchParams.delete("view");
+    window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+  }, [activeTab, postViewMode]);
 
 
   // Derived post lists are memoised so unrelated state (a modal, a report
@@ -965,7 +972,6 @@ export default function StudioProfile({ username }: StudioProfileProps) {
       case "journals":
         list = allPosts.filter(p => p.type === "journal" && !p.community_id);
         break;
-      case "blog":
       case "all":
       default:
         list = allPosts.filter(p => !p.community_id);
@@ -1062,33 +1068,13 @@ export default function StudioProfile({ username }: StudioProfileProps) {
     setBlockLoading(false);
   };
 
-  const handleReport = async () => {
-    if (!user || !profile || !reportReason.trim()) return;
-
-    setReportLoading(true);
-    try {
-      const ok = await submitReport({ type: "user", reportedUserId: profile.id }, user.id, reportReason.trim());
-      if (!ok) {
-        actionToast.reportError();
-        return;
-      }
-      setReportSuccess(true);
-      setReportReason("");
-      setTimeout(() => {
-        setShowReportModal(false);
-        setReportSuccess(false);
-      }, 2000);
-    } catch (err) {
-      console.error("Failed to submit report:", err);
-      actionToast.reportError();
-    } finally {
-      setReportLoading(false);
-    }
-  };
-
   // Handle follow/unfollow
   const handleFollow = async () => {
-    if (!user || !profile || isOwnProfile) return;
+    if (!user) {
+      openAuthModal();
+      return;
+    }
+    if (!profile || isOwnProfile) return;
     if (followLoading) return;
     setFollowLoading(true);
 
@@ -1130,9 +1116,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-canvas flex items-center justify-center">
-        <Loading text="Loading profile" size="large" />
-      </div>
+      <StudioSkeleton />
     );
   }
 
@@ -1188,17 +1172,17 @@ export default function StudioProfile({ username }: StudioProfileProps) {
           <div className="studio-avatar-wrapper flex-shrink-0 mx-auto md:mx-0">
             <div className="studio-avatar-glow" />
             <img
-              src={profile.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80"}
+              src={profile.avatar_url || DEFAULT_AVATAR}
               alt={profile.display_name || profile.username}
               className="studio-avatar w-24 h-24 md:w-40 md:h-40 rounded-full object-cover border-4 border-surface shadow-xl"
             />
           </div>
 
           {/* Info */}
-          <div className="flex-1 pb-2 md:pb-4 text-center md:text-left">
+          <div className="flex-1 min-w-0 pb-2 md:pb-4 text-center md:text-left">
             {/* Name */}
             <div className="flex items-center justify-center md:justify-start gap-2 md:gap-3 mb-1 md:mb-2">
-              <h1 className="font-display text-[1.6rem] md:text-[2.6rem] tracking-tight leading-none text-ink font-medium">
+              <h1 className="font-display text-[1.6rem] md:text-[2.6rem] tracking-tight leading-none text-ink font-medium truncate min-w-0">
                 {profile.display_name || profile.username}
               </h1>
               {profile.is_verified && (
@@ -1209,11 +1193,11 @@ export default function StudioProfile({ username }: StudioProfileProps) {
             </div>
 
             {/* Username */}
-            <p className="font-ui text-[0.8rem] md:text-[0.85rem] text-muted/70 tracking-wider mb-2 md:mb-3">@{profile.username}</p>
+            <p className="font-ui text-[0.8rem] md:text-[0.85rem] text-muted/70 tracking-wider mb-2 md:mb-3 truncate">@{profile.username}</p>
 
             {/* Tagline */}
             {profile.tagline && (
-              <p className="font-body text-[0.9rem] md:text-[1.05rem] italic text-muted">
+              <p className="font-body text-[0.9rem] md:text-[1.05rem] italic text-muted truncate">
                 {profile.tagline}
               </p>
             )}
@@ -1221,7 +1205,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
 
           {/* Actions */}
           <div className="flex flex-wrap justify-center md:justify-end gap-2 md:gap-3 pb-2 md:pb-4">
-            {!isOwnProfile && user && (
+            {!isOwnProfile && (
               <>
                 <button
                   onClick={handleFollow}
@@ -1248,7 +1232,11 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 </button>
                 <button
                   onClick={async () => {
-                    if (!user || !profile || messageLoading) return;
+                    if (!user) {
+                      openAuthModal();
+                      return;
+                    }
+                    if (!profile || messageLoading) return;
                     setMessageLoading(true);
 
                     try {
@@ -1264,7 +1252,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                   className="px-4 py-2 md:px-6 md:py-3 rounded-full border-2 border-border-light bg-surface font-ui text-[0.85rem] md:text-15 font-medium text-ink flex items-center gap-2 hover:border-accent hover:text-accent transition-all disabled:opacity-50"
                 >
                   {icons.message}
-                  <span className="hidden md:inline">{messageLoading ? "Following…" : "Message"}</span>
+                  <span className="hidden md:inline">Message</span>
                 </button>
               </>
             )}
@@ -1288,7 +1276,12 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 },
                 {
                   label: "Copy link",
-                  onSelect: () => navigator.clipboard.writeText(profileUrl),
+                  onSelect: () => {
+                    navigator.clipboard.writeText(profileUrl).then(
+                      () => showToast.success("Link copied"),
+                      () => showToast.error("Couldn’t copy the link"),
+                    );
+                  },
                   icon: (
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
@@ -1327,7 +1320,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 },
                 {
                   label: `Report @${profile.username}`,
-                  onSelect: () => setShowReportModal(true),
+                  onSelect: report.show,
                   hidden: isOwnProfile || !user,
                   tone: "danger",
                   icon: (
@@ -1377,6 +1370,10 @@ export default function StudioProfile({ username }: StudioProfileProps) {
               setFollowersModalTab("followers");
               setShowFollowersModal(true);
             }}
+            {...pressKeys(() => {
+              setFollowersModalTab("followers");
+              setShowFollowersModal(true);
+            })}
           >
             <span className="studio-stat-value">{formatCount(followersShown)}</span>
             <span className="studio-stat-label">Followers</span>
@@ -1387,6 +1384,10 @@ export default function StudioProfile({ username }: StudioProfileProps) {
               setFollowersModalTab("following");
               setShowFollowersModal(true);
             }}
+            {...pressKeys(() => {
+              setFollowersModalTab("following");
+              setShowFollowersModal(true);
+            })}
           >
             <span className="studio-stat-value">{formatCount(followingShown)}</span>
             <span className="studio-stat-label">Following</span>
@@ -1405,9 +1406,6 @@ export default function StudioProfile({ username }: StudioProfileProps) {
             {/* The Box */}
             <div className="relative rounded-2xl md:rounded-3xl bg-gradient-to-br from-surface via-surface to-accent/10 p-5 md:p-8 lg:p-10 border border-accent/15 shadow-lg shadow-accent/10">
 
-              {/* Subtle top accent line */}
-              <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-accent/30 to-transparent" />
-
               {/* Header */}
               <div className="mb-4 md:mb-8">
                 <h3 className="font-display text-base md:text-lg text-ink/80 tracking-wide font-medium">About the Artist</h3>
@@ -1415,7 +1413,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
 
               {/* Bio */}
               {profile.bio && (
-                <p className="font-body text-15 md:text-[1.12rem] leading-[1.8] md:leading-[1.95] text-ink/75 mb-6 md:mb-8 max-w-2xl">
+                <p className="font-body text-15 md:text-[1.12rem] leading-[1.8] md:leading-[1.95] text-ink/75 mb-6 md:mb-8 max-w-2xl whitespace-pre-line break-words">
                   {profile.bio}
                 </p>
               )}
@@ -1554,9 +1552,9 @@ export default function StudioProfile({ username }: StudioProfileProps) {
         {(!isPrivateAccount || isOwnProfile || isFollowing) && (
           <>
         {/* Tabs */}
-        <div className={`mb-8 studio-section-animated ${pageLoaded ? 'loaded delay-4' : ''}`}>
+        <div className="mb-8">
           <div>
-            <div className="flex items-stretch overflow-x-auto scrollbar-hide border-b border-border-light">
+            <div className="flex items-stretch overflow-x-auto scrollbar-hide border-b border-border-light" role="tablist" aria-label="Profile sections">
               <StudioTabButton
                 label="Posts"
                 icon={icons.feather}
@@ -1581,14 +1579,17 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 active={activeTab === "store"}
                 onClick={() => setActiveTab("store")}
               />
-              {showCommissionsTab && (
+              {showCommissionsTab ? (
                 <StudioTabButton
                   label="Commissions"
                   icon={icons.briefcase}
                   active={activeTab === "commissions"}
                   onClick={() => setActiveTab("commissions")}
                 />
-              )}
+              ) : hasCommissions === undefined ? (
+                // Same width as the real tab while we do not know yet, so the bar does not jump (P-40).
+                <div className="flex-1 min-w-0 invisible" aria-hidden="true" />
+              ) : null}
               <StudioTabButton
                 label="Collections"
                 icon={icons.collection}
@@ -1601,18 +1602,13 @@ export default function StudioProfile({ username }: StudioProfileProps) {
 
         {/* Posts Section */}
         {activeTab === "posts" && (
-          <div className={`studio-works-section studio-section-animated ${pageLoaded ? 'loaded delay-5' : ''}`}>
+          <div className="studio-works-section">
             {/* View Mode Tabs */}
-            <div className="flex items-center gap-1.5 mb-8 overflow-x-auto scrollbar-hide">
+            <div className="studio-subtabs flex items-center gap-1.5 mb-8 overflow-x-auto scrollbar-hide" role="tablist" aria-label="Post views">
               <StudioSubTabButton
                 label="All"
                 active={postViewMode === "all"}
                 onClick={() => setPostViewMode("all")}
-              />
-              <StudioSubTabButton
-                label="Blog"
-                active={postViewMode === "blog"}
-                onClick={() => setPostViewMode("blog")}
               />
               <StudioSubTabButton
                 label="Gallery"
@@ -1743,10 +1739,9 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                       return (
                         <article
                           key={work.id}
-                          ref={observeCard}
-                          data-post-id={work.id}
                           onClick={() => openPostModal(createPostForModal(work))}
-                          className={`group relative cursor-pointer ${revealedCards.has(work.id) ? 'animate-fadeIn' : 'opacity-0'}`}
+                          {...pressKeys(() => openPostModal(createPostForModal(work)))}
+                          className="group relative cursor-pointer"
                         >
                           {/* Glass card container */}
                           <div className="relative h-full overflow-hidden rounded-2xl bg-elevated/80 backdrop-blur-xl shadow-sm hover:shadow-xl transition-all duration-300">
@@ -1853,7 +1848,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                                           pinPost(work.id);
                                         }
                                       }}
-                                      className={`absolute top-3 ${isPinned(work.id) ? 'left-12' : 'left-3'} w-7 h-7 rounded-full backdrop-blur-sm flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-200 z-10 ${
+                                      className={`absolute top-3 ${isPinned(work.id) ? 'left-12' : 'left-3'} w-7 h-7 rounded-full backdrop-blur-sm flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 studio-touch-reveal transition-all duration-200 z-10 ${
                                         isPinned(work.id)
                                           ? 'bg-surface/90 hover:bg-surface text-purple-primary'
                                           : canPin
@@ -1968,98 +1963,6 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 );
               }
 
-              // ========== BLOG VIEW ==========
-              if (postViewMode === "blog") {
-                return (
-                  <div className="space-y-6">
-                    {filteredPosts.map((work) => {
-                      const isCollab = work.isCollaboration || collaboratedPostIds.has(work.id);
-                      const tileSrc = tileImage(work.media);
-                      const hasMedia = !!tileSrc;
-                      const plainContent = work.content
-                        ? excerptOf(work.id, work.content, 300)
-                        : '';
-                      const formattedDate = fullDate(work.created_at);
-
-                      return (
-                        <article
-                          key={work.id}
-                          onClick={() => openPostModal(createPostForModal(work))}
-                          className="group relative bg-surface rounded-2xl border border-border-light hover:border-accent/20 hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden"
-                        >
-                          {/* Featured image */}
-                          {hasMedia && (
-                            <div className="relative h-48 sm:h-64 overflow-hidden">
-                              <img
-                                src={tileSrc ?? ""}
-                                alt={work.title || ""}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                              />
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-                              {work.media.length > 1 && (
-                                <div className="absolute top-3 right-3 px-2 py-1 bg-black/50 backdrop-blur-sm rounded-full text-white text-xs flex items-center gap-1">
-                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                  </svg>
-                                  {work.media.length}
-                                </div>
-                              )}
-                            </div>
-                          )}
-
-                          <div className="p-6">
-                            {/* Meta row */}
-                            <div className="flex items-center gap-3 mb-3">
-                              <span className="px-2.5 py-1 rounded-full bg-purple-primary/10 text-purple-primary text-xs font-medium">
-                                {typeLabels[work.type] || work.type}
-                              </span>
-                              <span className="text-sm text-muted">{formattedDate}</span>
-                              {isCollab && (
-                                <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-pink-vivid/10 text-pink-vivid text-xs font-medium">
-                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                                  </svg>
-                                  Collab
-                                </span>
-                              )}
-                            </div>
-
-                            {/* Title */}
-                            <h2 className="font-display text-xl sm:text-2xl font-semibold text-ink mb-3 group-hover:text-accent transition-colors line-clamp-2">
-                              {work.title || "Untitled"}
-                            </h2>
-
-                            {/* Excerpt */}
-                            <p className="font-body text-muted leading-relaxed line-clamp-3 mb-4">
-                              {plainContent || "No preview available..."}
-                            </p>
-
-                            {/* Footer */}
-                            <div className="flex items-center justify-between pt-4 border-t border-border-light">
-                              <div className="flex items-center gap-4 text-sm text-muted">
-                                <span className="flex items-center gap-1.5">
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                                  </svg>
-                                  <ReactionCount id={work.id} total={work.reactions_count} mine={work.user_reaction_type} />
-                                </span>
-                                <span className="flex items-center gap-1.5">
-                                  <CommentIcon />
-                                  <CommentCount id={work.id} total={work.comments_count} />
-                                </span>
-                              </div>
-                              <span className="text-accent text-sm font-medium group-hover:underline">
-                                Read more →
-                              </span>
-                            </div>
-                          </div>
-                        </article>
-                      );
-                    })}
-                  </div>
-                );
-              }
-
               // ========== GALLERY VIEW ==========
               if (postViewMode === "gallery") {
                 return (
@@ -2072,6 +1975,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                         <div
                           key={work.id}
                           onClick={() => openPostModal(createPostForModal(work))}
+                          {...pressKeys(() => openPostModal(createPostForModal(work)))}
                           className="group relative aspect-square cursor-pointer overflow-hidden bg-skeleton/60 rounded-sm sm:rounded-lg"
                         >
                           <img
@@ -2081,7 +1985,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                           />
 
                           {/* Hover overlay */}
-                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 studio-touch-reveal transition-opacity duration-300 flex items-center justify-center">
                             <div className="flex items-center gap-6 text-white">
                               <span className="flex items-center gap-2">
                                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -2127,6 +2031,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                         <article
                           key={work.id}
                           onClick={() => openPostModal(createPostForModal(work))}
+                          {...pressKeys(() => openPostModal(createPostForModal(work)))}
                           className="group cursor-pointer py-12 first:pt-6 last:pb-6 px-4 rounded-2xl hover:bg-subtle/60 transition-colors"
                         >
                           {idx > 0 && (
@@ -2209,6 +2114,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                               <article
                                 key={work.id}
                                 onClick={() => openPostModal(createPostForModal(work))}
+                          {...pressKeys(() => openPostModal(createPostForModal(work)))}
                                 className="journal-card"
                               >
                                 {hasMedia && (
@@ -2252,6 +2158,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                         <article
                           key={work.id}
                           onClick={() => openPostModal(createPostForModal(work))}
+                          {...pressKeys(() => openPostModal(createPostForModal(work)))}
                           className="group relative bg-surface rounded-2xl overflow-hidden cursor-pointer hover:shadow-lg transition-all duration-300 border border-border-light"
                         >
                           {/* Image */}
@@ -2347,7 +2254,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
 
         {/* Takes Section */}
         {activeTab === "takes" && (
-          <div className={`studio-works-section studio-section-animated ${pageLoaded ? 'loaded delay-5' : ''}`}>
+          <div className="studio-works-section">
             {takesLoading ? (
               <div className="py-12">
                 <Loading text="Loading takes" size="medium" />
@@ -2373,7 +2280,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
 
         {/* Relays Section */}
         {activeTab === "relays" && (
-          <div className={`studio-works-section studio-section-animated ${pageLoaded ? 'loaded delay-5' : ''}`}>
+          <div className="studio-works-section">
             {/* Relay Type Tabs */}
             <div className="flex items-center gap-1.5 mb-8 overflow-x-auto scrollbar-hide">
               <StudioSubTabButton
@@ -2432,6 +2339,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                         <article
                           key={relay.id}
                           onClick={() => openPostModal(postForModal)}
+                          {...pressKeys(() => openPostModal(postForModal))}
                           className={`studio-relay-card ${hasMedia ? 'has-image' : ''}`}
                           data-type={relay.type}
                         >
@@ -2471,7 +2379,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                           <div className="studio-relay-footer">
                             <div className="studio-relay-author">
                               <Image
-                                src={relay.original_author?.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"}
+                                src={relay.original_author?.avatar_url || DEFAULT_AVATAR}
                                 alt=""
                                 width={70}
                                 height={70}
@@ -2557,7 +2465,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
 
         {/* Collections Section */}
         {activeTab === "collections" && (
-          <div className={`studio-works-section studio-section-animated ${pageLoaded ? 'loaded delay-5' : ''}`}>
+          <div className="studio-works-section">
             {collectionsLoading ? (
               <div className="flex items-center justify-center py-16">
                 <Loading />
@@ -2666,140 +2574,29 @@ export default function StudioProfile({ username }: StudioProfileProps) {
         authorName={profile.display_name || profile.username}
       />
 
-      {/* Block Confirmation Modal */}
-      {showBlockConfirm && (
-        <>
-          <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] animate-fadeIn"
-            onClick={() => !blockLoading && setShowBlockConfirm(false)}
-          />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[440px] max-w-[90vw] bg-surface rounded-3xl shadow-2xl border border-border-light z-[1001] p-7 animate-scaleIn">
-            <h3 className="font-display text-xl text-ink mb-3">
-              Close the door on @{profile.username}?
-            </h3>
-            <p className="font-body text-15 text-muted leading-relaxed mb-7">
-              Their posts vanish from your feed and yours from theirs. They won&apos;t be able to follow you, message you, or knock again — and we won&apos;t tell them.
-            </p>
-            <div className="flex justify-end gap-2.5">
-              <button
-                onClick={() => setShowBlockConfirm(false)}
-                disabled={blockLoading}
-                className="px-5 py-2.5 rounded-full font-ui text-sm font-medium text-ink bg-subtle hover:bg-skeleton/80 transition-all disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleBlock}
-                disabled={blockLoading}
-                className="px-5 py-2.5 rounded-full font-ui text-sm font-medium text-white bg-red-500 hover:bg-red-600 transition-all disabled:opacity-70 flex items-center gap-2 shadow-sm hover:shadow-md hover:shadow-red-500/20"
-              >
-                {blockLoading ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Closing...
-                  </>
-                ) : (
-                  "Block"
-                )}
-              </button>
-            </div>
-          </div>
-        </>
-      )}
+      {/* Block confirmation — the same dialog and copy as posts and takes (P-32, P-34) */}
+      <ConfirmationModal
+        isOpen={showBlockConfirm}
+        onClose={() => !blockLoading && setShowBlockConfirm(false)}
+        onConfirm={handleBlock}
+        title={BLOCK_COPY.title(profile.username)}
+        description={BLOCK_COPY.description}
+        confirmText={BLOCK_COPY.confirm}
+        isDanger
+        loading={blockLoading}
+      />
 
-      {/* Report Modal */}
-      {showReportModal && (
-        <>
-          <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000]"
-            onClick={() => !reportLoading && setShowReportModal(false)}
-          />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[480px] bg-elevated rounded-2xl shadow-2xl z-[1001] overflow-hidden">
-            {reportSuccess ? (
-              <div className="p-8 text-center">
-                <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                <h3 className="font-display text-xl text-ink mb-2">Report Submitted</h3>
-                <p className="font-body text-sm text-muted">
-                  Thank you for helping keep PinkQuill safe. We&apos;ll review this report.
-                </p>
-              </div>
-            ) : (
-              <>
-                <div className="p-6 border-b border-border-light">
-                  <h3 className="font-display text-xl text-ink">
-                    Report @{profile.username}
-                  </h3>
-                  <p className="font-body text-sm text-muted mt-1">
-                    Help us understand what&apos;s happening with this account.
-                  </p>
-                </div>
-
-                <div className="p-6">
-                  <label className="block font-ui text-sm text-ink mb-2">
-                    Why are you reporting this user?
-                  </label>
-                  <textarea
-                    value={reportReason}
-                    onChange={(e) => setReportReason(e.target.value)}
-                    placeholder="Please describe the issue..."
-                    rows={4}
-                    className="w-full px-4 py-3 rounded-xl bg-skeleton/60 border-none outline-none font-body text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-purple-primary/20 transition-all resize-none"
-                  />
-
-                  <div className="mt-4 space-y-2">
-                    <p className="font-ui text-xs text-muted">Quick select:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {["Spam", "Harassment", "Impersonation", "Inappropriate content", "Other"].map((reason) => (
-                        <button
-                          key={reason}
-                          onClick={() => setReportReason(reason)}
-                          className={`px-3 py-1.5 rounded-full font-ui text-xs transition-all ${
-                            reportReason === reason
-                              ? "bg-accent text-on-accent"
-                              : "bg-skeleton/60 text-muted hover:bg-skeleton"
-                          }`}
-                        >
-                          {reason}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-6 border-t border-border-light flex justify-end gap-3">
-                  <button
-                    onClick={() => {
-                      setShowReportModal(false);
-                      setReportReason("");
-                    }}
-                    disabled={reportLoading}
-                    className="px-5 py-2.5 rounded-full font-ui text-sm text-muted bg-skeleton/70 hover:bg-skeleton transition-colors disabled:opacity-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleReport}
-                    disabled={reportLoading || !reportReason.trim()}
-                    className="px-5 py-2.5 rounded-full font-ui text-sm text-white bg-red-500 hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center gap-2"
-                  >
-                    {reportLoading ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        Submitting...
-                      </>
-                    ) : (
-                      "Submit Report"
-                    )}
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </>
+      {/* Report — the shared report flow and dialog (P-32, P-34) */}
+      {report.open && (
+        <ReportModal
+          isOpen={report.open}
+          onClose={report.hide}
+          onSubmit={report.submit}
+          submitting={report.submitting}
+          submitted={report.submitted}
+          title={`Report @${profile.username}`}
+          placeholder="Help us understand what's happening with this account..."
+        />
       )}
 
       {/* Communities Modal */}

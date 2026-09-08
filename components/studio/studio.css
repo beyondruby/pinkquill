@@ -174,3 +174,23 @@
   background: radial-gradient(ellipse, color-mix(in srgb, var(--color-pink-vivid) 6%, transparent) 0%, transparent 70%);
 }
 
+/* Controls that only appear on hover (pin, delete, tile counts) have no way
+   to appear on a touch screen; there they are simply shown (profile audit
+   Phase 3, P-33). */
+@media (hover: none) {
+  .studio-touch-reveal {
+    opacity: 1;
+  }
+}
+
+/* The sub-tab row hides its scrollbar; on touch the cut-off last chip is the
+   only hint that it scrolls, so the thin scrollbar stays visible there (X-3). */
+@media (hover: none) {
+  .studio-subtabs.scrollbar-hide {
+    scrollbar-width: thin;
+  }
+  .studio-subtabs.scrollbar-hide::-webkit-scrollbar {
+    display: block;
+    height: 3px;
+  }
+}
