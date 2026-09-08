@@ -1,7 +1,8 @@
 "use client";
 
 
-import { useRef, useEffect, useCallback, useState } from "react";
+import { useRef, useEffect, useCallback, useState, useMemo } from "react";
+import { useModal } from "@/components/providers/ModalProvider";
 import { toPostProps, type PostLike } from "@/lib/posts/toPostProps";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useExplore } from "@/lib/hooks/useExplore";
@@ -312,9 +313,23 @@ export default function ExplorePageContent() {
     return () => observer.disconnect();
   }, [loadMore, pagination.hasMore, loading]);
 
+  // Removed locally instead of refetching the whole list; the modal's own
+  // deletes and blocks arrive through the bus (V-9, F-14).
+  const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
+  const [blockedAuthorIds, setBlockedAuthorIds] = useState<Set<string>>(new Set());
+  const { subscribeToDeletes, subscribeToAuthorBlocks } = useModal();
+  useEffect(() => {
+    const unsubDelete = subscribeToDeletes((id) => setDeletedIds(prev => new Set(prev).add(id)));
+    const unsubBlock = subscribeToAuthorBlocks((authorId) => setBlockedAuthorIds(prev => new Set(prev).add(authorId)));
+    return () => { unsubDelete(); unsubBlock(); };
+  }, [subscribeToDeletes, subscribeToAuthorBlocks]);
+  const visiblePosts = useMemo(
+    () => posts.filter((p) => !deletedIds.has(p.id) && !blockedAuthorIds.has(p.author_id)),
+    [posts, deletedIds, blockedAuthorIds]
+  );
   const handlePostDeleted = useCallback((postId: string) => {
-    refresh();
-  }, [refresh]);
+    setDeletedIds(prev => new Set(prev).add(postId));
+  }, []);
 
   const handleCategorySelect = (categoryId: ExploreTab) => {
     setActiveTab(categoryId);
@@ -599,7 +614,7 @@ export default function ExplorePageContent() {
               <EmptyState tab={activeTab} />
             ) : (
               <div className="space-y-4">
-                {posts.map((post) => (
+                {visiblePosts.map((post) => (
                   <PostCard
                     key={post.id}
                     post={transformPostForCard(post)}

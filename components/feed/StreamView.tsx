@@ -118,10 +118,10 @@ function StreamRow({
   const media = cw ? null : firstVisualMedia(post);
   // Same store entry as the expanded card / modal, so the row never disagrees.
   const reaction = useReaction("post", post.id, {
-    seed: { total: post.stats?.reactions, mine: post.reactionType },
+    seed: { total: post.stats?.reactions, mine: post.reactionType, comments: post.stats?.comments },
   });
   const admires = reaction.counts.total;
-  const comments = post.stats?.comments ?? 0;
+  const comments = reaction.comments;
   const handle = post.author.handle.replace("@", "");
 
   const onKeyDown = useCallback(

@@ -790,7 +790,47 @@ export default function StudioProfile({ username }: StudioProfileProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
-  const { openPostModal } = useModal();
+  const { openPostModal, subscribeToDeletes, subscribeToUpdates, subscribeToTakeDeletes, subscribeToAuthorBlocks } = useModal();
+
+  // What the modal did to a post since this page loaded (V-9, V-10, V-11,
+  // F-14): the hooks' arrays are not re-fetched on every action, so keep the
+  // deltas here and apply them to tiles and to the next modal open.
+  const [deletedPostIds, setDeletedPostIds] = useState<Set<string>>(new Set());
+  const [deletedTakeIds, setDeletedTakeIds] = useState<Set<string>>(new Set());
+  const [blockedAuthorIds, setBlockedAuthorIds] = useState<Set<string>>(new Set());
+  const [postOverrides, setPostOverrides] = useState<Record<string, { isSaved?: boolean; isRelayed?: boolean; relaysDelta: number }>>({});
+  useEffect(() => {
+    const unsubDelete = subscribeToDeletes((id) => setDeletedPostIds((prev) => new Set(prev).add(id)));
+    const unsubTake = subscribeToTakeDeletes((id) => setDeletedTakeIds((prev) => new Set(prev).add(id)));
+    const unsubBlock = subscribeToAuthorBlocks((authorId) => setBlockedAuthorIds((prev) => new Set(prev).add(authorId)));
+    const unsubUpdate = subscribeToUpdates((update) => {
+      setPostOverrides((prev) => {
+        const current = prev[update.postId] ?? { relaysDelta: 0 };
+        if (update.field === "saves") return { ...prev, [update.postId]: { ...current, isSaved: update.isActive } };
+        if (update.field === "relays") {
+          return { ...prev, [update.postId]: { ...current, isRelayed: update.isActive, relaysDelta: current.relaysDelta + update.countChange } };
+        }
+        return prev;
+      });
+    });
+    return () => { unsubDelete(); unsubTake(); unsubBlock(); unsubUpdate(); };
+  }, [subscribeToDeletes, subscribeToTakeDeletes, subscribeToAuthorBlocks, subscribeToUpdates]);
+
+  // Modal props for a row, with whatever the modal changed since load applied.
+  const openWithOverrides = (row: Parameters<typeof toModalPost>[0]) => {
+    const o = postOverrides[row.id];
+    if (!o) return toModalPost(row);
+    return toModalPost(row, {
+      ...(o.isSaved !== undefined ? { isSaved: o.isSaved } : {}),
+      ...(o.isRelayed !== undefined ? { isRelayed: o.isRelayed } : {}),
+      stats: {
+        reactions: row.reactions_count ?? undefined,
+        reactionCounts: row.reaction_counts,
+        comments: row.comments_count ?? 0,
+        relays: Math.max(0, (row.relays_count ?? 0) + o.relaysDelta),
+      },
+    });
+  };
   const [activeTab, setActiveTab] = useState<"posts" | "takes" | "relays" | "store" | "commissions" | "collections">("posts");
   const [relaySubTab, setRelaySubTab] = useState<"posts" | "takes">("posts");
   const shouldLoadTakes = activeTab === "takes";
@@ -1540,10 +1580,12 @@ export default function StudioProfile({ username }: StudioProfileProps) {
             {(() => {
               // Merge regular posts with collaborated posts
               const collaboratedPostIds = new Set(collaboratedPosts.map(p => p.id));
+              const isGone = (p: { id: string; author_id: string }) => deletedPostIds.has(p.id) || blockedAuthorIds.has(p.author_id);
               const allPosts = [
-                ...posts.map(p => ({ ...p, isCollaboration: false })),
+                ...posts.filter(p => !isGone(p)).map(p => ({ ...p, isCollaboration: false })),
                 ...collaboratedPosts
                   .filter(p => !posts.some(post => post.id === p.id)) // Avoid duplicates
+                  .filter(p => !isGone(p))
                   .map(p => ({ ...p, isCollaboration: true }))
               ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
@@ -1650,7 +1692,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
               }
 
               // Helper to create postForModal
-              const createPostForModal = (work: typeof filteredPosts[0]) => toModalPost(work);
+              const createPostForModal = (work: typeof filteredPosts[0]) => openWithOverrides(work);
 
               const typeLabels: Record<string, string> = {
                 poem: "Poetry",
@@ -2284,7 +2326,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
               </div>
             ) : takesError ? (
               <TabErrorState what="takes" onRetry={refetchTakes} />
-            ) : userTakes.length === 0 ? (
+            ) : userTakes.filter((t) => !deletedTakeIds.has(t.id)).length === 0 ? (
               <div className="studio-works-empty">
                 <div className="studio-works-empty-icon">
                   {icons.take}
@@ -2293,7 +2335,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
               </div>
             ) : (
               <div className="takes-grid">
-                {userTakes.map((take) => (
+                {userTakes.filter((t) => !deletedTakeIds.has(t.id)).map((take) => (
                   <TakePostCard key={take.id} take={take} variant="grid" />
                 ))}
               </div>
@@ -2327,7 +2369,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                   </div>
                 ) : relaysError ? (
               <TabErrorState what="relayed posts" onRetry={refetchRelays} />
-            ) : relays.length === 0 ? (
+            ) : relays.filter((r) => !deletedPostIds.has(r.id) && !blockedAuthorIds.has(r.author_id)).length === 0 ? (
                   <div className="studio-works-empty">
                     <div className="studio-works-empty-icon">
                       {icons.relay}
@@ -2336,8 +2378,8 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                   </div>
                 ) : (
                   <div className="studio-works-grid">
-                    {relays.map((relay) => {
-                      const postForModal = toModalPost(relay);
+                    {relays.filter((r) => !deletedPostIds.has(r.id) && !blockedAuthorIds.has(r.author_id)).map((relay) => {
+                      const postForModal = openWithOverrides(relay);
 
                       const hasMedia = relay.media && relay.media.length > 0;
                       const plainContent = relay.content
@@ -2438,7 +2480,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                   </div>
                 ) : relayedTakesError ? (
               <TabErrorState what="relayed takes" onRetry={refetchRelayedTakes} />
-            ) : relayedTakes.length === 0 ? (
+            ) : relayedTakes.filter((t) => !deletedTakeIds.has(t.id)).length === 0 ? (
                   <div className="studio-works-empty">
                     <div className="studio-works-empty-icon">
                       {icons.take}
@@ -2447,7 +2489,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                   </div>
                 ) : (
                   <div className="takes-grid">
-                    {relayedTakes.map((take) => (
+                    {relayedTakes.filter((t) => !deletedTakeIds.has(t.id)).map((take) => (
                       <TakePostCard
                         key={take.id}
                         take={take}

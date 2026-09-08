@@ -88,7 +88,7 @@ function PostCardComponent({
   readOnly?: boolean;
 }) {
   const router = useRouter();
-  const { openPostModal, subscribeToUpdates, notifyUpdate } = useModal();
+  const { openPostModal, subscribeToUpdates, notifyUpdate, notifyAuthorBlocked } = useModal();
   const { user } = useAuth();
   const { openModal: openAuthModal } = useAuthModal();
   const { toggle: toggleSave } = useToggleSave();
@@ -374,7 +374,8 @@ function PostCardComponent({
     if (result.success) {
       setShowBlockConfirm(false);
       actionToast.userBlocked(post.author.handle);
-      // Remove post from view by calling onPostDeleted if available
+      // Every surface drops the author's posts, not just this card (F-14).
+      notifyAuthorBlocked(post.authorId);
       if (onPostDeleted) {
         onPostDeleted(post.id);
       }
@@ -382,7 +383,7 @@ function PostCardComponent({
       actionToast.blockError();
     }
     setBlockLoading(false);
-  }, [user, blockUser, post.authorId, post.author.handle, post.id, onPostDeleted]);
+  }, [user, blockUser, post.authorId, post.author.handle, post.id, onPostDeleted, notifyAuthorBlocked]);
 
   const handleRemoveSelfAsCollaborator = useCallback(async () => {
     if (!user || !isAcceptedCollaborator) return;
@@ -1118,11 +1119,11 @@ function PostCardComponent({
               position: m.position,
             })) || [],
             reactions_count: reaction.counts.total,
-            comments_count: post.stats.comments,
-            relays_count: post.stats.relays,
+            comments_count: reaction.comments,
+            relays_count: relayCount,
             user_reaction_type: reaction.mine,
-            user_has_saved: post.isSaved || false,
-            user_has_relayed: post.isRelayed || false,
+            user_has_saved: isSaved,
+            user_has_relayed: isRelayed,
           }}
           currentUserId={user.id}
         />
@@ -1274,6 +1275,12 @@ const PostCard = memo(PostCardComponent, (prevProps, nextProps) => {
     prevProps.post.isSaved === nextProps.post.isSaved &&
     prevProps.post.isRelayed === nextProps.post.isRelayed &&
     prevProps.post.reactionType === nextProps.post.reactionType &&
+    // Content can change under the same id (edit, then refetch) — F-16.
+    prevProps.post.title === nextProps.post.title &&
+    prevProps.post.content === nextProps.post.content &&
+    prevProps.post.contentWarning === nextProps.post.contentWarning &&
+    prevProps.post.media === nextProps.post.media &&
+    prevProps.post.styling === nextProps.post.styling &&
     prevProps.canModerateDelete === nextProps.canModerateDelete &&
     !!prevProps.onModeratorDelete === !!nextProps.onModeratorDelete &&
     prevProps.isPinned === nextProps.isPinned &&

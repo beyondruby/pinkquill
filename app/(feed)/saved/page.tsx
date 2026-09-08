@@ -2,7 +2,7 @@
 
 import { showToast } from "@/lib/utils/toast";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { formatCurrency } from "@/lib/utils/currency";
 import { getTimeAgoCompact as getTimeAgo } from "@/lib/utils/time";
 import Link from "next/link";
@@ -128,11 +128,20 @@ export default function SavedPage() {
   const { posts, loading: postsLoading, error: postsError, refetch: refetchPosts } = useSavedPosts(user?.id);
   const { takes, loading: takesLoading, error: takesError, refetch: refetchTakes } = useSavedTakes(user?.id);
   const { products, loading: productsLoading, error: productsError, refetch: refetchProducts } = useSavedProducts(user?.id);
-  const { openPostModal } = useModal();
+  const { openPostModal, subscribeToDeletes, subscribeToTakeDeletes, subscribeToAuthorBlocks } = useModal();
   const { toggle: toggleSave } = useToggleSave();
   const { toggle: toggleSaveProduct } = useToggleSaveProduct();
   const [activeTab, setActiveTab] = useState<TabType>("all");
   const [removedItems, setRemovedItems] = useState<Set<string>>(new Set());
+  const [blockedAuthorIds, setBlockedAuthorIds] = useState<Set<string>>(new Set());
+
+  // Deletes and blocks made inside the modal drop the tile here too (V-9, V-10, F-14).
+  useEffect(() => {
+    const unsubPost = subscribeToDeletes((id) => setRemovedItems(prev => new Set([...prev, id])));
+    const unsubTake = subscribeToTakeDeletes((id) => setRemovedItems(prev => new Set([...prev, id])));
+    const unsubBlock = subscribeToAuthorBlocks((authorId) => setBlockedAuthorIds(prev => new Set([...prev, authorId])));
+    return () => { unsubPost(); unsubTake(); unsubBlock(); };
+  }, [subscribeToDeletes, subscribeToTakeDeletes, subscribeToAuthorBlocks]);
   const [removingItem, setRemovingItem] = useState<string | null>(null);
 
   const loading = activeTab === "posts" ? postsLoading : activeTab === "takes" ? takesLoading : activeTab === "products" ? productsLoading : postsLoading || takesLoading || productsLoading;
@@ -203,8 +212,8 @@ export default function SavedPage() {
     openPostModal(toModalPost(post, { isSaved: true, isRelayed: false }));
   }, [openPostModal]);
 
-  const visiblePosts = posts.filter(post => !removedItems.has(post.id));
-  const visibleTakes = takes.filter(take => !removedItems.has(take.id));
+  const visiblePosts = posts.filter(post => !removedItems.has(post.id) && !blockedAuthorIds.has(post.author_id));
+  const visibleTakes = takes.filter(take => !removedItems.has(take.id) && !blockedAuthorIds.has(take.author_id));
   const visibleProducts = products.filter(product => !removedItems.has(product.id));
 
   const totalCount = visiblePosts.length + visibleTakes.length + visibleProducts.length;

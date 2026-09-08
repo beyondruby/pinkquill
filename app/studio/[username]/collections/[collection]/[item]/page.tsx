@@ -1,6 +1,8 @@
 "use client";
 
 import { useParams } from "next/navigation";
+import { useModal } from "@/components/providers/ModalProvider";
+import { useState, useEffect } from "react";
 import { toPostProps } from "@/lib/posts/toPostProps";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -26,6 +28,16 @@ export default function CollectionItemPage() {
     collectionSlug,
     itemSlug
   );
+
+  // Deletes and blocks made inside the modal drop the card here too (V-9, F-14).
+  const { subscribeToDeletes, subscribeToAuthorBlocks } = useModal();
+  const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
+  const [blockedAuthorIds, setBlockedAuthorIds] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    const unsubDelete = subscribeToDeletes((id) => setDeletedIds((prev) => new Set(prev).add(id)));
+    const unsubBlock = subscribeToAuthorBlocks((authorId) => setBlockedAuthorIds((prev) => new Set(prev).add(authorId)));
+    return () => { unsubDelete(); unsubBlock(); };
+  }, [subscribeToDeletes, subscribeToAuthorBlocks]);
 
   const loading = profileLoading || itemLoading;
 
@@ -56,7 +68,7 @@ export default function CollectionItemPage() {
 
   // Transform posts for PostCard (one mapper for every list: lib/posts/toPostProps.ts)
   const transformedPosts = (item.posts || [])
-    .filter(p => p.post)
+    .filter(p => p.post && !deletedIds.has(p.post.id) && !blockedAuthorIds.has(p.post.author?.id || ""))
     .map(p => toPostProps(p.post!));
 
   return (

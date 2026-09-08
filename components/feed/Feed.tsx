@@ -159,7 +159,7 @@ function FeedFrame({
 
 export default function Feed() {
   const { user, loading: authLoading } = useAuth();
-  const { subscribeToDeletes } = useModal();
+  const { subscribeToDeletes, subscribeToAuthorBlocks } = useModal();
   const { viewId } = useFeedView();
 
   // Use the optimized useFeed hook with AbortController and stable channels
@@ -174,10 +174,12 @@ export default function Feed() {
 
   // Local state for filtering deleted posts (cleared on refresh since fresh data is accurate)
   const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
+  const [blockedAuthorIds, setBlockedAuthorIds] = useState<Set<string>>(new Set());
 
   // Wrap refresh to clear deletedIds since fresh server data reflects accurate state
   const handleRefresh = useCallback(() => {
     setDeletedIds(new Set());
+    setBlockedAuthorIds(new Set());
     refresh();
   }, [refresh]);
 
@@ -239,14 +241,17 @@ export default function Feed() {
     const unsubPosts = subscribeToDeletes((id) => {
       setDeletedIds(prev => new Set(prev).add(id));
     });
-    return () => { unsubPosts(); };
-  }, [subscribeToDeletes]);
+    const unsubBlocks = subscribeToAuthorBlocks((authorId) => {
+      setBlockedAuthorIds(prev => new Set(prev).add(authorId));
+    });
+    return () => { unsubPosts(); unsubBlocks(); };
+  }, [subscribeToDeletes, subscribeToAuthorBlocks]);
 
   // PERFORMANCE: Memoize filtered posts - only recalculate when feedPosts or
   // deletedIds change.
   const posts = useMemo(
-    () => feedPosts.filter((p) => !deletedIds.has(p.id)),
-    [feedPosts, deletedIds]
+    () => feedPosts.filter((p) => !deletedIds.has(p.id) && !blockedAuthorIds.has(p.author_id)),
+    [feedPosts, deletedIds, blockedAuthorIds]
   );
 
   // PERFORMANCE: Memoize transformed posts - prevents object recreation on every render

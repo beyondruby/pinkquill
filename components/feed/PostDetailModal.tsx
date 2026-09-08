@@ -88,6 +88,7 @@ interface PostDetailModalProps {
   onClose: () => void;
   onPostUpdate?: (update: PostUpdate) => void;
   onPostDeleted?: (postId: string) => void;
+  onAuthorBlocked?: (authorId: string) => void;
   // Community moderation props for comments
   canModerateDeleteComments?: boolean;
   onModeratorDeleteComment?: (commentId: string, reason?: string) => Promise<void>;
@@ -99,6 +100,7 @@ function PostDetailModalComponent({
   onClose,
   onPostUpdate,
   onPostDeleted,
+  onAuthorBlocked,
   canModerateDeleteComments,
   onModeratorDeleteComment,
 }: PostDetailModalProps) {
@@ -252,13 +254,14 @@ function PostDetailModalComponent({
       }
       setShowBlockConfirm(false);
       onClose();
+      onAuthorBlocked?.(post.authorId);
     } catch (err) {
       console.error("Failed to block user:", err);
       actionToast.blockError();
     } finally {
       setIsBlocking(false);
     }
-  }, [user, post?.authorId, blockUser, onClose]);
+  }, [user, post?.authorId, blockUser, onClose, onAuthorBlocked]);
 
   const handleRemoveSelfAsCollaborator = useCallback(async () => {
     if (!user || !post?.id || !post?.authorId || !isAcceptedCollaborator) return;

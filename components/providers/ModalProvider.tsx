@@ -21,6 +21,7 @@ export interface PostUpdate {
 type PostUpdateCallback = (update: PostUpdate) => void;
 
 type PostDeleteCallback = (postId: string) => void;
+type AuthorBlockCallback = (authorId: string) => void;
 
 type TakeUpdateCallback = (update: TakeUpdate) => void;
 
@@ -39,6 +40,9 @@ interface ModalContextType {
   notifyUpdate: (update: PostUpdate) => void;
   subscribeToDeletes: (callback: PostDeleteCallback) => () => void;
   notifyDelete: (postId: string) => void;
+  /** Blocking an author hides every post of theirs on every surface (F-14). */
+  subscribeToAuthorBlocks: (callback: AuthorBlockCallback) => () => void;
+  notifyAuthorBlocked: (authorId: string) => void;
   // Take modal methods
   openTakeModal: (take: Take) => void;
   closeTakeModal: () => void;
@@ -96,6 +100,7 @@ export function ModalProvider({ children }: { children: ReactNode }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const subscribersRef = useRef<Set<PostUpdateCallback>>(new Set());
   const deleteSubscribersRef = useRef<Set<PostDeleteCallback>>(new Set());
+  const authorBlockSubscribersRef = useRef<Set<AuthorBlockCallback>>(new Set());
   const originalUrlRef = useRef<string | null>(null);
 
   // Take modal state
@@ -264,6 +269,17 @@ export function ModalProvider({ children }: { children: ReactNode }) {
     for (const callback of Array.from(deleteSubscribersRef.current)) callback(postId);
   }, []);
 
+  const subscribeToAuthorBlocks = useCallback((callback: AuthorBlockCallback) => {
+    authorBlockSubscribersRef.current.add(callback);
+    return () => {
+      authorBlockSubscribersRef.current.delete(callback);
+    };
+  }, []);
+
+  const notifyAuthorBlocked = useCallback((authorId: string) => {
+    for (const callback of Array.from(authorBlockSubscribersRef.current)) callback(authorId);
+  }, []);
+
   const handlePostDeleted = useCallback((postId: string) => {
     notifyDelete(postId);
   }, [notifyDelete]);
@@ -325,6 +341,8 @@ export function ModalProvider({ children }: { children: ReactNode }) {
     notifyUpdate,
     subscribeToDeletes,
     notifyDelete,
+    subscribeToAuthorBlocks,
+    notifyAuthorBlocked,
     openTakeModal,
     closeTakeModal,
     subscribeToTakeUpdates,
@@ -340,6 +358,8 @@ export function ModalProvider({ children }: { children: ReactNode }) {
     notifyUpdate,
     subscribeToDeletes,
     notifyDelete,
+    subscribeToAuthorBlocks,
+    notifyAuthorBlocked,
     openTakeModal,
     closeTakeModal,
     subscribeToTakeUpdates,
@@ -360,6 +380,7 @@ export function ModalProvider({ children }: { children: ReactNode }) {
           onClose={closePostModal}
           onPostUpdate={notifyUpdate}
           onPostDeleted={handlePostDeleted}
+          onAuthorBlocked={notifyAuthorBlocked}
           canModerateDeleteComments={moderationContext?.canModerateDeleteComments}
           onModeratorDeleteComment={moderationContext?.onModeratorDeleteComment}
         />
