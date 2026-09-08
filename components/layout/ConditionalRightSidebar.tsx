@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useModal } from "@/components/providers/ModalProvider";
 import { usePathname } from "next/navigation";
 import RightSidebar from "./RightSidebar";
 
@@ -24,7 +25,11 @@ function scheduleSidebarRender(callback: () => void): () => void {
 }
 
 export default function ConditionalRightSidebar() {
-  const pathname = usePathname();
+  const routePathname = usePathname();
+  // A post/take modal changes the URL without leaving the feed; keep the
+  // sidebar mounted (and its data fetched) while one is open (V-8).
+  const { modalReturnPath } = useModal();
+  const pathname = modalReturnPath ? modalReturnPath.split("?")[0] : routePathname;
   const [shouldRender, setShouldRender] = useState(false);
 
   /* eslint-disable react-hooks/set-state-in-effect -- deliberately defers non-critical sidebar data fetches */

@@ -1,6 +1,7 @@
 "use client";
 
 import { NavigationIcon } from "@/components/ui/NavigationIcon";
+import { useModal } from "@/components/providers/ModalProvider";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -15,7 +16,10 @@ const icons: Record<string, React.ReactElement> = {
 };
 
 export default function MobileBottomNav() {
-  const pathname = usePathname();
+  const routePathname = usePathname();
+  // Keep the active tab where the user is while a post/take modal is open (V-8).
+  const { modalReturnPath } = useModal();
+  const pathname = modalReturnPath ? modalReturnPath.split("?")[0] : routePathname;
   const { user, profile } = useAuth();
 
 

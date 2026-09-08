@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef, ReactNode } from "react";
 import dynamic from "next/dynamic";
+import Loading from "@/components/ui/Loading";
 import type { TakeUpdate } from "@/components/takes/TakeDetailModal";
 import { Take } from "@/lib/hooks/useTakes";
 import type { ModalPost } from "@/components/feed/PostCard/types";
@@ -47,13 +48,37 @@ interface ModalContextType {
   notifyTakeDelete: (takeId: string) => void;
   // Moderation context methods
   setModerationContext: (context: ModerationContext | null) => void;
+  /** The URL underneath an open modal (null when none is open). */
+  modalReturnPath: string | null;
 }
 
 // The two detail modals are ~2,000 lines together and only needed once a user
 // opens a post or a take, so they load on first open instead of in the root
 // chunk of every page.
-const PostDetailModal = dynamic(() => import("@/components/feed/PostDetailModal"), { ssr: false });
-const TakeDetailModal = dynamic(() => import("@/components/takes/TakeDetailModal"), { ssr: false });
+// While the chunk downloads on first open the URL has already changed, so
+// show the same backdrop the modal will use instead of nothing (V-46).
+function ModalChunkLoading() {
+  return (
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <Loading text="Opening" />
+    </div>
+  );
+}
+const PostDetailModal = dynamic(() => import("@/components/feed/PostDetailModal"), { ssr: false, loading: ModalChunkLoading });
+const TakeDetailModal = dynamic(() => import("@/components/takes/TakeDetailModal"), { ssr: false, loading: ModalChunkLoading });
+
+/**
+ * What we stamp on the one history entry a modal pushes. `pqReturn` is the
+ * URL under the modal, so chrome that keys on the pathname (right sidebar,
+ * bottom nav) can keep treating the page as the feed while it is open.
+ */
+interface ModalHistoryState {
+  pqModal?: "post" | "take";
+  pqId?: string;
+  pqReturn?: string;
+}
+const readHistoryState = (): ModalHistoryState =>
+  (typeof window !== "undefined" && window.history.state ? window.history.state : {}) as ModalHistoryState;
 
 const ModalContext = createContext<ModalContextType | undefined>(undefined);
 
@@ -83,68 +108,118 @@ export function ModalProvider({ children }: { children: ReactNode }) {
   // Moderation context state
   const [moderationContext, setModerationContext] = useState<ModerationContext | null>(null);
 
+  // The URL under the open modal; lets pathname-driven chrome stay put (V-8).
+  const [modalReturnPath, setModalReturnPath] = useState<string | null>(null);
+  // Last item shown, so a Forward into our entry can reopen it.
+  const lastPostRef = useRef<Post | null>(null);
+  const lastTakeRef = useRef<Take | null>(null);
+
+  /**
+   * History contract (V-6 / V-7 / F-6): opening a modal pushes exactly ONE
+   * entry, stamped with `pqModal`; opening another while one is open swaps
+   * that entry in place; closing pops it with `history.back()`; Back while
+   * open closes it. Nothing is ever pushed on close, so the stack behind the
+   * feed stays as it was.
+   */
   const openPostModal = useCallback((post: Post) => {
-    // Store the original URL before changing
-    originalUrlRef.current = window.location.pathname + window.location.search;
-
-    // Update URL to post page without navigation
-    window.history.pushState({ postId: post.id }, '', `/post/${post.id}`);
-
+    const state = readHistoryState();
+    const url = `/post/${post.id}`;
+    if (state.pqModal) {
+      window.history.replaceState({ ...state, pqModal: "post", pqId: post.id }, "", url);
+    } else {
+      const returnTo = window.location.pathname + window.location.search;
+      originalUrlRef.current = returnTo;
+      window.history.pushState({ ...state, pqModal: "post", pqId: post.id, pqReturn: returnTo }, "", url);
+    }
+    lastPostRef.current = post;
+    setSelectedTake(null);
+    setIsTakeModalOpen(false);
     setSelectedPost(post);
     setIsModalOpen(true);
+    setModalReturnPath(readHistoryState().pqReturn ?? originalUrlRef.current);
   }, []);
 
   const closePostModal = useCallback(() => {
-    // Restore the original URL
-    if (originalUrlRef.current) {
-      window.history.pushState({}, '', originalUrlRef.current);
-      originalUrlRef.current = null;
-    }
-
+    const state = readHistoryState();
     setIsModalOpen(false);
     setSelectedPost(null);
+    setModalReturnPath(null);
+    if (state.pqModal === "post") {
+      // We own the current entry: pop it instead of pushing another.
+      window.history.back();
+    } else if (originalUrlRef.current) {
+      // Nothing of ours to pop (state lost after a reload): restore in place.
+      window.history.replaceState({ ...state }, "", originalUrlRef.current);
+    }
+    originalUrlRef.current = null;
   }, []);
 
   const openTakeModal = useCallback((take: Take) => {
-    // Store the original URL before changing
-    takeOriginalUrlRef.current = window.location.pathname + window.location.search;
-
-    // Update URL to take page without navigation
-    window.history.pushState({ takeId: take.id }, '', `/take/${take.id}`);
-
+    const state = readHistoryState();
+    const url = `/take/${take.id}`;
+    if (state.pqModal) {
+      window.history.replaceState({ ...state, pqModal: "take", pqId: take.id }, "", url);
+    } else {
+      const returnTo = window.location.pathname + window.location.search;
+      takeOriginalUrlRef.current = returnTo;
+      window.history.pushState({ ...state, pqModal: "take", pqId: take.id, pqReturn: returnTo }, "", url);
+    }
+    lastTakeRef.current = take;
+    setSelectedPost(null);
+    setIsModalOpen(false);
     setSelectedTake(take);
     setIsTakeModalOpen(true);
+    setModalReturnPath(readHistoryState().pqReturn ?? takeOriginalUrlRef.current);
   }, []);
 
   const closeTakeModal = useCallback(() => {
-    // Restore the original URL
-    if (takeOriginalUrlRef.current) {
-      window.history.pushState({}, '', takeOriginalUrlRef.current);
-      takeOriginalUrlRef.current = null;
-    }
-
+    const state = readHistoryState();
     setIsTakeModalOpen(false);
     setSelectedTake(null);
+    setModalReturnPath(null);
+    if (state.pqModal === "take") {
+      window.history.back();
+    } else if (takeOriginalUrlRef.current) {
+      window.history.replaceState({ ...state }, "", takeOriginalUrlRef.current);
+    }
+    takeOriginalUrlRef.current = null;
   }, []);
 
-  // Handle browser back button
+  // Browser Back / Forward. Back out of our entry closes the modal; Forward
+  // into it reopens the last item we showed.
   useEffect(() => {
-    const handlePopState = () => {
-      if (isModalOpen) {
+    const handlePopState = (event: PopStateEvent) => {
+      const state = (event.state ?? {}) as ModalHistoryState;
+      if (state.pqModal === "post" && lastPostRef.current && state.pqId === lastPostRef.current.id) {
+        setSelectedTake(null);
+        setIsTakeModalOpen(false);
+        setSelectedPost(lastPostRef.current);
+        setIsModalOpen(true);
+        setModalReturnPath(state.pqReturn ?? null);
+        return;
+      }
+      if (state.pqModal === "take" && lastTakeRef.current && state.pqId === lastTakeRef.current.id) {
+        setSelectedPost(null);
+        setIsModalOpen(false);
+        setSelectedTake(lastTakeRef.current);
+        setIsTakeModalOpen(true);
+        setModalReturnPath(state.pqReturn ?? null);
+        return;
+      }
+      if (!state.pqModal) {
         setIsModalOpen(false);
         setSelectedPost(null);
         originalUrlRef.current = null;
-      }
-      if (isTakeModalOpen) {
         setIsTakeModalOpen(false);
         setSelectedTake(null);
         takeOriginalUrlRef.current = null;
+        setModalReturnPath(null);
       }
     };
 
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, [isModalOpen, isTakeModalOpen]);
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
   const subscribeToUpdates = useCallback((callback: PostUpdateCallback) => {
     subscribersRef.current.add(callback);
@@ -257,6 +332,7 @@ export function ModalProvider({ children }: { children: ReactNode }) {
     subscribeToTakeDeletes,
     notifyTakeDelete,
     setModerationContext,
+    modalReturnPath,
   }), [
     openPostModal,
     closePostModal,
@@ -271,6 +347,7 @@ export function ModalProvider({ children }: { children: ReactNode }) {
     subscribeToTakeDeletes,
     notifyTakeDelete,
     setModerationContext,
+    modalReturnPath,
   ]);
 
   return (
