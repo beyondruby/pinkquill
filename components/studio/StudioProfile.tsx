@@ -730,6 +730,22 @@ function formatCount(num: number | null): string {
   return num.toString();
 }
 
+// Shown in place of a tab's empty state when its request failed (P-20).
+function TabErrorState({ what, onRetry }: { what: string; onRetry: () => void }) {
+  return (
+    <div className="studio-works-empty">
+      <p className="studio-works-empty-text">Couldn&apos;t load {what}.</p>
+      <button
+        type="button"
+        onClick={onRetry}
+        className="mt-4 px-6 py-2 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid font-ui text-sm font-medium text-on-accent hover:opacity-90 transition-opacity"
+      >
+        Try again
+      </button>
+    </div>
+  );
+}
+
 function StudioTabButton({
   label,
   icon,
@@ -807,11 +823,11 @@ export default function StudioProfile({ username }: StudioProfileProps) {
   const { profile, posts, loading, error, isBlockedByUser, isPrivateAccount, refetch: refetchProfile } = useProfile(username, user?.id);
   const { checkFollowStatus, follow, unfollow } = useFollow();
   const { checkIsBlocked, blockUser, unblockUser } = useBlock();
-  const { relays, loading: relaysLoading } = useRelays(shouldLoadRelayPosts ? username : "");
-  const { takes: userTakes, loading: takesLoading } = useUserTakes(shouldLoadTakes ? username : "", user?.id);
-  const { takes: relayedTakes, loading: relayedTakesLoading } = useRelayedTakes(shouldLoadRelayTakes ? username : "", user?.id);
+  const { relays, loading: relaysLoading, error: relaysError, refetch: refetchRelays } = useRelays(shouldLoadRelayPosts ? username : "");
+  const { takes: userTakes, loading: takesLoading, error: takesError, refetch: refetchTakes } = useUserTakes(shouldLoadTakes ? username : "", user?.id);
+  const { takes: relayedTakes, loading: relayedTakesLoading, error: relayedTakesError, refetch: refetchRelayedTakes } = useRelayedTakes(shouldLoadRelayTakes ? username : "", user?.id);
   const { communities: userCommunities } = useCommunities(profile?.id, 'joined');
-  const { collections, loading: collectionsLoading, refetch: refetchCollections } = useCollections(shouldLoadCollections ? profile?.id : undefined);
+  const { collections, loading: collectionsLoading, error: collectionsError, refetch: refetchCollections } = useCollections(shouldLoadCollections ? profile?.id : undefined);
   const { toggleCollapse } = useToggleCollectionCollapse();
   const { reorderCollections } = useReorderCollections();
   const { pinnedPostIds, isPinned, canPin, pinPost, unpinPost } = usePinnedPosts(profile?.id);
@@ -2337,6 +2353,8 @@ export default function StudioProfile({ username }: StudioProfileProps) {
               <div className="py-12">
                 <Loading text="Loading takes" size="medium" />
               </div>
+            ) : takesError ? (
+              <TabErrorState what="takes" onRetry={refetchTakes} />
             ) : userTakes.length === 0 ? (
               <div className="studio-works-empty">
                 <div className="studio-works-empty-icon">
@@ -2378,7 +2396,9 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                   <div className="py-12">
                     <Loading text="Loading relays" size="medium" />
                   </div>
-                ) : relays.length === 0 ? (
+                ) : relaysError ? (
+              <TabErrorState what="relayed posts" onRetry={refetchRelays} />
+            ) : relays.length === 0 ? (
                   <div className="studio-works-empty">
                     <div className="studio-works-empty-icon">
                       {icons.relay}
@@ -2512,7 +2532,9 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                   <div className="py-12">
                     <Loading text="Loading relayed takes" size="medium" />
                   </div>
-                ) : relayedTakes.length === 0 ? (
+                ) : relayedTakesError ? (
+              <TabErrorState what="relayed takes" onRetry={refetchRelayedTakes} />
+            ) : relayedTakes.length === 0 ? (
                   <div className="studio-works-empty">
                     <div className="studio-works-empty-icon">
                       {icons.take}
@@ -2565,6 +2587,8 @@ export default function StudioProfile({ username }: StudioProfileProps) {
               <div className="flex items-center justify-center py-16">
                 <Loading />
               </div>
+            ) : collectionsError ? (
+              <TabErrorState what="collections" onRetry={refetchCollections} />
             ) : collections.length === 0 ? (
               /* Empty State - Glass Card */
               <div className="relative rounded-3xl overflow-hidden">

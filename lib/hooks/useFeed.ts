@@ -455,6 +455,9 @@ export function useSavedPosts(userId?: string): UseSavedPostsReturn {
 export function useRelays(username: string) {
   const [relays, setRelays] = useState<RelayedPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  const refetch = useCallback(() => setAttempt((a) => a + 1), []);
 
   const mountedRef = useRef(true);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -480,6 +483,7 @@ export function useRelays(username: string) {
 
       try {
         setLoading(true);
+        setError(null);
 
         // Get user's profile id
         const { data: profileData, error: profileError } = await supabase
@@ -490,7 +494,9 @@ export function useRelays(username: string) {
           .single();
 
         if (abortController.signal.aborted || !mountedRef.current) return;
-        if (profileError || !profileData) {
+        // A failed lookup is an error, not an empty profile (P-20).
+        if (profileError && profileError.code !== "PGRST116") throw profileError;
+        if (!profileData) {
           setRelays([]);
           return;
         }
@@ -607,10 +613,14 @@ export function useRelays(username: string) {
         if (abortController.signal.aborted || !mountedRef.current) return;
         setRelays(processedRelays);
       } catch (err: unknown) {
-        if (isAbortError(err) || abortControllerRef.current?.signal.aborted) return;
+        if (isAbortError(err) || abortController.signal.aborted) return;
         console.error("[useRelays] Error:", err);
-      } finally {
         if (mountedRef.current) {
+          setError(err instanceof Error ? err.message : "Failed to fetch relays");
+        }
+      } finally {
+        // Only the run that still owns the controller may clear `loading`.
+        if (mountedRef.current && abortControllerRef.current === abortController) {
           setLoading(false);
         }
       }
@@ -624,7 +634,7 @@ export function useRelays(username: string) {
         abortControllerRef.current.abort();
       }
     };
-  }, [username]);
+  }, [username, attempt]);
 
-  return { relays, loading };
+  return { relays, loading, error, refetch };
 }

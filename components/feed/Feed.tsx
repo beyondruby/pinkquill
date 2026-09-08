@@ -234,6 +234,9 @@ export default function Feed() {
   // the underlying request already has its own 25s timeout.
   const loadingStartRef = useRef<number | null>(null);
   const retryCountRef = useRef(0);
+  // Shown under the skeletons once the auto-retry has fired (F-31): the
+  // retry used to be invisible, so a slow first load looked frozen.
+  const [autoRetrying, setAutoRetrying] = useState(false);
   useEffect(() => {
     if (postsLoading && feedPosts.length === 0) {
       if (!loadingStartRef.current) {
@@ -243,10 +246,15 @@ export default function Feed() {
         if (retryCountRef.current < 1) {
           retryCountRef.current += 1;
           console.warn(`[Feed] Loading stuck for >12s, auto-retrying (attempt ${retryCountRef.current})`);
+          setAutoRetrying(true);
           handleRefresh();
         }
       }, 12000);
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(timer);
+        // Runs when the load settles (deps change): hide the note again.
+        setAutoRetrying(false);
+      };
     } else {
       loadingStartRef.current = null;
       retryCountRef.current = 0;
@@ -328,6 +336,11 @@ export default function Feed() {
                         ] + " h-72 rounded-2xl bg-skeleton animate-pulse";
                 return <div key={i} className={skClass} />;
               })}
+          {autoRetrying && (
+            <p className="col-span-full md:col-span-12 text-center font-body text-sm text-muted">
+              Still loading — trying again…
+            </p>
+          )}
         </FeedFrame>
       </>
     );

@@ -26,6 +26,8 @@ import Loading from "@/components/ui/Loading";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { CommentIcon, icons } from "@/components/ui/Icons";
 
+const LOAD_FAILED = "Failed to load take";
+
 interface Take {
   id: string;
   author_id: string;
@@ -166,7 +168,15 @@ export default function SingleTakePage({ params }: PageProps) {
         .eq("id", id)
         .single();
 
-      if (takeError || !takeData) {
+      if (takeError) {
+        // supabase-js returns network failures as { error } too; only a
+        // "no rows" result is a missing (or hidden) take (V-48).
+        setError(takeError.code === "PGRST116" ? "Take not found" : LOAD_FAILED);
+        setLoading(false);
+        return;
+      }
+
+      if (!takeData) {
         setError("Take not found");
         setLoading(false);
         return;
@@ -177,70 +187,9 @@ export default function SingleTakePage({ params }: PageProps) {
       // Blocks are enforced by the takes read policy (Phase 6): a blocked
       // viewer never receives the row, so no client-side check is needed.
 
-      // SECURITY CHECK: Enforce visibility rules
-      const visibility = takeData.visibility;
-
-      if (visibility === "private") {
-        // Private takes: only the author can see
-        if (!isOwnerCheck) {
-          setError("This take is private");
-          setLoading(false);
-          return;
-        }
-      } else if (visibility === "followers") {
-        // Followers-only takes: only the author or their followers can see
-        if (!isOwnerCheck) {
-          if (!user) {
-            setError("You must be logged in to view this take");
-            setLoading(false);
-            return;
-          }
-
-          // Check if the current user follows the take author (must be accepted)
-          const { count: followCount } = await supabase
-            .from("follows")
-            .select("*", { count: "exact", head: true })
-            .eq("follower_id", user.id)
-            .eq("following_id", takeData.author_id);
-
-          if (!followCount || followCount === 0) {
-            setError("This take is only visible to followers");
-            setLoading(false);
-            return;
-          }
-        }
-      }
-
-      // SECURITY CHECK: Private account check
-      // If the author has a private account, only approved followers can see their takes
-      if (!isOwnerCheck) {
-        const { data: authorProfile } = await supabase
-          .from("profiles")
-          .select("is_private")
-          .eq("id", takeData.author_id)
-          .single();
-
-        if (authorProfile?.is_private) {
-          if (!user) {
-            setError("This take is from a private account");
-            setLoading(false);
-            return;
-          }
-
-          // Check if user is an accepted follower
-          const { count: followCount } = await supabase
-            .from("follows")
-            .select("*", { count: "exact", head: true })
-            .eq("follower_id", user.id)
-            .eq("following_id", takeData.author_id);
-
-          if (!followCount || followCount === 0) {
-            setError("This take is from a private account");
-            setLoading(false);
-            return;
-          }
-        }
-      }
+      // Visibility (public / followers / private) is enforced by the
+      // takes_select policy since phase 1b; a row we may not see is a
+      // "not found" above.
 
       // Fetch author
       const { data: authorData } = await supabase
@@ -316,7 +265,7 @@ export default function SingleTakePage({ params }: PageProps) {
       setLoading(false);
     } catch (err) {
       console.error("Error fetching take:", err);
-      setError("Failed to load take");
+      setError(LOAD_FAILED);
       setLoading(false);
     }
     // Only the user id matters: a refreshed session object must not refetch.
@@ -535,19 +484,32 @@ export default function SingleTakePage({ params }: PageProps) {
     );
   }
 
-  // Error state
+  // Error state: a request failure gets a retry; a missing / hidden row is "not found" (V-48)
   if (error || !take) {
+    const failed = error === LOAD_FAILED;
     return (
       <>
         <LeftSidebar />
         <main className="pt-14 pb-20 md:pt-0 md:pb-0 md:ml-[72px] min-h-screen bg-canvas">
           <div className="max-w-[680px] mx-auto py-12 px-6">
             <div className="text-center py-20">
-              <h1 className="font-display text-2xl text-ink mb-4">Take not found</h1>
-              <p className="font-body text-muted mb-6">This take may have been removed or doesn&apos;t exist.</p>
-              <Link href="/takes" className="inline-block px-6 py-3 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid font-ui text-white">
-                Browse Takes
-              </Link>
+              <h1 className="font-display text-2xl text-ink mb-4">{failed ? "Couldn’t load this take" : "Take not found"}</h1>
+              <p className="font-body text-muted mb-6">
+                {failed ? "Check your connection and try again." : "This take may have been removed or doesn’t exist."}
+              </p>
+              {failed ? (
+                <button
+                  type="button"
+                  onClick={() => fetchTake()}
+                  className="inline-block px-6 py-3 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid font-ui text-white"
+                >
+                  Try again
+                </button>
+              ) : (
+                <Link href="/takes" className="inline-block px-6 py-3 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid font-ui text-white">
+                  Browse Takes
+                </Link>
+              )}
             </div>
           </div>
         </main>

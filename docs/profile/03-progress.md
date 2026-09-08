@@ -10,8 +10,8 @@ state lives; update it at the end of every sub-phase.
 |---|---|---|---|---|
 | 1a | RC-1 takes grid gutter | **done 2026-09-08** | see git log `fix(profile): stop the takes grid` | removed `background:#000` + the no-op mobile block from `.takes-grid` (app/globals.css). Verified 0/1/2/5 takes and Relays→Takes at 1400 px and phone width; tsc 0 errors, lint 0 errors (166 pre-existing warnings), 223 tests pass |
 | 1b | RC-2 policies / grants | **done 2026-09-08, applied to prod** | see git log `fix(profile): hide email from the browser` | migration `20260913_profile_phase1b_grants.sql` (table grant on profiles replaced by column lists for anon/authenticated; `takes_select` mirrors `posts_select_policy`). Client: `lib/profiles/columns.ts`, explicit columns in `useProfile` + `AuthProvider`, client insert no longer writes email. Verified: DB role checks, REST as anon (select=* → 401, select=email → 42501, id/username → 200), feed/profile/settings in browser as owner. Found decision 10 (private accounts not enforced server-side for posts or takes) |
-| 1c | RC-3 loading/error signal | not started — **next** | — | |
-| 1d | RC-4 unchecked writes | not started | — | |
+| 1c | RC-3 loading/error signal | **done 2026-09-08** | see git log `fix(profile): show errors as errors` | `useProfile` finally only clears loading for the run that owns the abort controller (X-1); `useUserTakes`/`useRelayedTakes` get a cancelled flag + `refetch`, `useRelays` gets `error` + `refetch` + ownership guard; a failed profile lookup in those hooks throws instead of rendering as empty; profile tabs render `TabErrorState` (Couldn't load … / Try again) before the empty state (P-20); post + take pages split network failure (Couldn't load … / Try again) from not-found, incl. the first query's `{ error }` (V-48); `FeedBoundary` client wrapper gives the feed fallback a working retry (F-13); feed shows "Still loading — trying again…" when the 12 s auto-retry fires (F-31). Also finished the 1b leftover: client-side take visibility checks removed from `useUserTakes` and `/take/[id]` (RLS owns it). Browser-verified: no not-found flash feed → profile; Takes tab failure + retry; post page failure + retry; not-found on post + take; feed retry note. Not browser-verified: the take page failure branch (its data loads before a fetch patch can land; same code as the post page) |
+| 1d | RC-4 unchecked writes | not started — **next** | — | |
 | 1e | RC-5 in-flight guards | not started | — | |
 | 1f | RC-6 one mapper | not started | — | |
 | 1g | RC-7 modal history | not started | — | |
@@ -40,7 +40,8 @@ state lives; update it at the end of every sub-phase.
 ## Session log
 
 - 2026-09-08 — plan approved by the user; 1a done and committed.
-- 2026-09-08 — 1b SQL shown, user replied "apply"; migration applied to prod and committed. New column on `profiles` = add it to the GRANTs and `lib/profiles/columns.ts`.
+- 2026-09-08 — 1b SQL shown, user replied "apply"; migration applied to prod and committed.
+- 2026-09-08 — 1c done and committed. Browser trick for failure states: patch `window.fetch` to reject a `/rest/v1/<table>?` URL right after navigation, then restore it and click Try again. New column on `profiles` = add it to the GRANTs and `lib/profiles/columns.ts`.
 
 ## Decisions log
 

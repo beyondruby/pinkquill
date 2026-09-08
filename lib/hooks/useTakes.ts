@@ -958,55 +958,41 @@ export function useUserTakes(username: string, viewerId?: string) {
   const [takes, setTakes] = useState<Take[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  const refetch = useCallback(() => setAttempt((a) => a + 1), []);
 
   useEffect(() => {
+    // A run that has been superseded (username changed, tab left, retry)
+    // must not write state, or its finally would clear `loading` under the
+    // newer run (finding X-1 / P-20).
+    let cancelled = false;
     const fetchUserTakes = async () => {
       try {
         setLoading(true);
         setError(null);
 
         // First get the user's profile id
-        const { data: profileData } = await supabase
+        const { data: profileData, error: profileError } = await supabase
           .from("profiles")
           .select("id, username, display_name, avatar_url")
           .eq("username", username)
           .single();
 
+        // A failed lookup is an error, not an empty profile (P-20).
+        if (profileError && profileError.code !== "PGRST116") throw profileError;
         if (!profileData) {
           setTakes([]);
           return;
         }
 
-        // Check visibility permissions
-        const isOwnProfile = viewerId && viewerId === profileData.id;
-        let viewerFollowsProfile = false;
-
-        if (viewerId && !isOwnProfile) {
-          const { data: followCheck } = await supabase
-            .from("follows")
-            .select("id")
-            .eq("follower_id", viewerId)
-            .eq("following_id", profileData.id)
-            .maybeSingle();
-          viewerFollowsProfile = !!followCheck;
-        }
-
-        // Build query with visibility filter
-        let takesQuery = supabase
+        // Visibility (public / followers / private) is enforced by the
+        // takes_select policy since phase 1b: ask for the author's takes and
+        // the database returns what this viewer may see.
+        const takesQuery = supabase
           .from("takes")
           .select("*")
           .eq("author_id", profileData.id)
           .order("created_at", { ascending: false });
-
-        // Apply visibility filter based on relationship
-        if (!isOwnProfile) {
-          if (viewerFollowsProfile) {
-            takesQuery = takesQuery.in("visibility", ["public", "followers"]);
-          } else {
-            takesQuery = takesQuery.eq("visibility", "public");
-          }
-        }
-        // If isOwnProfile, no filter applied - owner sees all takes
 
         // Fetch takes by this user
         const { data: takesData, error: takesError } = await takesQuery;
@@ -1070,26 +1056,30 @@ export function useUserTakes(username: string, viewerId?: string) {
           user_reaction_type: userReactionMap.get(take.id) || null,
         }));
 
+        if (cancelled) return;
         setTakes(processedTakes);
       } catch (err) {
+        if (cancelled) return;
         console.error("[useUserTakes] Error:", err);
         setError(err instanceof Error ? err.message : "Failed to fetch takes");
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     if (username) {
       fetchUserTakes();
-      return;
+      return () => {
+        cancelled = true;
+      };
     }
 
     setTakes([]);
     setError(null);
     setLoading(false);
-  }, [username, viewerId]);
+  }, [username, viewerId, attempt]);
 
-  return { takes, loading, error };
+  return { takes, loading, error, refetch };
 }
 
 // ============================================================================
@@ -1104,20 +1094,24 @@ export function useRelayedTakes(username: string, viewerId?: string) {
   const [takes, setTakes] = useState<RelayedTake[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  const refetch = useCallback(() => setAttempt((a) => a + 1), []);
 
   useEffect(() => {
+    let cancelled = false;
     const fetchRelayedTakes = async () => {
       try {
         setLoading(true);
         setError(null);
 
         // First get the user's profile id
-        const { data: profileData } = await supabase
+        const { data: profileData, error: profileError } = await supabase
           .from("profiles")
           .select("id")
           .eq("username", username)
           .single();
 
+        if (profileError && profileError.code !== "PGRST116") throw profileError;
         if (!profileData) {
           setTakes([]);
           return;
@@ -1184,26 +1178,30 @@ export function useRelayedTakes(username: string, viewerId?: string) {
           new Date(b.relayed_at).getTime() - new Date(a.relayed_at).getTime()
         );
 
+        if (cancelled) return;
         setTakes(processedTakes);
       } catch (err) {
+        if (cancelled) return;
         console.error("[useRelayedTakes] Error:", err);
         setError(err instanceof Error ? err.message : "Failed to fetch relayed takes");
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     if (username) {
       fetchRelayedTakes();
-      return;
+      return () => {
+        cancelled = true;
+      };
     }
 
     setTakes([]);
     setError(null);
     setLoading(false);
-  }, [username, viewerId]);
+  }, [username, viewerId, attempt]);
 
-  return { takes, loading, error };
+  return { takes, loading, error, refetch };
 }
 
 // ============================================================================

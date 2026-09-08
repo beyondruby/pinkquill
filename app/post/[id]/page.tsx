@@ -35,6 +35,8 @@ import { getTimeAgo, formatDate, formatTime } from "@/lib/utils/time";
 import FlairBadge from "@/components/communities/FlairBadge";
 import { getBackgroundStyle, isDarkBackground, getLuminance, extractColorsFromGradient } from "@/lib/utils/background";
 
+const LOAD_FAILED = "Failed to load post";
+
 interface TaggedUser {
   id: string;
   username: string;
@@ -277,6 +279,11 @@ export default function PostPage() {
     }
 
     try {
+      // A retry from the failure screen must clear the previous error
+      // and show the loading state again.
+      setLoading(true);
+      setError(null);
+
       // Fetch post
       const { data: postData, error: postError } = await supabase
         .from("posts")
@@ -314,7 +321,9 @@ export default function PostPage() {
         .single();
 
       if (postError) {
-        setError("Post not found");
+        // supabase-js returns network failures as { error } too; only a
+        // "no rows" result is a missing post (V-48).
+        setError(postError.code === "PGRST116" ? "Post not found" : LOAD_FAILED);
         setLoading(false);
         return;
       }
@@ -453,7 +462,7 @@ export default function PostPage() {
       setLoading(false);
     } catch (err) {
       console.error("Fetch error:", err);
-      setError("Failed to load post");
+      setError(LOAD_FAILED);
       setLoading(false);
     }
     // Only the user id matters: a refreshed session object must not refetch.
@@ -681,8 +690,9 @@ export default function PostPage() {
     );
   }
 
-  // Error state
+  // Error state: a request failure gets a retry; a missing / hidden row is "not found" (V-48)
   if (error || !post) {
+    const failed = error === LOAD_FAILED;
     return (
       <>
         <MobileHeader />
@@ -690,11 +700,23 @@ export default function PostPage() {
         <main className="pt-14 pb-20 md:pt-0 md:pb-0 md:ml-[72px] min-h-screen bg-canvas">
           <div className="max-w-[680px] mx-auto py-12 px-4 md:px-6">
             <div className="text-center py-20">
-              <h1 className="font-display text-2xl text-ink mb-4">Post not found</h1>
-              <p className="font-body text-muted mb-6">This post may have been removed or doesn&apos;t exist.</p>
-              <Link href="/" className="inline-block px-6 py-3 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid font-ui text-white">
-                Back to feed
-              </Link>
+              <h1 className="font-display text-2xl text-ink mb-4">{failed ? "Couldn’t load this post" : "Post not found"}</h1>
+              <p className="font-body text-muted mb-6">
+                {failed ? "Check your connection and try again." : "This post may have been removed or doesn’t exist."}
+              </p>
+              {failed ? (
+                <button
+                  type="button"
+                  onClick={() => fetchData()}
+                  className="inline-block px-6 py-3 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid font-ui text-white"
+                >
+                  Try again
+                </button>
+              ) : (
+                <Link href="/" className="inline-block px-6 py-3 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid font-ui text-white">
+                  Back to feed
+                </Link>
+              )}
             </div>
           </div>
         </main>

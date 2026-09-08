@@ -242,7 +242,10 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
         setError(err instanceof Error ? err.message : "Failed to fetch profile");
       }
     } finally {
-      if (mountedRef.current) {
+      // Only the fetch that still owns the controller may clear `loading`.
+      // An aborted run's finally used to fire after a remount or refetch had
+      // already started, flashing "User not found" (finding X-1).
+      if (mountedRef.current && abortControllerRef.current?.signal === signal) {
         setLoading(false);
       }
     }
