@@ -816,6 +816,7 @@ export interface PaginationState {
   page: number;
   pageSize: number;
   hasMore: boolean;
+  /** Only the explore hook fills this; the home feed pages by cursor and never counts. */
   total?: number;
 }
 

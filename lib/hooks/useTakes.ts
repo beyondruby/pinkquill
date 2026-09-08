@@ -750,7 +750,8 @@ export function useTakesFollowing(userId?: string) {
       .eq("follower_id", userId)
       .in("following_id", authorIds);
 
-    setFollowing(new Set((data || []).map(f => f.following_id)));
+    // Merge: callers ask about new authors only; toggle() handles removals.
+    setFollowing(prev => new Set([...prev, ...(data || []).map(f => f.following_id)]));
   }, [userId]);
 
   const toggle = useCallback(async (authorId: string) => {

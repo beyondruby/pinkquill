@@ -110,15 +110,17 @@ export default function TakeDetailModal({
   }, [take?.id, take?.is_saved, take?.is_relayed, take?.relays_count, take?.content_warning]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  // Fetch hashtags, collaborators, and mentions when take changes
+  // Fetch hashtags, collaborators, and mentions when take changes. Each run
+  // starts from empty and stops writing once a newer take is selected, so a
+  // slow or failed request never leaves the previous take's tags on screen
+  // (V-29).
   useEffect(() => {
+    let cancelled = false;
     const fetchMetadata = async () => {
-      if (!take?.id) {
-        setHashtags([]);
-        setCollaborators([]);
-        setMentions([]);
-        return;
-      }
+      setHashtags([]);
+      setCollaborators([]);
+      setMentions([]);
+      if (!take?.id) return;
 
       // Fetch all metadata in parallel
       const [tagsRes, collabRes, mentionsRes] = await Promise.all([
@@ -126,6 +128,7 @@ export default function TakeDetailModal({
         supabase.from("take_collaborators").select("role, user_id").eq("take_id", take.id).eq("status", "accepted"),
         supabase.from("take_mentions").select("user_id").eq("take_id", take.id),
       ]);
+      if (cancelled) return;
 
       // Set hashtags
       if (tagsRes.data) {
@@ -140,6 +143,7 @@ export default function TakeDetailModal({
           .select("id, username, display_name, avatar_url")
           .in("id", userIds);
 
+        if (cancelled) return;
         if (profiles) {
           const profileMap = new Map(profiles.map(p => [p.id, p]));
           setCollaborators(collabRes.data.map(c => ({
@@ -159,6 +163,7 @@ export default function TakeDetailModal({
           .select("id, username, display_name, avatar_url")
           .in("id", userIds);
 
+        if (cancelled) return;
         setMentions(profiles || []);
       } else {
         setMentions([]);
@@ -166,6 +171,9 @@ export default function TakeDetailModal({
     };
 
     fetchMetadata();
+    return () => {
+      cancelled = true;
+    };
   }, [take?.id]);
 
   // Auto-play when modal opens (only if no content warning or user accepted it)

@@ -26,8 +26,10 @@ const createMockQueryBuilder = (resolvedData: unknown = [], error: unknown = nul
     select: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
     in: vi.fn().mockReturnThis(),
+    or: vi.fn().mockReturnThis(),
     order: vi.fn().mockReturnThis(),
     range: vi.fn().mockImplementation(createTerminal),
+    limit: vi.fn().mockImplementation(createTerminal),
     abortSignal: vi.fn().mockReturnThis(),
     single: vi.fn().mockResolvedValue(mockResult),
     maybeSingle: vi.fn().mockResolvedValue(mockResult),
@@ -35,13 +37,15 @@ const createMockQueryBuilder = (resolvedData: unknown = [], error: unknown = nul
 
   // Make all methods chainable
   (Object.keys(builder) as Array<keyof MockQueryBuilder>).forEach(key => {
-    if (key !== 'range' && key !== 'single' && key !== 'maybeSingle') {
+    if (key !== 'range' && key !== 'limit' && key !== 'single' && key !== 'maybeSingle') {
       builder[key] = vi.fn().mockReturnValue(builder);
     }
   });
 
-  // Override range to resolve
+  // The feed pages by cursor and ends its chain with .limit(); other hooks
+  // still end with .range(). Both resolve.
   builder.range = vi.fn().mockImplementation(createTerminal);
+  builder.limit = vi.fn().mockImplementation(createTerminal);
 
   return builder;
 };
@@ -194,6 +198,47 @@ describe("useFeed", () => {
     unmount();
 
     expect(mockRemoveChannel).not.toHaveBeenCalled();
+  });
+
+  it("pages by cursor and de-duplicates on append (F-1)", async () => {
+    const p = (id: string, created_at: string) => ({ ...mockPosts[0], id, created_at });
+    mockQueryBuilder = createMockQueryBuilder([p("a", "2026-09-08T10:00:00+00:00"), p("b", "2026-09-08T09:00:00+00:00")]);
+    const { result } = renderHook(() => useFeed("user-1", { pageSize: 2 }));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.posts.map((x) => x.id)).toEqual(["a", "b"]);
+    expect(result.current.pagination.hasMore).toBe(true);
+
+    // Page 2 overlaps with page 1 (a post published between requests shifted it).
+    mockQueryBuilder = createMockQueryBuilder([p("b", "2026-09-08T09:00:00+00:00"), p("c", "2026-09-08T08:00:00+00:00")]);
+    await act(async () => { await result.current.loadMore(); });
+    expect(result.current.posts.map((x) => x.id)).toEqual(["a", "b", "c"]);
+    const orArg = String(mockQueryBuilder.or.mock.calls[0]?.[0] ?? "");
+    expect(orArg).toContain('created_at.lt."2026-09-08T09:00:00+00:00"');
+    expect(orArg).toContain('id.lt."b"');
+    expect(mockQueryBuilder.range).not.toHaveBeenCalled();
+  });
+
+  it("prepends newer posts on refocus instead of collapsing the list (F-2)", async () => {
+    vi.useFakeTimers();
+    try {
+      const p = (id: string, created_at: string) => ({ ...mockPosts[0], id, created_at });
+      mockQueryBuilder = createMockQueryBuilder([p("a", "2026-09-08T10:00:00+00:00"), p("b", "2026-09-08T09:00:00+00:00")]);
+      const { result } = renderHook(() => useFeed("user-1", { pageSize: 2 }));
+      await act(async () => { await vi.runAllTimersAsync(); });
+      expect(result.current.posts.map((x) => x.id)).toEqual(["a", "b"]);
+
+      mockQueryBuilder = createMockQueryBuilder([p("z", "2026-09-08T11:00:00+00:00")]);
+      await act(async () => { vi.advanceTimersByTime(31_000); });
+      await act(async () => {
+        window.dispatchEvent(new Event("focus"));
+        await vi.runAllTimersAsync();
+      });
+      expect(result.current.posts.map((x) => x.id)).toEqual(["z", "a", "b"]);
+      const orArg = String(mockQueryBuilder.or.mock.calls[0]?.[0] ?? "");
+      expect(orArg).toContain('created_at.gt."2026-09-08T10:00:00+00:00"');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("should refresh posts", async () => {

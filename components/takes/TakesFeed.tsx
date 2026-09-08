@@ -61,11 +61,18 @@ export default function TakesFeed({
   }, [communityId, soundId, authorId, initialTakeId]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
+  // Look up follow state only for authors we have not asked about yet; the
+  // list changes on every page and every "not interested" (V-30).
+  const checkedAuthorsRef = useRef<Set<string>>(new Set());
   useEffect(() => {
-    if (visibleTakes.length > 0 && user?.id) {
-      const authorIds = [...new Set(visibleTakes.map(t => t.author_id))];
-      checkFollowing(authorIds);
-    }
+    checkedAuthorsRef.current = new Set();
+  }, [user?.id, communityId, soundId, authorId]);
+  useEffect(() => {
+    if (visibleTakes.length === 0 || !user?.id) return;
+    const fresh = [...new Set(visibleTakes.map(t => t.author_id))].filter((id) => !checkedAuthorsRef.current.has(id));
+    if (fresh.length === 0) return;
+    fresh.forEach((id) => checkedAuthorsRef.current.add(id));
+    checkFollowing(fresh);
   }, [visibleTakes, user?.id, checkFollowing]);
 
   /* eslint-disable react-hooks/set-state-in-effect */
@@ -81,16 +88,18 @@ export default function TakesFeed({
   }, [activeIndex, visibleTakes.length]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
+  // Scroll to the deep-linked take exactly once. This used to re-run on
+  // every list change and yank the user back after each page load (V-31).
+  const deepLinkDoneRef = useRef<string | null>(null);
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-    if (initialTakeId && visibleTakes.length > 0) {
-      const index = visibleTakes.findIndex(t => t.id === initialTakeId);
-      if (index !== -1) {
-        setActiveIndex(index);
-        const el = cardRefs.current.get(initialTakeId);
-        el?.scrollIntoView({ behavior: "instant" });
-      }
-    }
+    if (!initialTakeId || visibleTakes.length === 0) return;
+    if (deepLinkDoneRef.current === initialTakeId) return;
+    const index = visibleTakes.findIndex(t => t.id === initialTakeId);
+    if (index === -1) return;
+    deepLinkDoneRef.current = initialTakeId;
+    setActiveIndex(index);
+    cardRefs.current.get(initialTakeId)?.scrollIntoView({ behavior: "instant" });
   }, [initialTakeId, visibleTakes]);
   /* eslint-enable react-hooks/set-state-in-effect */
 

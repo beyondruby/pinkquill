@@ -11,7 +11,16 @@ import { enrichPost, fetchUserPostFlags, POST_RELATIONS_SELECT, POST_COUNTS_SELE
 // ============================================================================
 
 const DEFAULT_PAGE_SIZE = 20;
+// Hard stop for the in-memory list: once this many posts are loaded the feed
+// reports the end instead of dropping rows (the old cap sliced the *newest*
+// posts off the front, F-3). Virtualisation is a Phase 2 concern.
 const MAX_FEED_POSTS = 200;
+
+/** Keyset cursor: strictly newest-first by (created_at, id), decision 9. */
+interface FeedCursor {
+  created_at: string;
+  id: string;
+}
 
 // ============================================================================
 // useFeed - Main feed hook with pagination
@@ -60,13 +69,34 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
   const abortControllerRef = useRef<AbortController | null>(null);
   const fetchingRef = useRef(false);
   const requestIdRef = useRef(0);
+  // Mirror of `posts` for cursor maths without re-creating callbacks.
+  const postsRef = useRef<Post[]>([]);
+  postsRef.current = posts;
 
+  /**
+   * `mode`:
+   *  - "replace": first page (mount, manual refresh, error retry)
+   *  - "older":   next page after the last loaded row (infinite scroll)
+   *  - "newer":   rows published since the first loaded row (tab refocus),
+   *               prepended — the list is never collapsed to page 0 (F-2)
+   * Offset paging used to duplicate or skip rows whenever a post was
+   * published or deleted between pages (F-1); the cursor makes each page
+   * disjoint, and appends are still de-duplicated by id.
+   */
   const fetchPosts = useCallback(
-    async (page: number, append: boolean = false) => {
+    async (page: number, append: boolean = false, mode: "replace" | "older" | "newer" = append ? "older" : "replace") => {
       if (fetchingRef.current) {
-        if (append) return;
+        if (mode !== "replace") return;
         abortControllerRef.current?.abort();
       }
+      const current = postsRef.current;
+      const olderCursor: FeedCursor | null = mode === "older" && current.length > 0
+        ? { created_at: current[current.length - 1].created_at, id: current[current.length - 1].id }
+        : null;
+      const newerCursor: FeedCursor | null = mode === "newer" && current.length > 0
+        ? { created_at: current[0].created_at, id: current[0].id }
+        : null;
+      if (mode === "newer" && !newerCursor) mode = "replace";
 
       fetchingRef.current = true;
 
@@ -80,9 +110,6 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
       try {
         setLoading(true);
         setError(null);
-
-        const from = page * pageSize;
-        const to = from + pageSize - 1;
 
         // Build query lazily so transient failures can be retried safely.
         const runPostsQuery = () => {
@@ -153,17 +180,27 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
             )
             .eq("status", "published")
             .order("created_at", { ascending: false })
-            .abortSignal(signal)
-            .range(from, to);
+            .order("id", { ascending: false })
+            .abortSignal(signal);
 
           if (communityId) {
             query = query.eq("community_id", communityId);
           }
+          if (olderCursor) {
+            query = query.or(
+              `created_at.lt."${olderCursor.created_at}",and(created_at.eq."${olderCursor.created_at}",id.lt."${olderCursor.id}")`,
+            );
+          }
+          if (newerCursor) {
+            query = query.or(
+              `created_at.gt."${newerCursor.created_at}",and(created_at.eq."${newerCursor.created_at}",id.gt."${newerCursor.id}")`,
+            );
+          }
 
-          return query;
+          return query.limit(pageSize);
         };
 
-        const { data: postsData, error: queryError, count: totalCount } = await retryWithBackoff(runPostsQuery, {
+        const { data: postsData, error: queryError } = await retryWithBackoff(runPostsQuery, {
           attempts: 3,
           shouldRetry: isRetryableError,
         });
@@ -182,24 +219,33 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
         const flags = await fetchUserPostFlags(userId, postIds, signal);
         if (abortController.signal.aborted || !mountedRef.current) return;
         const typedPosts: Post[] = (postsData || []).map((row) => enrichPost(row, flags));
-        if (append) {
+        let capped = false;
+        if (mode === "older") {
           setPosts((prev) => {
-            const combined = [...prev, ...typedPosts];
-            if (combined.length > MAX_FEED_POSTS) {
-              return combined.slice(combined.length - MAX_FEED_POSTS);
+            const seen = new Set(prev.map((p) => p.id));
+            const combined = [...prev, ...typedPosts.filter((p) => !seen.has(p.id))];
+            if (combined.length >= MAX_FEED_POSTS) {
+              capped = true;
+              return combined.slice(0, MAX_FEED_POSTS);
             }
             return combined;
+          });
+        } else if (mode === "newer") {
+          setPosts((prev) => {
+            const seen = new Set(prev.map((p) => p.id));
+            return [...typedPosts.filter((p) => !seen.has(p.id)), ...prev];
           });
         } else {
           setPosts(typedPosts);
         }
 
-        setPagination({
-          page,
-          pageSize,
-          hasMore: typedPosts.length === pageSize,
-          total: totalCount || undefined,
-        });
+        if (mode !== "newer") {
+          setPagination({
+            page,
+            pageSize,
+            hasMore: typedPosts.length === pageSize && !capped,
+          });
+        }
       } catch (err: unknown) {
         // Ignore abort errors - they're expected when cancelling requests
         if (isAbortError(err) || abortController.signal.aborted) {
@@ -229,9 +275,9 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
     await fetchPosts(pagination.page + 1, true);
   }, [fetchPosts, pagination.hasMore, pagination.page, loading]);
 
-  // Refresh posts
+  // Refresh posts (full replace — manual retry / error recovery)
   const refresh = useCallback(async () => {
-    await fetchPosts(0, false);
+    await fetchPosts(0, false, "replace");
   }, [fetchPosts]);
 
   // Initial fetch and cleanup
@@ -256,11 +302,9 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
     };
   }, [fetchPosts, enabled]);
 
-  // Refresh feed counts when the tab regains focus. The user's own
-  // interactions update optimistically via interaction hooks; this catches
-  // changes from other users without subscribing to reactions/relays
-  // for every visible post in real-time (which produced massive realtime
-  // egress). A 30s minimum gap prevents thrash if the user alt-tabs rapidly.
+  // Pull in posts published since the top of the list when the tab regains
+  // focus (counts on already-loaded posts come through the engagement store).
+  // A 30s minimum gap prevents thrash if the user alt-tabs rapidly.
   useEffect(() => {
     if (!enabled || typeof window === "undefined") return;
 
@@ -273,7 +317,8 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
       const now = Date.now();
       if (now - lastRefetchAt < MIN_REFETCH_GAP_MS) return;
       lastRefetchAt = now;
-      void fetchPosts(0, false);
+      // Prepend what is new; keep every page the user has scrolled through.
+      void fetchPosts(0, false, "newer");
     };
 
     document.addEventListener("visibilitychange", maybeRefresh);
