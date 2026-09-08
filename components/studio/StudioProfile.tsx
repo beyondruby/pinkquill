@@ -999,19 +999,29 @@ export default function StudioProfile({ username }: StudioProfileProps) {
   // Handle follow/unfollow
   const handleFollow = async () => {
     if (!user || !profile || isOwnProfile) return;
+    if (followLoading) return;
     setFollowLoading(true);
 
-    if (followStatus === 'accepted' || followStatus === 'pending') {
-      // Unfollow or cancel request
-      await unfollow(user.id, profile.id);
-      setFollowStatus(null);
-    } else {
-      // Follow or send request
-      const newStatus = await follow(user.id, profile.id);
-      setFollowStatus(newStatus);
+    const wasFollowing = followStatus === 'accepted' || followStatus === 'pending';
+    try {
+      if (wasFollowing) {
+        // Unfollow or cancel request
+        await unfollow(user.id, profile.id);
+        setFollowStatus(null);
+      } else {
+        // Follow or send request
+        const newStatus = await follow(user.id, profile.id);
+        setFollowStatus(newStatus);
+      }
+    } catch (err) {
+      // The helpers throw on failure; without this the button stayed
+      // disabled forever (P-6).
+      console.error("[StudioProfile] Follow toggle failed:", err);
+      if (wasFollowing) actionToast.unfollowError();
+      else actionToast.followError();
+    } finally {
+      setFollowLoading(false);
     }
-
-    setFollowLoading(false);
   };
 
   // Derived state for easier rendering

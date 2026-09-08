@@ -205,12 +205,20 @@ function PostCardComponent({
     await reaction.unreact();
   }, [readOnly, reaction]);
 
+  // One in-flight toggle at a time (F-9): a second click while the first
+  // request is pending used to insert a duplicate, hit the unique
+  // constraint, and revert to the wrong state.
+  const savePending = useRef(false);
+  const relayPending = useRef(false);
+
   const handleSave = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!user) {
       openAuthModal();
       return;
     }
+    if (savePending.current) return;
+    savePending.current = true;
 
     const newIsSaved = !isSaved;
     setIsSaved(newIsSaved);
@@ -234,7 +242,10 @@ function PostCardComponent({
     } catch {
       // Revert on error
       setIsSaved(!newIsSaved);
+      notifyUpdate({ postId: post.id, field: "saves", isActive: !newIsSaved, countChange: 0 });
       actionToast.genericError("save post");
+    } finally {
+      savePending.current = false;
     }
   }, [user, openAuthModal, isSaved, post.id, post.authorId, notifyUpdate, toggleSave]);
 
@@ -246,6 +257,8 @@ function PostCardComponent({
     }
     // Can't relay your own posts
     if (user.id === post.authorId) return;
+    if (relayPending.current) return;
+    relayPending.current = true;
 
     const newIsRelayed = !isRelayed;
     const countChange = newIsRelayed ? 1 : -1;
@@ -273,7 +286,10 @@ function PostCardComponent({
       // Revert on error
       setIsRelayed(!newIsRelayed);
       setRelayCount((prev) => Math.max(0, prev - countChange));
+      notifyUpdate({ postId: post.id, field: "relays", isActive: !newIsRelayed, countChange: -countChange });
       actionToast.genericError("relay post");
+    } finally {
+      relayPending.current = false;
     }
   }, [user, openAuthModal, isRelayed, post.id, post.authorId, notifyUpdate, toggleRelay]);
 
