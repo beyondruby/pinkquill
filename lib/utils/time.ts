@@ -84,6 +84,24 @@ export function formatTime(dateString: string): string {
 
 // ─── order / money screens (moved here in Phase 4a from components/orders/orderFormat.ts) ───
 
+/** "Sep 12, 2026" — journal group headers on the profile. */
+export function mediumDate(value: string | null | undefined): string {
+  if (!value) return "";
+  return new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+/** "Sunday, September 12, 2026" — the blog list on the profile. */
+export function fullDate(value: string | null | undefined): string {
+  if (!value) return "";
+  return new Date(value).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+}
+
+/** "September 2026" — "Joined …" on the profile. */
+export function monthYear(value: string | null | undefined): string {
+  if (!value) return "";
+  return new Date(value).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+}
+
 /** "Sep 12" — the year only appears when it differs from this year. */
 export function shortDate(value: string | null | undefined): string {
   if (!value) return "";

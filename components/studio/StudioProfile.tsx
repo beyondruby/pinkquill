@@ -7,6 +7,9 @@ import "./studio.css";
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { toModalPost } from "@/lib/posts/toPostProps";
+import { formatCount } from "@/lib/utils/format";
+import { stripHtml } from "@/lib/utils/sanitize";
 import { submitReport } from "@/lib/reports";
 import { getOrCreateConversation } from "@/lib/messaging/conversations";
 import { fetchCollaboratedPosts, useCommunities, COLLAB_SELF_REMOVED_EVENT } from "@/lib/hooks.legacy";
@@ -19,7 +22,7 @@ import { useProfile, useFollow } from "@/lib/hooks/useProfile";
 import type { FollowStatus } from "@/lib/types";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import { CommentIcon } from "@/components/ui/Icons";
-import { getTimeAgo } from "@/lib/utils/time";
+import { getTimeAgo, shortDate, fullDate, formatDate, mediumDate, monthYear } from "@/lib/utils/time";
 import { parseSocialLinks, getSocialUrl } from "@/lib/utils/social";
 
 // Type for follows table real-time payload
@@ -44,23 +47,6 @@ import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.share
 import ReactionCount from "@/components/feed/ReactionCount";
 import CommentCount from "@/components/feed/CommentCount";
 
-// Helper function to decode HTML entities
-function decodeHtmlEntities(text: string): string {
-  const entities: Record<string, string> = {
-    '&lt;': '<',
-    '&gt;': '>',
-    '&amp;': '&',
-    '&quot;': '"',
-    '&#39;': "'",
-    '&apos;': "'",
-    '&nbsp;': ' ',
-    '&#x27;': "'",
-    '&#x2F;': '/',
-    '&#60;': '<',
-    '&#62;': '>',
-  };
-  return text.replace(/&[#\w]+;/g, (match) => entities[match] || match);
-}
 
 // Custom hook for scroll-triggered card reveal
 function useScrollReveal() {
@@ -724,12 +710,6 @@ function CollectionCard({
   );
 }
 
-function formatCount(num: number | null): string {
-  if (num === null) return "-";
-  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}m`;
-  if (num >= 1000) return `${(num / 1000).toFixed(1)}k`;
-  return num.toString();
-}
 
 // Shown in place of a tab's empty state when its request failed (P-20).
 function TabErrorState({ what, onRetry }: { what: string; onRetry: () => void }) {
@@ -801,10 +781,6 @@ function StudioSubTabButton({
   );
 }
 
-function formatMonthYear(dateString: string): string {
-  const date = new Date(dateString);
-  return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
-}
 
 interface StudioProfileProps {
   username: string;
@@ -1467,7 +1443,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 {/* Joined */}
                 <div className="flex items-center gap-2 text-ink/30">
                   <span className="text-accent/50">{icons.calendar}</span>
-                  <span className="font-ui text-xs">Joined {formatMonthYear(profile.created_at)}</span>
+                  <span className="font-ui text-xs">Joined {monthYear(profile.created_at)}</span>
                 </div>
               </div>
 
@@ -1674,48 +1650,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
               }
 
               // Helper to create postForModal
-              const createPostForModal = (work: typeof filteredPosts[0]) => {
-                const isCollab = work.isCollaboration || collaboratedPostIds.has(work.id);
-                const workAuthor = isCollab && work.author ? work.author : profile;
-                return {
-                  id: work.id,
-                  authorId: workAuthor.id || profile.id,
-                  author: {
-                    name: workAuthor.display_name || workAuthor.username || profile.display_name || profile.username,
-                    handle: `@${workAuthor.username || profile.username}`,
-                    avatar: workAuthor.avatar_url || profile.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80",
-                  },
-                  type: work.type as "poem" | "journal" | "thought" | "visual" | "audio" | "video",
-                  typeLabel: work.type.charAt(0).toUpperCase() + work.type.slice(1),
-                  timeAgo: getTimeAgo(work.created_at),
-                  createdAt: work.created_at,
-                  title: work.title || undefined,
-                  content: work.content,
-                  media: work.media,
-                  styling: work.styling,
-                  post_location: work.post_location,
-                  metadata: work.metadata,
-                  stats: {
-                    reactions: work.reactions_count,
-                    reactionCounts: work.reaction_counts,
-                    comments: work.comments_count,
-                    relays: work.relays_count || 0,
-                  },
-                  reactionType: work.user_reaction_type,
-                  isSaved: work.user_has_saved,
-                  isRelayed: work.user_has_relayed,
-                  community: work.community ? {
-                    slug: work.community.slug,
-                    name: work.community.name,
-                    avatar_url: work.community.avatar_url,
-                  } : undefined,
-                  flair: work.flair || undefined,
-                  // Pass through collaborators so the post detail modal can offer
-                  // the "Remove me from this collab" action when the viewer is
-                  // an accepted collaborator.
-                  collaborators: work.collaborators,
-                };
-              };
+              const createPostForModal = (work: typeof filteredPosts[0]) => toModalPost(work);
 
               const typeLabels: Record<string, string> = {
                 poem: "Poetry",
@@ -1740,12 +1675,9 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                       const hasMedia = work.media && work.media.length > 0;
                       const hasMultipleImages = work.media && work.media.length > 1;
                       const plainContent = work.content
-                        ? decodeHtmlEntities(work.content.replace(/<[^>]*>/g, '')).substring(0, 100)
+                        ? stripHtml(work.content).substring(0, 100)
                         : '';
-                      const formattedDate = new Date(work.created_at).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric'
-                      });
+                      const formattedDate = shortDate(work.created_at);
 
                       return (
                         <article
@@ -1983,14 +1915,9 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                       const isCollab = work.isCollaboration || collaboratedPostIds.has(work.id);
                       const hasMedia = work.media && work.media.length > 0;
                       const plainContent = work.content
-                        ? decodeHtmlEntities(work.content.replace(/<[^>]*>/g, '')).substring(0, 300)
+                        ? stripHtml(work.content).substring(0, 300)
                         : '';
-                      const formattedDate = new Date(work.created_at).toLocaleDateString('en-US', {
-                        weekday: 'long',
-                        month: 'long',
-                        day: 'numeric',
-                        year: 'numeric'
-                      });
+                      const formattedDate = fullDate(work.created_at);
 
                       return (
                         <article
@@ -2129,13 +2056,9 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                   <div className="max-w-2xl mx-auto">
                     {filteredPosts.map((work, idx) => {
                       const plainContent = work.content
-                        ? decodeHtmlEntities(work.content.replace(/<[^>]*>/g, '')).substring(0, 240)
+                        ? stripHtml(work.content).substring(0, 240)
                         : '';
-                      const formattedDate = new Date(work.created_at).toLocaleDateString('en-US', {
-                        month: 'long',
-                        day: 'numeric',
-                        year: 'numeric'
-                      });
+                      const formattedDate = formatDate(work.created_at);
 
                       return (
                         <article
@@ -2192,12 +2115,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 // Group journals by date
                 const journalsByDate: Record<string, typeof filteredPosts> = {};
                 filteredPosts.forEach(post => {
-                  const date = new Date(post.created_at);
-                  const dateKey = date.toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric'
-                  });
+                  const dateKey = mediumDate(post.created_at);
                   if (!journalsByDate[dateKey]) {
                     journalsByDate[dateKey] = [];
                   }
@@ -2213,7 +2131,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                           {dayPosts.map((work) => {
                             const hasMedia = work.media && work.media.length > 0;
                             const plainContent = work.content
-                              ? decodeHtmlEntities(work.content.replace(/<[^>]*>/g, '')).substring(0, 120)
+                              ? stripHtml(work.content).substring(0, 120)
                               : '';
 
                             // Get time from created_at
@@ -2261,7 +2179,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                     {filteredPosts.map((work) => {
                       const hasMedia = work.media && work.media.length > 0;
                       const plainContent = work.content
-                        ? decodeHtmlEntities(work.content.replace(/<[^>]*>/g, '')).substring(0, 120)
+                        ? stripHtml(work.content).substring(0, 120)
                         : '';
                       const community = work.community;
 
@@ -2419,36 +2337,11 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 ) : (
                   <div className="studio-works-grid">
                     {relays.map((relay) => {
-                      const postForModal = {
-                        id: relay.id,
-                        authorId: relay.author_id,
-                        author: {
-                          name: relay.original_author?.display_name || relay.original_author?.username || "Unknown",
-                          handle: `@${relay.original_author?.username || "unknown"}`,
-                          avatar: relay.original_author?.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80",
-                        },
-                        type: relay.type as "poem" | "journal" | "thought" | "visual" | "audio" | "video",
-                        typeLabel: relay.type.charAt(0).toUpperCase() + relay.type.slice(1),
-                        timeAgo: getTimeAgo(relay.created_at),
-                        createdAt: relay.created_at,
-                        title: relay.title || undefined,
-                        content: relay.content,
-                        media: relay.media,
-                        styling: relay.styling,
-                        post_location: relay.post_location,
-                        metadata: relay.metadata,
-                        stats: {
-                          reactions: relay.reactions_count,
-                          comments: relay.comments_count,
-                          relays: relay.relays_count || 0,
-                        },
-                        isSaved: relay.user_has_saved,
-                        isRelayed: relay.user_has_relayed,
-                      };
+                      const postForModal = toModalPost(relay);
 
                       const hasMedia = relay.media && relay.media.length > 0;
                       const plainContent = relay.content
-                        ? decodeHtmlEntities(relay.content.replace(/<[^>]*>/g, '')).substring(0, 200)
+                        ? stripHtml(relay.content).substring(0, 200)
                         : '';
 
                       const typeLabels: Record<string, string> = {

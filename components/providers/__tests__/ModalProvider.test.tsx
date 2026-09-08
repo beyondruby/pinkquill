@@ -12,7 +12,7 @@ function Controls() {
   const { openPostModal, closePostModal } = useModal();
   return <>
     <button onClick={() => openPostModal({
-      id: "test-post", author: { name: "Creator", handle: "creator", avatar: "" },
+      id: "test-post", authorId: "creator-id", author: { name: "Creator", handle: "creator", avatar: "" },
       type: "visual", typeLabel: "Visual", timeAgo: "Now", content: "",
       stats: { reactions: 0, comments: 0, relays: 0 },
     })}>Open</button>

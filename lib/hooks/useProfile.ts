@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../supabase";
 import { PROFILE_CLIENT_COLUMNS } from "@/lib/profiles/columns";
-import { enrichPost, fetchUserPostFlags } from "@/lib/posts/enrich";
+import { enrichPost, fetchUserPostFlags, POST_RELATIONS_SELECT, POST_COUNTS_SELECT } from "@/lib/posts/enrich";
 import type { Profile, Post, FollowUser, FollowStatus, FollowRequest } from "../types";
 import { useUserEvent } from "@/components/providers/UserEventsProvider";
 import { isAbortError } from "../utils/retry";
@@ -142,10 +142,8 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
         .select(
           `
           *,
-          styling,
-          post_location,
-          metadata,
           author:profiles!posts_author_id_fkey (
+            id,
             username,
             display_name,
             avatar_url
@@ -172,10 +170,8 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
             position,
             created_at
           ),
-          reactions_count,
-          comments_count,
-          relays_count,
-          reaction_counts
+          ${POST_RELATIONS_SELECT},
+          ${POST_COUNTS_SELECT}
         `
         )
         .eq("author_id", profileData.id)

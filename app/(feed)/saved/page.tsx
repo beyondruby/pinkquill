@@ -14,6 +14,7 @@ import { useSavedTakes } from "@/lib/hooks/useTakes";
 import { useSavedProducts, useToggleSaveProduct } from "@/lib/hooks/useProducts";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useModal } from "@/components/providers/ModalProvider";
+import { toModalPost } from "@/lib/posts/toPostProps";
 import { stripHtml } from "@/lib/utils/sanitize";
 import { supabase } from "@/lib/supabase";
 import Loading, { FullPageLoading } from "@/components/ui/Loading";
@@ -199,36 +200,7 @@ export default function SavedPage() {
   }, [removingItem, user, toggleSaveProduct]);
 
   const handleOpenPost = useCallback((post: SavedPost) => {
-    openPostModal({
-      id: post.id,
-      authorId: post.author_id,
-      author: {
-        name: post.author?.display_name || post.author?.username || "Unknown",
-        handle: `@${post.author?.username || "unknown"}`,
-        avatar: post.author?.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100",
-      },
-      type: post.type as PostType,
-      typeLabel: getTypeLabel(post.type),
-      timeAgo: getTimeAgo(post.created_at),
-      createdAt: post.created_at,
-      title: post.title || undefined,
-      content: post.content,
-      contentWarning: post.content_warning || undefined,
-      media: post.media?.map(m => ({
-        id: m.id,
-        media_url: m.media_url,
-        media_type: m.media_type,
-        caption: m.caption,
-        position: m.position,
-      })),
-      stats: {
-        reactions: post.reactions_count,
-        comments: post.comments_count || 0,
-        relays: 0,
-      },
-      isSaved: true,
-      isRelayed: false,
-    });
+    openPostModal(toModalPost(post, { isSaved: true, isRelayed: false }));
   }, [openPostModal]);
 
   const visiblePosts = posts.filter(post => !removedItems.has(post.id));

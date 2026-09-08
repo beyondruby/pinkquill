@@ -15,7 +15,7 @@ import { removeSelfAsCollaborator } from "@/lib/hooks.legacy";
 import { useComments } from "@/lib/hooks/useComments";
 import { useToggleSave, useToggleRelay, useBlock } from "@/lib/hooks/useInteractions";
 import { useReaction } from "@/lib/engagement/reactions";
-import type { ReactionType, ReactionCounts } from "@/lib/types";
+import type { ReactionType } from "@/lib/types";
 import { showToast, actionToast } from "@/lib/utils/toast";
 import type { PostUpdate } from "@/components/providers/ModalProvider";
 import CommentItem from "@/components/feed/CommentItem";
@@ -29,7 +29,6 @@ import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import Button from "@/components/ui/Button";
 
 import ActionMenu, { type ActionMenuItem } from "@/components/ui/ActionMenu";
-import { supabase } from "@/lib/supabase";
 import { submitReport } from "@/lib/reports";
 import { deleteOwnPost } from "@/lib/content-client";
 import { icons } from "@/components/ui/Icons";
@@ -38,9 +37,8 @@ import FlairBadge from "@/components/communities/FlairBadge";
 import { createSafeHtml, stripHtmlPreserveLines } from "@/lib/utils/sanitize";
 import { AudioPlayer } from "@/components/feed/AudioPlayer";
 import { VideoPlayer } from "@/components/feed/VideoPlayer";
-import { getTimeAgo } from "@/lib/utils/time";
 import { getBackgroundStyle, isDarkBackground } from "@/lib/utils/background";
-import { PostStyling, JournalMetadata, SpotifyTrack, CommunityFlair } from "@/lib/types";
+import type { ModalPost } from "@/components/feed/PostCard/types";
 
 // Convert number to Roman numeral
 function toRomanNumeral(num: number): string {
@@ -59,71 +57,7 @@ function toRomanNumeral(num: number): string {
 
 
 
-interface TaggedUser {
-  id: string;
-  username: string;
-  display_name: string | null;
-  avatar_url: string | null;
-}
-
-interface CollaboratorUser {
-  role?: string | null;
-  user: {
-    id: string;
-    username: string;
-    display_name: string | null;
-    avatar_url: string | null;
-  };
-}
-
-interface Author {
-  name: string;
-  handle: string;
-  avatar: string;
-}
-
-interface MediaItem {
-  id: string;
-  media_url: string;
-  media_type: "image" | "video" | "audio";
-  caption: string | null;
-  position: number;
-}
-
-interface Post {
-  id: string;
-  authorId?: string;
-  author: Author;
-  type: "poem" | "journal" | "thought" | "visual" | "audio" | "video" | "essay" | "blog" | "story" | "letter" | "quote";
-  typeLabel: string;
-  timeAgo: string;
-  createdAt?: string;
-  title?: string;
-  content: string;
-  contentWarning?: string;
-  media?: MediaItem[];
-  image?: string;
-  stats: {
-    reactions?: number;
-    reactionCounts?: ReactionCounts;
-    comments: number;
-    relays: number;
-  };
-  reactionType?: ReactionType | null;
-  isSaved?: boolean;
-  isRelayed?: boolean;
-  mentions?: TaggedUser[];
-  hashtags?: string[];
-  collaborators?: CollaboratorUser[];
-  // Creative styling
-  styling?: PostStyling | null;
-  post_location?: string | null;
-  metadata?: JournalMetadata | null;
-  spotify_track?: SpotifyTrack | null;
-  // Community + flair
-  community?: { slug: string; name: string; avatar_url?: string | null } | null;
-  flair?: CommunityFlair | null;
-}
+type Post = ModalPost;
 
 // Format date as "January 2, 2026"
 // Format mood label

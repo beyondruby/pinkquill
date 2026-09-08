@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { getPostTypePhrase } from "@/lib/feed-view/post-type-theme";
 import { submitReport } from "@/lib/reports";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useComments } from "@/lib/hooks/useComments";
@@ -153,22 +154,8 @@ const moodIcons: Record<string, React.ReactNode> = {
   'nostalgic': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
 };
 
-function getTypeLabel(type: string): string {
-  const labels: Record<string, string> = {
-    poem: "wrote a poem",
-    journal: "wrote in their journal",
-    thought: "shared a thought",
-    visual: "shared a visual story",
-    audio: "recorded a voice note",
-    video: "shared a video",
-    essay: "wrote an essay",
-    blog: "published a blog post",
-    story: "shared a story",
-    letter: "wrote a letter",
-    quote: "shared a quote",
-  };
-  return labels[type] || "shared something";
-}
+// Conversational phrase — single source of truth in lib/feed-view/post-type-theme.ts (V-49).
+const getTypeLabel = getPostTypePhrase;
 
 export default function PostPage() {
   const params = useParams();

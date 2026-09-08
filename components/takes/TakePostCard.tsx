@@ -1,6 +1,7 @@
 "use client";
 
 import "./takes.css";
+import { formatCount } from "@/lib/utils/format";
 
 import { useState, useEffect, useRef } from "react";
 import { getTimeAgoCompact as getTimeAgo } from "@/lib/utils/time";
@@ -43,11 +44,6 @@ interface TakePostCardProps {
   onTakeDeleted?: (takeId: string) => void;
 }
 
-function formatCount(n: number): string {
-  if (n >= 1000000) return (n / 1000000).toFixed(1).replace(/\.0$/, "") + "M";
-  if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, "") + "K";
-  return n.toString();
-}
 
 export default function TakePostCard({ take, isRelayed, relayedBy, variant = "feed", onTakeDeleted }: TakePostCardProps) {
   const { openTakeModal, subscribeToTakeUpdates, notifyTakeUpdate } = useModal();

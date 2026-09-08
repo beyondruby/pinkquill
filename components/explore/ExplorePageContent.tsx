@@ -1,15 +1,14 @@
 "use client";
 
-import type { ReactionCounts } from "@/lib/types";
 
 import { useRef, useEffect, useCallback, useState } from "react";
-import { getTimeAgoCompact as getTimeAgo } from "@/lib/utils/time";
+import { toPostProps, type PostLike } from "@/lib/posts/toPostProps";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useExplore } from "@/lib/hooks/useExplore";
 import { useTrendingTags } from "@/lib/hooks/useTags";
 import type { ExploreTab } from "@/lib/hooks/useExplore";
 import PostCard from "@/components/feed/PostCard";
-import type { PostProps, PostType } from "@/components/feed/PostCard/types";
+import type { PostProps, } from "@/components/feed/PostCard/types";
 import Link from "next/link";
 
 // Primary navigation tabs
@@ -250,75 +249,9 @@ function EmptyState({ tab }: { tab: ExploreTab }) {
   );
 }
 
-// Helper function to transform post data for PostCard
-function transformPostForCard(post: {
-  id: string;
-  author_id: string;
-  type: string;
-  title: string | null;
-  content: string | null;
-  content_warning: string | null;
-  created_at: string;
-  media: { id: string; media_url: string; media_type: "image" | "video" | "audio"; caption: string | null; position: number }[];
-  reactions_count?: number;
-  reaction_counts?: ReactionCounts;
-  comments_count: number;
-  relays_count: number;
-  user_has_saved: boolean;
-  user_has_relayed: boolean;
-  user_reaction_type: string | null;
-  hashtags?: string[];
-  author?: { username?: string; display_name?: string | null; avatar_url?: string | null };
-  community?: { slug: string; name: string; avatar_url: string | null } | null;
-  flair?: { id: string; community_id: string; name: string; color: string; emoji: string | null; position: number; created_at: string } | null;
-  collaborators?: { status: string; role: string | null; user: { id: string; username: string; display_name: string | null; avatar_url: string | null } }[];
-  mentions?: { user: { id: string; username: string; display_name: string | null; avatar_url: string | null } }[];
-}) {
-  const typeLabels: Record<string, string> = {
-    poem: "wrote a poem",
-    journal: "wrote in their journal",
-    thought: "shared a thought",
-    visual: "shared a visual story",
-    audio: "recorded a voice note",
-    video: "shared a video",
-    essay: "wrote an essay",
-    blog: "published a blog post",
-    story: "shared a story",
-    letter: "wrote a letter",
-    quote: "shared a quote",
-  };
-
-  return {
-    id: post.id,
-    authorId: post.author_id,
-    author: {
-      name: post.author?.display_name || post.author?.username || "Unknown",
-      handle: `@${post.author?.username || "unknown"}`,
-      avatar: post.author?.avatar_url || "/default-avatar.png",
-    },
-    type: post.type as PostType,
-    typeLabel: typeLabels[post.type] || "shared",
-    timeAgo: getTimeAgo(post.created_at),
-    createdAt: post.created_at,
-    title: post.title || undefined,
-    content: post.content || "",
-    contentWarning: post.content_warning || undefined,
-    media: post.media,
-    stats: {
-      reactions: post.reactions_count || 0,
-      reactionCounts: post.reaction_counts,
-      comments: post.comments_count || 0,
-      relays: post.relays_count || 0,
-    },
-    isSaved: post.user_has_saved,
-    isRelayed: post.user_has_relayed,
-    reactionType: post.user_reaction_type,
-    community: post.community,
-    flair: post.flair || undefined,
-    collaborators: post.collaborators,
-    mentions: post.mentions,
-    hashtags: post.hashtags,
-  } as PostProps;
+// One row → card mapper for every list (lib/posts/toPostProps.ts).
+function transformPostForCard(post: PostLike): PostProps {
+  return toPostProps(post);
 }
 
 export default function ExplorePageContent() {

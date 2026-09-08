@@ -1,6 +1,7 @@
 "use client";
 
 import "./takes.css";
+import { formatCount } from "@/lib/utils/format";
 
 import { useState, useCallback, useRef, useEffect, useMemo, memo, type CSSProperties } from "react";
 import { actionToast } from "@/lib/utils/toast";
@@ -36,11 +37,6 @@ interface TakeCardProps {
   onHide?: () => void;
 }
 
-function formatCount(n: number): string {
-  if (n >= 1000000) return (n / 1000000).toFixed(1).replace(/\.0$/, "") + "M";
-  if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, "") + "K";
-  return String(n);
-}
 
 function getWordCount(text: string): number {
   return text.trim().split(/\s+/).filter(Boolean).length;

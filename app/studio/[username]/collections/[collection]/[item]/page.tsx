@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { getTimeAgoCompact as getTimeAgo } from "@/lib/utils/time";
+import { toPostProps } from "@/lib/posts/toPostProps";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useProfile } from "@/lib/hooks/useProfile";
@@ -54,43 +54,10 @@ export default function CollectionItemPage() {
     );
   }
 
-  // Transform posts for PostCard
+  // Transform posts for PostCard (one mapper for every list: lib/posts/toPostProps.ts)
   const transformedPosts = (item.posts || [])
     .filter(p => p.post)
-    .map(p => {
-      const post = p.post!;
-      return {
-        id: post.id,
-        authorId: post.author?.id || "",
-        author: {
-          handle: `@${post.author?.username || username}`,
-          name: post.author?.display_name || post.author?.username || username,
-          avatar: post.author?.avatar_url || "",
-          id: post.author?.id,
-          isVerified: post.author?.is_verified,
-        },
-        type: post.type as "poem" | "journal" | "thought" | "visual" | "audio" | "video" | "essay" | "blog" | "story" | "letter" | "quote",
-        typeLabel: getTypeLabel(post.type),
-        timeAgo: getTimeAgo(post.created_at),
-        title: post.title || undefined,
-        content: post.content,
-        media: post.media?.map((m, index) => ({
-          id: m.id,
-          media_url: m.media_url,
-          media_type: m.media_type,
-          caption: m.caption || null,
-          position: index,
-        })),
-        // Counts and the viewer's reaction are unknown here; the engagement
-        // store fetches them (Phase 1). Comments/relays stay 0 until Phase 2.
-        stats: {
-          comments: 0,
-          relays: 0,
-        },
-        isSaved: false,
-        isRelayed: false,
-      };
-    });
+    .map(p => toPostProps(p.post!));
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
@@ -177,19 +144,3 @@ export default function CollectionItemPage() {
 
 // Helper function for time ago
 // Helper function for type labels
-function getTypeLabel(type: string): string {
-  const labels: Record<string, string> = {
-    poem: "wrote a poem",
-    journal: "wrote in their journal",
-    thought: "shared a thought",
-    visual: "shared a visual story",
-    audio: "recorded a voice note",
-    video: "shared a video",
-    essay: "wrote an essay",
-    blog: "published a blog post",
-    story: "shared a story",
-    letter: "wrote a letter",
-    quote: "shared a quote",
-  };
-  return labels[type] || "shared something";
-}

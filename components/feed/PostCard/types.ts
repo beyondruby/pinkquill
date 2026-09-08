@@ -40,6 +40,13 @@ export interface MentionInfo {
   };
 }
 
+export interface TaggedUser {
+  id: string;
+  username: string;
+  display_name: string | null;
+  avatar_url: string | null;
+}
+
 export type PostType =
   | "poem"
   | "journal"
@@ -126,3 +133,10 @@ export interface PostMenuHandlers {
   onReport: () => void;
   onBlock: () => void;
 }
+
+/**
+ * What the post detail modal receives: card props with mentions flattened to
+ * users. One type for `ModalProvider.openPostModal` and `PostDetailModal`
+ * (they used to declare two divergent copies; finding V-5).
+ */
+export type ModalPost = Omit<PostProps, "mentions"> & { mentions?: TaggedUser[] };

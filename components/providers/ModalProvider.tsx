@@ -4,70 +4,9 @@ import { createContext, useContext, useState, useCallback, useEffect, useMemo, u
 import dynamic from "next/dynamic";
 import type { TakeUpdate } from "@/components/takes/TakeDetailModal";
 import { Take } from "@/lib/hooks/useTakes";
-import { PostStyling, JournalMetadata, CommunityFlair, ReactionType, ReactionCounts } from "@/lib/types";
+import type { ModalPost } from "@/components/feed/PostCard/types";
 
-interface MediaItem {
-  id: string;
-  media_url: string;
-  media_type: "image" | "video" | "audio";
-  caption: string | null;
-  position: number;
-}
-
-interface TaggedUser {
-  id: string;
-  username: string;
-  display_name: string | null;
-  avatar_url: string | null;
-}
-
-interface CollaboratorUser {
-  role?: string | null;
-  user: {
-    id: string;
-    username: string;
-    display_name: string | null;
-    avatar_url: string | null;
-  };
-}
-
-interface Post {
-  id: string;
-  authorId?: string;
-  author: {
-    name: string;
-    handle: string;
-    avatar: string;
-  };
-  type: "poem" | "journal" | "thought" | "visual" | "audio" | "video" | "essay" | "blog" | "story" | "letter" | "quote";
-  typeLabel: string;
-  timeAgo: string;
-  createdAt?: string;
-  title?: string;
-  content: string;
-  contentWarning?: string;
-  media?: MediaItem[];
-  image?: string;
-  stats: {
-    reactions?: number;
-    reactionCounts?: ReactionCounts;
-    comments: number;
-    relays: number;
-  };
-  reactionType?: ReactionType | null;
-  isSaved?: boolean;
-  isRelayed?: boolean;
-  mentions?: TaggedUser[];
-  hashtags?: string[];
-  collaborators?: CollaboratorUser[];
-  // Creative styling
-  styling?: PostStyling | null;
-  post_location?: string | null;
-  metadata?: JournalMetadata | null;
-  // Community + flair (so badge can render in the modal)
-  community?: { slug: string; name: string; avatar_url?: string | null } | null;
-  flair?: CommunityFlair | null;
-}
+type Post = ModalPost;
 
 // Reactions no longer travel on this bus: every surface reads
 // lib/engagement/store.ts directly (Phase 1).
