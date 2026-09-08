@@ -19,6 +19,10 @@ interface UseProfileReturn {
   error: string | null;
   isBlockedByUser: boolean;
   isPrivateAccount: boolean;
+  /** The viewer's follow row towards this profile (null = none). Fetched once here; the page must not re-query it (P-7). */
+  viewerFollowStatus: FollowStatus;
+  /** Whether the viewer has blocked this profile. */
+  viewerHasBlocked: boolean;
   refetch: () => Promise<void>;
 }
 
@@ -29,6 +33,8 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
   const [error, setError] = useState<string | null>(null);
   const [isBlockedByUser, setIsBlockedByUser] = useState(false);
   const [isPrivateAccount, setIsPrivateAccount] = useState(false);
+  const [viewerFollowStatus, setViewerFollowStatus] = useState<FollowStatus>(null);
+  const [viewerHasBlocked, setViewerHasBlocked] = useState(false);
 
   const mountedRef = useRef(true);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -56,6 +62,8 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
       setLoading(true);
       setIsPrivateAccount(false);
       setIsBlockedByUser(false);
+      setViewerFollowStatus(null);
+      setViewerHasBlocked(false);
       setError(null);
 
       // Fetch profile
@@ -83,7 +91,10 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
       // Check block status and follow status in parallel (both are independent)
       let viewerFollowsProfile = false;
       if (currentViewerId && !isOwnProfile) {
-        const [blockResult, followResult] = await Promise.all([
+        // One round trip for everything the page needs about the viewer ↔
+        // profile relationship: their block of me, my block of them, and my
+        // follow row in any status (the page used to re-query two of these).
+        const [blockResult, myBlockResult, followResult] = await Promise.all([
           supabase
             .from("blocks")
             .select("id")
@@ -92,11 +103,17 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
             .abortSignal(signal)
             .maybeSingle(),
           supabase
+            .from("blocks")
+            .select("id")
+            .eq("blocker_id", currentViewerId)
+            .eq("blocked_id", profileData.id)
+            .abortSignal(signal)
+            .maybeSingle(),
+          supabase
             .from("follows")
             .select("status")
             .eq("follower_id", currentViewerId)
             .eq("following_id", profileData.id)
-            .eq("status", "accepted")
             .abortSignal(signal)
             .maybeSingle(),
         ]);
@@ -110,7 +127,10 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
           return;
         }
 
-        viewerFollowsProfile = !!followResult.data;
+        setViewerHasBlocked(!!myBlockResult.data);
+        const status = (followResult.data?.status as FollowStatus) ?? null;
+        setViewerFollowStatus(status);
+        viewerFollowsProfile = status === "accepted";
       }
 
       // Handle private accounts
@@ -259,7 +279,7 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
     };
   }, [fetchProfile]);
 
-  return { profile, posts, loading, error, isBlockedByUser, isPrivateAccount, refetch: fetchProfile };
+  return { profile, posts, loading, error, isBlockedByUser, isPrivateAccount, viewerFollowStatus, viewerHasBlocked, refetch: fetchProfile };
 }
 
 // ============================================================================
@@ -272,9 +292,12 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
  * into `follows`; a DB trigger additionally forces 'pending' for private
  * targets regardless of what a client sends.
  */
-export async function followUserRecord(followerId: string, followingId: string): Promise<FollowStatus> {
-  const { data: target } = await supabase.from("profiles").select("is_private").eq("id", followingId).single();
-  const isPrivate = target?.is_private || false;
+export async function followUserRecord(followerId: string, followingId: string, knownIsPrivate?: boolean): Promise<FollowStatus> {
+  let isPrivate = knownIsPrivate;
+  if (isPrivate === undefined) {
+    const { data: target } = await supabase.from("profiles").select("is_private").eq("id", followingId).single();
+    isPrivate = target?.is_private || false;
+  }
   const status: FollowStatus = isPrivate ? "pending" : "accepted";
 
   const { error } = await supabase.from("follows").insert({
@@ -289,6 +312,18 @@ export async function followUserRecord(followerId: string, followingId: string):
 
   // The follows trigger notifies the target (follow / follow_request).
   return status;
+}
+
+/**
+ * Unfollow, or cancel a pending request. The ONLY client path that should
+ * delete a `follows` row for the current user (P-47); throws on failure.
+ */
+export async function unfollowUserRecord(followerId: string, followingId: string): Promise<void> {
+  const { error } = await supabase.from("follows").delete().eq("follower_id", followerId).eq("following_id", followingId);
+  if (error) {
+    console.error("[unfollowUserRecord] Unfollow failed:", error.message);
+    throw error;
+  }
 }
 
 export function useFollow() {
@@ -324,16 +359,11 @@ export function useFollow() {
     return data?.is_private || false;
   };
 
-  const follow = (followerId: string, followingId: string): Promise<FollowStatus> =>
-    followUserRecord(followerId, followingId);
+  const follow = (followerId: string, followingId: string, knownIsPrivate?: boolean): Promise<FollowStatus> =>
+    followUserRecord(followerId, followingId, knownIsPrivate);
 
-  const unfollow = async (followerId: string, followingId: string): Promise<void> => {
-    const { error } = await supabase.from("follows").delete().eq("follower_id", followerId).eq("following_id", followingId);
-    if (error) {
-      console.error("[useFollow] Failed to unfollow:", error.message);
-      throw error;
-    }
-  };
+  const unfollow = (followerId: string, followingId: string): Promise<void> =>
+    unfollowUserRecord(followerId, followingId);
 
   const acceptRequest = async (ownerId: string, requesterId: string): Promise<void> => {
     const { error } = await supabase
@@ -412,7 +442,11 @@ export function useFollowList(userId: string, type: "followers" | "following", p
   const [users, setUsers] = useState<FollowUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(false);
-  const [page, setPage] = useState(0);
+  // Page is keyed by the list it belongs to, so switching user or tab reads
+  // as page 0 immediately instead of fetching the old page first (P-13).
+  const listKey = `${userId}:${type}`;
+  const [pageState, setPageState] = useState({ key: listKey, page: 0 });
+  const page = pageState.key === listKey ? pageState.page : 0;
   const mountedRef = useRef(true);
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -431,6 +465,10 @@ export function useFollowList(userId: string, type: "followers" | "following", p
 
     try {
       setLoading(true);
+      if (pageNum === 0) {
+        setUsers([]);
+        setHasMore(false);
+      }
       const from = pageNum * pageSize;
       const to = (pageNum + 1) * pageSize - 1;
 
@@ -451,6 +489,7 @@ export function useFollowList(userId: string, type: "followers" | "following", p
           )
           .eq("following_id", userId)
           .eq("status", "accepted")
+          .order("created_at", { ascending: false })
           .range(from, to)
           .abortSignal(signal);
 
@@ -476,6 +515,7 @@ export function useFollowList(userId: string, type: "followers" | "following", p
           )
           .eq("follower_id", userId)
           .eq("status", "accepted")
+          .order("created_at", { ascending: false })
           .range(from, to)
           .abortSignal(signal);
 
@@ -496,13 +536,13 @@ export function useFollowList(userId: string, type: "followers" | "following", p
   }, [userId, type, pageSize]);
 
   const loadMore = useCallback(() => {
-    setPage((p) => p + 1);
-  }, []);
+    setPageState((prev) => ({ key: listKey, page: (prev.key === listKey ? prev.page : 0) + 1 }));
+  }, [listKey]);
 
   const refetch = useCallback(() => {
-    setPage(0);
+    setPageState({ key: listKey, page: 0 });
     fetchPage(0);
-  }, [fetchPage]);
+  }, [fetchPage, listKey]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -515,13 +555,6 @@ export function useFollowList(userId: string, type: "followers" | "following", p
       }
     };
   }, [fetchPage, page]);
-
-  // Reset page when userId or type changes
-  useEffect(() => {
-    setPage(0);
-    setUsers([]);
-    setHasMore(false);
-  }, [userId, type]);
 
   return { users, loading, hasMore, loadMore, refetch };
 }

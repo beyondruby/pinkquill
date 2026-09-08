@@ -837,9 +837,9 @@ export default function StudioProfile({ username }: StudioProfileProps) {
   const shouldLoadRelayPosts = activeTab === "relays";
   const shouldLoadRelayTakes = activeTab === "relays" && relaySubTab === "takes";
   const shouldLoadCollections = activeTab === "collections";
-  const { profile, posts, loading, error, isBlockedByUser, isPrivateAccount, refetch: refetchProfile } = useProfile(username, user?.id);
-  const { checkFollowStatus, follow, unfollow } = useFollow();
-  const { checkIsBlocked, blockUser, unblockUser } = useBlock();
+  const { profile, posts, loading, error, isBlockedByUser, isPrivateAccount, viewerFollowStatus, viewerHasBlocked, refetch: refetchProfile } = useProfile(username, user?.id);
+  const { follow, unfollow } = useFollow();
+  const { blockUser, unblockUser } = useBlock();
   const { relays, loading: relaysLoading, error: relaysError, refetch: refetchRelays } = useRelays(shouldLoadRelayPosts ? username : "");
   const { takes: userTakes, loading: takesLoading, error: takesError, refetch: refetchTakes } = useUserTakes(shouldLoadTakes ? username : "", user?.id);
   const { takes: relayedTakes, loading: relayedTakesLoading, error: relayedTakesError, refetch: refetchRelayedTakes } = useRelayedTakes(shouldLoadRelayTakes ? username : "", user?.id);
@@ -851,13 +851,43 @@ export default function StudioProfile({ username }: StudioProfileProps) {
   const { revealedCards, observeCard } = useScrollReveal();
   const [pageLoaded, setPageLoaded] = useState(false);
   const [showCommunitiesModal, setShowCommunitiesModal] = useState(false);
-  const [followStatus, setFollowStatus] = useState<FollowStatus>(null);
+  // Follow / block status come from useProfile's single lookup; the page only
+  // keeps what the viewer changed since, keyed by profile so a different
+  // profile never inherits it (P-7).
+  const [followOverride, setFollowOverride] = useState<{ id: string; status: FollowStatus } | null>(null);
+  const followStatus: FollowStatus = followOverride && followOverride.id === profile?.id ? followOverride.status : viewerFollowStatus;
+  const setFollowStatus = (status: FollowStatus) => setFollowOverride(profile ? { id: profile.id, status } : null);
+  // Follower / following counts adjusted for the viewer's own actions until
+  // the next refetch (P-5). `base` detects a refetch: when the server count
+  // moves, the local delta is dropped.
+  const [countDelta, setCountDelta] = useState<{ id: string; base: number | null; followers: number; following: number } | null>(null);
+  const deltaLive = countDelta && countDelta.id === profile?.id && countDelta.base === profile?.followers_count;
+  const followersShown = profile?.followers_count === null || profile?.followers_count === undefined
+    ? null
+    : profile.followers_count + (deltaLive ? countDelta.followers : 0);
+  const followingShown = profile?.following_count === null || profile?.following_count === undefined
+    ? null
+    : profile.following_count + (deltaLive ? countDelta.following : 0);
+  const adjustCounts = (followers: number, following: number) => {
+    if (!profile) return;
+    setCountDelta((prev) => {
+      const live = prev && prev.id === profile.id && prev.base === profile.followers_count;
+      return {
+        id: profile.id,
+        base: profile.followers_count,
+        followers: (live ? prev.followers : 0) + followers,
+        following: (live ? prev.following : 0) + following,
+      };
+    });
+  };
   const [followLoading, setFollowLoading] = useState(false);
   const [messageLoading, setMessageLoading] = useState(false);
   const [showFollowersModal, setShowFollowersModal] = useState(false);
   const [followersModalTab, setFollowersModalTab] = useState<"followers" | "following">("followers");
   const [showShareModal, setShowShareModal] = useState(false);
-  const [isBlocked, setIsBlocked] = useState(false);
+  const [blockOverride, setBlockOverride] = useState<{ id: string; value: boolean } | null>(null);
+  const isBlocked = blockOverride && blockOverride.id === profile?.id ? blockOverride.value : viewerHasBlocked;
+  const setIsBlocked = (value: boolean) => setBlockOverride(profile ? { id: profile.id, value } : null);
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
   const [blockLoading, setBlockLoading] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
@@ -897,15 +927,6 @@ export default function StudioProfile({ username }: StudioProfileProps) {
   type PostViewMode = "all" | "blog" | "gallery" | "poems" | "journals" | "communities";
   const [postViewMode, setPostViewMode] = useState<PostViewMode>("all");
 
-  useEffect(() => {
-    const checkFollow = async () => {
-      if (user && profile && !isOwnProfile) {
-        const status = await checkFollowStatus(user.id, profile.id);
-        setFollowStatus(status);
-      }
-    };
-    checkFollow();
-  }, [user, profile, isOwnProfile]);
 
   // Follow-status changes (e.g. a request being accepted/rejected) arrive on the
   // per-user broadcast channel instead of a dedicated postgres_changes subscription.
@@ -918,24 +939,11 @@ export default function StudioProfile({ username }: StudioProfileProps) {
       return;
     }
 
-    const newStatus = payload.status ?? null;
-    setFollowStatus(newStatus);
-    // If the follow was just accepted, refetch the full profile to load gated data.
-    if (newStatus === "accepted") {
-      refetchProfile();
-    }
+    // The `isFollowing && isPrivateAccount` effect below does the refetch for
+    // an accepted request; doing it here as well fetched everything twice (P-8).
+    setFollowStatus(payload.status ?? null);
   });
 
-  // Check if blocked
-  useEffect(() => {
-    const checkBlock = async () => {
-      if (user && profile && !isOwnProfile) {
-        const blocked = await checkIsBlocked(user.id, profile.id);
-        setIsBlocked(blocked);
-      }
-    };
-    checkBlock();
-  }, [user, profile, isOwnProfile]);
 
   // Fetch collaborated posts
   useEffect(() => {
@@ -1023,10 +1031,12 @@ export default function StudioProfile({ username }: StudioProfileProps) {
       if (wasFollowing) {
         // Unfollow or cancel request
         await unfollow(user.id, profile.id);
+        if (followStatus === 'accepted') adjustCounts(-1, 0);
         setFollowStatus(null);
       } else {
-        // Follow or send request
-        const newStatus = await follow(user.id, profile.id);
+        // Follow or send request (is_private is already loaded — no extra lookup)
+        const newStatus = await follow(user.id, profile.id, profile.is_private);
+        if (newStatus === 'accepted') adjustCounts(1, 0);
         setFollowStatus(newStatus);
       }
     } catch (err) {
@@ -1289,13 +1299,13 @@ export default function StudioProfile({ username }: StudioProfileProps) {
               <div className="flex items-center justify-center gap-8 pt-6 border-t border-purple-primary/10">
                 {profile.followers_count !== null && (
                 <div className="text-center">
-                  <span className="font-display text-xl text-ink block">{formatCount(profile.followers_count)}</span>
+                  <span className="font-display text-xl text-ink block">{formatCount(followersShown)}</span>
                   <span className="font-ui text-xs text-muted">Followers</span>
                 </div>
                 )}
                 {profile.following_count !== null && (
                 <div className="text-center">
-                  <span className="font-display text-xl text-ink block">{formatCount(profile.following_count)}</span>
+                  <span className="font-display text-xl text-ink block">{formatCount(followingShown)}</span>
                   <span className="font-ui text-xs text-muted">Following</span>
                 </div>
                 )}
@@ -1319,7 +1329,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
               setShowFollowersModal(true);
             }}
           >
-            <span className="studio-stat-value">{formatCount(profile.followers_count)}</span>
+            <span className="studio-stat-value">{formatCount(followersShown)}</span>
             <span className="studio-stat-label">Followers</span>
           </div>
           <div
@@ -1329,7 +1339,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
               setShowFollowersModal(true);
             }}
           >
-            <span className="studio-stat-value">{formatCount(profile.following_count)}</span>
+            <span className="studio-stat-value">{formatCount(followingShown)}</span>
             <span className="studio-stat-label">Following</span>
           </div>
           <div className="studio-stat-item">
@@ -2623,6 +2633,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
         userId={profile.id}
         type={followersModalTab}
         isOwnProfile={isOwnProfile}
+        onUnfollowed={() => { if (isOwnProfile) adjustCounts(0, -1); }}
       />
 
       {/* Share Modal */}

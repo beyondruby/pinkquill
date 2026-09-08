@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { followUserRecord, unfollowUserRecord } from "@/lib/hooks/useProfile";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useDiscoverCommunities } from "@/lib/hooks.legacy";
 import { useTrendingTags } from "@/lib/hooks/useTags";
@@ -181,17 +182,11 @@ function WhoToFollowSection() {
     });
 
     try {
+      // Same helpers as the profile button: private accounts get a request.
       if (isFollowing) {
-        await supabase
-          .from("follows")
-          .delete()
-          .eq("follower_id", user.id)
-          .eq("following_id", userId);
+        await unfollowUserRecord(user.id, userId);
       } else {
-        await supabase.from("follows").insert({
-          follower_id: user.id,
-          following_id: userId,
-        });
+        await followUserRecord(user.id, userId);
       }
     } catch (err) {
       setFollowingIds((prev) => {

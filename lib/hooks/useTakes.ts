@@ -6,7 +6,7 @@ import { submitReport } from "@/lib/reports";
 import { actionToast } from "@/lib/utils/toast";
 import { deleteOwnTake } from "@/lib/content-client";
 import { supabase } from "../supabase";
-import { followUserRecord } from "./useProfile";
+import { followUserRecord, unfollowUserRecord } from "./useProfile";
 import { sanitizePostgrestSearchTerm } from "../utils/postgrest";
 import { isAbortError } from "../utils/retry";
 
@@ -768,8 +768,7 @@ export function useTakesFollowing(userId?: string) {
 
     try {
       if (isFollowing) {
-        const { error } = await supabase.from("follows").delete().eq("follower_id", userId).eq("following_id", authorId);
-        if (error) throw error;
+        await unfollowUserRecord(userId, authorId);
       } else {
         // Same path as the profile follow button: private accounts get a
         // pending request + notification instead of an instant follow.

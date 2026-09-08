@@ -5,6 +5,8 @@ import { getTimeAgo } from "@/lib/utils/time";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { followUserRecord, unfollowUserRecord } from "@/lib/hooks/useProfile";
+import type { FollowStatus } from "@/lib/types";
 import { submitReport } from "@/lib/reports";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useMuted, useVolume, TakeReactionType } from "@/lib/hooks/useTakes";
@@ -68,7 +70,9 @@ export default function SingleTakePage({ params }: PageProps) {
   const [relaysCount, setRelaysCount] = useState(0);
   const [isSaved, setIsSaved] = useState(false);
   const [isRelayed, setIsRelayed] = useState(false);
-  const [isFollowing, setIsFollowing] = useState(false);
+  const [followStatus, setFollowStatus] = useState<FollowStatus>(null);
+  const isFollowing = followStatus === "accepted";
+  const isRequested = followStatus === "pending";
 
   // UI states
   const [showShareModal, setShowShareModal] = useState(false);
@@ -255,12 +259,12 @@ export default function SingleTakePage({ params }: PageProps) {
         const [userSaveRes, userRelayRes, followRes] = await Promise.all([
           supabase.from("take_saves").select("take_id").eq("take_id", id).eq("user_id", user.id).maybeSingle(),
           supabase.from("take_relays").select("take_id").eq("take_id", id).eq("user_id", user.id).maybeSingle(),
-          supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", user.id).eq("following_id", takeData.author_id),
+          supabase.from("follows").select("status").eq("follower_id", user.id).eq("following_id", takeData.author_id).maybeSingle(),
         ]);
 
         setIsSaved(!!userSaveRes.data);
         setIsRelayed(!!userRelayRes.data);
-        setIsFollowing((followRes.count ?? 0) > 0);
+        setFollowStatus((followRes.data?.status as FollowStatus) ?? null);
       }
 
       setLoading(false);
@@ -350,13 +354,21 @@ export default function SingleTakePage({ params }: PageProps) {
   const handleFollow = async () => {
     if (!user || !take || isOwner) return;
 
-    const newIsFollowing = !isFollowing;
-    setIsFollowing(newIsFollowing);
-
-    if (newIsFollowing) {
-      await supabase.from("follows").insert({ follower_id: user.id, following_id: take.author_id });
-    } else {
-      await supabase.from("follows").delete().eq("follower_id", user.id).eq("following_id", take.author_id);
+    // Same helpers as the profile button (V-23): a private account gets a
+    // pending request, not an instant "Following".
+    const previous = followStatus;
+    try {
+      if (previous) {
+        setFollowStatus(null);
+        await unfollowUserRecord(user.id, take.author_id);
+      } else {
+        const status = await followUserRecord(user.id, take.author_id);
+        setFollowStatus(status);
+      }
+    } catch {
+      setFollowStatus(previous);
+      if (previous) actionToast.unfollowError();
+      else actionToast.followError();
     }
   };
 
@@ -578,7 +590,7 @@ export default function SingleTakePage({ params }: PageProps) {
                         : "bg-gradient-to-r from-purple-primary to-pink-vivid text-white hover:scale-105"
                     }`}
                   >
-                    {isFollowing ? "Following" : "Follow"}
+                    {isFollowing ? "Following" : isRequested ? "Requested" : "Follow"}
                   </button>
                 )}
 

@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useFollowList } from "@/lib/hooks/useProfile";
+import { useFollowList, unfollowUserRecord } from "@/lib/hooks/useProfile";
+import { actionToast } from "@/lib/utils/toast";
 import type { FollowUser } from "@/lib/types";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { supabase } from "@/lib/supabase";
 import { getOptimizedAvatarUrl, DEFAULT_AVATAR } from "@/lib/utils/image";
 import Loading from "@/components/ui/Loading";
 
@@ -15,6 +15,8 @@ interface FollowersModalProps {
   userId: string;
   type: "followers" | "following";
   isOwnProfile: boolean;
+  /** Fired after the owner unfollows someone from their Following tab, so the stats row can adjust (P-5). */
+  onUnfollowed?: (userId: string) => void;
 }
 
 const icons = {
@@ -47,14 +49,11 @@ function UserCard({
     if (!currentUserId) return;
     setUnfollowLoading(true);
     try {
-      await supabase
-        .from("follows")
-        .delete()
-        .eq("follower_id", currentUserId)
-        .eq("following_id", user.id);
+      await unfollowUserRecord(currentUserId, user.id);
       onUnfollow(user.id);
     } catch (err) {
       console.error("Failed to unfollow:", err);
+      actionToast.unfollowError();
     } finally {
       setUnfollowLoading(false);
     }
@@ -113,6 +112,7 @@ export default function FollowersModal({
   userId,
   type,
   isOwnProfile,
+  onUnfollowed,
 }: FollowersModalProps) {
   const { user } = useAuth();
   const { users, loading, hasMore, loadMore } = useFollowList(userId, type);
@@ -129,6 +129,7 @@ export default function FollowersModal({
 
   const handleUnfollow = (unfollowedUserId: string) => {
     setRemovedIds((prev) => new Set([...prev, unfollowedUserId]));
+    onUnfollowed?.(unfollowedUserId);
   };
 
   if (!isOpen) return null;
