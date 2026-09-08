@@ -138,9 +138,7 @@ function StreamRow({
   return (
     <>
       <div
-        role="button"
         tabIndex={0}
-        aria-expanded={expanded}
         aria-label={`${expanded ? "Collapse" : "Expand"} ${theme.label.toLowerCase()} by ${post.author.name}: ${headline}`}
         onClick={onToggle}
         onKeyDown={onKeyDown}

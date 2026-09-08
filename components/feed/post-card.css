@@ -18,6 +18,11 @@
   letter-spacing: -0.01em;
   color: var(--color-ink);
   margin-bottom: 0.75rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
 }
 .pq-feed-card .post-content-text,
 .pq-feed-card .pq-serif {
@@ -202,26 +207,35 @@
 @media (hover: none) { .pq-feed-card .carousel-nav { opacity: 1; } }
 .pq-feed-card .carousel-dots {
   position: absolute;
-  bottom: 14px;
+  bottom: 8px;
   left: 50%;
   z-index: 5;
   display: flex;
-  gap: 7px;
+  gap: 0;
   transform: translateX(-50%);
 }
 .pq-feed-card .carousel-container.has-captions .carousel-caption { padding-bottom: 2.4rem; }
+/* 20px hit area around the same 7px dot (F-30) */
 .pq-feed-card .carousel-dot {
-  width: 7px;
-  height: 7px;
+  width: 20px;
+  height: 20px;
   padding: 0;
   border: 0;
+  background: transparent;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.pq-feed-card .carousel-dot::before {
+  content: "";
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.5);
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
-  cursor: pointer;
   transition: transform 0.3s ease, background 0.3s ease;
 }
-.pq-feed-card .carousel-dot.active { background: #fff; transform: scale(1.35); }
+.pq-feed-card .carousel-dot.active::before { background: #fff; transform: scale(1.35); }
 
 /* ---- Photos on any other type: the grid ---------------------------------- */
 .pq-feed-card .unified-media-grid { gap: 6px; }
@@ -519,8 +533,8 @@
 }
 
 .home-feed-modern .post-menu-btn {
-  width: 34px;
-  height: 34px;
+  width: 40px;
+  height: 40px;
   border: 1px solid transparent;
 }
 

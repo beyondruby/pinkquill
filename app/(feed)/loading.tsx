@@ -1,11 +1,10 @@
-import PostSkeleton from "@/components/feed/PostSkeleton";
+import { cookies } from "next/headers";
+import FeedSkeleton from "@/components/feed/FeedSkeleton";
+import { FEED_VIEW_COOKIE } from "@/lib/feed-view/cookie";
+import { isFeedViewId, DEFAULT_FEED_VIEW } from "@/lib/feed-view/registry";
 
-export default function FeedLoading() {
-  return (
-    <div className="max-w-2xl mx-auto py-6 px-4 space-y-4">
-      {Array.from({ length: 3 }).map((_, i) => (
-        <PostSkeleton key={i} />
-      ))}
-    </div>
-  );
+// The first skeleton already uses the view the person chose (F-23).
+export default async function FeedLoading() {
+  const raw = (await cookies()).get(FEED_VIEW_COOKIE)?.value;
+  return <FeedSkeleton viewId={isFeedViewId(raw) ? raw : DEFAULT_FEED_VIEW} />;
 }

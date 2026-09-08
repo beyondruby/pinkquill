@@ -728,8 +728,8 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  height: 30px;
-  padding: 0 8px;
+  height: 40px; /* 40px tap target, same look (F-30) */
+  padding: 0 10px;
   border-radius: 999px;
   font-family: var(--font-ui);
   font-size: 0.74rem;
@@ -1017,6 +1017,11 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(180deg, color-mix(in srgb, var(--color-purple-primary) 50%, transparent), color-mix(in srgb, var(--color-pink-vivid) 50%, transparent));
+}
+
+/* The bottom nav's padding for the home indicator (F-20; the class was used but never defined). */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 /* ========== POST CARDS ========== */
@@ -1487,8 +1492,8 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 
 /* 3-Dot Menu */
 .post-menu-btn {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   border: none;
   background: transparent;
   border-radius: 50%;
@@ -3329,7 +3334,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 0;
+  padding: 10px 0; /* 40px tap target (F-30) */
   margin-top: 0.5rem;
   font-family: var(--font-ui);
   font-size: 0.85rem;

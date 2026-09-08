@@ -33,6 +33,7 @@ import { AudioPlayer } from "@/components/feed/AudioPlayer";
 import { supabase } from "@/lib/supabase";
 import { submitReport } from "@/lib/reports";
 import { getTimeAgoWords } from "@/lib/utils/time";
+import { useMinuteTick } from "@/lib/hooks/useMinuteTick";
 import { PostTypeChip } from "@/components/feed/PostTypeChip";
 import { getPostTypeCollabPhrase } from "@/lib/feed-view/post-type-theme";
 import { PostType } from "@/lib/types";
@@ -128,7 +129,7 @@ function CardAuthorHeader({ post, hasCommunity, hasCollaborators, acceptedCollab
             <Link
               href={`/studio/${post.author.handle.replace('@', '')}`}
               onClick={(e) => e.stopPropagation()}
-              className="posted-by-author"
+              className="posted-by-author truncate max-w-[10rem]"
             >
               @{post.author.handle.replace('@', '')}
             </Link>
@@ -870,7 +871,21 @@ function PostCardComponent({
   ) : null;
 
   // "2 hours ago" under the name; the list row's compact string is the fallback.
-  const timeWords = post.createdAt ? getTimeAgoWords(post.createdAt) : post.timeAgo;
+  const minute = useMinuteTick();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const timeWords = useMemo(() => (post.createdAt ? getTimeAgoWords(post.createdAt) : post.timeAgo), [post.createdAt, post.timeAgo, minute]);
+  // The card opens on Enter/Space too; links and buttons inside keep their own handlers (F-29).
+  const cardKeyProps = {
+    tabIndex: 0,
+    "aria-label": `Open ${post.type} by ${post.author.name}${post.title ? `: ${post.title}` : ""}`,
+    onKeyDown: (e: React.KeyboardEvent) => {
+      if (e.target !== e.currentTarget) return;
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        handleOpenModal();
+      }
+    },
+  };
 
   // Author Header component - Reddit-style for community posts
   const headerProps = { post, hasCommunity, hasCollaborators, acceptedCollaborators, timeWords, menu: postMenuElement };
@@ -899,7 +914,7 @@ function PostCardComponent({
     if (post.type === "audio") {
       const cover = audioCover;
       return (
-        <article className={`post type-audio pq-feed-card pq-post-audio ${cover ? "has-cover" : ""}`} onClick={handleOpenModal}>
+        <article className={`post type-audio pq-feed-card pq-post-audio ${cover ? "has-cover" : ""}`} onClick={handleOpenModal} {...cardKeyProps}>
           <div className="audio-visual" aria-hidden="true">
             {showContent && cover && <Image src={cover} alt="" fill sizes="120px" className="audio-cover" />}
             <SoundBars />
@@ -929,7 +944,7 @@ function PostCardComponent({
     if (post.type === "video") {
       const poster = videoMedia?.thumbnail_url || null;
       return (
-        <article className="post type-video pq-feed-card pq-post-video" onClick={handleOpenModal}>
+        <article className="post type-video pq-feed-card pq-post-video" onClick={handleOpenModal} {...cardKeyProps}>
           <CardAuthorHeader {...headerProps} />
           <CardContentSection {...contentProps}>
             <div className="video-container" onClick={(e) => e.stopPropagation()}>
@@ -1030,6 +1045,7 @@ function PostCardComponent({
       <article
         className={`post type-unified pq-feed-card pq-post-${post.type} ${isStatement ? "pq-statement" : ""}`}
         onClick={handleOpenModal}
+        {...cardKeyProps}
       >
         <CardAuthorHeader {...headerProps} />
         <CardContentSection {...contentProps}>

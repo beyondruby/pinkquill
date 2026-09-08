@@ -7,7 +7,9 @@ import { useModal } from "@/components/providers/ModalProvider";
 import { useFeedView } from "@/components/providers/FeedViewProvider";
 import { useFeed } from "@/lib/hooks/useFeed";
 import PostCard from "./PostCard";
-import PostSkeleton from "./PostSkeleton";
+import { FeedSkeletonItems } from "./FeedSkeleton";
+import { FEED_CONTAINER_CLASS } from "@/lib/feed-view/layout";
+import { useAuthModal } from "@/components/providers/AuthModalProvider";
 import { StreamFeed } from "./StreamView";
 import { GalleryFeed } from "./GalleryView";
 import { FeedViewMenu } from "./FeedViewMenu";
@@ -28,12 +30,6 @@ function transformPostForCard(post: Post) {
 // post styling via the `home-feed-modern` class (rules in post-card.css). Other
 // views (Stream, Gallery) use plain max-width containers and own all visual
 // treatment via components/feed/StreamView.tsx and GalleryView.tsx.
-const VIEW_CONTAINER_CLASS: Record<FeedViewId, string> = {
-  classic: "home-feed-modern w-full max-w-[580px] mx-auto pt-6 pb-6 px-4 md:pt-8 md:pb-12 md:px-6",
-  compact: "w-full max-w-[780px] mx-auto pt-6 pb-6 px-3 md:pt-8 md:pb-10 md:px-6",
-  grid: "w-full max-w-[1240px] mx-auto pt-5 pb-6 px-3 md:pt-8 md:pb-10 md:px-5",
-};
-
 function FeedFrame({
   viewId,
   children,
@@ -41,18 +37,21 @@ function FeedFrame({
   viewId: FeedViewId;
   children: ReactNode;
 }) {
-  const containerClass = VIEW_CONTAINER_CLASS[viewId];
   return (
-    <div className={containerClass}>
+    <div className={FEED_CONTAINER_CLASS[viewId]}>
+      <FeedViewMenu viewId={viewId} />
       {children}
     </div>
   );
 }
 
-export default function Feed() {
+export default function Feed({ initialViewId }: { initialViewId?: FeedViewId } = {}) {
   const { user, loading: authLoading } = useAuth();
   const { subscribeToDeletes, subscribeToAuthorBlocks } = useModal();
-  const { viewId } = useFeedView();
+  const { viewId: providerViewId, isReady: viewReady } = useFeedView();
+  // Until the provider has read its cookie, use the view the server saw (F-23).
+  const viewId = !viewReady && initialViewId ? initialViewId : providerViewId;
+  const { openModal: openAuthModal } = useAuthModal();
 
   // Use the optimized useFeed hook with AbortController and stable channels
   const {
@@ -194,29 +193,10 @@ export default function Feed() {
   if (authLoading || (postsLoading && posts.length === 0)) {
     return (
       <>
-        <FeedViewMenu />
         <FeedFrame viewId={viewId}>
-          {viewId === "classic"
-            ? [...Array(3)].map((_, i) => <PostSkeleton key={i} />)
-            : [...Array(viewId === "compact" ? 6 : 8)].map((_, i) => {
-                const skClass =
-                  viewId === "compact"
-                    ? "h-32 rounded-2xl bg-skeleton animate-pulse"
-                    : viewId === "grid"
-                      ? // Varying spans approximate the bento mosaic
-                        [
-                          "col-span-2 row-span-2 sm:col-span-3 lg:col-span-4 lg:row-span-2",
-                          "col-span-2 row-span-2 sm:col-span-3 lg:col-span-3 lg:row-span-3",
-                          "col-span-2 row-span-1 sm:col-span-2 lg:col-span-3 lg:row-span-1",
-                          "col-span-2 row-span-2 sm:col-span-4 lg:col-span-5 lg:row-span-2",
-                        ][i % 4] + " rounded-2xl bg-skeleton animate-pulse"
-                      : ["md:col-span-7", "md:col-span-5", "md:col-span-6", "md:col-span-6"][
-                          i % 4
-                        ] + " h-72 rounded-2xl bg-skeleton animate-pulse";
-                return <div key={i} className={skClass} />;
-              })}
+          <FeedSkeletonItems viewId={viewId} />
           {autoRetrying && (
-            <p className="col-span-full md:col-span-12 text-center font-body text-sm text-muted">
+            <p className="col-span-full md:col-span-12 text-center font-body text-sm text-muted" role="status" aria-live="polite">
               Still loading — trying again…
             </p>
           )}
@@ -228,10 +208,15 @@ export default function Feed() {
   if (error) {
     return (
       <>
-        <FeedViewMenu />
         <FeedFrame viewId={viewId}>
-          <div className="text-center col-span-full md:col-span-12">
-            <p className="font-body text-red-500 mb-4">{error}</p>
+          <div className="text-center col-span-full md:col-span-12" role="alert">
+            <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <h2 className="font-display text-xl text-ink mb-2">Couldn’t load the feed</h2>
+            <p className="font-body text-muted mb-5">Check your connection and try again.</p>
             <button
               onClick={() => handleRefresh()}
               className="px-6 py-2 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid font-ui text-sm font-medium text-on-accent hover:opacity-90 transition-opacity"
@@ -247,7 +232,6 @@ export default function Feed() {
   if (posts.length === 0) {
     return (
       <>
-        <FeedViewMenu />
         <FeedFrame viewId={viewId}>
           <div className="text-center col-span-full md:col-span-12">
             <h2 className="font-display text-2xl text-ink mb-4">
@@ -256,12 +240,22 @@ export default function Feed() {
             <p className="font-body text-muted italic mb-6">
               No posts yet. Be the first to share your creative voice.
             </p>
+            {!user ? (
+              <button
+                type="button"
+                onClick={openAuthModal}
+                className="inline-block px-6 py-3 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid font-ui text-[0.95rem] font-medium text-on-accent hover:opacity-90 transition-opacity"
+              >
+                Sign in to create
+              </button>
+            ) : (
             <Link
               href="/create"
               className="inline-block px-6 py-3 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid font-ui text-[0.95rem] font-medium text-on-accent"
             >
               Create Something
             </Link>
+            )}
           </div>
         </FeedFrame>
       </>
@@ -270,7 +264,6 @@ export default function Feed() {
 
   return (
     <>
-      <FeedViewMenu />
       <FeedFrame viewId={viewId}>
         {/* PERFORMANCE: Using memoized transformed posts */}
         {viewId === "classic" ? (

@@ -251,7 +251,6 @@ function GalleryTile({ post }: { post: PostProps }) {
 
   return (
     <article
-      role="button"
       tabIndex={0}
       aria-label={`${theme.label} by ${post.author.name}${post.title ? `: ${post.title}` : ""}`}
       onClick={actions.onCardActivate}

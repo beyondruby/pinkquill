@@ -1,6 +1,7 @@
 "use client";
 
 import ReactionPicker from "@/components/feed/ReactionPicker";
+import { useAuthModal } from "@/components/providers/AuthModalProvider";
 import { icons } from "@/components/ui/Icons";
 import type { EngagementKind } from "@/lib/engagement/store";
 import type { ReactionType } from "@/lib/types";
@@ -36,9 +37,11 @@ interface Props {
 /** Reaction · Comment · Relay … Share · Save, identical on modal and page, posts and takes (V-4). */
 export function DetailActionRow({ kind, contentId, actions, onComment, hasDarkBg = false, pickerVariant = "card", className = "" }: Props) {
   const { user, reaction, commentsCount, react, unreact, isRelayed, relayCount, toggleRelay, isSaved, toggleSave, isOwner, dialogs } = actions;
+  const { openModal: openAuthModal } = useAuthModal();
   const noun = kind === "take" ? "take" : "post";
   const quiet = hasDarkBg ? "text-white hover:bg-white/10" : "text-ink hover:bg-subtle";
-  const guest = !user ? "opacity-50 cursor-not-allowed" : "";
+  // Guests get the sign-in prompt on tap, as the feed card does (F-15).
+  const gated = (action: () => void) => (user ? action : openAuthModal);
   return (
     <div className={`post-actions-bar flex items-center gap-1.5 md:gap-2 flex-wrap ${hasDarkBg ? "dark-bg" : ""} ${className}`}>
       <ReactionPicker
@@ -64,11 +67,10 @@ export function DetailActionRow({ kind, contentId, actions, onComment, hasDarkBg
 
       {!isOwner && (
         <button
-          onClick={toggleRelay}
+          onClick={gated(toggleRelay)}
           aria-label={isRelayed ? `Remove relay (${relayCount} relays)` : `Relay ${noun} (${relayCount} relays)`}
           aria-pressed={isRelayed}
-          disabled={!user}
-          className={`engage-pill transition-colors ${isRelayed ? "text-green-400" : quiet} ${guest}`}
+          className={`engage-pill transition-colors ${isRelayed ? "text-green-400" : quiet}`}
         >
           {icons.relay}
           {relayCount > 0 && <span className="engage-pill-count">{relayCount.toLocaleString()}</span>}
@@ -82,11 +84,10 @@ export function DetailActionRow({ kind, contentId, actions, onComment, hasDarkBg
       </button>
 
       <button
-        onClick={toggleSave}
+        onClick={gated(toggleSave)}
         aria-label={isSaved ? `Unsave ${noun}` : `Save ${noun}`}
         aria-pressed={isSaved}
-        disabled={!user}
-        className={`post-action-icon w-10 h-10 rounded-full flex items-center justify-center transition-colors ${isSaved ? "text-white" : quiet} ${guest}`}
+        className={`post-action-icon w-10 h-10 rounded-full flex items-center justify-center transition-colors ${isSaved ? "text-white" : quiet}`}
       >
         {isSaved ? icons.bookmarkFilled : icons.bookmark}
       </button>

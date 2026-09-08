@@ -8,6 +8,7 @@ import { faFeatherPointed } from "@fortawesome/free-solid-svg-icons";
 import dynamic from "next/dynamic";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useBadgeCounts } from "@/components/providers/BadgeCountProvider";
+import { FeedViewMenu } from "@/components/feed/FeedViewMenu";
 
 const NotificationPanel = dynamic(() => import("@/components/notifications/NotificationPanel"), { ssr: false });
 const MobileMoreSheet = dynamic(() => import("@/components/layout/MobileMoreSheet"), { ssr: false });
@@ -42,6 +43,8 @@ export default function MobileHeader() {
 
           {/* Right side - Notifications & Messages */}
           <div className="flex items-center gap-1">
+            {/* Feed layout switcher lives here on the home feed instead of floating over the first card (F-19) */}
+            {pathname === "/" && <FeedViewMenu variant="header" />}
             {/* Messages */}
             {user && (
               <Link

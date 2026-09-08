@@ -160,7 +160,7 @@ export default function LeftSidebar() {
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         className={`hidden md:flex fixed left-0 top-0 bottom-0 bg-surface/95 backdrop-blur-xl border-r border-border-light flex-col p-4 z-[100] overflow-visible transition-all duration-300 ease-in-out ${
-          isExpanded ? "w-[220px]" : "w-[72px]"
+          isExpanded ? "w-[220px] shadow-xl" : "w-[72px]"
         }`}
         aria-label="Main navigation"
       >

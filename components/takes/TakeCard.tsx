@@ -108,7 +108,11 @@ function TakeCard({
   const caption = take.caption || "";
   const wordCount = getWordCount(caption);
   const shouldTruncate = wordCount > 10;
-  const videoStyle = useMemo(() => takeVideoStyle(take.effects), [take.effects]);
+  // Non-9:16 takes are letterboxed in the black frame instead of centre-cropped (V-19).
+  const videoStyle = useMemo(() => {
+    const base = takeVideoStyle(take.effects);
+    return take.aspect_ratio && take.aspect_ratio !== "9:16" ? { ...base, objectFit: "contain" as const } : base;
+  }, [take.effects, take.aspect_ratio]);
 
   const getTruncatedCaption = () => {
     if (!shouldTruncate || captionExpanded) return caption;

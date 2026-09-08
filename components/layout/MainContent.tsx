@@ -10,7 +10,7 @@ export default function MainContent({ children }: { children: React.ReactNode })
   // Messages page handles its own full-screen layout on mobile
   const mobileClasses = isMessagesPage
     ? "pt-0 pb-0"
-    : "pt-16 pb-20";
+    : "pt-16 pb-[calc(5rem+env(safe-area-inset-bottom))]";
 
   return (
     <main
