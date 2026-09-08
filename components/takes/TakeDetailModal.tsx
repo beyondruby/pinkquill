@@ -29,7 +29,8 @@ interface TakeDetailModalProps {
  * (profile audit 2f, V-52 / V-4 — the modal now has Follow and Block).
  */
 export default function TakeDetailModal({ take, isOpen, onClose, onTakeUpdate, onTakeDeleted }: TakeDetailModalProps) {
-  const [showComments, setShowComments] = useState(false);
+  // Desktop opens with the discussion beside the take; phones keep the Comment pill (V-41).
+  const [showComments, setShowComments] = useState(() => typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches);
 
   const onDeleted = useCallback((takeId: string) => { onClose(); onTakeDeleted?.(takeId); }, [onClose, onTakeDeleted]);
   const onBlocked = useCallback(() => { onClose(); if (take) onTakeDeleted?.(take.id); }, [onClose, onTakeDeleted, take]);
@@ -49,17 +50,21 @@ export default function TakeDetailModal({ take, isOpen, onClose, onTakeUpdate, o
 
   return (
     <>
-      <Modal isOpen={isOpen} onClose={onClose}>
-        <div className="flex h-full">
-          <div className={`flex flex-col overflow-y-auto p-10 ${showComments ? "flex-1 border-r border-border-light" : "flex-1"}`}>
+      <Modal isOpen={isOpen} onClose={onClose} ariaLabel={take.caption ? `Take by ${take.author.display_name || take.author.username}: ${take.caption.slice(0, 80)}` : `Take by ${take.author.display_name || take.author.username}`}>
+        {/* `.post-detail-modal` + the same hooks as the post modal give phones the sticky bar, fixed actions and full-screen discussion (V-42) */}
+        <div className="post-detail-modal flex flex-col md:flex-row h-full w-full relative">
+          <div className={`post-detail-content flex flex-col overflow-y-auto relative z-10 ${showComments ? "hidden md:flex md:flex-1 md:border-r border-border-light" : "flex-1"}`}>
+            <div className="post-detail-wrapper relative p-4 md:p-10 flex flex-col flex-1">
             <TakeDetailHeader
               take={take}
               actions={actions}
               discussion={{ onToggle: () => setShowComments((v) => !v) }}
-              className="mb-8 pb-6 border-b border-border-light"
+              onBack={onClose}
+              onClose={onClose}
+              className="mb-4 md:mb-8 pb-4 md:pb-6 border-b border-border-light"
             />
 
-            <div className="flex-1">
+            <div className="flex-1 relative">
               {take.caption && <p className="font-body text-[1.1rem] text-ink leading-relaxed mb-6">{take.caption}</p>}
 
               <PostTags
@@ -85,16 +90,28 @@ export default function TakeDetailModal({ take, isOpen, onClose, onTakeUpdate, o
               pickerVariant="pill"
               className="mt-auto pt-6 border-t border-border-light"
             />
+            </div>
           </div>
 
           {showComments && (
-            <div className="discussion-panel">
-              <div className="p-5 border-b border-border-light bg-surface/60 flex justify-between items-center">
-                <span className="font-ui text-[0.8rem] font-medium text-muted">Discussion</span>
+            <div className="discussion-panel absolute md:relative inset-0 md:inset-auto w-full md:w-auto bg-elevated z-40">
+              <div className="discussion-header p-4 md:p-5 border-b border-border-light bg-surface/60 flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setShowComments(false)}
+                    aria-label="Close comments"
+                    className="discussion-close md:hidden w-10 h-10 rounded-full flex items-center justify-center text-muted hover:text-ink transition-colors"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                  <span className="discussion-title font-ui text-[0.8rem] font-medium text-muted">Discussion</span>
+                </div>
                 <button
                   onClick={() => setShowComments(false)}
                   aria-label="Close comments"
-                  className="w-9 h-9 rounded-full flex items-center justify-center text-muted hover:text-pink-vivid hover:rotate-90 transition-colors"
+                  className="discussion-close hidden md:flex w-10 h-10 rounded-full items-center justify-center text-muted hover:text-pink-vivid hover:rotate-90 transition-colors"
                 >
                   {icons.close}
                 </button>

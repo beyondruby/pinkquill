@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFeatherPointed } from "@fortawesome/free-solid-svg-icons";
 import dynamic from "next/dynamic";
@@ -15,6 +15,7 @@ const MobileMoreSheet = dynamic(() => import("@/components/layout/MobileMoreShee
 
 export default function MobileHeader() {
   const pathname = usePathname();
+  const router = useRouter();
   const { user } = useAuth();
 
   const { unreadNotifications: unreadCount, unreadMessages: unreadMessagesCount } = useBadgeCounts();
@@ -23,6 +24,7 @@ export default function MobileHeader() {
 
   // Hide header on messages page (it has its own header)
   const isMessagesPage = pathname.startsWith("/messages");
+  const isDetailPage = pathname.startsWith("/post/") || pathname.startsWith("/take/");
   if (isMessagesPage) return null;
 
   const handleOpenNotifications = () => {
@@ -33,8 +35,21 @@ export default function MobileHeader() {
     <>
       <header className="fixed top-0 left-0 right-0 z-50 bg-surface/95 backdrop-blur-xl border-b border-border-light md:hidden">
         <div className="flex items-center justify-between h-14 px-4">
+          {/* Back on post/take pages (V-37): history when there is one, the feed otherwise */}
+          {isDetailPage && (
+            <button
+              type="button"
+              aria-label="Back"
+              onClick={() => (window.history.length > 1 ? router.back() : router.push("/"))}
+              className="w-10 h-10 -ml-2 mr-1 flex items-center justify-center rounded-full text-muted hover:text-accent hover:bg-purple-50 transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+          )}
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2 min-w-0">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-primary via-pink-vivid to-orange-warm flex items-center justify-center shadow-md shadow-purple-primary/20">
               <FontAwesomeIcon icon={faFeatherPointed} className="w-3.5 h-3.5 text-on-accent" />
             </div>

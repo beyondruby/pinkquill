@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useRef } from "react";
+import { useDialog } from "@/lib/hooks/useDialog";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useBadgeCounts } from "@/components/providers/BadgeCountProvider";
@@ -25,22 +26,10 @@ export default function MobileMoreSheet({ isOpen, onClose }: MobileMoreSheetProp
   const { user, signOut } = useAuth();
   const { cartCount } = useBadgeCounts();
 
-  useEffect(() => {
-    if (!isOpen) return;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [isOpen]);
+  // Scroll lock, Escape and focus trap like every other dialog (V-54).
+  const sheetRef = useRef<HTMLDivElement>(null);
+  useDialog(isOpen, sheetRef, onClose);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -150,6 +139,7 @@ export default function MobileMoreSheet({ isOpen, onClose }: MobileMoreSheetProp
 
       {/* Sheet */}
       <div
+        ref={sheetRef}
         className="fixed inset-y-0 right-0 w-[88vw] max-w-[360px] bg-surface z-[120] flex flex-col shadow-2xl md:hidden"
         style={{ animation: "slideInRight 250ms ease-out" }}
         role="dialog"

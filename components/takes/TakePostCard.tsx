@@ -3,6 +3,7 @@
 import "./takes.css";
 import { formatCount } from "@/lib/utils/format";
 import { LazyVideoThumb } from "@/components/feed/LazyVideoThumb";
+import { DEFAULT_AVATAR } from "@/lib/posts/toPostProps";
 
 import { useState, useEffect, useRef } from "react";
 import { getTimeAgoCompact as getTimeAgo } from "@/lib/utils/time";
@@ -272,7 +273,7 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
             className="author-avatar-link"
           >
             <Image
-              src={take.author.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"}
+              src={take.author.avatar_url || DEFAULT_AVATAR}
               alt=""
               width={70}
               height={70}

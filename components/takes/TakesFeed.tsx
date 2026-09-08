@@ -5,6 +5,7 @@ import { toggleDefaultReaction } from "@/lib/engagement/store";
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import TakeCard from "./TakeCard";
 import TakeCommentsPanel from "./TakeCommentsPanel";
 import { useTakes, useMuted, useTakesFollowing, useVolume } from "@/lib/hooks/useTakes";
@@ -17,6 +18,25 @@ interface TakesFeedProps {
   initialTakeId?: string;
 }
 
+const HIDDEN_TAKES_KEY = "pq-hidden-takes";
+const HIDDEN_TAKES_MAX = 200;
+function readHiddenTakeIds(): string[] {
+  try {
+    const raw = typeof window !== "undefined" ? window.localStorage.getItem(HIDDEN_TAKES_KEY) : null;
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+function writeHiddenTakeIds(ids: Set<string>) {
+  try {
+    window.localStorage.setItem(HIDDEN_TAKES_KEY, JSON.stringify([...ids].slice(-HIDDEN_TAKES_MAX)));
+  } catch {
+    // storage may be unavailable; the hide still applies for this session
+  }
+}
+
 export default function TakesFeed({
   communityId,
   soundId,
@@ -24,13 +44,15 @@ export default function TakesFeed({
   initialTakeId,
 }: TakesFeedProps) {
   const { user } = useAuth();
+  const router = useRouter();
   const feedRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   const [activeIndex, setActiveIndex] = useState(0);
   const [commentsPanelOpen, setCommentsPanelOpen] = useState(false);
   const [commentsTakeId, setCommentsTakeId] = useState<string | null>(null);
-  const [hiddenTakeIds, setHiddenTakeIds] = useState<Set<string>>(new Set());
+  // "Not interested" survives a refresh (V-32): the ids live in localStorage, newest last, capped.
+  const [hiddenTakeIds, setHiddenTakeIds] = useState<Set<string>>(() => new Set(readHiddenTakeIds()));
 
   const {
     takes,
@@ -200,7 +222,11 @@ export default function TakesFeed({
 
   const handleHideTake = useCallback((takeId: string, index: number) => {
     const nextTake = visibleTakes[index + 1] || visibleTakes[index - 1];
-    setHiddenTakeIds((prev) => new Set(prev).add(takeId));
+    setHiddenTakeIds((prev) => {
+      const next = new Set(prev).add(takeId);
+      writeHiddenTakeIds(next);
+      return next;
+    });
 
     if (nextTake) {
       requestAnimationFrame(() => {
@@ -269,8 +295,8 @@ export default function TakesFeed({
               <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
             </svg>
           </div>
-          <p>No Takes yet</p>
-          <span className="tiktok-status-sub">Be the first to share a Take!</span>
+          <p>{soundId ? "No Takes use this sound yet" : communityId ? "No Takes in this community yet" : authorId ? "No Takes from this creator yet" : "No Takes yet"}</p>
+          <span className="tiktok-status-sub">{soundId || communityId || authorId ? "Check back soon, or browse all Takes." : "Be the first to share a Take!"}</span>
         </div>
       </div>
     );
@@ -283,9 +309,16 @@ export default function TakesFeed({
       <div className="aura-blob blob-2 hidden md:block" />
       <div className="aura-blob blob-3 hidden md:block" />
 
-      {/* Mobile Navigation - Back to Home */}
+      {/* Mobile Navigation - back where you came from, the home feed when there is nowhere to go (V-33) */}
       <Link
         href="/"
+        aria-label="Back"
+        onClick={(e) => {
+          if (window.history.length > 1) {
+            e.preventDefault();
+            router.back();
+          }
+        }}
         className="md:hidden fixed top-3 left-3 z-50 w-10 h-10 rounded-full bg-black/50 flex items-center justify-center text-white"
         style={{ top: 'calc(12px + env(safe-area-inset-top, 0px))' }}
       >

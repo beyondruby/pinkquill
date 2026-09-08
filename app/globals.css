@@ -1019,6 +1019,35 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   background: linear-gradient(180deg, color-mix(in srgb, var(--color-purple-primary) 50%, transparent), color-mix(in srgb, var(--color-pink-vivid) 50%, transparent));
 }
 
+.tiktok-follow-btn::before {
+  content: "";
+  position: absolute;
+  inset: -8px;
+}
+
+/* Post detail gallery: arrows always visible on touch (V-38), the feed carousel's
+   counter over the current item (V-39). Same values as .pq-feed-card .carousel-*. */
+@media (hover: none) {
+  .post-media-nav {
+    opacity: 1;
+  }
+}
+.post-media-counter {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 5;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-family: var(--font-ui);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+}
+
 /* The bottom nav's padding for the home indicator (F-20; the class was used but never defined). */
 .safe-area-bottom {
   padding-bottom: env(safe-area-inset-bottom);
@@ -4536,8 +4565,8 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 }
 
 .tiktok-menu-btn {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   background: rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(8px);
   border: none;
@@ -4726,6 +4755,8 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   transform: translateX(-50%);
   width: 24px;
   height: 24px;
+  /* 40px hit area around the 24px badge (V-43) */
+  outline-offset: 8px;
   background: linear-gradient(135deg, var(--primary-purple), var(--vivid-pink));
   border: 2px solid var(--color-surface);
   border-radius: 50%;

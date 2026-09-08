@@ -44,7 +44,8 @@ function PostDetailModalComponent({
   canModerateDeleteComments,
   onModeratorDeleteComment,
 }: PostDetailModalProps) {
-  const [showComments, setShowComments] = useState(false);
+  // Desktop opens with the discussion beside the post; phones keep the Comment pill (V-41).
+  const [showComments, setShowComments] = useState(() => typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches);
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
 
   const onDeleted = useCallback((postId: string) => { onClose(); onPostDeleted?.(postId); }, [onClose, onPostDeleted]);
@@ -68,7 +69,7 @@ function PostDetailModalComponent({
 
   return (
     <>
-      <Modal isOpen={isOpen} onClose={onClose}>
+      <Modal isOpen={isOpen} onClose={onClose} ariaLabel={post.title ? `${post.title}, by ${post.author.name}` : `${post.typeLabel} by ${post.author.name}`}>
         <div className="post-detail-modal flex flex-col md:flex-row h-full w-full relative">
           {hasBackground && (
             <div
@@ -90,6 +91,7 @@ function PostDetailModalComponent({
                 menuItems={actions.menuItems}
                 onNavigate={onClose}
                 onBack={onClose}
+                onClose={onClose}
                 discussion={{ count: actions.commentsCount, onToggle: () => setShowComments((v) => !v) }}
                 className={`mb-4 md:mb-6 pb-4 md:pb-6 border-b ${border}`}
               />
@@ -132,7 +134,7 @@ function PostDetailModalComponent({
                   <button
                     onClick={() => setShowComments(false)}
                     aria-label="Close comments"
-                    className="discussion-close md:hidden w-9 h-9 rounded-full flex items-center justify-center text-muted hover:text-ink transition-colors"
+                    className="discussion-close md:hidden w-10 h-10 rounded-full flex items-center justify-center text-muted hover:text-ink transition-colors"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -143,7 +145,7 @@ function PostDetailModalComponent({
                 <button
                   onClick={() => setShowComments(false)}
                   aria-label="Close comments"
-                  className="discussion-close hidden md:flex w-9 h-9 rounded-full items-center justify-center text-muted hover:text-accent-2 hover:rotate-90 transition-colors"
+                  className="discussion-close hidden md:flex w-10 h-10 rounded-full items-center justify-center text-muted hover:text-accent-2 hover:rotate-90 transition-colors"
                 >
                   {icons.close}
                 </button>

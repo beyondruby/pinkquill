@@ -8,6 +8,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useComments } from "@/lib/hooks/useComments";
 import { useReaction } from "@/lib/engagement/reactions";
@@ -25,6 +26,7 @@ interface TakeCommentsPanelProps {
 
 export default function TakeCommentsPanel({ isOpen, onClose, takeId, authorId }: TakeCommentsPanelProps) {
   const { user, profile } = useAuth();
+  const pathname = usePathname();
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [input, setInput] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -191,7 +193,7 @@ export default function TakeCommentsPanel({ isOpen, onClose, takeId, authorId }:
             style={{ paddingBottom: "calc(16px + env(safe-area-inset-bottom, 0px))" }}
           >
             <p className="font-ui text-[0.9rem] text-muted">
-              <Link href="/login" className="text-purple-primary hover:underline">
+              <Link href={`/login?redirect=${encodeURIComponent(pathname || "/takes")}`} className="text-purple-primary hover:underline">
                 Sign in
               </Link>{" "}
               to comment

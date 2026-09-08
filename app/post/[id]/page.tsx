@@ -484,7 +484,7 @@ export default function PostPage() {
                 avatarUrl={actions.profile?.avatar_url}
                 canDeleteAny={actions.isOwner}
                 listClassName="p-4 max-h-[calc(100vh-320px)] overflow-y-auto"
-                composerClassName="p-3 md:p-4 border-t border-border-light bg-surface sticky bottom-0 z-10"
+                composerClassName="p-3 md:p-4 border-t border-border-light bg-surface sticky bottom-16 md:bottom-0 z-20"
                 composerId="post-discussion-composer"
               />
             </section>

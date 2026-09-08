@@ -71,7 +71,7 @@ export interface CommentComposerProps {
   submitLabel?: string;
 }
 
-const DEFAULT_AVATAR = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100";
+const DEFAULT_AVATAR = "/defaultprofile.png";
 
 export default function CommentComposer({
   value,

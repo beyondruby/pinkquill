@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, type MouseEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, type MouseEvent } from "react";
+import { useDialog } from "@/lib/hooks/useDialog";
 import { getReactionIcon } from "@/components/feed/ReactionPicker";
 import type { ReactionType } from "@/lib/types";
 import Link from "next/link";
@@ -1200,20 +1201,13 @@ function NotificationPanelContent({ onClose }: { onClose: () => void }) {
 
   useEffect(() => {
     setRequestMetricsScope("notifications");
-
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCloseRef.current();
-    };
-
-    document.addEventListener('keydown', handleEscape);
-    document.body.style.overflow = 'hidden';
-
-    return () => {
-      setRequestMetricsScope(null);
-      document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'unset';
-    };
+    return () => setRequestMetricsScope(null);
   }, []);
+
+  // Scroll lock, Escape and focus trap like every other dialog (V-54).
+  const panelRef = useRef<HTMLDivElement>(null);
+  const closeFromDialog = useCallback(() => onCloseRef.current(), []);
+  useDialog(true, panelRef, closeFromDialog);
 
   // Auto-clear the unread badge as soon as the panel opens — the user has now
   // seen the list, so we mark every regular notification as read. Invites and
@@ -1235,7 +1229,7 @@ function NotificationPanelContent({ onClose }: { onClose: () => void }) {
       />
 
       {/* Panel - full width on mobile, fixed width on desktop */}
-      <div className="fixed top-0 left-0 md:left-[72px] bottom-0 w-full md:w-[400px] bg-elevated shadow-2xl z-[9999] animate-slideInLeft flex flex-col border-r border-border-light" aria-label="Notifications">
+      <div ref={panelRef} className="fixed top-0 left-0 md:left-[72px] bottom-0 w-full md:w-[400px] bg-elevated shadow-2xl z-[9999] animate-slideInLeft flex flex-col border-r border-border-light" aria-label="Notifications">
         {/* Header */}
         <div className="relative px-6 py-5 border-b border-border-light">
           {/* Decorative gradient line */}

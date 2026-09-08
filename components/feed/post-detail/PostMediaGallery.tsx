@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import Image from "next/image";
 import { VideoPlayer } from "@/components/feed/VideoPlayer";
 import { LazyVideoThumb } from "@/components/feed/LazyVideoThumb";
@@ -31,6 +32,11 @@ interface Props {
 export function PostMediaGallery({ media, index, onIndexChange, title, palette, maxHeight = 450 }: Props) {
   const { hasBackground, hasDarkBg, subtle } = palette;
   const current = media[index];
+  // Keep the active thumbnail in view when the strip scrolls (V-39).
+  const activeThumbRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    activeThumbRef.current?.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
+  }, [index]);
   if (!current) return null;
   return (
     <div className="post-media-gallery mt-4 md:mt-6 pb-6">
@@ -44,7 +50,7 @@ export function PostMediaGallery({ media, index, onIndexChange, title, palette, 
               alt={current.caption || "Post media"}
               width={900}
               height={500}
-              className="w-full h-auto max-h-[350px] md:max-h-[450px] object-cover cursor-pointer"
+              className="w-full h-auto max-h-[350px] md:max-h-[450px] object-contain cursor-pointer"
               onClick={() => {
                 window.dispatchEvent(new CustomEvent("openLightbox", { detail: { images: media, index } }));
               }}
@@ -57,10 +63,13 @@ export function PostMediaGallery({ media, index, onIndexChange, title, palette, 
 
         {media.length > 1 && (
           <>
+            <span className="post-media-counter" aria-live="polite">
+              {index + 1} / {media.length}
+            </span>
             <button
               onClick={() => onIndexChange(index === 0 ? media.length - 1 : index - 1)}
               aria-label="Previous media"
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-surface/90 shadow-md flex items-center justify-center text-ink/70 opacity-0 group-hover:opacity-100 hover:bg-surface hover:text-ink transition-colors duration-200 z-10"
+              className="post-media-nav absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-surface/90 shadow-md flex items-center justify-center text-ink/70 opacity-0 group-hover:opacity-100 hover:bg-surface hover:text-ink transition-colors duration-200 z-10"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -69,7 +78,7 @@ export function PostMediaGallery({ media, index, onIndexChange, title, palette, 
             <button
               onClick={() => onIndexChange(index === media.length - 1 ? 0 : index + 1)}
               aria-label="Next media"
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-surface/90 shadow-md flex items-center justify-center text-ink/70 opacity-0 group-hover:opacity-100 hover:bg-surface hover:text-ink transition-colors duration-200 z-10"
+              className="post-media-nav absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-surface/90 shadow-md flex items-center justify-center text-ink/70 opacity-0 group-hover:opacity-100 hover:bg-surface hover:text-ink transition-colors duration-200 z-10"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -86,10 +95,13 @@ export function PostMediaGallery({ media, index, onIndexChange, title, palette, 
       )}
 
       {media.length > 1 && (
-        <div className="post-media-thumbs flex gap-2 justify-center mt-4">
+        <div className="post-media-thumbs flex gap-2 mt-4 overflow-x-auto scrollbar-hide px-1 [scrollbar-width:none]">
+          <div className="flex gap-2 mx-auto w-max">
           {media.map((item, idx) => (
             <button
               key={item.id || idx}
+              ref={idx === index ? activeThumbRef : undefined}
+              aria-current={idx === index ? "true" : undefined}
               onClick={() => onIndexChange(idx)}
               aria-label={`Show media ${idx + 1} of ${media.length}`}
               className={`post-media-thumb relative w-14 h-14 md:w-16 md:h-16 rounded-lg overflow-hidden transition-colors duration-200 ${
@@ -110,6 +122,7 @@ export function PostMediaGallery({ media, index, onIndexChange, title, palette, 
               )}
             </button>
           ))}
+          </div>
         </div>
       )}
     </div>

@@ -17,13 +17,15 @@ interface Props {
   onNavigate?: () => void;
   /** Mobile back chevron (the modal only). */
   onBack?: () => void;
+  /** Desktop close "X" (the modal only, V-36). */
+  onClose?: () => void;
   /** Desktop "Discussion" toggle with the count badge (the modal only). */
   discussion?: { count: number; onToggle: () => void };
   className?: string;
 }
 
 /** Author row shared by the detail modal and the post page (V-52, V-4). */
-export function PostDetailHeader({ post, palette, menuItems, onNavigate, onBack, discussion, className = "" }: Props) {
+export function PostDetailHeader({ post, palette, menuItems, onNavigate, onBack, onClose, discussion, className = "" }: Props) {
   const { hasBackground, hasDarkBg, text, muted } = palette;
   const handle = post.author.handle.replace("@", "");
   return (
@@ -95,6 +97,18 @@ export function PostDetailHeader({ post, palette, menuItems, onNavigate, onBack,
           widthClassName="w-40"
           buttonAriaLabel="Post options menu"
         />
+      )}
+      {onClose && (
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className={`hidden md:flex w-10 h-10 rounded-full items-center justify-center transition-colors ${
+            hasBackground ? (hasDarkBg ? "text-white/70 hover:text-white hover:bg-white/10" : "text-[#4a4a4a] hover:text-[#1e1e1e] hover:bg-black/10") : "text-muted hover:text-ink hover:bg-skeleton/60"
+          }`}
+        >
+          {icons.close}
+        </button>
       )}
     </div>
   );

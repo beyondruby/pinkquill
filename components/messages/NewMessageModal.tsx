@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useDialog } from "@/lib/hooks/useDialog";
 import { supabase } from "@/lib/supabase";
 import { getOrCreateConversation } from "@/lib/messaging/conversations";
 import { sanitizePostgrestSearchTerm } from "@/lib/utils/postgrest";
@@ -145,15 +146,9 @@ export default function NewMessageModal({
     }
   }, [isOpen]);
 
-  // Lock body scroll when open
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-    }
-    return () => {
-      document.body.style.overflow = "auto";
-    };
-  }, [isOpen]);
+  // Scroll lock, Escape and focus trap like every other dialog (V-54).
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialog(isOpen, dialogRef, onClose, creating);
 
   // Handle escape key
   useEffect(() => {
@@ -177,7 +172,7 @@ export default function NewMessageModal({
       />
 
       {/* Modal Container */}
-      <div
+      <div ref={dialogRef}
         className="fixed inset-0 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2
                    w-full h-full md:w-[480px] md:h-auto md:max-h-[600px]
                    bg-surface md:rounded-2xl shadow-2xl z-[1001]

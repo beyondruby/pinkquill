@@ -22,6 +22,7 @@ import Button from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Loading";
 import { COMMENT_MAX_LENGTH } from "@/lib/hooks/useComments";
 import CommentComposer from "./CommentComposer";
+import { DEFAULT_AVATAR } from "@/lib/posts/toPostProps";
 
 export interface CommentItemProps {
   comment: Comment;
@@ -267,7 +268,7 @@ function CommentItemComponent({
       <div className="flex gap-3 group">
         <Link href={`/studio/${comment.author.username}`} className="flex-shrink-0">
           <Image
-            src={comment.author.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"}
+            src={comment.author.avatar_url || DEFAULT_AVATAR}
             alt={comment.author.display_name || comment.author.username}
             width={36}
             height={36}

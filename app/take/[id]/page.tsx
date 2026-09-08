@@ -8,6 +8,8 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { type Take, type TakeTableRow, takeFromTableRow, TAKE_ROW_SELECT } from "@/lib/hooks/useTakes";
 import PostTags from "@/components/feed/PostTags";
 import LeftSidebar from "@/components/layout/LeftSidebar";
+import MobileHeader from "@/components/layout/MobileHeader";
+import MobileBottomNav from "@/components/layout/MobileBottomNav";
 import Loading from "@/components/ui/Loading";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { CommentIcon } from "@/components/ui/Icons";
@@ -170,6 +172,7 @@ export default function SingleTakePage({ params }: PageProps) {
   if (loading) {
     return (
       <>
+        <MobileHeader />
         <LeftSidebar />
         <main className="pt-14 pb-20 md:pt-0 md:pb-0 md:ml-[72px] min-h-screen bg-canvas">
           <div className="max-w-[680px] mx-auto py-12 px-6">
@@ -178,6 +181,7 @@ export default function SingleTakePage({ params }: PageProps) {
             </div>
           </div>
         </main>
+        <MobileBottomNav />
       </>
     );
   }
@@ -187,6 +191,7 @@ export default function SingleTakePage({ params }: PageProps) {
     const failed = error === LOAD_FAILED;
     return (
       <>
+        <MobileHeader />
         <LeftSidebar />
         <main className="pt-14 pb-20 md:pt-0 md:pb-0 md:ml-[72px] min-h-screen bg-canvas">
           <div className="max-w-[680px] mx-auto py-12 px-6">
@@ -211,12 +216,14 @@ export default function SingleTakePage({ params }: PageProps) {
             </div>
           </div>
         </main>
+        <MobileBottomNav />
       </>
     );
   }
 
   return (
     <ErrorBoundary>
+      <MobileHeader />
       <LeftSidebar />
       <main className="pt-14 pb-20 md:pt-0 md:pb-0 md:ml-[72px] min-h-screen bg-canvas">
         <div className="max-w-[1100px] mx-auto py-4 md:py-8 px-3 md:px-6 flex flex-col lg:flex-row gap-4 md:gap-6">
@@ -262,7 +269,7 @@ export default function SingleTakePage({ params }: PageProps) {
                 avatarUrl={actions.profile?.avatar_url}
                 canDeleteAny={actions.isOwner}
                 listClassName="p-4 max-h-[calc(100vh-320px)] overflow-y-auto"
-                composerClassName="p-3 md:p-4 border-t border-border-light bg-surface sticky bottom-0 z-10"
+                composerClassName="p-3 md:p-4 border-t border-border-light bg-surface sticky bottom-16 md:bottom-0 z-20"
                 composerId="take-discussion-composer"
               />
             </section>
@@ -271,6 +278,7 @@ export default function SingleTakePage({ params }: PageProps) {
       </main>
 
       <TakeDetailDialogs take={take} actions={actions} />
+      <MobileBottomNav />
     </ErrorBoundary>
   );
 }
