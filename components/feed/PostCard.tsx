@@ -21,6 +21,7 @@ const ShareModal = dynamic(() => import("@/components/ui/ShareModal"), { ssr: fa
 const ReportModal = dynamic(() => import("@/components/ui/ReportModal"), { ssr: false });
 const SendToDMModal = dynamic(() => import("@/components/messages/SendToDMModal"), { ssr: false });
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import { BLOCK_COPY, DELETE_POST_COPY } from "@/components/feed/post-detail/PostDetailDialogs";
 import ActionMenu, { type ActionMenuItem } from "@/components/ui/ActionMenu";
 import Button from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Loading";
@@ -1146,9 +1147,9 @@ function PostCardComponent({
         isOpen={showDeleteConfirm}
         onClose={() => setShowDeleteConfirm(false)}
         onConfirm={handleDelete}
-        title="Erase this from your studio?"
-        description="The post, its admires, and the conversation around it will fade for good. This page won't remember it."
-        confirmText="Erase it"
+        title={DELETE_POST_COPY.title}
+        description={DELETE_POST_COPY.description}
+        confirmText={DELETE_POST_COPY.confirm}
         isDanger
         loading={deleting}
       />
@@ -1228,36 +1229,17 @@ function PostCardComponent({
         />
       )}
 
-      {/* Block Confirmation Modal */}
-      {showBlockConfirm && (
-        <>
-          <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-(--z-modal) animate-fadeIn"
-            onClick={() => !blockLoading && setShowBlockConfirm(false)}
-          />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[440px] max-w-[90vw] bg-surface rounded-3xl shadow-2xl border border-border-light z-(--z-modal) p-7 animate-scaleIn">
-            <h3 className="font-display text-xl text-ink mb-3">
-              Close the door on @{post.author.handle.replace('@', '')}?
-            </h3>
-            <p className="font-body text-[0.95rem] text-muted mb-7 leading-relaxed">
-              Their posts vanish from your feed and yours from theirs. They won&apos;t be able to follow you, message you, or knock again.
-            </p>
-            <div className="flex justify-end gap-2.5">
-              <Button variant="secondary" onClick={() => setShowBlockConfirm(false)} disabled={blockLoading}>
-                Cancel
-              </Button>
-              <Button
-                variant="danger"
-                onClick={handleBlockUser}
-                loading={blockLoading}
-                loadingText="Closing..."
-              >
-                Block
-              </Button>
-            </div>
-          </div>
-        </>
-      )}
+      {/* Block Confirmation Modal — one dialog and one copy for card, modal and page (V-4) */}
+      <ConfirmationModal
+        isOpen={showBlockConfirm}
+        onClose={() => !blockLoading && setShowBlockConfirm(false)}
+        onConfirm={handleBlockUser}
+        title={BLOCK_COPY.title(post.author.handle.replace('@', ''))}
+        description={BLOCK_COPY.description}
+        confirmText={BLOCK_COPY.confirm}
+        isDanger
+        loading={blockLoading}
+      />
 
       {showRemoveCollabConfirm && (
         <ConfirmationModal

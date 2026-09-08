@@ -4,25 +4,9 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import { getPostTypePhrase } from "@/lib/feed-view/post-type-theme";
-import { submitReport } from "@/lib/reports";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useComments } from "@/lib/hooks/useComments";
-import { useToggleSave, useToggleRelay, useBlock } from "@/lib/hooks/useInteractions";
-import { useReaction } from "@/lib/engagement/reactions";
-import { actionToast } from "@/lib/utils/toast";
-import type { ReactionType } from "@/lib/types";
-import { cleanHtmlForDisplay, stripHtmlPreserveLines } from "@/lib/utils/sanitize";
-import { deleteOwnPost } from "@/lib/content-client";
-import ShareModal from "@/components/ui/ShareModal";
-import ReportModal from "@/components/ui/ReportModal";
-import ConfirmationModal from "@/components/ui/ConfirmationModal";
-import CommentItem from "@/components/feed/CommentItem";
-import CommentComposer from "@/components/feed/CommentComposer";
-import { CommentSkeleton } from "@/components/ui/Skeleton";
-import ReactionPicker from "@/components/feed/ReactionPicker";
-import { AudioPlayer } from "@/components/feed/AudioPlayer";
-import { VideoPlayer } from "@/components/feed/VideoPlayer";
+import { toModalPost, type PostLike } from "@/lib/posts/toPostProps";
+import type { ModalPost } from "@/components/feed/PostCard/types";
 import LeftSidebar from "@/components/layout/LeftSidebar";
 import MobileHeader from "@/components/layout/MobileHeader";
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
@@ -30,12 +14,17 @@ import PostTags from "@/components/feed/PostTags";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { ModalErrorFallback } from "@/components/ui/ErrorFallbacks";
 import { icons } from "@/components/ui/Icons";
-import ActionMenu, { type ActionMenuItem } from "@/components/ui/ActionMenu";
 import Loading from "@/components/ui/Loading";
-import type { PostBackground, PostStyling } from "@/lib/types";
-import { getTimeAgo, formatDate, formatTime } from "@/lib/utils/time";
-import FlairBadge from "@/components/communities/FlairBadge";
-import { getBackgroundStyle, isDarkBackground, getLuminance, extractColorsFromGradient } from "@/lib/utils/background";
+import { getBackgroundStyle } from "@/lib/utils/background";
+import { getPostPalette } from "@/components/feed/post-detail/palette";
+import { usePostDetailActions } from "@/components/feed/post-detail/usePostDetailActions";
+import { PostDetailHeader } from "@/components/feed/post-detail/PostDetailHeader";
+import { PostBody } from "@/components/feed/post-detail/PostBody";
+import { PostMediaGallery } from "@/components/feed/post-detail/PostMediaGallery";
+import { ContentWarningOverlay } from "@/components/feed/post-detail/ContentWarningOverlay";
+import { PostActionRow } from "@/components/feed/post-detail/PostActionRow";
+import { DiscussionBody } from "@/components/feed/post-detail/DiscussionBody";
+import { PostDetailDialogs } from "@/components/feed/post-detail/PostDetailDialogs";
 
 const LOAD_FAILED = "Failed to load post";
 
@@ -48,66 +37,7 @@ interface TaggedUser {
 
 interface CollaboratorUser {
   role?: string | null;
-  user: {
-    id: string;
-    username: string;
-    display_name: string | null;
-    avatar_url: string | null;
-  };
-}
-
-interface Author {
-  username: string;
-  display_name: string | null;
-  avatar_url: string | null;
-}
-
-interface MediaItem {
-  id: string;
-  media_url: string;
-  media_type: "image" | "video" | "audio";
-  caption: string | null;
-  position: number;
-  thumbnail_url?: string | null;
-}
-
-interface JournalMetadata {
-  weather?: string;
-  temperature?: string;
-  mood?: string;
-  timeOfDay?: string;
-}
-
-interface SpotifyTrack {
-  id: string;
-  name: string;
-  artist: string;
-  album: string;
-  albumArt: string;
-  previewUrl?: string;
-  externalUrl: string;
-}
-
-interface Post {
-  id: string;
-  author_id: string;
-  status?: string | null;
-  type: string;
-  title: string | null;
-  content: string;
-  content_warning: string | null;
-  created_at: string;
-  author: Author;
-  media: MediaItem[];
-  mentions?: TaggedUser[];
-  hashtags?: string[];
-  collaborators?: CollaboratorUser[];
-  post_location?: string | null;
-  metadata?: JournalMetadata | null;
-  spotify_track?: SpotifyTrack | null;
-  styling?: PostStyling | null;
-  flair?: { id: string; community_id: string; name: string; color: string; emoji: string | null; position: number; created_at: string } | null;
-  community?: { id: string; slug: string; name: string; avatar_url: string | null } | null;
+  user: TaggedUser;
 }
 
 interface MentionRow {
@@ -120,43 +50,18 @@ interface TagRow {
 
 interface CollaboratorRow {
   role?: string | null;
-  user: CollaboratorUser["user"] | CollaboratorUser["user"][] | null;
+  user: TaggedUser | TaggedUser[] | null;
 }
 
-function formatWeather(weather: string): string {
-  return weather.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-}
-
-function formatMood(mood: string): string {
-  return mood.charAt(0).toUpperCase() + mood.slice(1);
-}
-
-// Weather icons for journal display
-const weatherIcons: Record<string, React.ReactNode> = {
-  'sunny': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="5"/><path d="M12 1v3M12 20v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M1 12h3M20 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg>,
-  'partly-cloudy': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a5 5 0 0 0-4.9 4.03A5 5 0 0 0 3 11a5 5 0 0 0 5 5h9a4 4 0 0 0 0-8h-.35A5 5 0 0 0 12 2z"/></svg>,
-  'cloudy': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M17 18H7a5 5 0 0 1-.9-9.9 6 6 0 0 1 11.8 0A5 5 0 0 1 17 18z"/></svg>,
-  'rainy': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M17 13H7a5 5 0 0 1-.9-9.9 6 6 0 0 1 11.8 0A5 5 0 0 1 17 13zM8 17l-2 4M12 17l-2 4M16 17l-2 4"/></svg>,
-  'stormy': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M17 13H7a5 5 0 0 1-.9-9.9 6 6 0 0 1 11.8 0A5 5 0 0 1 17 13zM13 14l-4 8h5l-1 4"/></svg>,
-  'snowy': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M17 13H7a5 5 0 0 1-.9-9.9 6 6 0 0 1 11.8 0A5 5 0 0 1 17 13zM8 16h.01M12 16h.01M16 16h.01M8 20h.01M12 20h.01M16 20h.01"/></svg>,
-  'foggy': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M4 14h16M4 18h12M4 10h8"/></svg>,
-  'windy': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M9.59 4.59A2 2 0 1 1 11 8H2M12.59 19.41A2 2 0 1 0 14 16H2M17.73 7.73A2.5 2.5 0 1 1 19.5 12H2"/></svg>,
+/** The fetched row plus the joined lists, in the shape `toModalPost` reads. */
+type PostRow = PostLike & {
+  author_id: string;
+  status?: string | null;
+  flair?: ModalPost["flair"] | ModalPost["flair"][] | null;
+  community?: PostLike["community"] | PostLike["community"][];
 };
 
-// Mood icons for journal display
-const moodIcons: Record<string, React.ReactNode> = {
-  'reflective': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>,
-  'joyful': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>,
-  'melancholic': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M16 16s-1.5-2-4-2-4 2-4 2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>,
-  'peaceful': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M8 14h8"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>,
-  'anxious': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M8 15h8"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>,
-  'grateful': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>,
-  'creative': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
-  'nostalgic': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
-};
-
-// Conversational phrase — single source of truth in lib/feed-view/post-type-theme.ts (V-49).
-const getTypeLabel = getPostTypePhrase;
+const NEUTRAL_PALETTE = getPostPalette(null);
 
 export default function PostPage() {
   const params = useParams();
@@ -166,54 +71,20 @@ export default function PostPage() {
   const commentIdFromUrl = searchParams.get('comment');
   const replyFromUrl = searchParams.get('reply') === '1';
   const mediaFailedFromUrl = searchParams.get("media_failed");
-  const { user, profile, status: authStatus } = useAuth();
+  const { user, status: authStatus } = useAuth();
 
-  const [post, setPost] = useState<Post | null>(null);
+  const [post, setPost] = useState<ModalPost | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
-  const [showShareModal, setShowShareModal] = useState(false);
-  const [relayCount, setRelayCount] = useState(0);
-  const [isSaved, setIsSaved] = useState(false);
-  const [isRelayed, setIsRelayed] = useState(false);
-  const [commentText, setCommentText] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [showReportModal, setShowReportModal] = useState(false);
-  const [reportSubmitting, setReportSubmitting] = useState(false);
-  const [reportSubmitted, setReportSubmitted] = useState(false);
-  const [showBlockConfirm, setShowBlockConfirm] = useState(false);
-  const [isBlocking, setIsBlocking] = useState(false);
-  const [showContent, setShowContent] = useState(true);
+  const discussionRef = useRef<HTMLElement>(null);
 
-  const { blockUser } = useBlock();
-
-  const { toggle: toggleSave } = useToggleSave();
-  const { toggle: toggleRelay } = useToggleRelay();
-  const {
-    comments,
-    loading: commentsLoading,
-    hasMore: hasMoreComments,
-    loadingMore: loadingMoreComments,
-    loadMore: loadMoreComments,
-    addComment,
-    toggleLike,
-    deleteComment,
-    fetchReplies,
-    ensureCommentVisible,
-  } = useComments("post", postId, { authorId: post?.author_id, live: true });
-
-  // Reactions: shared store entry, per-type counts loaded on mount,
-  // re-read when the tab regains focus so other users' reactions show up.
-  const reaction = useReaction("post", postId, {
-    authorId: post?.author_id,
-    refreshOnFocus: true,
-    loadCounts: true,
-    loadComments: true,
-    live: true,
-  });
-  const commentsCount = reaction.comments;
+  // Everything but the fetch and the layout is shared with PostDetailModal.
+  const leave = useCallback(() => router.push("/"), [router]);
+  const actions = usePostDetailActions(post, { postId, onDeleted: leave, onBlocked: leave });
+  const { comments } = actions;
+  const commentsLoading = comments.loading;
+  const ensureCommentVisible = comments.ensureCommentVisible;
 
   // Deep link (?comment=): make sure the comment is loaded (any page, any
   // reply), then scroll to it. Replies render only when their parent thread
@@ -327,7 +198,6 @@ export default function PostPage() {
       // If User A blocks User B, User B CANNOT see User A's posts (even via direct link)
       const isOwner = user?.id === postData.author_id;
       const postStatus = postData.status || "published";
-      let hasCollaborationAccess = false;
 
       // Only the author and invited collaborators can view unpublished drafts via direct URL.
       if (postStatus !== "published" && !isOwner) {
@@ -353,7 +223,6 @@ export default function PostPage() {
           return;
         }
 
-        hasCollaborationAccess = true;
       }
 
       // Visibility, private accounts and blocks are enforced by the posts
@@ -435,19 +304,23 @@ export default function PostPage() {
             .filter((c): c is CollaboratorUser => c !== null)
         : [];
 
-      const normalizedFlair = Array.isArray(postData.flair) ? postData.flair[0] : postData.flair;
-      const normalizedCommunity = Array.isArray(postData.community) ? postData.community[0] : postData.community;
-      setPost({ ...postData, flair: normalizedFlair || null, community: normalizedCommunity || null, mentions, hashtags, collaborators });
-      setShowContent(!postData.content_warning);
-
-      // Relay count comes from the counter column (Phase 5)
-      setRelayCount(postData.relays_count ?? 0);
-
-      if (user) {
-        setIsRelayed(!!relaysResult.data);
-        setIsSaved(!!saveResult.data);
-      }
-
+      const row = postData as PostRow;
+      const normalizedFlair = Array.isArray(row.flair) ? row.flair[0] : row.flair;
+      const normalizedCommunity = Array.isArray(row.community) ? row.community[0] : row.community;
+      setPost(
+        toModalPost(
+          {
+            ...row,
+            flair: normalizedFlair || null,
+            community: normalizedCommunity || null,
+            mentions: mentions.map((u) => ({ user: u })),
+            hashtags,
+            collaborators: collaborators.map((c) => ({ status: "accepted", role: c.role, user: c.user })),
+          },
+          { isSaved: !!saveResult.data, isRelayed: !!relaysResult.data },
+        ),
+      );
+      setCurrentMediaIndex(0);
       setLoading(false);
     } catch (err) {
       console.error("Fetch error:", err);
@@ -465,207 +338,12 @@ export default function PostPage() {
     fetchData();
   }, [fetchData, authStatus]);
 
-  // Reaction handlers — the store owns optimistic update, RPC, revert,
-  // toast and the notification.
-  const handleReaction = async (reactionType: ReactionType) => {
-    if (!post) return;
-    await reaction.react(reactionType);
-  };
-
-  const handleRemoveReaction = async () => {
-    if (!post) return;
-    await reaction.unreact();
-  };
-
-  const handleSave = async () => {
-    if (!user || !post) return;
-
-    const newIsSaved = !isSaved;
-    setIsSaved(newIsSaved);
-
-    try {
-      await toggleSave(post.id, user.id, !newIsSaved);
-    } catch {
-      setIsSaved(!newIsSaved);
-      actionToast.postSaveError();
-    }
-  };
-
-  const handleRelay = async () => {
-    if (!user || !post) return;
-    // Can't relay your own posts
-    if (user.id === post.author_id) return;
-
-    const newIsRelayed = !isRelayed;
-    setIsRelayed(newIsRelayed);
-    setRelayCount(prev => newIsRelayed ? prev + 1 : Math.max(0, prev - 1));
-
-    try {
-      await toggleRelay(post.id, user.id, !newIsRelayed);
-    } catch {
-      setIsRelayed(!newIsRelayed);
-      setRelayCount(prev => newIsRelayed ? Math.max(0, prev - 1) : prev + 1);
-      actionToast.postRelayError();
-    }
-  };
-
-  const handleAddComment = async () => {
-    const text = commentText.trim();
-    if (!text || !user || !post || submitting) return;
-
-    setSubmitting(true);
-    setCommentText("");
-    const result = await addComment(text);
-    if (!result.success) {
-      setCommentText(text);
-      actionToast.genericError("post comment");
-    }
-    setSubmitting(false);
-  };
-
-  const handleCommentLike = (commentId: string) => {
-    if (!user) return;
-    void toggleLike(commentId);
-  };
-
-  const handleCommentReply = async (parentId: string, content: string, replyToUserId: string | null) => {
-    if (!user) return { success: false };
-    return await addComment(content, { parentId, replyToUserId });
-  };
-
-  const handleCommentDelete = (commentId: string) => {
-    deleteComment(commentId);
-  };
-
-  const isOwner = user && post && user.id === post.author_id;
-
-  const handleDelete = async () => {
-    if (!post || !user) return;
-
-    setDeleting(true);
-    try {
-      await deleteOwnPost(post.id);
-
-      // Navigate back to home
-      router.push("/");
-    } catch (err) {
-      console.error("Failed to delete post:", err);
-      actionToast.postDeleteError();
-      setDeleting(false);
-    }
-  };
-
-  const handleEdit = () => {
-    if (!post) return;
-    // Navigate to create page with post ID for editing
-    router.push(`/create?edit=${post.id}`);
-  };
-
-  const handleReport = async (reason: string, details?: string) => {
-    if (!user || !post) return;
-
-    setReportSubmitting(true);
-    try {
-      const ok = await submitReport(
-        { type: "post", postId: post.id, reportedUserId: post.author_id },
-        user.id,
-        reason,
-        details,
-      );
-
-      if (!ok) {
-        actionToast.reportError();
-        setReportSubmitting(false);
-        return;
-      }
-
-      setReportSubmitted(true);
-      actionToast.reportSubmitted();
-      setTimeout(() => {
-        setShowReportModal(false);
-        setReportSubmitted(false);
-      }, 2000);
-    } catch (err) {
-      console.error("Failed to submit report:", err);
-      actionToast.reportError();
-    }
-    setReportSubmitting(false);
-  };
-
-  const handleBlock = async () => {
-    if (!user || !post) return;
-
-    setIsBlocking(true);
-    try {
-      const result = await blockUser(user.id, post.author_id);
-      if (!result.success) {
-        actionToast.blockError();
-        return;
-      }
-      setShowBlockConfirm(false);
-      router.push("/");
-    } catch (err) {
-      console.error("Failed to block user:", err);
-      actionToast.blockError();
-    } finally {
-      setIsBlocking(false);
-    }
-  };
-
-  const postUrl = typeof window !== 'undefined' ? `${window.location.origin}/post/${postId}` : `/post/${postId}`;
-  const postMenuItems: ActionMenuItem[] = [
-    {
-      label: "Share post",
-      description: "Open sharing options",
-      onSelect: () => setShowShareModal(true),
-      icon: icons.share,
-    },
-    {
-      label: "Copy post link",
-      description: "Copy a direct URL",
-      onSelect: () => navigator.clipboard.writeText(postUrl),
-      icon: (
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-        </svg>
-      ),
-    },
-    {
-      label: "Edit post",
-      description: "Update this work",
-      onSelect: handleEdit,
-      hidden: !isOwner,
-      sectionLabel: "Author",
-      icon: icons.edit,
-    },
-    {
-      label: "Delete post",
-      description: "Remove this post permanently",
-      onSelect: () => setShowDeleteConfirm(true),
-      hidden: !isOwner,
-      tone: "danger",
-      dividerBefore: true,
-      icon: icons.trash,
-    },
-    {
-      label: `Block @${post?.author.username || "user"}`,
-      description: "Stop seeing and receiving interactions",
-      onSelect: () => setShowBlockConfirm(true),
-      hidden: !user || !!isOwner,
-      sectionLabel: "Safety",
-      dividerBefore: true,
-      tone: "warning",
-      icon: icons.block,
-    },
-    {
-      label: "Report post",
-      description: "Send this post to moderation",
-      onSelect: () => setShowReportModal(true),
-      hidden: !user || !!isOwner,
-      tone: "danger",
-      icon: icons.flag,
-    },
-  ];
+  // The Comment pill on the page brings the discussion into view and focuses the composer (V-4).
+  const focusDiscussion = useCallback(() => {
+    discussionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    const field = document.querySelector<HTMLTextAreaElement | HTMLInputElement>("#post-discussion-composer textarea, #post-discussion-composer input");
+    field?.focus({ preventScroll: true });
+  }, []);
 
   // Loading state
   if (loading) {
@@ -720,47 +398,12 @@ export default function PostPage() {
     );
   }
 
-  const audioMedia = post.media?.find((m) => m.media_type === "audio") || null;
-  const visualMedia = (post.media || []).filter((m) => m.media_type !== "audio");
-  const hasMedia = visualMedia.length > 0;
-  const audioCover = visualMedia.find((m) => m.media_type === "image")?.media_url || null;
-  const isVoicePost = (post.type as string) === "voice";
+  const media = (post.media || []).filter((m) => m.media_type !== "audio");
+  const mediaIndex = Math.min(currentMediaIndex, Math.max(0, media.length - 1));
   const failedMediaCount = mediaFailedFromUrl ? Number(mediaFailedFromUrl) : 0;
   const hasFailedMediaNotice = Number.isFinite(failedMediaCount) && failedMediaCount > 0;
-  const hasBackground = Boolean(post.styling?.background);
-  const hasDarkBackground = isDarkBackground(post.styling?.background);
-  const titleColorClass = hasBackground
-    ? hasDarkBackground
-      ? "text-white"
-      : "text-[#1e1e1e]"
-    : "text-ink";
-  const bodyColorClass = titleColorClass;
-  const mutedColorClass = hasBackground
-    ? hasDarkBackground
-      ? "text-white/70"
-      : "text-[#4a4a4a]"
-    : "text-muted";
-  const subtleColorClass = hasBackground
-    ? hasDarkBackground
-      ? "text-white/50"
-      : "text-[#6b6b6b]"
-    : "text-muted";
-  const textAlignment = post.styling?.textAlignment || "left";
-  const lineSpacing = post.styling?.lineSpacing || "normal";
-  const dropCapEnabled = Boolean(post.styling?.dropCap);
-
-  const textAlignmentClass = {
-    left: "text-left",
-    center: "text-center",
-    right: "text-right",
-    justify: "text-justify",
-  }[textAlignment];
-
-  const lineSpacingClass = {
-    normal: "leading-relaxed",
-    relaxed: "leading-[2]",
-    loose: "leading-[2.5]",
-  }[lineSpacing];
+  const palette = getPostPalette(post.styling);
+  const { hasBackground } = palette;
 
   return (
     <ErrorBoundary
@@ -773,553 +416,79 @@ export default function PostPage() {
         <div className="max-w-[1100px] mx-auto py-6 px-4 md:py-8 md:px-6 flex flex-col lg:flex-row gap-6">
           {/* Left Column - Post */}
           <div className="flex-1 min-w-0">
-            {/* Post Card */}
             <article className="bg-surface rounded-2xl shadow-sm border border-border-light overflow-hidden">
-            {/* Author Header */}
-            <div className="flex items-center gap-3 md:gap-4 p-4 md:p-6 border-b border-border-light">
-              <Link href={`/studio/${post.author.username}`}>
-                <img
-                  src={post.author.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"}
-                  alt={post.author.display_name || post.author.username}
-                  className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover border-2 border-white shadow-md hover:scale-110 transition-transform"
-                />
-              </Link>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Link href={`/studio/${post.author.username}`} className="font-ui text-[0.9rem] md:text-[1rem] font-medium text-ink hover:text-accent transition-colors truncate">
-                    {post.author.display_name || post.author.username}
-                  </Link>
-                  {post.flair && (
-                    <FlairBadge flair={post.flair} size="sm" />
-                  )}
-                  <span className="font-ui text-[0.75rem] md:text-[0.85rem] text-muted hidden sm:inline">
-                    {post.type === "journal" ? (
-                      <span className="inline-flex items-center gap-1.5">
-                        wrote in their{" "}
-                        <svg className="w-4 h-4 inline" viewBox="0 0 24 24" fill="none" stroke="url(#journalGradientPage)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <defs>
-                            <linearGradient id="journalGradientPage" x1="0%" y1="0%" x2="100%" y2="100%">
-                              <stop offset="0%" stopColor="#8e44ad" />
-                              <stop offset="50%" stopColor="#ff007f" />
-                              <stop offset="100%" stopColor="#ff9f43" />
-                            </linearGradient>
-                          </defs>
-                          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-                          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-                        </svg>
-                        <span className="font-medium bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm bg-clip-text text-transparent">
-                          Journal
-                        </span>
-                      </span>
-                    ) : (
-                      getTypeLabel(post.type)
-                    )}
-                  </span>
+              <PostDetailHeader post={post} palette={NEUTRAL_PALETTE} menuItems={actions.menuItems} className="p-4 md:p-6 border-b border-border-light" />
+
+              {hasFailedMediaNotice && (
+                <div className="mx-4 md:mx-6 mt-4 rounded-xl border border-amber-300/60 bg-amber-50 px-4 py-3">
+                  <p className="font-ui text-[0.85rem] text-amber-700">
+                    {failedMediaCount} media file{failedMediaCount === 1 ? "" : "s"} failed to upload when this post was published.
+                  </p>
                 </div>
-                <span className="font-ui text-[0.7rem] md:text-[0.8rem] text-muted">
-                  {getTimeAgo(post.created_at)}
-                </span>
-              </div>
-
-              {/* Post Options Menu */}
-              {(isOwner || user) && (
-                <ActionMenu
-                  label="Post actions"
-                  description={post?.title || "Share, manage, or report this post"}
-                  items={postMenuItems}
-                  buttonClassName="w-9 h-9 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-skeleton/60 transition-colors"
-                  widthClassName="w-72"
-                  buttonAriaLabel="Post actions"
-                />
               )}
-            </div>
 
-            {hasFailedMediaNotice && (
-              <div className="mx-4 md:mx-6 mt-4 rounded-xl border border-amber-300/60 bg-amber-50 px-4 py-3">
-                <p className="font-ui text-[0.85rem] text-amber-700">
-                  {failedMediaCount} media file{failedMediaCount === 1 ? "" : "s"} failed to upload when this post was published.
-                </p>
-              </div>
-            )}
-
-            {/* Post Content */}
-            <div className="p-4 md:p-6">
-              {/* Actual Content */}
-              <div className={`relative ${hasBackground ? "rounded-xl overflow-hidden" : ""}`}>
-                {hasBackground && (
-                  <div
-                    className="absolute inset-0"
-                    style={{
-                      ...getBackgroundStyle(post.styling?.background),
-                      opacity: post.styling?.background?.type === "image"
-                        ? (post.styling.background.opacity ?? 1)
-                        : 1,
-                      filter:
-                        post.styling?.background?.type === "image" && post.styling.background.blur
-                          ? `blur(${post.styling.background.blur}px)`
-                          : undefined,
-                    }}
-                  />
-                )}
-                {post.styling?.background?.type === "image" && (
-                  <div className="absolute inset-0 bg-black/30" />
-                )}
-                <div className={hasBackground ? "relative z-10 p-4 md:p-6" : ""}>
-                {/* Journal Header - Beautiful date, time, and metadata */}
-                {post.type === "journal" && (
-                  <div className="journal-header mb-6">
-                    {/* Date with Time on same line */}
-                    <div className="flex items-center gap-4 mb-4">
-                      <h2 className={`font-display text-2xl md:text-3xl font-normal tracking-tight ${hasBackground ? titleColorClass : hasDarkBackground ? "text-white" : "text-purple-primary"}`}>
-                        {formatDate(post.created_at)}
-                      </h2>
-                      <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-ui ${hasBackground ? hasDarkBackground ? "bg-white/10 text-white" : "bg-black/5 text-[#1e1e1e]" : hasDarkBackground ? "bg-surface/20 text-white" : "bg-gradient-to-r from-purple-primary/10 to-pink-vivid/10 text-purple-primary"}`}>
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                          <circle cx="12" cy="12" r="10" />
-                          <path d="M12 6v6l4 2" />
-                        </svg>
-                        {formatTime(post.created_at)}
-                      </span>
-                    </div>
-
-                    {/* Location, Weather, Mood - Same line with creative spacing */}
-                    {(post.post_location || post.metadata?.weather || post.metadata?.temperature || post.metadata?.mood) && (
-                      <div className={`flex flex-wrap items-center gap-x-6 gap-y-3 mb-5 ${mutedColorClass}`}>
-                        {/* Location */}
-                        {post.post_location && (
-                          <div className="flex items-center gap-2">
-                            <svg className={`w-4 h-4 ${hasBackground ? subtleColorClass : hasDarkBackground ? "text-white/80" : "text-purple-primary/70"}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                            </svg>
-                            <span className="font-ui text-sm">{post.post_location}</span>
-                          </div>
-                        )}
-
-                        {/* Separator dot */}
-                        {post.post_location && (post.metadata?.weather || post.metadata?.temperature) && (
-                          <span className={`hidden sm:block w-1 h-1 rounded-full ${hasBackground ? hasDarkBackground ? "bg-white/30" : "bg-black/25" : "bg-purple-primary/30"}`} />
-                        )}
-
-                        {/* Weather with temperature */}
-                        {(post.metadata?.weather || post.metadata?.temperature) && (
-                          <div className="flex items-center gap-2">
-                            <span className={hasBackground ? subtleColorClass : "text-purple-primary/70"}>
-                              {post.metadata?.weather ? weatherIcons[post.metadata.weather] : (
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                  <path d="M14 4a6 6 0 00-6 6c0 2.5 1.5 4.5 3.5 5.5L10 20h4l-1.5-4.5c2-1 3.5-3 3.5-5.5a6 6 0 00-2-4.5" />
-                                </svg>
-                              )}
-                            </span>
-                            <span className="font-ui text-sm">
-                              {post.metadata?.temperature}
-                              {post.metadata?.temperature && post.metadata?.weather && <span className="mx-1 opacity-40">·</span>}
-                              {post.metadata?.weather && formatWeather(post.metadata.weather)}
-                            </span>
-                          </div>
-                        )}
-
-                        {/* Separator dot */}
-                        {(post.metadata?.weather || post.metadata?.temperature) && post.metadata?.mood && (
-                          <span className={`hidden sm:block w-1 h-1 rounded-full ${hasBackground ? hasDarkBackground ? "bg-white/30" : "bg-black/25" : "bg-purple-primary/30"}`} />
-                        )}
-
-                        {/* Mood with prefix */}
-                        {post.metadata?.mood && (
-                          <div className="flex items-center gap-2">
-                            <span className={hasBackground ? subtleColorClass : "text-purple-primary/70"}>
-                              {moodIcons[post.metadata.mood] || moodIcons['reflective']}
-                            </span>
-                            <span className="font-ui text-sm">
-                              <span className={mutedColorClass}>Mood:</span>
-                              {' '}
-                              <span className="italic">{formatMood(post.metadata.mood)}</span>
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Elegant divider line */}
-                    <div className={`h-px w-full ${hasBackground ? hasDarkBackground ? "bg-gradient-to-r from-white/25 via-white/10 to-transparent" : "bg-gradient-to-r from-black/20 via-black/10 to-transparent" : "bg-gradient-to-r from-purple-primary/30 via-pink-vivid/20 to-transparent"}`} />
-                  </div>
-                )}
-
-                {/* Spotify Track Embed */}
-                {post.spotify_track && (
-                  <div className="mb-6">
-                    <div className="rounded-xl overflow-hidden bg-gradient-to-r from-[#1DB954]/5 to-[#191414]/5 border border-[#1DB954]/20">
-                      <iframe
-                        src={`https://open.spotify.com/embed/track/${post.spotify_track.id}?utm_source=generator&theme=1`}
-                        width="100%"
-                        height="152"
-                        frameBorder="0"
-                        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                        loading="lazy"
-                        className="rounded-xl"
-                        title={`${post.spotify_track.name} by ${post.spotify_track.artist}`}
-                      />
-                    </div>
-                    <div className={`flex items-center justify-center gap-2 mt-2 ${mutedColorClass}`}>
-                      <svg className="w-4 h-4 text-[#1DB954]" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
-                      </svg>
-                      <span className="font-ui text-xs opacity-60">Listening to this track</span>
-                    </div>
-                  </div>
-                )}
-
-                {post.title && (
-                  <h1
-                    className={`font-display text-[1.3rem] md:text-[1.6rem] ${titleColorClass} mb-3 md:mb-4 leading-tight ${
-                      post.type === "poem" ? "text-center" : textAlignmentClass
-                    }`}
-                  >
-                    {post.title}
-                  </h1>
-                )}
-
-                {post.type === "poem" ? (
-                  <div
-                    className={`font-body text-[1rem] md:text-[1.15rem] ${bodyColorClass} italic text-center whitespace-pre-line py-3 md:py-4 post-content ${lineSpacingClass} ${dropCapEnabled ? "drop-cap-enabled" : ""}`}
-                  >
-                    {stripHtmlPreserveLines(post.content)}
-                  </div>
-                ) : (
-                  <div
-                    className={`font-body text-[0.95rem] md:text-[1.05rem] ${bodyColorClass} post-content ${textAlignmentClass} ${lineSpacingClass} ${dropCapEnabled ? "drop-cap-enabled" : ""}`}
-                    dangerouslySetInnerHTML={{ __html: cleanHtmlForDisplay(post.content) }}
-                  />
-                )}
-
-                {/* Sound / Voice — the track sits after the title and description */}
-                {audioMedia && (
-                  <div className="mt-5 md:mt-6">
-                    <AudioPlayer
-                      src={audioMedia.media_url}
-                      title={post.title || undefined}
-                      cover={isVoicePost ? null : audioCover}
-                      variant={isVoicePost ? "voice" : "card"}
+              <div className="p-4 md:p-6">
+                <div className={`relative ${hasBackground ? "rounded-xl overflow-hidden" : ""}`}>
+                  {hasBackground && (
+                    <div
+                      className="absolute inset-0"
+                      style={{
+                        ...getBackgroundStyle(post.styling?.background),
+                        opacity: post.styling?.background?.type === "image" ? (post.styling.background.opacity ?? 1) : 1,
+                        filter: post.styling?.background?.type === "image" && post.styling.background.blur ? `blur(${post.styling.background.blur}px)` : undefined,
+                      }}
                     />
-                  </div>
-                )}
-
-              {/* Media Gallery */}
-              {hasMedia && (
-                <div className="mt-6">
-                  <div className="relative rounded-xl overflow-hidden bg-subtle">
-                    {visualMedia[currentMediaIndex]?.media_type === "video" ? (
-                      <VideoPlayer src={visualMedia[currentMediaIndex].media_url} poster={visualMedia[currentMediaIndex].thumbnail_url} title={post.title || undefined} maxHeight={500} />
-                    ) : (
-                      <img
-                        src={visualMedia[currentMediaIndex]?.media_url}
-                        alt=""
-                        className="w-full max-h-[500px] object-cover cursor-pointer hover:opacity-95 transition-opacity"
-                        onClick={() => {
-                          window.dispatchEvent(new CustomEvent("openLightbox", {
-                            detail: { images: visualMedia, index: currentMediaIndex }
-                          }));
-                        }}
-                      />
-                    )}
-
-                    {visualMedia.length > 1 && (
-                      <>
-                        <button
-                          onClick={() => setCurrentMediaIndex((prev) => (prev === 0 ? visualMedia.length - 1 : prev - 1))}
-                          className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-surface/90 backdrop-blur-sm shadow-lg flex items-center justify-center text-ink hover:bg-surface transition-colors"
-                        >
-                          {icons.chevronLeft}
-                        </button>
-                        <button
-                          onClick={() => setCurrentMediaIndex((prev) => (prev === visualMedia.length - 1 ? 0 : prev + 1))}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-surface/90 backdrop-blur-sm shadow-lg flex items-center justify-center text-ink hover:bg-surface transition-colors"
-                        >
-                          {icons.chevronRight}
-                        </button>
-                      </>
+                  )}
+                  {post.styling?.background?.type === "image" && <div className="absolute inset-0 bg-black/30" />}
+                  <div className={hasBackground ? "relative z-10 p-4 md:p-6" : ""}>
+                    <PostBody post={post} palette={palette} titleAs="h1" />
+                    {media.length > 0 && (
+                      <PostMediaGallery media={media} index={mediaIndex} onIndexChange={setCurrentMediaIndex} title={post.title || undefined} palette={palette} maxHeight={500} />
                     )}
                   </div>
-
-                  {visualMedia[currentMediaIndex]?.caption && (
-                    <p className={`text-center font-body text-[0.9rem] italic mt-3 ${mutedColorClass}`}>
-                      {visualMedia[currentMediaIndex].caption}
-                    </p>
-                  )}
-
-                  {visualMedia.length > 1 && (
-                    <div className="flex gap-2 justify-center mt-4">
-                      {visualMedia.map((item, idx) => (
-                        <button
-                          key={item.id}
-                          onClick={() => setCurrentMediaIndex(idx)}
-                          className={`w-14 h-14 rounded-lg overflow-hidden transition-colors ${
-                            idx === currentMediaIndex
-                              ? "ring-2 ring-purple-primary ring-offset-2"
-                              : "opacity-60 hover:opacity-100"
-                          }`}
-                        >
-                          <img src={item.media_url} alt="" className="w-full h-full object-cover" />
-                        </button>
-                      ))}
-                    </div>
+                  {post.contentWarning && !actions.showContent && (
+                    <ContentWarningOverlay warning={post.contentWarning} palette={palette} onShow={actions.revealContent} className="z-20" />
                   )}
                 </div>
-              )}
-
-                </div>
-                {/* Content Warning Overlay */}
-                {post.content_warning && !showContent && (
-                  <div className={`absolute inset-0 z-20 flex flex-col items-center justify-center backdrop-blur-2xl ${hasBackground ? hasDarkBackground ? "bg-black/40" : "bg-white/60" : hasDarkBackground ? "bg-black/40" : "bg-surface/40"} rounded-xl`}>
-                    <div className="relative text-center px-8 py-10">
-                      <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-amber-500/10 border border-amber-500/20 mb-5">
-                        <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                        <span className="font-ui text-sm font-semibold text-amber-700">Content Warning</span>
-                      </div>
-
-                      <p className={`font-body text-base mb-6 max-w-md mx-auto ${bodyColorClass}`}>{post.content_warning}</p>
-
-                      <button
-                        onClick={() => setShowContent(true)}
-                        className={`px-6 py-2.5 rounded-full font-ui text-sm font-medium transition-colors ${
-                          hasBackground
-                            ? hasDarkBackground
-                              ? "text-[#1e1e1e] bg-white/90 hover:bg-white"
-                              : "text-white bg-[#1e1e1e]/85 hover:bg-[#1e1e1e]"
-                            : "text-white bg-ink/80 hover:bg-ink"
-                        }`}
-                      >
-                        Show Content
-                      </button>
-                    </div>
-                  </div>
-                )}
               </div>
-            </div>
 
-            {/* Tags Section (Collaborators + Tagged People + Hashtags) */}
-            <div className="px-6">
-              <PostTags
-                collaborators={post.collaborators}
-                mentions={post.mentions}
-                kind="post"
-                contentId={post.id}
-                currentUserId={user?.id}
-                hashtags={post.hashtags}
-              />
-            </div>
+              <div className="px-6">
+                <PostTags
+                  collaborators={post.collaborators}
+                  mentions={post.mentions}
+                  kind="post"
+                  contentId={post.id}
+                  currentUserId={actions.user?.id}
+                  hashtags={post.hashtags}
+                />
+              </div>
 
-            {/* Action Buttons */}
-            <div className="flex items-center gap-1.5 md:gap-2 px-4 md:px-6 py-3 md:py-4 border-t border-border-light flex-wrap">
-              {/* Reaction Picker */}
-              <ReactionPicker
-                kind="post"
-                id={postId}
-                currentReaction={reaction.mine}
-                reactionCounts={reaction.counts}
-                countsLoaded={reaction.countsLoaded}
-                onOpen={reaction.loadCounts}
-                onReact={handleReaction}
-                onRemoveReaction={handleRemoveReaction}
-                disabled={!user}
-              />
-
-              <button
-                aria-label={commentsCount > 0 ? `Comments, ${commentsCount.toLocaleString()}` : "Comments"}
-                className="engage-pill text-ink hover:bg-subtle transition-colors"
-              >
-                {icons.comment}
-                {commentsCount > 0 && <span className="engage-pill-count">{commentsCount.toLocaleString()}</span>}
-              </button>
-
-              {!isOwner && (
-                <button
-                  onClick={handleRelay}
-                  disabled={!user}
-                  aria-label={isRelayed ? `Remove relay (${relayCount} relays)` : `Relay post (${relayCount} relays)`}
-                  aria-pressed={isRelayed}
-                  className={`engage-pill transition-colors ${
-                    isRelayed
-                      ? "text-green-600"
-                      : "text-ink hover:bg-subtle"
-                  } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
-                >
-                  {icons.relay}
-                  {relayCount > 0 && <span className="engage-pill-count">{relayCount.toLocaleString()}</span>}
-                </button>
-              )}
-
-              <div className="flex-1" />
-
-              <button
-                onClick={() => setShowShareModal(true)}
-                className="w-10 h-10 rounded-full flex items-center justify-center text-ink hover:bg-subtle transition-colors"
-              >
-                {icons.share}
-              </button>
-
-              <button
-                onClick={handleSave}
-                disabled={!user}
-                className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-                  isSaved
-                    ? "text-ink"
-                    : "text-ink hover:bg-subtle"
-                } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
-              >
-                {isSaved ? icons.bookmarkFilled : icons.bookmark}
-              </button>
-            </div>
-          </article>
+              <PostActionRow postId={post.id} actions={actions} onComment={focusDiscussion} hasDarkBg={false} className="px-4 md:px-6 py-3 md:py-4 border-t border-border-light" />
+            </article>
           </div>
 
           {/* Right Column - Discussion */}
           <div className="w-full lg:w-[360px] flex-shrink-0">
-            <section className="bg-surface rounded-2xl shadow-sm border border-border-light overflow-hidden lg:sticky lg:top-[86px]">
+            <section ref={discussionRef} className="bg-surface rounded-2xl shadow-sm border border-border-light overflow-hidden lg:sticky lg:top-[86px] scroll-mt-20">
               <div className="p-4 md:p-5 border-b border-border-light">
                 <h2 className="font-ui text-[0.9rem] md:text-[1rem] font-medium text-ink flex items-center gap-2">
                   {icons.comment}
-                  Discussion ({commentsCount})
+                  Discussion ({actions.commentsCount})
                 </h2>
               </div>
-
-            {/* Comments List */}
-            <div className="p-4 max-h-[calc(100vh-320px)] overflow-y-auto">
-              {commentsLoading ? (
-                <div className="space-y-1" aria-busy="true" aria-label="Loading comments">
-                  <CommentSkeleton />
-                  <CommentSkeleton />
-                  <CommentSkeleton />
-                </div>
-              ) : comments.length === 0 ? (
-                <div className="text-center py-10">
-                  <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-gradient-to-br from-purple-primary/10 to-pink-vivid/10 flex items-center justify-center text-purple-primary">
-                    <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.6}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h8M8 14h5m-9 7l3.5-3.5H18a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v15z" />
-                    </svg>
-                  </div>
-                  <p className="font-ui text-[0.95rem] text-ink mb-1">No comments yet</p>
-                  <p className="font-body text-sm text-muted">Be the first to share what you think.</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {comments.map((comment) => (
-                    <CommentItem
-                      key={comment.id}
-                      comment={comment}
-                      kind="post"
-                      contentId={post.id}
-                      currentUserId={user?.id}
-                      canDeleteAny={!!isOwner}
-                      onLike={handleCommentLike}
-                      onReply={handleCommentReply}
-                      onLoadReplies={fetchReplies}
-                      onDelete={handleCommentDelete}
-                    />
-                  ))}
-                  {hasMoreComments && (
-                    <button
-                      onClick={() => void loadMoreComments()}
-                      disabled={loadingMoreComments}
-                      className="w-full py-2 rounded-full font-ui text-[0.8rem] text-purple-primary hover:bg-purple-primary/5 transition-colors disabled:opacity-50"
-                    >
-                      {loadingMoreComments ? "Loading…" : "Load more comments"}
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-            {/* Composer — stays at the bottom of the discussion (Phase 6) */}
-            {user ? (
-              <div className="p-3 md:p-4 border-t border-border-light bg-surface sticky bottom-0">
-                <CommentComposer
-                  value={commentText}
-                  onChange={setCommentText}
-                  onSubmit={handleAddComment}
-                  submitting={submitting}
-                  showAvatar
-                  avatarUrl={profile?.avatar_url}
-                />
-              </div>
-            ) : (
-              <div className="p-4 border-t border-border-light text-center">
-                <p className="font-ui text-[0.9rem] text-muted">
-                  <Link href="/login" className="text-purple-primary hover:underline">Sign in</Link> to comment
-                </p>
-              </div>
-            )}
-          </section>
+              <DiscussionBody
+                postId={post.id}
+                actions={actions}
+                listClassName="p-4 max-h-[calc(100vh-320px)] overflow-y-auto"
+                composerClassName="p-3 md:p-4 border-t border-border-light bg-surface sticky bottom-0 z-10"
+                composerId="post-discussion-composer"
+              />
+            </section>
           </div>
         </div>
       </main>
 
-      {/* Share Modal */}
-      <ShareModal
-        isOpen={showShareModal}
-        onClose={() => setShowShareModal(false)}
-        url={postUrl}
-        title={post.title || post.content.substring(0, 100)}
-        description={post.content.substring(0, 200)}
-        type={post.type}
-        authorName={post.author.display_name || post.author.username}
-        authorUsername={post.author.username}
-        authorAvatar={post.author.avatar_url || ""}
-        imageUrl={visualMedia.length > 0 ? visualMedia[0].media_url : ""}
-      />
-
-      {/* Delete Confirmation Modal */}
-      <ConfirmationModal
-        isOpen={showDeleteConfirm}
-        onClose={() => setShowDeleteConfirm(false)}
-        onConfirm={handleDelete}
-        title="Delete Post?"
-        description="This action cannot be undone. This will permanently delete your post and remove all associated data including comments, admires, and saves."
-        confirmText="Delete"
-        isDanger
-        loading={deleting}
-      />
-
-      {/* Block Confirmation Modal */}
-      {showBlockConfirm && post && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] animate-fadeIn">
-          <div className="bg-surface rounded-2xl p-6 max-w-sm w-full mx-4 animate-scaleIn">
-            <h3 className="font-display text-lg font-semibold text-ink mb-2">
-              Block @{post.author.username}?
-            </h3>
-            <p className="font-body text-sm text-muted mb-6">
-              They won&apos;t be able to see your posts, follow you, or message you. They won&apos;t be notified.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowBlockConfirm(false)}
-                className="flex-1 py-2.5 rounded-full border border-border-light font-ui text-sm font-medium text-ink hover:bg-subtle transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleBlock}
-                disabled={isBlocking}
-                className="flex-1 py-2.5 rounded-full bg-red-500 text-white font-ui text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-50"
-              >
-                {isBlocking ? "Blocking..." : "Block"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Report Modal */}
-      {showReportModal && (
-        <ReportModal
-          isOpen={showReportModal}
-          onClose={() => setShowReportModal(false)}
-          onSubmit={handleReport}
-          submitting={reportSubmitting}
-          submitted={reportSubmitted}
-        />
-      )}
+      <PostDetailDialogs post={post} actions={actions} />
 
       <MobileBottomNav />
     </ErrorBoundary>
