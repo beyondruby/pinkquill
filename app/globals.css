@@ -6893,14 +6893,6 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 1px;
-  background: #000;
-}
-
-@media (max-width: 768px) {
-  .takes-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1px;
-  }
 }
 
 .take-grid-card {
