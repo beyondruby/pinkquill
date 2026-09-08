@@ -164,7 +164,9 @@ function CommentItemComponent({
         reported_user_id: comment.user_id,
         reason,
         details: details || null,
-        type: kind === "take" ? "take_comment" : "comment",
+        // reports_type_check allows user / post / comment / take / community;
+        // "take_comment" was rejected, so take-comment reports never landed.
+        type: "comment",
         comment_id: comment.id,
         ...(contentId ? (kind === "take" ? { take_id: contentId } : { post_id: contentId }) : {}),
       });

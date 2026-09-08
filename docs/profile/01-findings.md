@@ -859,3 +859,29 @@ on unmount and abort errors ignored (`useFeed.ts:66-69, 205-207, 249-256`;
 after posting (`useComments.ts:389-420`). Escape, Tab trap and focus restore
 work for both modals (`useDialog.ts`). The feed query uses
 `idx_posts_status_created`; the profile's hot filters are indexed.
+
+---
+
+## Addendum (found while fixing, 2026-09-08)
+
+**X-4 Post reports never reached the database; the moderation queue reads a
+column that does not exist.** High, A (found in 1d). The live `reports`
+table has `post_id`, `take_id`, `comment_id`, `reported_user_id`, `reason`,
+`details`, `type`, `community_id`; there is no `reported_post_id`. The feed
+card (`components/feed/PostCard.tsx`), the post page and `PostDetailModal`
+inserted `reported_post_id`, so every post report failed (the table had 0
+rows in production). Fixed in 1d through `lib/reports.ts`. Still open:
+`lib/hooks/useModQueue.ts:60, 104` embeds `posts!reported_post_id` and
+filters on `reported_post_id`, and `components/communities/ModQueue/ModQueuePage.tsx:36-46`
+reads `report.reported_post_id` — the community mod queue cannot show post
+reports. Outside this audit's screens; needs its own fix.
+
+**X-5 Take-comment reports used a type the check constraint rejects.**
+Medium, A (found in 1d). `components/feed/CommentItem.tsx:167` wrote
+`type: "take_comment"`; `reports_type_check` allows only user / post /
+comment / take / community. Fixed in 1d (`type: "comment"` with `take_id`
+set).
+
+**X-6 The report dialog says "Report this post" for takes.** Low, C
+(seen in the browser during 1d). `components/ui/ReportModal.tsx` copy is
+post-only. Belongs to Phase 5 (V-4 copy drift).

@@ -2,6 +2,8 @@
 
 import type { ReactionType, ReactionCounts } from "@/lib/types";
 import { useState, useEffect, useCallback, useRef } from "react";
+import { submitReport } from "@/lib/reports";
+import { actionToast } from "@/lib/utils/toast";
 import { deleteOwnTake } from "@/lib/content-client";
 import { supabase } from "../supabase";
 import { followUserRecord } from "./useProfile";
@@ -571,11 +573,10 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
     ));
 
     try {
-      if (take.is_saved) {
-        await supabase.from("take_saves").delete().eq("take_id", takeId).eq("user_id", userId);
-      } else {
-        await supabase.from("take_saves").insert({ take_id: takeId, user_id: userId });
-      }
+      const { error } = take.is_saved
+        ? await supabase.from("take_saves").delete().eq("take_id", takeId).eq("user_id", userId)
+        : await supabase.from("take_saves").insert({ take_id: takeId, user_id: userId });
+      if (error) throw error;
     } catch {
       // Revert on error
       setTakes(prev => prev.map(t =>
@@ -583,6 +584,7 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
           ? { ...t, is_saved: take.is_saved, saves_count: take.saves_count }
           : t
       ));
+      actionToast.genericError(take.is_saved ? "unsave take" : "save take");
     }
   }, [userId]);
 
@@ -604,12 +606,11 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
     ));
 
     try {
-      if (take.is_relayed) {
-        await supabase.from("take_relays").delete().eq("take_id", takeId).eq("user_id", userId);
-      } else {
-        // The take_relays trigger notifies the author.
-        await supabase.from("take_relays").insert({ take_id: takeId, user_id: userId });
-      }
+      // The take_relays trigger notifies the author.
+      const { error } = take.is_relayed
+        ? await supabase.from("take_relays").delete().eq("take_id", takeId).eq("user_id", userId)
+        : await supabase.from("take_relays").insert({ take_id: takeId, user_id: userId });
+      if (error) throw error;
     } catch {
       // Revert on error
       setTakes(prev => prev.map(t =>
@@ -617,6 +618,7 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
           ? { ...t, is_relayed: take.is_relayed, relays_count: take.relays_count }
           : t
       ));
+      actionToast.genericError(take.is_relayed ? "remove relay" : "relay take");
     }
   }, [userId]);
 
@@ -648,31 +650,14 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
   const reportTake = useCallback(async (takeId: string, reason: string, details?: string) => {
     if (!userId) return;
 
-    try {
-      const { error } = await supabase.from("reports").insert({
-        reporter_id: userId,
-        take_id: takeId,
-        reason: reason,
-        details: details || null,
-        type: "take",
-      });
-
-      if (error) {
-        // Fallback if the reports table has different columns
-        if (error.message?.includes('details') || error.message?.includes('type')) {
-          await supabase.from("reports").insert({
-            reporter_id: userId,
-            take_id: takeId,
-            reason: reason,
-          });
-        } else {
-          throw error;
-        }
-      }
-    } catch (err) {
-      console.error("[useTakes.reportTake] Error:", err);
-      throw err;
-    }
+    const take = takesRef.current.find(t => t.id === takeId);
+    const ok = await submitReport(
+      { type: "take", takeId, reportedUserId: take?.author_id ?? "" },
+      userId,
+      reason,
+      details,
+    );
+    if (!ok) throw new Error("Failed to submit report");
   }, [userId]);
 
   return {
@@ -783,7 +768,8 @@ export function useTakesFollowing(userId?: string) {
 
     try {
       if (isFollowing) {
-        await supabase.from("follows").delete().eq("follower_id", userId).eq("following_id", authorId);
+        const { error } = await supabase.from("follows").delete().eq("follower_id", userId).eq("following_id", authorId);
+        if (error) throw error;
       } else {
         // Same path as the profile follow button: private accounts get a
         // pending request + notification instead of an instant follow.
@@ -797,6 +783,8 @@ export function useTakesFollowing(userId?: string) {
         else next.delete(authorId);
         return next;
       });
+      if (isFollowing) actionToast.unfollowError();
+      else actionToast.followError();
     }
   }, [userId, following]);
 

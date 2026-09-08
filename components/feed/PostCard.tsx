@@ -29,6 +29,7 @@ import CommentCount from "@/components/feed/CommentCount";
 import ReactionPicker from "@/components/feed/ReactionPicker";
 import { AudioPlayer } from "@/components/feed/AudioPlayer";
 import { supabase } from "@/lib/supabase";
+import { submitReport } from "@/lib/reports";
 import { getTimeAgoWords } from "@/lib/utils/time";
 import { PostTypeChip } from "@/components/feed/PostTypeChip";
 import { getPostTypeCollabPhrase } from "@/lib/feed-view/post-type-theme";
@@ -323,31 +324,14 @@ function PostCardComponent({
 
     setReportSubmitting(true);
     try {
-      // Build report data with required columns
-      const reportData: Record<string, unknown> = {
-        reported_post_id: post.id,
-        reported_user_id: post.authorId,
-        reporter_id: user.id,
-        reason: details ? `${reason}: ${details}` : reason,
-        type: "post",
-      };
+      const ok = await submitReport(
+        { type: "post", postId: post.id, reportedUserId: post.authorId, communityId: post.community ? undefined : null },
+        user.id,
+        reason,
+        details,
+      );
 
-      // Add community_id if post belongs to a community (for mod queue filtering)
-      if (post.community) {
-        const { data: postData } = await supabase
-          .from("posts")
-          .select("community_id")
-          .eq("id", post.id)
-          .single();
-        if (postData?.community_id) {
-          reportData.community_id = postData.community_id;
-        }
-      }
-
-      const { error } = await supabase.from("reports").insert(reportData);
-
-      if (error) {
-        console.error("Error submitting report:", error);
+      if (!ok) {
         actionToast.reportError();
         setReportSubmitting(false);
         return;

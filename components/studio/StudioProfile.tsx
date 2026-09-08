@@ -1,12 +1,13 @@
 "use client";
 
 import { Spinner } from "@/components/ui/Loading";
-import { showToast } from "@/lib/utils/toast";
+import { showToast, actionToast } from "@/lib/utils/toast";
 
 import "./studio.css";
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { submitReport } from "@/lib/reports";
 import { getOrCreateConversation } from "@/lib/messaging/conversations";
 import { fetchCollaboratedPosts, useCommunities, COLLAB_SELF_REMOVED_EVENT } from "@/lib/hooks.legacy";
 import type { CollabSelfRemovedDetail } from "@/lib/hooks.legacy";
@@ -976,12 +977,11 @@ export default function StudioProfile({ username }: StudioProfileProps) {
 
     setReportLoading(true);
     try {
-      await supabase.from("reports").insert({
-        reporter_id: user.id,
-        reported_user_id: profile.id,
-        reason: reportReason.trim(),
-        type: "user",
-      });
+      const ok = await submitReport({ type: "user", reportedUserId: profile.id }, user.id, reportReason.trim());
+      if (!ok) {
+        actionToast.reportError();
+        return;
+      }
       setReportSuccess(true);
       setReportReason("");
       setTimeout(() => {
@@ -990,6 +990,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
       }, 2000);
     } catch (err) {
       console.error("Failed to submit report:", err);
+      actionToast.reportError();
     } finally {
       setReportLoading(false);
     }
@@ -2650,11 +2651,13 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                     }}
                     onDelete={async () => {
                       const { error } = await supabase.from("collections").delete().eq("id", collection.id);
-                      if (!error) refetchCollections();
+                      if (error) actionToast.genericError("delete collection");
+                      else refetchCollections();
                     }}
                     onDeleteItem={async (itemId: string) => {
                       const { error } = await supabase.from("collection_items").delete().eq("id", itemId);
-                      if (!error) refetchCollections();
+                      if (error) actionToast.genericError("remove item");
+                      else refetchCollections();
                     }}
                     router={router}
                   />

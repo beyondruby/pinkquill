@@ -5,6 +5,7 @@ import { getTimeAgo } from "@/lib/utils/time";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { submitReport } from "@/lib/reports";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useMuted, useVolume, TakeReactionType } from "@/lib/hooks/useTakes";
 import { useReaction } from "@/lib/engagement/reactions";
@@ -319,10 +320,13 @@ export default function SingleTakePage({ params }: PageProps) {
     setIsSaved(newIsSaved);
     setSavesCount((prev) => newIsSaved ? prev + 1 : Math.max(0, prev - 1));
 
-    if (newIsSaved) {
-      await supabase.from("take_saves").insert({ take_id: take.id, user_id: user.id });
-    } else {
-      await supabase.from("take_saves").delete().eq("take_id", take.id).eq("user_id", user.id);
+    const { error } = newIsSaved
+      ? await supabase.from("take_saves").insert({ take_id: take.id, user_id: user.id })
+      : await supabase.from("take_saves").delete().eq("take_id", take.id).eq("user_id", user.id);
+    if (error) {
+      setIsSaved(!newIsSaved);
+      setSavesCount((prev) => newIsSaved ? Math.max(0, prev - 1) : prev + 1);
+      actionToast.genericError(newIsSaved ? "save take" : "unsave take");
     }
   };
 
@@ -333,10 +337,13 @@ export default function SingleTakePage({ params }: PageProps) {
     setIsRelayed(newIsRelayed);
     setRelaysCount((prev) => newIsRelayed ? prev + 1 : Math.max(0, prev - 1));
 
-    if (newIsRelayed) {
-      await supabase.from("take_relays").insert({ take_id: take.id, user_id: user.id });
-    } else {
-      await supabase.from("take_relays").delete().eq("take_id", take.id).eq("user_id", user.id);
+    const { error } = newIsRelayed
+      ? await supabase.from("take_relays").insert({ take_id: take.id, user_id: user.id })
+      : await supabase.from("take_relays").delete().eq("take_id", take.id).eq("user_id", user.id);
+    if (error) {
+      setIsRelayed(!newIsRelayed);
+      setRelaysCount((prev) => newIsRelayed ? Math.max(0, prev - 1) : prev + 1);
+      actionToast.genericError(newIsRelayed ? "relay take" : "remove relay");
     }
   };
 
@@ -362,6 +369,7 @@ export default function SingleTakePage({ params }: PageProps) {
       router.push("/takes");
     } catch (err) {
       console.error("Error deleting take:", err);
+      actionToast.genericError("delete take");
       setDeleting(false);
     }
   };
@@ -371,20 +379,26 @@ export default function SingleTakePage({ params }: PageProps) {
 
     setReportSubmitting(true);
     try {
-      await supabase.from("reports").insert({
-        reporter_id: user.id,
-        reported_user_id: take.author_id,
-        take_id: take.id,
-        reason: reason + (details ? `: ${details}` : ""),
-        type: "take",
-      });
+      const ok = await submitReport(
+        { type: "take", takeId: take.id, reportedUserId: take.author_id },
+        user.id,
+        reason,
+        details,
+      );
+      if (!ok) {
+        actionToast.reportError();
+        setReportSubmitting(false);
+        return;
+      }
       setReportSubmitted(true);
+      actionToast.reportSubmitted();
       setTimeout(() => {
         setShowReportModal(false);
         setReportSubmitted(false);
       }, 2000);
     } catch (err) {
       console.error("Error reporting:", err);
+      actionToast.reportError();
     }
     setReportSubmitting(false);
   };
@@ -394,10 +408,15 @@ export default function SingleTakePage({ params }: PageProps) {
 
     setIsBlocking(true);
     try {
-      await blockUser(user.id, take.author_id);
-      router.push("/takes");
+      const result = await blockUser(user.id, take.author_id);
+      if (!result.success) {
+        actionToast.blockError();
+      } else {
+        router.push("/takes");
+      }
     } catch (err) {
       console.error("Error blocking:", err);
+      actionToast.blockError();
     }
     setIsBlocking(false);
   };

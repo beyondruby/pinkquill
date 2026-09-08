@@ -30,6 +30,7 @@ import Button from "@/components/ui/Button";
 
 import ActionMenu, { type ActionMenuItem } from "@/components/ui/ActionMenu";
 import { supabase } from "@/lib/supabase";
+import { submitReport } from "@/lib/reports";
 import { deleteOwnPost } from "@/lib/content-client";
 import { icons } from "@/components/ui/Icons";
 import PostTags from "@/components/feed/PostTags";
@@ -263,6 +264,7 @@ function PostDetailModalComponent({
       }
     } catch (err) {
       console.error("Failed to delete post:", err);
+      actionToast.postDeleteError();
       setDeleting(false);
     }
   }, [post, user, onClose, onPostDeleted]);
@@ -278,39 +280,28 @@ function PostDetailModalComponent({
 
     setReportSubmitting(true);
     try {
-      // Look up community_id and author_id from the post
-      const { data: postData } = await supabase
-        .from("posts")
-        .select("community_id, author_id")
-        .eq("id", post.id)
-        .single();
+      const ok = await submitReport(
+        { type: "post", postId: post.id, reportedUserId: post.authorId },
+        user.id,
+        reason,
+        details,
+      );
 
-      const reportData: Record<string, unknown> = {
-        reported_post_id: post.id,
-        reported_user_id: postData?.author_id || post.authorId || null,
-        reporter_id: user.id,
-        reason: details ? `${reason}: ${details}` : reason,
-        type: "post",
-      };
-      if (postData?.community_id) {
-        reportData.community_id = postData.community_id;
-      }
-
-      const { error } = await supabase.from("reports").insert(reportData);
-
-      if (error) {
-        console.error("Error submitting report:", error);
+      if (!ok) {
+        actionToast.reportError();
         setReportSubmitting(false);
         return;
       }
 
       setReportSubmitted(true);
+      actionToast.reportSubmitted();
       setTimeout(() => {
         setShowReportModal(false);
         setReportSubmitted(false);
       }, 2000);
     } catch (err) {
       console.error("Failed to submit report:", err);
+      actionToast.reportError();
     }
     setReportSubmitting(false);
   }, [user, post]);
@@ -320,11 +311,16 @@ function PostDetailModalComponent({
 
     setIsBlocking(true);
     try {
-      await blockUser(user.id, post.authorId);
+      const result = await blockUser(user.id, post.authorId);
+      if (!result.success) {
+        actionToast.blockError();
+        return;
+      }
       setShowBlockConfirm(false);
       onClose();
     } catch (err) {
       console.error("Failed to block user:", err);
+      actionToast.blockError();
     } finally {
       setIsBlocking(false);
     }
@@ -434,8 +430,14 @@ function PostDetailModalComponent({
       countChange: 0,
     });
 
-    // Database update (notifications are DB triggers)
-    await toggleSave(post.id, user.id, isSaved);
+    // Database update (notifications are DB triggers); revert on failure
+    try {
+      await toggleSave(post.id, user.id, isSaved);
+    } catch {
+      setIsSaved(isSaved);
+      onPostUpdate?.({ postId: post.id, field: "saves", isActive: isSaved, countChange: 0 });
+      actionToast.postSaveError();
+    }
   }, [user, post, openAuthModal, isSaved, onPostUpdate, toggleSave]);
 
   const handleRelay = useCallback(async () => {
@@ -461,8 +463,15 @@ function PostDetailModalComponent({
       countChange,
     });
 
-    // Database update (notifications are DB triggers)
-    await toggleRelay(post.id, user.id, isRelayed);
+    // Database update (notifications are DB triggers); revert on failure
+    try {
+      await toggleRelay(post.id, user.id, isRelayed);
+    } catch {
+      setIsRelayed(isRelayed);
+      setRelayCount((prev) => Math.max(0, prev - countChange));
+      onPostUpdate?.({ postId: post.id, field: "relays", isActive: isRelayed, countChange: -countChange });
+      actionToast.postRelayError();
+    }
   }, [user, post, openAuthModal, isRelayed, onPostUpdate, toggleRelay]);
 
   const handleAddComment = useCallback(async () => {

@@ -3,6 +3,7 @@
 import "./takes.css";
 
 import { useState, useCallback, useRef, useEffect, useMemo, memo, type CSSProperties } from "react";
+import { actionToast } from "@/lib/utils/toast";
 import Link from "next/link";
 import TakePlayer from "./TakePlayer";
 import ReactionPicker from "@/components/feed/ReactionPicker";
@@ -177,6 +178,7 @@ function TakeCard({
       }, 2000);
     } catch (err) {
       console.error("Failed to report take:", err);
+      actionToast.reportError();
     }
     setReportSubmitting(false);
   };

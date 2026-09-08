@@ -19,6 +19,8 @@ import ActionMenu, { type ActionMenuItem } from "@/components/ui/ActionMenu";
 import ReactionPicker from "@/components/feed/ReactionPicker";
 import CommentCount from "@/components/feed/CommentCount";
 import { supabase } from "@/lib/supabase";
+import { submitReport } from "@/lib/reports";
+import { actionToast } from "@/lib/utils/toast";
 import {
   HeartIcon,
   CommentIcon,
@@ -132,18 +134,14 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
     });
 
     try {
-      if (newIsSaved) {
-        await supabase.from("take_saves").insert({
-          take_id: take.id,
-          user_id: user.id,
-        });
-      } else {
-        await supabase.from("take_saves").delete()
-          .eq("take_id", take.id)
-          .eq("user_id", user.id);
-      }
+      const { error } = newIsSaved
+        ? await supabase.from("take_saves").insert({ take_id: take.id, user_id: user.id })
+        : await supabase.from("take_saves").delete().eq("take_id", take.id).eq("user_id", user.id);
+      if (error) throw error;
     } catch {
       setIsSaved(!newIsSaved);
+      notifyTakeUpdate({ takeId: take.id, field: "saves", isActive: !newIsSaved, countChange: 0 });
+      actionToast.genericError(newIsSaved ? "save take" : "unsave take");
     }
   };
 
@@ -165,19 +163,15 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
     });
 
     try {
-      if (newIsRelayed) {
-        await supabase.from("take_relays").insert({
-          take_id: take.id,
-          user_id: user.id,
-        });
-      } else {
-        await supabase.from("take_relays").delete()
-          .eq("take_id", take.id)
-          .eq("user_id", user.id);
-      }
+      const { error } = newIsRelayed
+        ? await supabase.from("take_relays").insert({ take_id: take.id, user_id: user.id })
+        : await supabase.from("take_relays").delete().eq("take_id", take.id).eq("user_id", user.id);
+      if (error) throw error;
     } catch {
       setIsRelayedState(!newIsRelayed);
       setRelayCount(prev => prev - countChange);
+      notifyTakeUpdate({ takeId: take.id, field: "relays", isActive: !newIsRelayed, countChange: -countChange });
+      actionToast.genericError(newIsRelayed ? "relay take" : "remove relay");
     }
   };
 
@@ -192,6 +186,7 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
       }
     } catch (err) {
       console.error("Failed to delete take:", err);
+      actionToast.genericError("delete take");
       setDeleting(false);
     }
   };
@@ -201,27 +196,28 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
 
     setReportSubmitting(true);
     try {
-      const { error } = await supabase.from("reports").insert({
-        reported_post_id: take.id,
-        reporter_id: user.id,
-        reason: reason,
-        details: details || null,
-        type: "take",
-      });
+      const ok = await submitReport(
+        { type: "take", takeId: take.id, reportedUserId: take.author_id },
+        user.id,
+        reason,
+        details,
+      );
 
-      if (error) {
-        console.error("Error submitting report:", error);
+      if (!ok) {
+        actionToast.reportError();
         setReportSubmitting(false);
         return;
       }
 
       setReportSubmitted(true);
+      actionToast.reportSubmitted();
       setTimeout(() => {
         setShowReportModal(false);
         setReportSubmitted(false);
       }, 2000);
     } catch (err) {
       console.error("Failed to submit report:", err);
+      actionToast.reportError();
     }
     setReportSubmitting(false);
   };
@@ -236,6 +232,8 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
       if (onTakeDeleted) {
         onTakeDeleted(take.id);
       }
+    } else {
+      actionToast.blockError();
     }
     setBlockLoading(false);
   };

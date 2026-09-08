@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { submitReport } from "@/lib/reports";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useComments } from "@/lib/hooks/useComments";
 import { useToggleSave, useToggleRelay, useBlock } from "@/lib/hooks/useInteractions";
@@ -494,7 +495,12 @@ export default function PostPage() {
     const newIsSaved = !isSaved;
     setIsSaved(newIsSaved);
 
-    await toggleSave(post.id, user.id, !newIsSaved);
+    try {
+      await toggleSave(post.id, user.id, !newIsSaved);
+    } catch {
+      setIsSaved(!newIsSaved);
+      actionToast.postSaveError();
+    }
   };
 
   const handleRelay = async () => {
@@ -506,7 +512,13 @@ export default function PostPage() {
     setIsRelayed(newIsRelayed);
     setRelayCount(prev => newIsRelayed ? prev + 1 : Math.max(0, prev - 1));
 
-    await toggleRelay(post.id, user.id, !newIsRelayed);
+    try {
+      await toggleRelay(post.id, user.id, !newIsRelayed);
+    } catch {
+      setIsRelayed(!newIsRelayed);
+      setRelayCount(prev => newIsRelayed ? Math.max(0, prev - 1) : prev + 1);
+      actionToast.postRelayError();
+    }
   };
 
   const handleAddComment = async () => {
@@ -550,6 +562,7 @@ export default function PostPage() {
       router.push("/");
     } catch (err) {
       console.error("Failed to delete post:", err);
+      actionToast.postDeleteError();
       setDeleting(false);
     }
   };
@@ -565,39 +578,28 @@ export default function PostPage() {
 
     setReportSubmitting(true);
     try {
-      // Look up community_id from the post
-      const { data: postMeta } = await supabase
-        .from("posts")
-        .select("community_id")
-        .eq("id", post.id)
-        .single();
+      const ok = await submitReport(
+        { type: "post", postId: post.id, reportedUserId: post.author_id },
+        user.id,
+        reason,
+        details,
+      );
 
-      const reportData: Record<string, unknown> = {
-        reported_post_id: post.id,
-        reported_user_id: post.author_id,
-        reporter_id: user.id,
-        reason: details ? `${reason}: ${details}` : reason,
-        type: "post",
-      };
-      if (postMeta?.community_id) {
-        reportData.community_id = postMeta.community_id;
-      }
-
-      const { error } = await supabase.from("reports").insert(reportData);
-
-      if (error) {
-        console.error("Error submitting report:", error);
+      if (!ok) {
+        actionToast.reportError();
         setReportSubmitting(false);
         return;
       }
 
       setReportSubmitted(true);
+      actionToast.reportSubmitted();
       setTimeout(() => {
         setShowReportModal(false);
         setReportSubmitted(false);
       }, 2000);
     } catch (err) {
       console.error("Failed to submit report:", err);
+      actionToast.reportError();
     }
     setReportSubmitting(false);
   };
@@ -607,11 +609,16 @@ export default function PostPage() {
 
     setIsBlocking(true);
     try {
-      await blockUser(user.id, post.author_id);
+      const result = await blockUser(user.id, post.author_id);
+      if (!result.success) {
+        actionToast.blockError();
+        return;
+      }
       setShowBlockConfirm(false);
       router.push("/");
     } catch (err) {
       console.error("Failed to block user:", err);
+      actionToast.blockError();
     } finally {
       setIsBlocking(false);
     }

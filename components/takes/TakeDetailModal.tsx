@@ -20,6 +20,7 @@ import CommentComposer from "@/components/feed/CommentComposer";
 import { CommentSkeleton } from "@/components/ui/Skeleton";
 import PostTags from "@/components/feed/PostTags";
 import { supabase } from "@/lib/supabase";
+import { submitReport } from "@/lib/reports";
 import { CommentIcon, icons } from "@/components/ui/Icons";
 
 // Reactions no longer travel on this bus — every take surface reads
@@ -191,6 +192,7 @@ export default function TakeDetailModal({
       }
     } catch (err) {
       console.error("Failed to delete take:", err);
+      actionToast.genericError("delete take");
       setDeleting(false);
     }
   };
@@ -200,27 +202,28 @@ export default function TakeDetailModal({
 
     setReportSubmitting(true);
     try {
-      const { error } = await supabase.from("reports").insert({
-        take_id: take.id,
-        reporter_id: user.id,
-        reason: reason,
-        details: details || null,
-        type: "take",
-      });
+      const ok = await submitReport(
+        { type: "take", takeId: take.id, reportedUserId: take.author_id },
+        user.id,
+        reason,
+        details,
+      );
 
-      if (error) {
-        console.error("Error submitting report:", error);
+      if (!ok) {
+        actionToast.reportError();
         setReportSubmitting(false);
         return;
       }
 
       setReportSubmitted(true);
+      actionToast.reportSubmitted();
       setTimeout(() => {
         setShowReportModal(false);
         setReportSubmitted(false);
       }, 2000);
     } catch (err) {
       console.error("Failed to submit report:", err);
+      actionToast.reportError();
     }
     setReportSubmitting(false);
   };
@@ -263,26 +266,15 @@ export default function TakeDetailModal({
     setIsSaved(newIsSaved);
 
     try {
-      if (newIsSaved) {
-        await supabase.from("take_saves").insert({
-          take_id: take.id,
-          user_id: user.id,
-        });
-      } else {
-        await supabase.from("take_saves").delete()
-          .eq("take_id", take.id)
-          .eq("user_id", user.id);
-      }
+      const { error } = newIsSaved
+        ? await supabase.from("take_saves").insert({ take_id: take.id, user_id: user.id })
+        : await supabase.from("take_saves").delete().eq("take_id", take.id).eq("user_id", user.id);
+      if (error) throw error;
+      onTakeUpdate?.({ takeId: take.id, field: "saves", isActive: newIsSaved, countChange: 0 });
     } catch {
       setIsSaved(!newIsSaved);
+      actionToast.genericError(newIsSaved ? "save take" : "unsave take");
     }
-
-    onTakeUpdate?.({
-      takeId: take.id,
-      field: "saves",
-      isActive: newIsSaved,
-      countChange: 0,
-    });
   };
 
   const handleRelay = async () => {
@@ -295,27 +287,16 @@ export default function TakeDetailModal({
     setRelayCount(prev => Math.max(0, prev + countChange));
 
     try {
-      if (newIsRelayed) {
-        await supabase.from("take_relays").insert({
-          take_id: take.id,
-          user_id: user.id,
-        });
-      } else {
-        await supabase.from("take_relays").delete()
-          .eq("take_id", take.id)
-          .eq("user_id", user.id);
-      }
+      const { error } = newIsRelayed
+        ? await supabase.from("take_relays").insert({ take_id: take.id, user_id: user.id })
+        : await supabase.from("take_relays").delete().eq("take_id", take.id).eq("user_id", user.id);
+      if (error) throw error;
+      onTakeUpdate?.({ takeId: take.id, field: "relays", isActive: newIsRelayed, countChange });
     } catch {
       setIsRelayed(!newIsRelayed);
       setRelayCount(prev => prev - countChange);
+      actionToast.genericError(newIsRelayed ? "relay take" : "remove relay");
     }
-
-    onTakeUpdate?.({
-      takeId: take.id,
-      field: "relays",
-      isActive: newIsRelayed,
-      countChange,
-    });
   };
 
   const handleAddComment = async () => {
