@@ -9,6 +9,39 @@ import Avatar from "@/components/ui/Avatar";
 import { Spinner } from "@/components/ui/Loading";
 import Button from "@/components/ui/Button";
 
+/** Upload extension by MIME type; anything else is rejected before upload. */
+const IMAGE_EXTENSIONS: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/gif": "gif",
+};
+
+/** Object path when `url` is a public URL inside `bucket`, else null. */
+function storagePathInBucket(bucket: string, url: string): string | null {
+  const marker = `/storage/v1/object/public/${bucket}/`;
+  const idx = url.indexOf(marker);
+  if (idx === -1) return null;
+  const path = url.slice(idx + marker.length).split(/[?#]/)[0];
+  if (!path) return null;
+  try {
+    return decodeURIComponent(path);
+  } catch {
+    return path;
+  }
+}
+
+/** Best-effort delete of a previous avatar/cover; failures are ignored. */
+async function removeStorageObject(bucket: string, url: string): Promise<void> {
+  const path = storagePathInBucket(bucket, url);
+  if (!path) return;
+  try {
+    await supabase.storage.from(bucket).remove([path]);
+  } catch {
+    // Best effort: a stale object is harmless.
+  }
+}
+
 export default function EditProfilePage() {
   const { user, profile } = useAuth();
   const [saving, setSaving] = useState(false);
@@ -68,7 +101,6 @@ export default function EditProfilePage() {
   };
 
   const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
-  const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
   const handleImageUpload = async (
     file: File,
@@ -87,14 +119,16 @@ export default function EditProfilePage() {
         return;
       }
 
-      if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      const fileExt = IMAGE_EXTENSIONS[file.type];
+      if (!fileExt) {
         setError("Only JPEG, PNG, GIF, and WebP images are allowed");
         setUploading(false);
         return;
       }
-      const fileExt = file.name.split(".").pop();
       const fileName = `${user.id}-${Date.now()}.${fileExt}`;
       const bucketName = type === "avatar" ? "avatars" : "covers";
+      const urlKey = type === "avatar" ? "avatar_url" : "cover_url";
+      const previousUrl = form[urlKey];
 
       const { error: uploadError } = await supabase.storage
         .from(bucketName)
@@ -106,10 +140,13 @@ export default function EditProfilePage() {
         .from(bucketName)
         .getPublicUrl(fileName);
 
-      setForm((prev) => ({
-        ...prev,
-        [type === "avatar" ? "avatar_url" : "cover_url"]: publicUrl,
-      }));
+      setForm((prev) => ({ ...prev, [urlKey]: publicUrl }));
+
+      // An earlier upload from this session that was never saved is an orphan;
+      // the object the profile row still points at is removed on save instead.
+      if (previousUrl && previousUrl !== (profile?.[urlKey] || "")) {
+        await removeStorageObject(bucketName, previousUrl);
+      }
     } catch (err) {
       console.error("Upload error:", err);
       setError("Failed to upload image. Please try again.");
@@ -196,6 +233,14 @@ export default function EditProfilePage() {
         .eq("id", user.id);
 
       if (updateError) throw updateError;
+
+      // The row no longer references the old avatar/cover: drop the objects.
+      if (profile?.avatar_url && profile.avatar_url !== form.avatar_url) {
+        await removeStorageObject("avatars", profile.avatar_url);
+      }
+      if (profile?.cover_url && profile.cover_url !== form.cover_url) {
+        await removeStorageObject("covers", profile.cover_url);
+      }
 
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);

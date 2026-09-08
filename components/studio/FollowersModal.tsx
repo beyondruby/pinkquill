@@ -65,7 +65,7 @@ function UserCard({
         <img
           src={getOptimizedAvatarUrl(user.avatar_url) || DEFAULT_AVATAR}
           alt={user.display_name || user.username}
-          className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-md"
+          className="w-12 h-12 rounded-full object-cover border-2 border-surface shadow-md"
           loading="lazy"
         />
       </Link>

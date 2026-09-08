@@ -54,7 +54,6 @@ export default function SingleTakePage({ params }: PageProps) {
   const [error, setError] = useState<string | null>(null);
 
   // Interaction states
-  const [savesCount, setSavesCount] = useState(0);
   const [relaysCount, setRelaysCount] = useState(0);
   const [isSaved, setIsSaved] = useState(false);
   const [isRelayed, setIsRelayed] = useState(false);
@@ -262,14 +261,12 @@ export default function SingleTakePage({ params }: PageProps) {
 
     const newIsSaved = !isSaved;
     setIsSaved(newIsSaved);
-    setSavesCount((prev) => newIsSaved ? prev + 1 : Math.max(0, prev - 1));
 
     const { error } = newIsSaved
       ? await supabase.from("take_saves").insert({ take_id: take.id, user_id: user.id })
       : await supabase.from("take_saves").delete().eq("take_id", take.id).eq("user_id", user.id);
     if (error) {
       setIsSaved(!newIsSaved);
-      setSavesCount((prev) => newIsSaved ? Math.max(0, prev - 1) : prev + 1);
       actionToast.genericError(newIsSaved ? "save take" : "unsave take");
     }
   };

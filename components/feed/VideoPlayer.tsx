@@ -28,8 +28,6 @@ interface VideoPlayerProps {
   src: string;
   poster?: string | null;
   title?: string;
-  /** Pre-known length ("4:32") shown on the poster before metadata loads. */
-  durationLabel?: string;
   /** Start playing on mount (the feed card swaps its poster for the player on tap). */
   autoPlay?: boolean;
   /** Tallest the box may grow; portrait clips are letterboxed on an ambient blur. */
@@ -128,7 +126,6 @@ export function VideoPlayer({
   src,
   poster,
   title,
-  durationLabel,
   autoPlay = false,
   maxHeight = 560,
   className = "",
@@ -544,9 +541,9 @@ export function VideoPlayer({
         </button>
       )}
 
-      {!started && (durationLabel || total > 0) && (
+      {!started && total > 0 && (
         <span className="pqv-chip" aria-hidden="true">
-          {total > 0 ? formatTime(total) : durationLabel}
+          {formatTime(total)}
         </span>
       )}
 

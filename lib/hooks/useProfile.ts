@@ -398,11 +398,6 @@ export function useFollow() {
     return (data?.status as FollowStatus) || null;
   };
 
-  const checkIsFollowing = async (followerId: string, followingId: string): Promise<boolean> => {
-    const status = await checkFollowStatus(followerId, followingId);
-    return status === "accepted";
-  };
-
   const checkIsPrivate = async (userId: string): Promise<boolean> => {
     const { data } = await supabase.from("profiles").select("is_private").eq("id", userId).single();
     return data?.is_private || false;
@@ -414,73 +409,7 @@ export function useFollow() {
   const unfollow = (followerId: string, followingId: string): Promise<void> =>
     unfollowUserRecord(followerId, followingId);
 
-  const acceptRequest = async (ownerId: string, requesterId: string): Promise<void> => {
-    const { error } = await supabase
-      .from("follows")
-      .update({ status: "accepted" })
-      .eq("follower_id", requesterId)
-      .eq("following_id", ownerId)
-      .eq("status", "pending");
-
-    if (error) {
-      console.error("[useFollow] Failed to accept follow request:", error.message);
-      throw error;
-    }
-
-    // The follows trigger notifies the requester (follow_request_accepted).
-  };
-
-  const declineRequest = async (ownerId: string, requesterId: string): Promise<void> => {
-    const { error } = await supabase
-      .from("follows")
-      .delete()
-      .eq("follower_id", requesterId)
-      .eq("following_id", ownerId)
-      .eq("status", "pending");
-
-    if (error) {
-      console.error("[useFollow] Failed to decline follow request:", error.message);
-      throw error;
-    }
-  };
-
-  const getPendingRequests = async (userId: string) => {
-    const { data } = await supabase
-      .from("follows")
-      .select(
-        `
-        follower_id,
-        requested_at,
-        requester:profiles!follows_follower_id_fkey (
-          id, username, display_name, avatar_url, bio
-        )
-      `
-      )
-      .eq("following_id", userId)
-      .eq("status", "pending")
-      .order("requested_at", { ascending: false });
-    return data || [];
-  };
-
-  const toggle = async (followerId: string, followingId: string, isFollowing: boolean): Promise<void> => {
-    if (isFollowing) {
-      await unfollow(followerId, followingId);
-    } else {
-      await follow(followerId, followingId);
-    }
-  };
-
-  return {
-    checkFollowStatus,
-    checkIsFollowing,
-    checkIsPrivate,
-    follow,
-    unfollow,
-    acceptRequest,
-    declineRequest,
-    getPendingRequests,
-    toggle,
-  };
+  return { checkFollowStatus, checkIsPrivate, follow, unfollow };
 }
 
 // ============================================================================

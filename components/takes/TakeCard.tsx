@@ -95,19 +95,15 @@ function TakeCard({
 
   const volumeRef = useRef<HTMLDivElement>(null);
 
-  const handleDoubleTap = useCallback((e?: React.MouseEvent) => {
+  const handleDoubleTap = useCallback((e: React.MouseEvent) => {
     if (!reaction.mine) {
       void reaction.toggleDefault();
     }
-    if (e) {
-      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-      setHeartPosition({
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top,
-      });
-    } else {
-      setHeartPosition({ x: 50, y: 50 });
-    }
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setHeartPosition({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    });
     setShowHeart(true);
     setTimeout(() => setShowHeart(false), 800);
   }, [reaction]);
@@ -175,7 +171,7 @@ function TakeCard({
           isActive={isActive && showContent}
           isMuted={isMuted}
           volume={volume}
-          onDoubleTap={() => handleDoubleTap()}
+          onDoubleTap={handleDoubleTap}
           onToggleMute={onToggleMute}
           onPlayStart={startWatching}
           onPauseStop={stopWatching}

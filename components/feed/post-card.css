@@ -7,11 +7,9 @@
    ============================================================================ */
 
 /* ---- Shell ---------------------------------------------------------------- */
-.pq-feed-card {
-  border: 1px solid var(--color-border-light);
-  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.04);
-}
-.pq-feed-card .author-header { margin-bottom: 1.25rem; }
+/* The shell, author header and action row come from the shared `.post` rules
+   in app/globals.css (the feed take card uses them too). Only values that
+   differ from that base are written here (profile audit 2d, F-10). */
 .pq-feed-card .unified-post-title {
   font-family: var(--font-playfair-display), Georgia, serif;
   font-weight: 400;
@@ -37,19 +35,11 @@
 .pq-feed-card .continue-reading-link:hover { color: var(--color-pink-vivid); gap: 10px; }
 
 /* ---- Action row: icon + count, every glyph in the same 20px box ----------- */
-.pq-feed-card .actions {
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--color-border-light);
-}
 .pq-feed-card .actions-left,
 .pq-feed-card .actions-right { gap: 0.15rem; }
 .pq-feed-card .action-btn {
-  min-width: 40px;
   min-height: 40px;
-  padding: 8px 12px;
   gap: 7px;
-  border-radius: 20px;
   font-family: var(--font-ui);
 }
 .pq-feed-card .action-btn .pq-glyph {
@@ -234,7 +224,7 @@
 .pq-feed-card .carousel-dot.active { background: #fff; transform: scale(1.35); }
 
 /* ---- Photos on any other type: the grid ---------------------------------- */
-.pq-feed-card .unified-media-grid { gap: 6px; margin-top: 1rem; }
+.pq-feed-card .unified-media-grid { gap: 6px; }
 .pq-feed-card .unified-media-item { display: block; width: 100%; padding: 0; border: 0; cursor: pointer; }
 .pq-feed-card .pq-media-count-2 { grid-template-columns: 1.35fr 1fr; }
 .pq-feed-card .pq-media-count-2 .unified-media-item { aspect-ratio: auto; height: clamp(200px, 32vw, 360px); }
@@ -357,8 +347,7 @@
   aspect-ratio: 16 / 9;
 }
 .pq-post-video .video-container:has(.pqv) { aspect-ratio: auto; background: transparent; }
-.pq-post-video .video-thumbnail,
-.pq-post-video .video-element {
+.pq-post-video .video-thumbnail {
   display: block;
   width: 100%;
   height: 100%;
@@ -450,4 +439,114 @@
   .pq-feed-card:hover .unified-media-image { transform: none; }
   .pq-feed-card .sound-bar,
   .pq-feed-card .action-btn.relayed .pq-glyph { animation: none; }
+}
+
+/* ---- Home feed (classic view) --------------------------------------------- 
+   The card inside `.home-feed-modern` only. Moved verbatim from a styled-jsx
+   block in Feed.tsx (profile audit 2d, F-10); every other list (explore,
+   profile, community, tag, collections) keeps the shared base values. */
+.home-feed-modern .post {
+  border-radius: 22px;
+  border: 1px solid var(--color-border-light);
+  background: linear-gradient(
+    180deg,
+    var(--color-surface) 0%,
+    var(--color-surface) 72%,
+    color-mix(in oklab, var(--color-surface) 94%, var(--color-accent) 6%) 100%
+  );
+  box-shadow: 0 8px 22px rgba(15, 15, 15, 0.04);
+  margin-bottom: 1.3rem;
+  transition: box-shadow 0.22s ease, border-color 0.22s ease, transform 0.22s ease;
+}
+
+.home-feed-modern .post:hover {
+  border-color: color-mix(in oklab, var(--color-accent) 24%, transparent);
+  box-shadow: 0 16px 34px color-mix(in oklab, var(--color-accent) 14%, transparent);
+  transform: translateY(-1px);
+}
+
+.home-feed-modern .author-header {
+  margin-bottom: 1.05rem;
+}
+
+.home-feed-modern .author-avatar {
+  border-width: 1px;
+  border-color: var(--color-border-light);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+}
+
+.home-feed-modern .author-info {
+  min-width: 0;
+}
+
+.home-feed-modern .author-name-line {
+  row-gap: 2px;
+}
+
+.home-feed-modern .post-time,
+.home-feed-modern .post-type-label,
+.home-feed-modern .posted-by-label,
+.home-feed-modern .posted-by-author {
+  color: var(--color-muted);
+}
+
+.home-feed-modern .unified-post-title {
+  margin-bottom: 0.65rem;
+  letter-spacing: -0.01em;
+}
+
+.home-feed-modern .unified-media-grid {
+  border-radius: 16px;
+}
+
+.home-feed-modern .unified-media-item {
+  border-radius: 10px;
+}
+
+.home-feed-modern .actions {
+  margin-top: 1.05rem;
+  padding-top: 0.95rem;
+  border-top-color: var(--color-border-light);
+}
+
+.home-feed-modern .actions-left,
+.home-feed-modern .actions-right {
+  gap: 0.35rem;
+}
+
+.home-feed-modern .action-btn {
+  line-height: 1;
+}
+
+.home-feed-modern .post-menu-btn {
+  width: 34px;
+  height: 34px;
+  border: 1px solid transparent;
+}
+
+.home-feed-modern .post-menu-btn:hover {
+  border-color: var(--color-border-strong);
+}
+
+@media (max-width: 640px) {
+  .home-feed-modern .post {
+    border-radius: 18px;
+    padding: 1.2rem;
+    margin-bottom: 1rem;
+  }
+
+  .home-feed-modern .actions-left,
+  .home-feed-modern .actions-right {
+    gap: 0.25rem;
+  }
+
+  .home-feed-modern .action-btn {
+    padding: 8px 10px;
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .home-feed-modern .post:hover {
+    transform: none;
+  }
 }

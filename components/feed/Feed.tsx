@@ -25,7 +25,7 @@ function transformPostForCard(post: Post) {
 }
 
 // Per-view container styling. The Classic view keeps the original modern
-// post styling via the `home-feed-modern` class + injected <style jsx>. Other
+// post styling via the `home-feed-modern` class (rules in post-card.css). Other
 // views (Stream, Gallery) use plain max-width containers and own all visual
 // treatment via components/feed/StreamView.tsx and GalleryView.tsx.
 const VIEW_CONTAINER_CLASS: Record<FeedViewId, string> = {
@@ -45,114 +45,6 @@ function FeedFrame({
   return (
     <div className={containerClass}>
       {children}
-      <style jsx global>{`
-        .home-feed-modern .post {
-          border-radius: 22px;
-          border: 1px solid var(--color-border-light);
-          background: linear-gradient(
-            180deg,
-            var(--color-surface) 0%,
-            var(--color-surface) 72%,
-            color-mix(in oklab, var(--color-surface) 94%, var(--color-accent) 6%) 100%
-          );
-          box-shadow: 0 8px 22px rgba(15, 15, 15, 0.04);
-          margin-bottom: 1.3rem;
-          transition: box-shadow 0.22s ease, border-color 0.22s ease, transform 0.22s ease;
-        }
-
-        .home-feed-modern .post:hover {
-          border-color: color-mix(in oklab, var(--color-accent) 24%, transparent);
-          box-shadow: 0 16px 34px color-mix(in oklab, var(--color-accent) 14%, transparent);
-          transform: translateY(-1px);
-        }
-
-        .home-feed-modern .author-header {
-          margin-bottom: 1.05rem;
-        }
-
-        .home-feed-modern .author-avatar {
-          border-width: 1px;
-          border-color: var(--color-border-light);
-          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
-        }
-
-        .home-feed-modern .author-info {
-          min-width: 0;
-        }
-
-        .home-feed-modern .author-name-line {
-          row-gap: 2px;
-        }
-
-        .home-feed-modern .post-time,
-        .home-feed-modern .post-type-label,
-        .home-feed-modern .posted-by-label,
-        .home-feed-modern .posted-by-author {
-          color: var(--color-muted);
-        }
-
-        .home-feed-modern .unified-post-title {
-          margin-bottom: 0.65rem;
-          letter-spacing: -0.01em;
-        }
-
-        .home-feed-modern .unified-media-grid {
-          gap: 6px;
-          border-radius: 16px;
-        }
-
-        .home-feed-modern .unified-media-item {
-          border-radius: 10px;
-        }
-
-        .home-feed-modern .actions {
-          margin-top: 1.05rem;
-          padding-top: 0.95rem;
-          border-top-color: var(--color-border-light);
-        }
-
-        .home-feed-modern .actions-left,
-        .home-feed-modern .actions-right {
-          gap: 0.35rem;
-        }
-
-        .home-feed-modern .action-btn {
-          line-height: 1;
-        }
-
-        .home-feed-modern .post-menu-btn {
-          width: 34px;
-          height: 34px;
-          border: 1px solid transparent;
-        }
-
-        .home-feed-modern .post-menu-btn:hover {
-          border-color: var(--color-border-strong);
-        }
-
-        @media (max-width: 640px) {
-          .home-feed-modern .post {
-            border-radius: 18px;
-            padding: 1.2rem;
-            margin-bottom: 1rem;
-          }
-
-          .home-feed-modern .actions-left,
-          .home-feed-modern .actions-right {
-            gap: 0.25rem;
-          }
-
-          .home-feed-modern .action-btn {
-            padding: 8px 10px;
-          }
-        }
-
-        @media (hover: none) and (pointer: coarse) {
-          .home-feed-modern .post:hover {
-            transform: none;
-          }
-        }
-      `}</style>
     </div>
   );
 }

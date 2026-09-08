@@ -54,7 +54,6 @@ export function clearFeedSnapshots() {
 
 interface UseFeedOptions {
   pageSize?: number;
-  communityId?: string;
   enabled?: boolean;
 }
 
@@ -83,9 +82,9 @@ interface UseFeedReturn {
  * 6. Stable realtime channel names (no connection leaks)
  */
 export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedReturn {
-  const { pageSize = DEFAULT_PAGE_SIZE, communityId, enabled = true } = options;
+  const { pageSize = DEFAULT_PAGE_SIZE, enabled = true } = options;
 
-  const snapshotKey = `${userId ?? "guest"}:${communityId ?? ""}:${pageSize}`;
+  const snapshotKey = `${userId ?? "guest"}:${pageSize}`;
   const snapshot = feedSnapshots.get(snapshotKey);
   const snapshotFresh = !!snapshot && Date.now() - snapshot.savedAt < FEED_SNAPSHOT_TTL_MS && snapshot.posts.length > 0;
   const [posts, setPosts] = useState<Post[]>(() => (snapshotFresh ? snapshot!.posts : []));
@@ -221,9 +220,6 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
             .order("id", { ascending: false })
             .abortSignal(signal);
 
-          if (communityId) {
-            query = query.eq("community_id", communityId);
-          }
           if (olderCursor) {
             query = query.or(
               `created_at.lt."${olderCursor.created_at}",and(created_at.eq."${olderCursor.created_at}",id.lt."${olderCursor.id}")`,
@@ -304,7 +300,7 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
         }
       }
     },
-    [userId, pageSize, communityId]
+    [userId, pageSize]
   );
 
   // Load more posts

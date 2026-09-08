@@ -11,7 +11,7 @@ interface TakePlayerProps {
   isMuted: boolean;
   volume: number;
   onTap?: () => void;
-  onDoubleTap?: () => void;
+  onDoubleTap?: (e: React.MouseEvent<HTMLDivElement>) => void;
   onToggleMute?: () => void;
   onPlayStart?: () => void;
   onPauseStop?: () => void;
@@ -213,13 +213,13 @@ export default function TakePlayer({
   }, [isPlaying, isActive, isLoading, hasError]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  const handleTap = useCallback(() => {
+  const handleTap = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     const now = Date.now();
     const timeSinceLastTap = now - lastTapRef.current;
 
     if (timeSinceLastTap < 300 && timeSinceLastTap > 0) {
       clearTimeout(tapTimeoutRef.current);
-      onDoubleTap?.();
+      onDoubleTap?.(e);
     } else {
       tapTimeoutRef.current = setTimeout(() => {
         if (onTap) {

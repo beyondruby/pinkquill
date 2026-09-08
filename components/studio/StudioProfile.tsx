@@ -236,11 +236,6 @@ const icons = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
     </svg>
   ),
-  link: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-    </svg>
-  ),
   calendar: (
     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -303,19 +298,9 @@ const icons = {
       <path d="M7 3l2 5M11 3l2 5M15 3l2 5" />
     </svg>
   ),
-  quoteLeft: (
-    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-      <path d="M4.583 17.321C3.553 16.227 3 15 3 13.011c0-3.5 2.457-6.637 6.03-8.188l.893 1.378c-3.335 1.804-3.987 4.145-4.247 5.621.537-.278 1.24-.375 1.929-.311 1.804.167 3.226 1.648 3.226 3.489a3.5 3.5 0 01-3.5 3.5c-1.073 0-2.099-.49-2.748-1.179zm10 0C13.553 16.227 13 15 13 13.011c0-3.5 2.457-6.637 6.03-8.188l.893 1.378c-3.335 1.804-3.987 4.145-4.247 5.621.537-.278 1.24-.375 1.929-.311 1.804.167 3.226 1.648 3.226 3.489a3.5 3.5 0 01-3.5 3.5c-1.073 0-2.099-.49-2.748-1.179z"/>
-    </svg>
-  ),
   store: (
     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-    </svg>
-  ),
-  community: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
     </svg>
   ),
   collection: (
@@ -786,7 +771,6 @@ function StudioSubTabButton({
   label: string;
   active: boolean;
   onClick: () => void;
-  accentClass?: string;
 }) {
   return (
     <button
@@ -1206,7 +1190,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
             <img
               src={profile.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80"}
               alt={profile.display_name || profile.username}
-              className="studio-avatar w-24 h-24 md:w-40 md:h-40 rounded-full object-cover border-[4px] md:border-[5px] border-surface shadow-xl"
+              className="studio-avatar w-24 h-24 md:w-40 md:h-40 rounded-full object-cover border-4 border-surface shadow-xl"
             />
           </div>
 
@@ -1376,23 +1360,6 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 }
               </p>
 
-              {/* Minimal Stats - only show if counts are available */}
-              {(profile.followers_count !== null || profile.following_count !== null) && (
-              <div className="flex items-center justify-center gap-8 pt-6 border-t border-purple-primary/10">
-                {profile.followers_count !== null && (
-                <div className="text-center">
-                  <span className="font-display text-xl text-ink block">{formatCount(followersShown)}</span>
-                  <span className="font-ui text-xs text-muted">Followers</span>
-                </div>
-                )}
-                {profile.following_count !== null && (
-                <div className="text-center">
-                  <span className="font-display text-xl text-ink block">{formatCount(followingShown)}</span>
-                  <span className="font-ui text-xs text-muted">Following</span>
-                </div>
-                )}
-              </div>
-              )}
             </div>
           </div>
         )}

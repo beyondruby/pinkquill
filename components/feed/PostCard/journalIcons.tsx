@@ -14,14 +14,6 @@ export const weatherIcons: Record<string, ReactNode> = {
   'windy': <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M9.59 4.59A2 2 0 1 1 11 8H2M12.59 19.41A2 2 0 1 0 14 16H2M17.73 7.73A2.5 2.5 0 1 1 19.5 12H2"/></svg>,
 };
 
-// Time of day icons
-export const timeOfDayIcons: Record<string, ReactNode> = {
-  'morning': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 7a5 5 0 0 0 0 10M2 12h2M20 12h2M6.34 6.34l1.42 1.42M16.24 16.24l1.42 1.42M6.34 17.66l1.42-1.42M16.24 7.76l1.42-1.42"/></svg>,
-  'afternoon': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="5"/><path d="M12 1v3M12 20v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M1 12h3M20 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg>,
-  'evening': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v3M18.36 5.64l-2.12 2.12M21 12h-3M18.36 18.36l-2.12-2.12M12 21v-3M5.64 18.36l2.12-2.12M3 12h3M5.64 5.64l2.12 2.12"/></svg>,
-  'night': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>,
-};
-
 // Mood icons
 export const moodIcons: Record<string, ReactNode> = {
   'reflective': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/></svg>,

@@ -37,14 +37,10 @@ import { getPostTypeCollabPhrase } from "@/lib/feed-view/post-type-theme";
 import { PostType } from "@/lib/types";
 import { deleteOwnPost } from "@/lib/content-client";
 import { actionToast, showToast } from "@/lib/utils/toast";
-import {
-  MentionsDisplay,
-  HashtagsDisplay,
-  SoundBars as SoundBarsComponent,
-  TruncatedContent as TruncatedContentComponent,
-  BlockConfirmModal,
-  type MentionInfo,
-} from "./PostCard/index";
+import { MentionsDisplay } from "./PostCard/MentionsDisplay";
+import { HashtagsDisplay } from "./PostCard/HashtagsDisplay";
+import { SoundBars as SoundBarsComponent } from "./PostCard/SoundBars";
+import { TruncatedContent as TruncatedContentComponent } from "./PostCard/TruncatedContent";
 import {
   ShareIcon,
   TrashIcon,
@@ -894,13 +890,13 @@ function PostCardComponent({
   const form = getPostTypeTheme(post.type).form;
   const plainContent = post.content ? stripHtml(post.content) : "";
   const isStatement =
-    form === "text" && !post.title && !hasMedia && !post.image && !audioMedia && !post.spotify_track &&
+    form === "text" && !post.title && !hasMedia && !audioMedia && !post.spotify_track &&
     plainContent.length > 0 && plainContent.length <= 180;
 
   const renderPost = () => {
     // Audio — banner on the left, note on the right
     if (post.type === "audio") {
-      const cover = audioCover || post.image || null;
+      const cover = audioCover;
       return (
         <article className={`post type-audio pq-feed-card pq-post-audio ${cover ? "has-cover" : ""}`} onClick={handleOpenModal}>
           <div className="audio-visual" aria-hidden="true">
@@ -910,7 +906,7 @@ function PostCardComponent({
           <div className="audio-content">
             <CardAuthorHeader {...headerProps} small />
             <CardContentSection {...contentProps}>
-              <div className="audio-kind">{isVoicePost ? "Voice note" : "Sound"}{post.audioDuration ? ` · ${post.audioDuration}` : ""}</div>
+              <div className="audio-kind">{isVoicePost ? "Voice note" : "Sound"}</div>
               <h3 className="audio-author">{post.title || "Untitled recording"}</h3>
               {post.content && (
                 <TruncatedContent content={post.content} maxChars={140} onReadMore={handleOpenModal} className="audio-note" />
@@ -930,14 +926,14 @@ function PostCardComponent({
     // Video — Pinkquill's own player (poster, play disc, gradient scrubber);
     // the clip is not fetched until the disc is tapped.
     if (post.type === "video") {
-      const poster = videoMedia?.thumbnail_url || post.image || null;
+      const poster = videoMedia?.thumbnail_url || null;
       return (
         <article className="post type-video pq-feed-card pq-post-video" onClick={handleOpenModal}>
           <CardAuthorHeader {...headerProps} />
           <CardContentSection {...contentProps}>
             <div className="video-container" onClick={(e) => e.stopPropagation()}>
               {videoMedia && showContent ? (
-                <VideoPlayer src={videoMedia.media_url} poster={poster} title={post.title} durationLabel={post.videoDuration} />
+                <VideoPlayer src={videoMedia.media_url} poster={poster} title={post.title} />
               ) : (
                 <>
                   {poster ? (
@@ -957,7 +953,6 @@ function PostCardComponent({
                   <button type="button" className="video-play-btn" aria-label="Open post" onClick={handleOpenModal}>
                     <PlayGlyph size={24} />
                   </button>
-                  {post.videoDuration && <span className="video-duration">{post.videoDuration}</span>}
                 </>
               )}
             </div>
@@ -990,12 +985,6 @@ function PostCardComponent({
     const mediaBlock = isVisual ? (
       hasMedia && showContent ? (
         <MediaCarousel items={visualMedia} authorName={post.author.name} onOpen={handleOpenModal} />
-      ) : !hasMedia && post.image && showContent ? (
-        <MediaCarousel
-          items={[{ id: post.id, media_url: post.image, media_type: "image", caption: null, position: 0 }]}
-          authorName={post.author.name}
-          onOpen={handleOpenModal}
-        />
       ) : null
     ) : (
       <>
@@ -1031,13 +1020,6 @@ function PostCardComponent({
                 {idx === 3 && visualMedia.length > 4 && <div className="unified-media-more">+{visualMedia.length - 4}</div>}
               </button>
             ))}
-          </div>
-        )}
-        {!hasMedia && post.image && showContent && (
-          <div className="unified-media-grid single-legacy" onClick={(e) => e.stopPropagation()}>
-            <div className="unified-media-item single">
-              <Image src={post.image} alt={post.title || ""} width={400} height={400} className="unified-media-image" sizes="(max-width: 640px) 90vw, 600px" quality={75} loading="lazy" />
-            </div>
           </div>
         )}
       </>

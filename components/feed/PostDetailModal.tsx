@@ -10,7 +10,6 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import Modal from "@/components/ui/Modal";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useAuthModal } from "@/components/providers/AuthModalProvider";
 import { removeSelfAsCollaborator } from "@/lib/hooks.legacy";
 import { useComments } from "@/lib/hooks/useComments";
 import { useToggleSave, useToggleRelay, useBlock } from "@/lib/hooks/useInteractions";
@@ -107,7 +106,6 @@ function PostDetailModalComponent({
 }: PostDetailModalProps) {
   const router = useRouter();
   const { user, profile } = useAuth();
-  const { openModal: openAuthModal } = useAuthModal();
   const [showComments, setShowComments] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [isRelayed, setIsRelayed] = useState(false);
@@ -350,10 +348,7 @@ function PostDetailModalComponent({
   }, [post, reaction]);
 
   const handleSave = useCallback(async () => {
-    if (!user || !post) {
-      openAuthModal();
-      return;
-    }
+    if (!user || !post) return;
 
     const newIsSaved = !isSaved;
 
@@ -376,13 +371,10 @@ function PostDetailModalComponent({
       onPostUpdate?.({ postId: post.id, field: "saves", isActive: isSaved, countChange: 0 });
       actionToast.postSaveError();
     }
-  }, [user, post, openAuthModal, isSaved, onPostUpdate, toggleSave]);
+  }, [user, post, isSaved, onPostUpdate, toggleSave]);
 
   const handleRelay = useCallback(async () => {
-    if (!user || !post) {
-      openAuthModal();
-      return;
-    }
+    if (!user || !post) return;
     // Can't relay your own posts
     if (user.id === post.authorId) return;
 
@@ -410,13 +402,10 @@ function PostDetailModalComponent({
       onPostUpdate?.({ postId: post.id, field: "relays", isActive: isRelayed, countChange: -countChange });
       actionToast.postRelayError();
     }
-  }, [user, post, openAuthModal, isRelayed, onPostUpdate, toggleRelay]);
+  }, [user, post, isRelayed, onPostUpdate, toggleRelay]);
 
   const handleAddComment = useCallback(async () => {
-    if (!user || !post) {
-      openAuthModal();
-      return;
-    }
+    if (!user || !post) return;
     const text = commentText.trim();
     if (!text || submitting) return;
 
@@ -429,23 +418,17 @@ function PostDetailModalComponent({
       actionToast.genericError("post comment");
     }
     setSubmitting(false);
-  }, [user, post, openAuthModal, commentText, submitting, addComment]);
+  }, [user, post, commentText, submitting, addComment]);
 
   const handleCommentLike = useCallback((commentId: string) => {
-    if (!user) {
-      openAuthModal();
-      return;
-    }
+    if (!user) return;
     void toggleLike(commentId);
-  }, [user, openAuthModal, toggleLike]);
+  }, [user, toggleLike]);
 
   const handleCommentReply = useCallback(async (parentId: string, content: string, replyToUserId: string | null) => {
-    if (!user) {
-      openAuthModal();
-      return { success: false };
-    }
+    if (!user) return { success: false };
     return await addComment(content, { parentId, replyToUserId });
-  }, [user, openAuthModal, addComment]);
+  }, [user, addComment]);
 
   const handleCommentDelete = useCallback((commentId: string) => {
     deleteComment(commentId);
@@ -868,19 +851,6 @@ function PostDetailModalComponent({
                   )}
                 </div>
               )}
-
-            {/* Legacy single image support */}
-            {post.image && !hasMedia && (
-              <Image
-                src={post.image}
-                alt={post.title || "Post image"}
-                width={800}
-                height={600}
-                className="w-full rounded-xl mt-6 shadow-lg cursor-pointer hover:scale-[1.02] transition-transform"
-                sizes="(max-width: 640px) 95vw, (max-width: 1024px) 600px, 700px"
-                quality={80}
-              />
-            )}
 
             {/* Content Warning Overlay */}
             {post.contentWarning && !showContent && (
