@@ -233,10 +233,12 @@ export function useComments(kind: EngagementKind, id: string, options: UseCommen
   }, [fetchComments, hasMore, loading, loadingMore]);
 
   // ---- replies -------------------------------------------------------------
+  // Reads the list through commentsRef (declared above) so this callback keeps
+  // its identity across optimistic inserts (every row re-rendered otherwise, V-55).
   const fetchReplies = useCallback(
     async (commentId: string, opts: { more?: boolean } = {}): Promise<Comment[]> => {
       try {
-        const parent = comments.find((c) => c.id === commentId);
+        const parent = commentsRef.current.find((c) => c.id === commentId);
         const offset = opts.more ? (parent?.replies?.filter((r) => !r.pending).length ?? 0) : 0;
         const { data, error } = await supabase
           .from(cfg.table)
@@ -265,7 +267,7 @@ export function useComments(kind: EngagementKind, id: string, options: UseCommen
         return [];
       }
     },
-    [kind, cfg.table, selectReply, fetchUserLikes, comments]
+    [kind, cfg.table, selectReply, fetchUserLikes]
   );
 
   // ---- deep link -----------------------------------------------------------

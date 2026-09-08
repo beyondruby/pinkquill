@@ -5,7 +5,7 @@ import { showToast, actionToast } from "@/lib/utils/toast";
 
 import "./studio.css";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import { toModalPost } from "@/lib/posts/toPostProps";
 import { formatCount } from "@/lib/utils/format";
@@ -711,6 +711,20 @@ function CollectionCard({
 }
 
 
+// Plain-text excerpts, remembered per post: stripping HTML for every tile on
+// every render was the profile's biggest render cost (P-28).
+const excerptCache = new Map<string, string>();
+function excerptOf(id: string, content: string | null | undefined, length: number): string {
+  if (!content) return "";
+  const key = `${id}:${length}:${content.length}`;
+  const hit = excerptCache.get(key);
+  if (hit !== undefined) return hit;
+  const value = stripHtml(content).substring(0, length);
+  if (excerptCache.size > 2000) excerptCache.clear();
+  excerptCache.set(key, value);
+  return value;
+}
+
 // The image a tile can show: the first image item, not whatever is at
 // position 0 — an audio- or video-first post used to render a broken <img> (P-22).
 function tileImage(media: { media_type: string; media_url: string; position?: number }[] | null | undefined): string | null {
@@ -936,6 +950,50 @@ export default function StudioProfile({ username }: StudioProfileProps) {
   // Post view modes
   type PostViewMode = "all" | "blog" | "gallery" | "poems" | "journals" | "communities";
   const [postViewMode, setPostViewMode] = useState<PostViewMode>("all");
+
+
+  // Derived post lists are memoised so unrelated state (a modal, a report
+  // textarea) no longer rebuilds and re-sorts every tile on each render (P-28).
+  const collaboratedPostIdSet = useMemo(() => new Set(collaboratedPosts.map(p => p.id)), [collaboratedPosts]);
+  const allPosts = useMemo(() => {
+    const isGone = (p: { id: string; author_id: string }) => deletedPostIds.has(p.id) || blockedAuthorIds.has(p.author_id);
+    return [
+      ...posts.filter(p => !isGone(p)).map(p => ({ ...p, isCollaboration: false })),
+      ...collaboratedPosts
+        .filter(p => !posts.some(post => post.id === p.id)) // Avoid duplicates
+        .filter(p => !isGone(p))
+        .map(p => ({ ...p, isCollaboration: true })),
+    ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }, [posts, collaboratedPosts, deletedPostIds, blockedAuthorIds]);
+  const filteredPosts = useMemo(() => {
+    // Community posts are ONLY shown in the communities view
+    let list: typeof allPosts;
+    switch (postViewMode) {
+      case "communities":
+        list = allPosts.filter(p => p.community_id);
+        break;
+      case "gallery":
+        list = allPosts.filter(p => !!tileImage(p.media) && !p.community_id);
+        break;
+      case "poems":
+        list = allPosts.filter(p => p.type === "poem" && !p.community_id);
+        break;
+      case "journals":
+        list = allPosts.filter(p => p.type === "journal" && !p.community_id);
+        break;
+      case "blog":
+      case "all":
+      default:
+        list = allPosts.filter(p => !p.community_id);
+    }
+    // Pinned posts first (only in the "all" view)
+    if (postViewMode !== "all" || pinnedPostIds.length === 0) return list;
+    const pinned = list
+      .filter(p => pinnedPostIds.includes(p.id))
+      .sort((a, b) => pinnedPostIds.indexOf(a.id) - pinnedPostIds.indexOf(b.id));
+    const unpinned = list.filter(p => !pinnedPostIds.includes(p.id));
+    return [...pinned, ...unpinned];
+  }, [allPosts, postViewMode, pinnedPostIds]);
 
   // Infinite scroll for the posts tab (same sentinel pattern as the feed, P-10).
   const [postsSentinel, setPostsSentinel] = useState<HTMLDivElement | null>(null);
@@ -1612,56 +1670,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
             </div>
 
             {(() => {
-              // Merge regular posts with collaborated posts
-              const collaboratedPostIds = new Set(collaboratedPosts.map(p => p.id));
-              const isGone = (p: { id: string; author_id: string }) => deletedPostIds.has(p.id) || blockedAuthorIds.has(p.author_id);
-              const allPosts = [
-                ...posts.filter(p => !isGone(p)).map(p => ({ ...p, isCollaboration: false })),
-                ...collaboratedPosts
-                  .filter(p => !posts.some(post => post.id === p.id)) // Avoid duplicates
-                  .filter(p => !isGone(p))
-                  .map(p => ({ ...p, isCollaboration: true }))
-              ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-
-              // Filter posts based on view mode
-              // Community posts are ONLY shown in the communities view
-              const getFilteredPosts = () => {
-                switch (postViewMode) {
-                  case "communities":
-                    // Only community posts
-                    return allPosts.filter(p => p.community_id);
-                  case "gallery":
-                    // Only posts with media, exclude community posts
-                    return allPosts.filter(p => !!tileImage(p.media) && !p.community_id);
-                  case "poems":
-                    // Only poems, exclude community posts
-                    return allPosts.filter(p => p.type === "poem" && !p.community_id);
-                  case "journals":
-                    // Only journals, exclude community posts
-                    return allPosts.filter(p => p.type === "journal" && !p.community_id);
-                  case "blog":
-                  case "all":
-                  default:
-                    // All posts except community posts
-                    return allPosts.filter(p => !p.community_id);
-                }
-              };
-
-              // Sort posts with pinned posts at the top (only for "all" view)
-              const sortWithPinnedPosts = (postsToSort: typeof allPosts) => {
-                if (postViewMode !== "all" || pinnedPostIds.length === 0) {
-                  return postsToSort;
-                }
-
-                const pinned = postsToSort
-                  .filter(p => pinnedPostIds.includes(p.id))
-                  .sort((a, b) => pinnedPostIds.indexOf(a.id) - pinnedPostIds.indexOf(b.id));
-                const unpinned = postsToSort.filter(p => !pinnedPostIds.includes(p.id));
-
-                return [...pinned, ...unpinned];
-              };
-
-              const filteredPosts = sortWithPinnedPosts(getFilteredPosts());
+              const collaboratedPostIds = collaboratedPostIdSet;
 
               // Empty state — or, while later pages may still hold matches for
               // this view, keep paging before declaring it empty (P-10).
@@ -1760,7 +1769,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                       const hasMedia = !!tileSrc;
                       const hasMultipleImages = work.media && work.media.length > 1;
                       const plainContent = work.content
-                        ? stripHtml(work.content).substring(0, 100)
+                        ? excerptOf(work.id, work.content, 100)
                         : '';
                       const formattedDate = shortDate(work.created_at);
 
@@ -2001,7 +2010,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                       const tileSrc = tileImage(work.media);
                       const hasMedia = !!tileSrc;
                       const plainContent = work.content
-                        ? stripHtml(work.content).substring(0, 300)
+                        ? excerptOf(work.id, work.content, 300)
                         : '';
                       const formattedDate = fullDate(work.created_at);
 
@@ -2143,7 +2152,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                   <div className="max-w-2xl mx-auto">
                     {filteredPosts.map((work, idx) => {
                       const plainContent = work.content
-                        ? stripHtml(work.content).substring(0, 240)
+                        ? excerptOf(work.id, work.content, 240)
                         : '';
                       const formattedDate = formatDate(work.created_at);
 
@@ -2219,7 +2228,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                             const tileSrc = tileImage(work.media);
                       const hasMedia = !!tileSrc;
                             const plainContent = work.content
-                              ? stripHtml(work.content).substring(0, 120)
+                              ? excerptOf(work.id, work.content, 120)
                               : '';
 
                             // Get time from created_at
@@ -2268,7 +2277,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                       const tileSrc = tileImage(work.media);
                       const hasMedia = !!tileSrc;
                       const plainContent = work.content
-                        ? stripHtml(work.content).substring(0, 120)
+                        ? excerptOf(work.id, work.content, 120)
                         : '';
                       const community = work.community;
 
@@ -2436,7 +2445,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                       const tileSrc = tileImage(relay.media);
                       const hasMedia = !!tileSrc;
                       const plainContent = relay.content
-                        ? stripHtml(relay.content).substring(0, 200)
+                        ? excerptOf(relay.id, relay.content, 200)
                         : '';
 
                       const typeLabels: Record<string, string> = {

@@ -373,6 +373,28 @@ export function useTrackPostView(postId: string | undefined, source: string = "f
  * Hook that combines view tracking with IntersectionObserver
  * Auto-tracks when element enters/exits viewport
  */
+// One IntersectionObserver for every tracked card instead of one per card
+// (F-27). Callbacks are looked up per element.
+const visibilityCallbacks = new Map<Element, (visible: boolean) => void>();
+let sharedVisibilityObserver: IntersectionObserver | null = null;
+function observeVisibility(element: Element, onChange: (visible: boolean) => void): () => void {
+  if (typeof IntersectionObserver === "undefined") return () => {};
+  if (!sharedVisibilityObserver) {
+    sharedVisibilityObserver = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) visibilityCallbacks.get(entry.target)?.(entry.isIntersecting);
+      },
+      { threshold: 0.5 }, // 50% visible
+    );
+  }
+  visibilityCallbacks.set(element, onChange);
+  sharedVisibilityObserver.observe(element);
+  return () => {
+    visibilityCallbacks.delete(element);
+    sharedVisibilityObserver?.unobserve(element);
+  };
+}
+
 export function usePostViewTracker(postId: string | undefined, source: string = "feed") {
   const { startTracking, stopTracking } = useTrackPostView(postId, source);
   const elementRef = useRef<HTMLDivElement>(null);
@@ -382,25 +404,18 @@ export function usePostViewTracker(postId: string | undefined, source: string = 
     const element = elementRef.current;
     if (!element || !postId) return;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting && !isVisible.current) {
-            isVisible.current = true;
-            startTracking(element);
-          } else if (!entry.isIntersecting && isVisible.current) {
-            isVisible.current = false;
-            stopTracking();
-          }
-        });
-      },
-      { threshold: 0.5 } // 50% visible
-    );
-
-    observer.observe(element);
+    const unobserve = observeVisibility(element, (visible) => {
+      if (visible && !isVisible.current) {
+        isVisible.current = true;
+        startTracking(element);
+      } else if (!visible && isVisible.current) {
+        isVisible.current = false;
+        stopTracking();
+      }
+    });
 
     return () => {
-      observer.disconnect();
+      unobserve();
       if (isVisible.current) {
         stopTracking();
       }

@@ -56,7 +56,7 @@ import {
 const TruncatedContent = TruncatedContentComponent;
 
 // Types imported from ./PostCard/types
-import type { PostProps } from "./PostCard/types";
+import type { PostProps, CollaboratorInfo } from "./PostCard/types";
 import { FormBody, JournalStrip } from "./PostCard/FormBody";
 import { MediaCarousel } from "./PostCard/MediaCarousel";
 import { VideoPlayer } from "./VideoPlayer";
@@ -66,6 +66,251 @@ import { getPostTypeTheme } from "@/lib/feed-view/post-type-theme";
 
 // Use imported modular components
 const SoundBars = SoundBarsComponent;
+
+// ---------------------------------------------------------------------------
+// Card header and content wrapper live at module level. They used to be
+// declared inside the card's render function, which gives React a brand-new
+// component type every render: the carousel, video and audio players under
+// them remounted on every state change (index reset, playback restart,
+// AudioContext torn down) — finding F-8.
+// ---------------------------------------------------------------------------
+interface CardAuthorHeaderProps {
+  post: PostProps;
+  hasCommunity: boolean;
+  hasCollaborators: boolean;
+  acceptedCollaborators: CollaboratorInfo[];
+  timeWords: string;
+  menu: React.ReactNode;
+  small?: boolean;
+  centered?: boolean;
+}
+
+function CardAuthorHeader({ post, hasCommunity, hasCollaborators, acceptedCollaborators, timeWords, menu, small = false, centered = false }: CardAuthorHeaderProps) {
+  // Reddit-style: Community posts show community first, author as secondary
+  if (hasCommunity) {
+    return (
+      <div className="author-header" style={centered ? { justifyContent: 'center' } : undefined}>
+        {/* Community Avatar */}
+        <Link
+          href={`/community/${post.community!.slug}`}
+          onClick={(e) => e.stopPropagation()}
+          className="flex-shrink-0"
+        >
+          {post.community!.avatar_url ? (
+            <Image
+              src={post.community!.avatar_url}
+              alt={post.community!.name}
+              width={70}
+              height={70}
+              className="w-10 h-10 md:w-11 md:h-11 rounded-full object-cover border border-border-light hover:border-accent/30 transition-colors"
+              sizes="44px"
+              quality={80}
+            />
+          ) : (
+            <div className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center border border-border-light">
+              <span className="font-ui text-sm font-semibold text-on-accent">
+                {post.community!.name.charAt(0).toUpperCase()}
+              </span>
+            </div>
+          )}
+        </Link>
+
+        <div className="author-info" style={centered ? { textAlign: 'left' } : undefined}>
+          {/* Primary line: Community name + Posted by author */}
+          <div className="author-name-line">
+            <Link
+              href={`/community/${post.community!.slug}`}
+              onClick={(e) => e.stopPropagation()}
+              className="author-name font-semibold hover:text-accent transition-colors"
+            >
+              {post.community!.name}
+            </Link>
+            <span className="post-time-separator">·</span>
+            <span className="posted-by-label">Posted by</span>
+            <Link
+              href={`/studio/${post.author.handle.replace('@', '')}`}
+              onClick={(e) => e.stopPropagation()}
+              className="posted-by-author"
+            >
+              @{post.author.handle.replace('@', '')}
+            </Link>
+            {hasCollaborators && (
+              <>
+                <span className="collab-separator">&</span>
+                {acceptedCollaborators.length === 1 ? (
+                  <Link
+                    href={`/studio/${acceptedCollaborators[0].user.username}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="posted-by-author"
+                  >
+                    @{acceptedCollaborators[0].user.username}
+                  </Link>
+                ) : (
+                  <span className="collab-count">{acceptedCollaborators.length} others</span>
+                )}
+              </>
+            )}
+            {post.flair && (
+              <FlairBadge flair={post.flair} size="sm" />
+            )}
+          </div>
+
+          {/* Secondary line: what was posted, then when */}
+          <div className="post-meta-line">
+            <span className="post-type-label">
+              <PostTypeChip type={post.type} variant="phrase" size="md" className="" />
+            </span>
+            <span className="post-time-separator">·</span>
+            <span className="post-time">{timeWords}</span>
+          </div>
+        </div>
+        {menu}
+      </div>
+    );
+  }
+
+  // Standard author-first layout for non-community posts
+  return (
+    <div className="author-header" style={centered ? { justifyContent: 'center' } : undefined}>
+      {/* Avatar Stack for Collaborators */}
+      {hasCollaborators ? (
+        <div className="collab-avatars group" onClick={(e) => e.stopPropagation()}>
+          {/* Author Avatar */}
+          <Link href={`/studio/${post.author.handle.replace('@', '')}`}>
+            <div className="collab-avatar first" style={small ? { width: '36px', height: '36px' } : undefined}>
+              <Image
+                src={post.author.avatar}
+                alt={post.author.name}
+                fill
+                className="object-cover rounded-full"
+                sizes="44px"
+                quality={80}
+              />
+            </div>
+          </Link>
+          {/* Collaborator Avatars */}
+          {acceptedCollaborators.slice(0, 3).map((collab, index) => (
+            <Link
+              key={collab.user.id}
+              href={`/studio/${collab.user.username}`}
+              className="collab-avatar-link"
+              style={{ zIndex: 10 - index }}
+            >
+              {collab.user.avatar_url ? (
+                <div className="collab-avatar" style={small ? { width: '36px', height: '36px' } : undefined}>
+                  <Image
+                    src={collab.user.avatar_url}
+                    alt={collab.user.display_name || collab.user.username}
+                    fill
+                    className="object-cover rounded-full"
+                    sizes="44px"
+                    quality={80}
+                  />
+                </div>
+              ) : (
+                <div
+                  className="collab-avatar collab-avatar-placeholder"
+                  style={small ? { width: '36px', height: '36px' } : undefined}
+                >
+                  {(collab.user.display_name || collab.user.username)[0].toUpperCase()}
+                </div>
+              )}
+            </Link>
+          ))}
+          {acceptedCollaborators.length > 3 && (
+            <div className="collab-avatar collab-avatar-more" style={small ? { width: '36px', height: '36px' } : undefined}>
+              +{acceptedCollaborators.length - 3}
+            </div>
+          )}
+        </div>
+      ) : (
+        <Link href={`/studio/${post.author.handle.replace('@', '')}`} onClick={(e) => e.stopPropagation()}>
+          <div className="author-avatar" style={small ? { width: '36px', height: '36px' } : undefined}>
+            <Image
+              src={post.author.avatar}
+              alt={post.author.name}
+              fill
+              className="object-cover"
+              sizes="48px"
+              quality={80}
+            />
+          </div>
+        </Link>
+      )}
+      <div className="author-info" style={centered ? { textAlign: 'left' } : undefined}>
+        <div className="author-name-line">
+          {hasCollaborators ? (
+            <>
+              <Link href={`/studio/${post.author.handle.replace('@', '')}`} onClick={(e) => e.stopPropagation()} className="author-name">
+                {post.author.name}
+              </Link>
+              <span className="collab-separator">&</span>
+              {acceptedCollaborators.length === 1 ? (
+                <Link href={`/studio/${acceptedCollaborators[0].user.username}`} onClick={(e) => e.stopPropagation()} className="author-name">
+                  {acceptedCollaborators[0].user.display_name || acceptedCollaborators[0].user.username}
+                </Link>
+              ) : (
+                <span className="collab-count">{acceptedCollaborators.length} others</span>
+              )}
+              <span className="post-type-label">{getPostTypeCollabPhrase(post.type)}</span>
+            </>
+          ) : (
+            <>
+              <Link href={`/studio/${post.author.handle.replace('@', '')}`} onClick={(e) => e.stopPropagation()} className="author-name">
+                {post.author.name}
+              </Link>
+              <span className="post-type-label">
+                <PostTypeChip type={post.type} variant="phrase" size="md" className="" />
+              </span>
+            </>
+          )}
+        </div>
+        <span className="post-time">{timeWords}</span>
+      </div>
+      {menu}
+    </div>
+  );
+}
+
+interface CardContentSectionProps {
+  children: React.ReactNode;
+  warning?: string;
+  hidden: boolean;
+  onShow: () => void;
+}
+
+function CardContentSection({ children, warning, hidden, onShow }: CardContentSectionProps) {
+  const hasWarning = !!warning && hidden;
+
+  if (!hasWarning) {
+    return <>{children}</>;
+  }
+
+  return (
+    <div className="relative min-h-[80px]">
+      <div className="blur-md select-none pointer-events-none opacity-60">
+        {children}
+      </div>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 mb-2">
+          <svg className="w-3.5 h-3.5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <span className="font-ui text-xs font-medium text-amber-700">{warning}</span>
+        </div>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onShow();
+          }}
+          className="px-4 py-1.5 rounded-full font-ui text-xs font-medium text-ink/70 hover:text-ink bg-skeleton hover:bg-black/10 transition-colors"
+        >
+          Show Content
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function PostCardComponent({
   post,
@@ -105,6 +350,7 @@ function PostCardComponent({
   const [isRelayed, setIsRelayed] = useState(post.isRelayed || false);
   const [relayCount, setRelayCount] = useState(post.stats?.relays ?? 0);
   const [showContent, setShowContent] = useState(!post.contentWarning);
+  const showContentNow = useCallback(() => setShowContent(true), []);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showSendToDMModal, setShowSendToDMModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -629,227 +875,10 @@ function PostCardComponent({
   const timeWords = post.createdAt ? getTimeAgoWords(post.createdAt) : post.timeAgo;
 
   // Author Header component - Reddit-style for community posts
-  const AuthorHeader = ({ small = false, centered = false }: { small?: boolean; centered?: boolean }) => {
-    // Reddit-style: Community posts show community first, author as secondary
-    if (hasCommunity) {
-      return (
-        <div className="author-header" style={centered ? { justifyContent: 'center' } : undefined}>
-          {/* Community Avatar */}
-          <Link
-            href={`/community/${post.community!.slug}`}
-            onClick={(e) => e.stopPropagation()}
-            className="flex-shrink-0"
-          >
-            {post.community!.avatar_url ? (
-              <Image
-                src={post.community!.avatar_url}
-                alt={post.community!.name}
-                width={70}
-                height={70}
-                className="w-10 h-10 md:w-11 md:h-11 rounded-full object-cover border border-border-light hover:border-accent/30 transition-colors"
-                sizes="44px"
-                quality={80}
-              />
-            ) : (
-              <div className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center border border-border-light">
-                <span className="font-ui text-sm font-semibold text-on-accent">
-                  {post.community!.name.charAt(0).toUpperCase()}
-                </span>
-              </div>
-            )}
-          </Link>
-
-          <div className="author-info" style={centered ? { textAlign: 'left' } : undefined}>
-            {/* Primary line: Community name + Posted by author */}
-            <div className="author-name-line">
-              <Link
-                href={`/community/${post.community!.slug}`}
-                onClick={(e) => e.stopPropagation()}
-                className="author-name font-semibold hover:text-accent transition-colors"
-              >
-                {post.community!.name}
-              </Link>
-              <span className="post-time-separator">·</span>
-              <span className="posted-by-label">Posted by</span>
-              <Link
-                href={`/studio/${post.author.handle.replace('@', '')}`}
-                onClick={(e) => e.stopPropagation()}
-                className="posted-by-author"
-              >
-                @{post.author.handle.replace('@', '')}
-              </Link>
-              {hasCollaborators && (
-                <>
-                  <span className="collab-separator">&</span>
-                  {acceptedCollaborators.length === 1 ? (
-                    <Link
-                      href={`/studio/${acceptedCollaborators[0].user.username}`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="posted-by-author"
-                    >
-                      @{acceptedCollaborators[0].user.username}
-                    </Link>
-                  ) : (
-                    <span className="collab-count">{acceptedCollaborators.length} others</span>
-                  )}
-                </>
-              )}
-              {post.flair && (
-                <FlairBadge flair={post.flair} size="sm" />
-              )}
-            </div>
-
-            {/* Secondary line: what was posted, then when */}
-            <div className="post-meta-line">
-              <span className="post-type-label">
-                <PostTypeChip type={post.type} variant="phrase" size="md" className="" />
-              </span>
-              <span className="post-time-separator">·</span>
-              <span className="post-time">{timeWords}</span>
-            </div>
-          </div>
-          {postMenuElement}
-        </div>
-      );
-    }
-
-    // Standard author-first layout for non-community posts
-    return (
-      <div className="author-header" style={centered ? { justifyContent: 'center' } : undefined}>
-        {/* Avatar Stack for Collaborators */}
-        {hasCollaborators ? (
-          <div className="collab-avatars group" onClick={(e) => e.stopPropagation()}>
-            {/* Author Avatar */}
-            <Link href={`/studio/${post.author.handle.replace('@', '')}`}>
-              <div className="collab-avatar first" style={small ? { width: '36px', height: '36px' } : undefined}>
-                <Image
-                  src={post.author.avatar}
-                  alt={post.author.name}
-                  fill
-                  className="object-cover rounded-full"
-                  sizes="44px"
-                  quality={80}
-                />
-              </div>
-            </Link>
-            {/* Collaborator Avatars */}
-            {acceptedCollaborators.slice(0, 3).map((collab, index) => (
-              <Link
-                key={collab.user.id}
-                href={`/studio/${collab.user.username}`}
-                className="collab-avatar-link"
-                style={{ zIndex: 10 - index }}
-              >
-                {collab.user.avatar_url ? (
-                  <div className="collab-avatar" style={small ? { width: '36px', height: '36px' } : undefined}>
-                    <Image
-                      src={collab.user.avatar_url}
-                      alt={collab.user.display_name || collab.user.username}
-                      fill
-                      className="object-cover rounded-full"
-                      sizes="44px"
-                      quality={80}
-                    />
-                  </div>
-                ) : (
-                  <div
-                    className="collab-avatar collab-avatar-placeholder"
-                    style={small ? { width: '36px', height: '36px' } : undefined}
-                  >
-                    {(collab.user.display_name || collab.user.username)[0].toUpperCase()}
-                  </div>
-                )}
-              </Link>
-            ))}
-            {acceptedCollaborators.length > 3 && (
-              <div className="collab-avatar collab-avatar-more" style={small ? { width: '36px', height: '36px' } : undefined}>
-                +{acceptedCollaborators.length - 3}
-              </div>
-            )}
-          </div>
-        ) : (
-          <Link href={`/studio/${post.author.handle.replace('@', '')}`} onClick={(e) => e.stopPropagation()}>
-            <div className="author-avatar" style={small ? { width: '36px', height: '36px' } : undefined}>
-              <Image
-                src={post.author.avatar}
-                alt={post.author.name}
-                fill
-                className="object-cover"
-                sizes="48px"
-                quality={80}
-              />
-            </div>
-          </Link>
-        )}
-        <div className="author-info" style={centered ? { textAlign: 'left' } : undefined}>
-          <div className="author-name-line">
-            {hasCollaborators ? (
-              <>
-                <Link href={`/studio/${post.author.handle.replace('@', '')}`} onClick={(e) => e.stopPropagation()} className="author-name">
-                  {post.author.name}
-                </Link>
-                <span className="collab-separator">&</span>
-                {acceptedCollaborators.length === 1 ? (
-                  <Link href={`/studio/${acceptedCollaborators[0].user.username}`} onClick={(e) => e.stopPropagation()} className="author-name">
-                    {acceptedCollaborators[0].user.display_name || acceptedCollaborators[0].user.username}
-                  </Link>
-                ) : (
-                  <span className="collab-count">{acceptedCollaborators.length} others</span>
-                )}
-                <span className="post-type-label">{getPostTypeCollabPhrase(post.type)}</span>
-              </>
-            ) : (
-              <>
-                <Link href={`/studio/${post.author.handle.replace('@', '')}`} onClick={(e) => e.stopPropagation()} className="author-name">
-                  {post.author.name}
-                </Link>
-                <span className="post-type-label">
-                  <PostTypeChip type={post.type} variant="phrase" size="md" className="" />
-                </span>
-              </>
-            )}
-          </div>
-          <span className="post-time">{timeWords}</span>
-        </div>
-        {postMenuElement}
-      </div>
-    );
-  };
+  const headerProps = { post, hasCommunity, hasCollaborators, acceptedCollaborators, timeWords, menu: postMenuElement };
+  const contentProps = { warning: post.contentWarning, hidden: !!post.contentWarning && !showContent, onShow: showContentNow };
 
   // Content Section wrapper - applies blur and warning overlay only to content, not header/actions
-  const ContentSection = ({ children }: { children: React.ReactNode }) => {
-    const hasWarning = post.contentWarning && !showContent;
-
-    if (!hasWarning) {
-      return <>{children}</>;
-    }
-
-    return (
-      <div className="relative min-h-[80px]">
-        <div className="blur-md select-none pointer-events-none opacity-60">
-          {children}
-        </div>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 mb-2">
-            <svg className="w-3.5 h-3.5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-            <span className="font-ui text-xs font-medium text-amber-700">{post.contentWarning}</span>
-          </div>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowContent(true);
-            }}
-            className="px-4 py-1.5 rounded-full font-ui text-xs font-medium text-ink/70 hover:text-ink bg-skeleton hover:bg-black/10 transition-colors"
-          >
-            Show Content
-          </button>
-        </div>
-      </div>
-    );
-  };
-
   // ---------------------------------------------------------------------------
   // Render — one card shell, one header, one action row; each post type earns
   // its own body form (after the quill-v6 reference):
@@ -878,8 +907,8 @@ function PostCardComponent({
             <SoundBars />
           </div>
           <div className="audio-content">
-            <AuthorHeader small />
-            <ContentSection>
+            <CardAuthorHeader {...headerProps} small />
+            <CardContentSection {...contentProps}>
               <div className="audio-kind">{isVoicePost ? "Voice note" : "Sound"}{post.audioDuration ? ` · ${post.audioDuration}` : ""}</div>
               <h3 className="audio-author">{post.title || "Untitled recording"}</h3>
               {post.content && (
@@ -890,7 +919,7 @@ function PostCardComponent({
                   <AudioPlayer src={audioMedia.media_url} title={post.title} variant="voice" />
                 </div>
               )}
-            </ContentSection>
+            </CardContentSection>
             {renderActions()}
           </div>
         </article>
@@ -903,8 +932,8 @@ function PostCardComponent({
       const poster = post.image || null;
       return (
         <article className="post type-video pq-feed-card pq-post-video" onClick={handleOpenModal}>
-          <AuthorHeader />
-          <ContentSection>
+          <CardAuthorHeader {...headerProps} />
+          <CardContentSection {...contentProps}>
             <div className="video-container" onClick={(e) => e.stopPropagation()}>
               {videoMedia && showContent ? (
                 <VideoPlayer src={videoMedia.media_url} poster={poster} title={post.title} durationLabel={post.videoDuration} />
@@ -935,7 +964,7 @@ function PostCardComponent({
             {post.content && (
               <TruncatedContent content={post.content} maxChars={200} onReadMore={handleOpenModal} className="video-description" />
             )}
-          </ContentSection>
+          </CardContentSection>
           {renderActions()}
         </article>
       );
@@ -1018,8 +1047,8 @@ function PostCardComponent({
         className={`post type-unified pq-feed-card pq-post-${post.type} ${isStatement ? "pq-statement" : ""}`}
         onClick={handleOpenModal}
       >
-        <AuthorHeader />
-        <ContentSection>
+        <CardAuthorHeader {...headerProps} />
+        <CardContentSection {...contentProps}>
           <>
             {/* Journal: the dated entry line sits above the title, with a hairline rule */}
             {post.type === "journal" && <JournalStrip post={post} className="journal-date" />}
@@ -1064,7 +1093,7 @@ function PostCardComponent({
 
             {mediaBlock}
           </>
-        </ContentSection>
+        </CardContentSection>
         {renderActions()}
       </article>
     );
