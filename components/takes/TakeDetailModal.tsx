@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { getTimeAgo } from "@/lib/utils/time";
 import Link from "next/link";
 import Modal from "@/components/ui/Modal";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { TakeReactionType, Take } from "@/lib/hooks/useTakes";
+import { TakeReactionType, Take, useMuted, useVolume, takeVideoStyle, TAKE_ASPECT_CLASS } from "@/lib/hooks/useTakes";
+import TakePlayer from "@/components/takes/TakePlayer";
+import { useTrackTakeImpression, useTrackTakeView } from "@/lib/hooks/useTracking";
 import { useComments } from "@/lib/hooks/useComments";
 import { actionToast } from "@/lib/utils/toast";
 import { useReaction } from "@/lib/engagement/reactions";
@@ -48,7 +50,6 @@ export default function TakeDetailModal({
   onTakeDeleted,
 }: TakeDetailModalProps) {
   const { user, profile } = useAuth();
-  const videoRef = useRef<HTMLVideoElement>(null);
 
   const [showComments, setShowComments] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
@@ -62,10 +63,15 @@ export default function TakeDetailModal({
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportSubmitting, setReportSubmitting] = useState(false);
   const [reportSubmitted, setReportSubmitted] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(true);
+  // Mute / volume are the same persisted settings the feed and page use (V-20).
+  const { isMuted, toggle: toggleMute } = useMuted();
+  const { volume } = useVolume();
   const [hashtags, setHashtags] = useState<string[]>([]);
   const [showContent, setShowContent] = useState(true);
+  const videoStyle = useMemo(() => takeVideoStyle(take?.effects), [take?.effects]);
+  // The modal is a view too (V-22).
+  const { startWatching, stopWatching, recordLoop, recordCompletion } = useTrackTakeView(take?.id, take?.duration ?? 0, "modal");
+  useTrackTakeImpression(take?.id, "modal", isOpen && showContent);
   const [collaborators, setCollaborators] = useState<Array<{
     role?: string | null;
     user: { id: string; username: string; display_name: string | null; avatar_url: string | null };
@@ -176,15 +182,6 @@ export default function TakeDetailModal({
     };
   }, [take?.id]);
 
-  // Auto-play when modal opens (only if no content warning or user accepted it)
-  /* eslint-disable react-hooks/set-state-in-effect */
-  useEffect(() => {
-    if (isOpen && videoRef.current && showContent) {
-      videoRef.current.play().catch(() => {});
-      setIsPlaying(true);
-    }
-  }, [isOpen, take?.id, showContent]);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleDelete = async () => {
     if (!take || !user) return;
@@ -330,24 +327,7 @@ export default function TakeDetailModal({
     deleteComment(commentId);
   };
 
-  const handleVideoClick = () => {
-    if (videoRef.current) {
-      if (isPlaying) {
-        videoRef.current.pause();
-        setIsPlaying(false);
-      } else {
-        videoRef.current.play();
-        setIsPlaying(true);
-      }
-    }
-  };
 
-  const toggleMute = () => {
-    if (videoRef.current) {
-      videoRef.current.muted = !isMuted;
-      setIsMuted(!isMuted);
-    }
-  };
 
   return (
     <>
@@ -430,18 +410,26 @@ export default function TakeDetailModal({
               {/* Video Player */}
               <div className="mt-2">
                 <div className="relative group rounded-2xl overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.15)]">
-                  <div className="relative bg-black">
-                    <video
-                      ref={videoRef}
-                      src={take.video_url}
-                      poster={take.thumbnail_url || undefined}
-                      className={`w-full object-contain cursor-pointer ${take.content_warning && !showContent ? 'blur-xl' : ''}`}
-                      style={{ maxHeight: '480px' }}
-                      loop
-                      playsInline
-                      muted={isMuted}
-                      onClick={handleVideoClick}
-                    />
+                  <div className={`relative bg-black ${TAKE_ASPECT_CLASS[take.aspect_ratio] ?? "aspect-[9/16]"} max-h-[480px] mx-auto`}>
+                    <div className={`absolute inset-0 ${take.content_warning && !showContent ? "blur-xl" : ""}`}>
+                      <TakePlayer
+                        src={take.video_url}
+                        isActive={isOpen && showContent}
+                        isMuted={isMuted}
+                        volume={volume}
+                        onToggleMute={toggleMute}
+                        onPlayStart={startWatching}
+                        onPauseStop={stopWatching}
+                        onLoop={recordLoop}
+                        onComplete={recordCompletion}
+                        playbackRate={take.playback_speed}
+                        videoStyle={videoStyle}
+                        soundSrc={take.sound?.audio_url}
+                        soundStartTime={take.sound_start_time}
+                        soundVolume={take.added_sound_volume}
+                        originalVolume={take.original_audio_volume}
+                      />
+                    </div>
 
                     {/* Content Warning Overlay */}
                     {take.content_warning && !showContent && (
@@ -466,20 +454,8 @@ export default function TakeDetailModal({
                       </div>
                     )}
 
-                    {/* Play/Pause Overlay */}
-                    {!isPlaying && showContent && (
-                      <div
-                        className="absolute inset-0 flex items-center justify-center bg-black/30 cursor-pointer"
-                        onClick={handleVideoClick}
-                      >
-                        <div className="w-20 h-20 rounded-full bg-surface/95 backdrop-blur-sm shadow-[0_4px_20px_rgba(0,0,0,0.2)] flex items-center justify-center text-purple-primary hover:scale-110 transition-transform">
-                          {icons.play}
-                        </div>
-                      </div>
-                    )}
-
                     {/* Video Controls Overlay */}
-                    <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                       <div className="flex items-center justify-between">
                         {/* Duration Badge */}
                         <div className="px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-sm text-white font-ui text-[0.8rem]">
@@ -492,7 +468,8 @@ export default function TakeDetailModal({
                             e.stopPropagation();
                             toggleMute();
                           }}
-                          className="w-10 h-10 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/80 transition-colors"
+                          aria-label={isMuted ? "Unmute" : "Mute"}
+                          className="pointer-events-auto w-10 h-10 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/80 transition-colors"
                         >
                           {isMuted ? icons.volumeOff : icons.volumeOn}
                         </button>

@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useEffect, useCallback, useRef } from "react";
+import { use, useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { getTimeAgo } from "@/lib/utils/time";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -9,7 +9,9 @@ import { followUserRecord, unfollowUserRecord } from "@/lib/hooks/useProfile";
 import type { FollowStatus } from "@/lib/types";
 import { submitReport } from "@/lib/reports";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useMuted, useVolume, TakeReactionType } from "@/lib/hooks/useTakes";
+import { useMuted, useVolume, TakeReactionType, type Take, takeFromTableRow, takeVideoStyle, TAKE_ROW_SELECT } from "@/lib/hooks/useTakes";
+import TakePlayer from "@/components/takes/TakePlayer";
+import { useTrackTakeImpression, useTrackTakeView } from "@/lib/hooks/useTracking";
 import { useReaction } from "@/lib/engagement/reactions";
 import { useBlock } from "@/lib/hooks/useInteractions";
 import { useComments } from "@/lib/hooks/useComments";
@@ -31,25 +33,6 @@ import { CommentIcon, icons } from "@/components/ui/Icons";
 
 const LOAD_FAILED = "Failed to load take";
 
-interface Take {
-  id: string;
-  author_id: string;
-  video_url: string;
-  thumbnail_url: string | null;
-  caption: string | null;
-  duration: number;
-  visibility: string;
-  content_warning: string | null;
-  sound_id: string | null;
-  view_count: number;
-  community_id: string | null;
-  created_at: string;
-  author: {
-    username: string;
-    display_name: string | null;
-    avatar_url: string | null;
-  };
-}
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -59,8 +42,6 @@ export default function SingleTakePage({ params }: PageProps) {
   const { id } = use(params);
   const router = useRouter();
   const { user, profile, status: authStatus } = useAuth();
-  const videoRef = useRef<HTMLVideoElement>(null);
-
   const [take, setTake] = useState<Take | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -83,7 +64,6 @@ export default function SingleTakePage({ params }: PageProps) {
   const [reportSubmitted, setReportSubmitted] = useState(false);
   const [isBlocking, setIsBlocking] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [hashtags, setHashtags] = useState<string[]>([]);
@@ -98,6 +78,10 @@ export default function SingleTakePage({ params }: PageProps) {
 
   const { isMuted, toggle: toggleMute } = useMuted();
   const { volume } = useVolume();
+  // Same player and tracking as the vertical feed (V-18, V-22).
+  const videoStyle = useMemo(() => takeVideoStyle(take?.effects), [take?.effects]);
+  const { startWatching, stopWatching, recordLoop, recordCompletion } = useTrackTakeView(id, take?.duration ?? 0, "page");
+  useTrackTakeImpression(id, "page", !!take && showContent);
   const { blockUser } = useBlock();
 
   // Comments hook
@@ -169,7 +153,7 @@ export default function SingleTakePage({ params }: PageProps) {
       // Fetch the take
       const { data: takeData, error: takeError } = await supabase
         .from("takes")
-        .select("*")
+        .select(TAKE_ROW_SELECT)
         .eq("id", id)
         .single();
 
@@ -196,17 +180,7 @@ export default function SingleTakePage({ params }: PageProps) {
       // takes_select policy since phase 1b; a row we may not see is a
       // "not found" above.
 
-      // Fetch author
-      const { data: authorData } = await supabase
-        .from("profiles")
-        .select("username, display_name, avatar_url")
-        .eq("id", takeData.author_id)
-        .single();
-
-      setTake({
-        ...takeData,
-        author: authorData || { username: "unknown", display_name: null, avatar_url: null },
-      });
+      setTake(takeFromTableRow(takeData));
 
       // Set content warning state
       setShowContent(!takeData.content_warning);
@@ -286,14 +260,6 @@ export default function SingleTakePage({ params }: PageProps) {
     fetchTake();
   }, [fetchTake, authStatus]);
   /* eslint-enable react-hooks/set-state-in-effect */
-
-  // Video control
-  useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.volume = volume;
-      videoRef.current.muted = isMuted;
-    }
-  }, [volume, isMuted]);
 
   // Reactions: shared store entry (counts + own reaction fetched on mount,
   // re-read on focus); the store owns optimistic update, RPC, revert, toast.
@@ -458,17 +424,6 @@ export default function SingleTakePage({ params }: PageProps) {
         ]
       : [];
 
-  const togglePlayPause = () => {
-    if (videoRef.current) {
-      if (isPlaying) {
-        videoRef.current.pause();
-      } else {
-        videoRef.current.play();
-      }
-      setIsPlaying(!isPlaying);
-    }
-  };
-
   const handleAddComment = async () => {
     const text = commentText.trim();
     if (!text || !user || !take || submitting) return;
@@ -626,16 +581,25 @@ export default function SingleTakePage({ params }: PageProps) {
 
                 {/* Video Player */}
                 <div className="relative rounded-xl overflow-hidden bg-black aspect-[9/16] max-w-[400px] mx-auto">
-                  <video
-                    ref={videoRef}
-                    src={take.video_url}
-                    className={`absolute inset-0 w-full h-full object-cover cursor-pointer ${take.content_warning && !showContent ? 'blur-xl' : ''}`}
-                    loop
-                    playsInline
-                    muted={isMuted}
-                    onClick={togglePlayPause}
-                    poster={take.thumbnail_url || undefined}
-                  />
+                  <div className={`absolute inset-0 ${take.content_warning && !showContent ? "blur-xl" : ""}`}>
+                    <TakePlayer
+                      src={take.video_url}
+                      isActive={showContent}
+                      isMuted={isMuted}
+                      volume={volume}
+                      onToggleMute={toggleMute}
+                      onPlayStart={startWatching}
+                      onPauseStop={stopWatching}
+                      onLoop={recordLoop}
+                      onComplete={recordCompletion}
+                      playbackRate={take.playback_speed}
+                      videoStyle={videoStyle}
+                      soundSrc={take.sound?.audio_url}
+                      soundStartTime={take.sound_start_time}
+                      soundVolume={take.added_sound_volume}
+                      originalVolume={take.original_audio_volume}
+                    />
+                  </div>
 
                   {/* Content Warning Overlay */}
                   {take.content_warning && !showContent && (
@@ -660,31 +624,18 @@ export default function SingleTakePage({ params }: PageProps) {
                     </div>
                   )}
 
-                  {/* Play/Pause Overlay */}
-                  {!isPlaying && showContent && (
-                    <div
-                      className="absolute inset-0 flex items-center justify-center bg-black/30 cursor-pointer"
-                      onClick={togglePlayPause}
-                    >
-                      <div className="w-16 h-16 rounded-full bg-surface/20 backdrop-blur-sm flex items-center justify-center hover:bg-surface/30 transition-colors">
-                        <svg className="w-8 h-8 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M8 5v14l11-7z" />
-                        </svg>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Volume Control */}
+                  {/* Volume Control (the player only offers mute while paused) */}
                   <button
                     onClick={toggleMute}
-                    className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+                    aria-label={isMuted ? "Unmute" : "Mute"}
+                    className="absolute top-4 right-4 z-20 w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/70 transition-colors"
                   >
                     {isMuted ? icons.volumeOff : icons.volumeOn}
                   </button>
 
                   {/* Duration Badge */}
                   {take.duration > 0 && (
-                    <div className="absolute bottom-4 right-4 px-2 py-1 rounded bg-black/60 backdrop-blur-sm">
+                    <div className="absolute bottom-4 right-4 px-2 py-1 rounded bg-black/60 backdrop-blur-sm pointer-events-none">
                       <span className="font-ui text-xs text-white">
                         {Math.floor(take.duration / 60)}:{(take.duration % 60).toString().padStart(2, '0')}
                       </span>

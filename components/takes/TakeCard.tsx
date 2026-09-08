@@ -3,7 +3,7 @@
 import "./takes.css";
 import { formatCount } from "@/lib/utils/format";
 
-import { useState, useCallback, useRef, useEffect, useMemo, memo, type CSSProperties } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo, memo } from "react";
 import { actionToast } from "@/lib/utils/toast";
 import Link from "next/link";
 import TakePlayer from "./TakePlayer";
@@ -15,7 +15,7 @@ import ShareModal from "@/components/ui/ShareModal";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import { CommentIcon } from "@/components/ui/Icons";
 import ActionMenu from "@/components/ui/ActionMenu";
-import { Take } from "@/lib/hooks/useTakes";
+import { Take, takeVideoStyle } from "@/lib/hooks/useTakes";
 import { useTrackTakeImpression, useTrackTakeView } from "@/lib/hooks/useTracking";
 import { getOptimizedAvatarUrl } from "@/lib/utils/image";
 
@@ -42,16 +42,6 @@ function getWordCount(text: string): number {
   return text.trim().split(/\s+/).filter(Boolean).length;
 }
 
-const FILTER_STYLES: Record<string, CSSProperties> = {
-  grayscale: { filter: "grayscale(100%)" },
-  sepia: { filter: "sepia(80%)" },
-  vintage: { filter: "sepia(30%) contrast(110%) saturate(80%)" },
-  warm: { filter: "saturate(120%) hue-rotate(-10deg)" },
-  cool: { filter: "saturate(90%) hue-rotate(20deg)" },
-  dramatic: { filter: "contrast(130%) saturate(110%)" },
-  fade: { filter: "contrast(90%) brightness(110%) saturate(80%)" },
-  vivid: { filter: "saturate(150%) contrast(110%)" },
-};
 
 function TakeCard({
   take,
@@ -125,10 +115,7 @@ function TakeCard({
   const caption = take.caption || "";
   const wordCount = getWordCount(caption);
   const shouldTruncate = wordCount > 10;
-  const videoStyle = useMemo(() => {
-    const filterEffect = take.effects?.find((effect) => effect.type === "filter" && effect.name);
-    return filterEffect?.name ? FILTER_STYLES[filterEffect.name] : undefined;
-  }, [take.effects]);
+  const videoStyle = useMemo(() => takeVideoStyle(take.effects), [take.effects]);
 
   const getTruncatedCaption = () => {
     if (!shouldTruncate || captionExpanded) return caption;

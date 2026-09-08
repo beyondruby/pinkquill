@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactionType, ReactionCounts } from "@/lib/types";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, type CSSProperties } from "react";
 import { submitReport } from "@/lib/reports";
 import { actionToast } from "@/lib/utils/toast";
 import { deleteOwnTake } from "@/lib/content-client";
@@ -214,6 +214,111 @@ function normalizeReactionCounts(counts: Partial<TakeReactionCounts> | null | un
 
   return normalized;
 }
+
+/** CSS for the "filter" effect a take was saved with; one map for every player (V-18). */
+export const TAKE_FILTER_STYLES: Record<string, CSSProperties> = {
+  grayscale: { filter: "grayscale(100%)" },
+  sepia: { filter: "sepia(80%)" },
+  vintage: { filter: "sepia(30%) contrast(110%) saturate(80%)" },
+  warm: { filter: "saturate(120%) hue-rotate(-10deg)" },
+  cool: { filter: "saturate(90%) hue-rotate(20deg)" },
+  dramatic: { filter: "contrast(130%) saturate(110%)" },
+  fade: { filter: "contrast(90%) brightness(110%) saturate(80%)" },
+  vivid: { filter: "saturate(150%) contrast(110%)" },
+};
+
+export function takeVideoStyle(effects: TakeEffect[] | null | undefined): CSSProperties | undefined {
+  const filterEffect = effects?.find((effect) => effect.type === "filter" && effect.name);
+  return filterEffect?.name ? TAKE_FILTER_STYLES[filterEffect.name] : undefined;
+}
+
+/** A `takes` table row with the author and sound embedded (the page / modal path). */
+export interface TakeTableRow {
+  id: string;
+  author_id: string;
+  video_url: string;
+  thumbnail_url: string | null;
+  caption: string | null;
+  duration: number | null;
+  visibility: string | null;
+  content_warning: string | null;
+  sound_id: string | null;
+  view_count: number | null;
+  community_id: string | null;
+  created_at: string;
+  aspect_ratio?: TakeAspectRatio | null;
+  effects?: TakeEffect[] | null;
+  text_overlays?: TakeTextOverlay[] | null;
+  playback_speed?: TakePlaybackSpeed | number | string | null;
+  allow_sound_use?: boolean | null;
+  sound_start_time?: number | null;
+  original_audio_volume?: number | null;
+  added_sound_volume?: number | null;
+  reactions_count?: number | null;
+  comments_count?: number | null;
+  saves_count?: number | null;
+  relays_count?: number | null;
+  reaction_counts?: Partial<TakeReactionCounts> | null;
+  author?: { username: string; display_name: string | null; avatar_url: string | null } | null;
+  sound?: Sound | null;
+}
+
+/**
+ * The same `Take` the feed builds, from a table row instead of the feed RPC
+ * row — so the take page and modal carry sound, speed and effects (V-18).
+ */
+export function takeFromTableRow(
+  row: TakeTableRow,
+  flags: { is_saved?: boolean; is_relayed?: boolean; user_reaction_type?: TakeReactionType | null } = {},
+): Take {
+  const reactionCounts = normalizeReactionCounts(row.reaction_counts);
+  return {
+    id: row.id,
+    author_id: row.author_id,
+    video_url: row.video_url,
+    thumbnail_url: row.thumbnail_url,
+    caption: row.caption,
+    duration: normalizeCount(row.duration),
+    visibility: row.visibility || "public",
+    content_warning: row.content_warning,
+    sound_id: row.sound_id,
+    view_count: normalizeCount(row.view_count),
+    community_id: row.community_id,
+    created_at: row.created_at,
+    aspect_ratio: normalizeAspectRatio(row.aspect_ratio),
+    effects: Array.isArray(row.effects) ? row.effects : [],
+    text_overlays: Array.isArray(row.text_overlays) ? row.text_overlays : [],
+    playback_speed: normalizePlaybackSpeed(row.playback_speed),
+    allow_sound_use: row.allow_sound_use ?? true,
+    sound_start_time: normalizeCount(row.sound_start_time),
+    original_audio_volume: row.original_audio_volume ?? 100,
+    added_sound_volume: row.added_sound_volume ?? 100,
+    sound: row.sound ?? null,
+    author: row.author ?? { username: "unknown", display_name: null, avatar_url: null },
+    reactions_count: normalizeCount(row.reactions_count) || reactionCounts.total,
+    comments_count: normalizeCount(row.comments_count),
+    saves_count: normalizeCount(row.saves_count),
+    relays_count: normalizeCount(row.relays_count),
+    is_saved: flags.is_saved ?? false,
+    is_relayed: flags.is_relayed ?? false,
+    user_reaction_type: flags.user_reaction_type ?? null,
+    reaction_counts: reactionCounts,
+  };
+}
+
+/** The embed string that produces a `TakeTableRow`. */
+// `sounds` also points back at `takes` (original_take_id), so the sound embed
+// must name the foreign key or PostgREST reports the relationship as ambiguous.
+export const TAKE_ROW_SELECT = "*, author:profiles!takes_author_id_fkey(username, display_name, avatar_url), sound:sounds!takes_sound_id_fkey(*)";
+
+/** Tailwind frame class for a take's stored aspect ratio (literal strings so the JIT sees them). */
+export const TAKE_ASPECT_CLASS: Record<TakeAspectRatio, string> = {
+  "9:16": "aspect-[9/16]",
+  "4:5": "aspect-[4/5]",
+  "1:1": "aspect-square",
+  "16:9": "aspect-video",
+  "4:3": "aspect-[4/3]",
+};
 
 function takeFromRpcRow(row: TakesFeedRpcRow): Take {
   const reactionCounts = normalizeReactionCounts(row.reaction_counts);
