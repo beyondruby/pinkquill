@@ -44,8 +44,7 @@ function PostDetailModalComponent({
   canModerateDeleteComments,
   onModeratorDeleteComment,
 }: PostDetailModalProps) {
-  // Desktop opens with the discussion beside the post; phones keep the Comment pill (V-41).
-  const [showComments, setShowComments] = useState(() => typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches);
+  const [showComments, setShowComments] = useState(false);
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
 
   const onDeleted = useCallback((postId: string) => { onClose(); onPostDeleted?.(postId); }, [onClose, onPostDeleted]);
@@ -91,7 +90,6 @@ function PostDetailModalComponent({
                 menuItems={actions.menuItems}
                 onNavigate={onClose}
                 onBack={onClose}
-                onClose={onClose}
                 discussion={{ count: actions.commentsCount, onToggle: () => setShowComments((v) => !v) }}
                 className={`mb-4 md:mb-6 pb-4 md:pb-6 border-b ${border}`}
               />

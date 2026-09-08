@@ -29,8 +29,7 @@ interface TakeDetailModalProps {
  * (profile audit 2f, V-52 / V-4 — the modal now has Follow and Block).
  */
 export default function TakeDetailModal({ take, isOpen, onClose, onTakeUpdate, onTakeDeleted }: TakeDetailModalProps) {
-  // Desktop opens with the discussion beside the take; phones keep the Comment pill (V-41).
-  const [showComments, setShowComments] = useState(() => typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches);
+  const [showComments, setShowComments] = useState(false);
 
   const onDeleted = useCallback((takeId: string) => { onClose(); onTakeDeleted?.(takeId); }, [onClose, onTakeDeleted]);
   const onBlocked = useCallback(() => { onClose(); if (take) onTakeDeleted?.(take.id); }, [onClose, onTakeDeleted, take]);
@@ -60,7 +59,6 @@ export default function TakeDetailModal({ take, isOpen, onClose, onTakeUpdate, o
               actions={actions}
               discussion={{ onToggle: () => setShowComments((v) => !v) }}
               onBack={onClose}
-              onClose={onClose}
               className="mb-4 md:mb-8 pb-4 md:pb-6 border-b border-border-light"
             />
 

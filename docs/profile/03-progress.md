@@ -44,6 +44,7 @@ state lives; update it at the end of every sub-phase.
 
 ## Session log
 
+- 2026-09-08 — REVERTED on the user's request after Phase 5: the modals open with the discussion closed again (V-41 undone) and the desktop close "X" is gone from both modals (V-36 undone; the mobile Back button on /post and /take pages, V-37, stays). Decision 8 now = X: no, back arrow: yes.
 - 2026-09-08 — Phase 5 done and committed. **All five phases of the plan are complete.** Left open: decision 10 (private accounts server-side), decision 11 (post-video poster column + composer capture), the deferred F-24 feed RPC, the two `typeLabels` maps (`blog` vs `Blog`), the Unsplash fallbacks outside the audit's surfaces, and the takes feed comments drawer keeping its own layout.
 - 2026-09-08 — Phase 4 done and committed (decisions 3 and 7 taken as recommended). Next: Phase 5 (post/take view UI/UX) — change list first; decisions 8, 10, 11 pending.
 - 2026-09-08 — Phase 3 done and committed (user delegated the 20-item list and decisions 4/5/6). Next: Phase 4 (feed UI/UX) — one-sentence change list first; decisions 3, 7, 8, 10, 11 pending.
@@ -78,5 +79,5 @@ state lives; update it at the end of every sub-phase.
 | 6 | cover opacity | settings preview matches the profile (30 %) | 2026-09-08 |
 | 3 | non-9:16 takes | letterboxed in the black 9:16 frame (feed, modal, page) | 2026-09-08 |
 | 7 | sidebar hover | keeps overlapping; expanded rail casts `shadow-xl` | 2026-09-08 |
-| 8 | close X (desktop modals) + back arrow (mobile post/take pages) | both added, mobile-header icon-button style | 2026-09-08 |
+| 8 | close X (desktop modals) + back arrow (mobile post/take pages) | X added then reverted on request (modals also open with the discussion closed again); back arrow kept | 2026-09-08 |
 | 10, 11 | — | pending (11 = post-video poster column + composer capture, drafted in 2c) | — |

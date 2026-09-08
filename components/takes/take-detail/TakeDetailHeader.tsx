@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import ActionMenu from "@/components/ui/ActionMenu";
-import { CommentIcon, icons } from "@/components/ui/Icons";
+import { CommentIcon } from "@/components/ui/Icons";
 import { DEFAULT_AVATAR } from "@/lib/posts/toPostProps";
 import { getTimeAgo } from "@/lib/utils/time";
 import type { Take } from "@/lib/hooks/useTakes";
@@ -16,13 +16,11 @@ interface Props {
   discussion?: { onToggle: () => void };
   /** Mobile back chevron (the modal only, V-42). */
   onBack?: () => void;
-  /** Desktop close "X" (the modal only, V-36). */
-  onClose?: () => void;
   className?: string;
 }
 
 /** Author row with Follow and the options menu, shared by the take modal and page (V-4). */
-export function TakeDetailHeader({ take, actions, discussion, onBack, onClose, className = "" }: Props) {
+export function TakeDetailHeader({ take, actions, discussion, onBack, className = "" }: Props) {
   const { user, isOwner, followStatus, toggleFollow, menuItems, commentsCount, onNavigate } = actions;
   const name = take.author.display_name || take.author.username;
   const isFollowing = followStatus === "accepted";
@@ -82,11 +80,6 @@ export function TakeDetailHeader({ take, actions, discussion, onBack, onClose, c
           widthClassName="w-40"
           buttonAriaLabel="Take options menu"
         />
-      )}
-      {onClose && (
-        <button type="button" onClick={onClose} aria-label="Close" className="hidden md:flex w-10 h-10 rounded-full items-center justify-center text-muted hover:text-ink hover:bg-skeleton/60 transition-colors">
-          {icons.close}
-        </button>
       )}
     </div>
   );
