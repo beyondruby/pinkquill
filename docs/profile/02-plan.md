@@ -483,3 +483,15 @@ Candidate changes, approved as one-sentence items first:
     of my content" server-side (one more clause in both policies, and the
     home/takes feeds would stop showing private accounts' content to
     non-followers) or keep today's behaviour.
+11. **Post-video posters** (found in 2c). No column stores a poster for a
+    video in a post: `posts` and `post_media` were checked live and neither
+    has an image/thumbnail column (takes have `takes.thumbnail_url`). The
+    F-12 plumbing is in place (`thumbnail_url?` on `PostMedia`, mapped by
+    `toPostProps`, passed to every `VideoPlayer`), so filling it needs:
+    (a) one DB change — `ALTER TABLE public.post_media ADD COLUMN
+    thumbnail_url text;` (nullable, no backfill; existing videos keep the
+    gradient placeholder) — and (b) the composer capturing a frame of each
+    video item on upload, the way `CreateTake` already does, and uploading
+    it to the `post-media` bucket. Decide whether to do both (a separate
+    ticket, as the 2c plan noted) or leave video posts with the gradient
+    placeholder and the play disc.

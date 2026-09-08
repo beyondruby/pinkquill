@@ -22,6 +22,7 @@ import CommentItem from "@/components/feed/CommentItem";
 import CommentComposer from "@/components/feed/CommentComposer";
 import { CommentSkeleton } from "@/components/ui/Skeleton";
 import ReactionPicker from "@/components/feed/ReactionPicker";
+import { LazyVideoThumb } from "@/components/feed/LazyVideoThumb";
 
 const ShareModal = dynamic(() => import("@/components/ui/ShareModal"), { ssr: false });
 const ReportModal = dynamic(() => import("@/components/ui/ReportModal"), { ssr: false });
@@ -783,7 +784,7 @@ function PostDetailModalComponent({
                   {/* Main Image Container - Clean single border */}
                   <div className={`relative group rounded-lg overflow-hidden border ${hasDarkBg ? 'border-surface/20' : 'border-ink/10'}`}>
                     {media[currentMediaIndex]?.media_type === "video" ? (
-                      <VideoPlayer src={media[currentMediaIndex].media_url} title={post.title || undefined} maxHeight={450} />
+                      <VideoPlayer src={media[currentMediaIndex].media_url} poster={media[currentMediaIndex].thumbnail_url} title={post.title || undefined} maxHeight={450} />
                     ) : media[currentMediaIndex] && (
                       <div className="relative">
                         <Image
@@ -851,7 +852,7 @@ function PostDetailModalComponent({
                         >
                           {item.media_type === "video" ? (
                             <div className="relative w-full h-full bg-black">
-                              <video src={item.media_url} className="w-full h-full object-cover" preload="metadata" />
+                              <LazyVideoThumb src={item.media_url} className="w-full h-full object-cover" />
                               <div className="absolute inset-0 flex items-center justify-center bg-black/40">
                                 <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
                                   <path d="M8 5v14l11-7z" />

@@ -15,6 +15,7 @@ import { useToggleSave, useToggleRelay, useBlock } from "@/lib/hooks/useInteract
 import { useReaction } from "@/lib/engagement/reactions";
 import type { ReactionType } from "@/lib/types";
 import { usePostViewTracker, useTrackPostImpression } from "@/lib/hooks/useTracking";
+import { LazyVideoThumb } from "@/components/feed/LazyVideoThumb";
 
 const ShareModal = dynamic(() => import("@/components/ui/ShareModal"), { ssr: false });
 const ReportModal = dynamic(() => import("@/components/ui/ReportModal"), { ssr: false });
@@ -929,7 +930,7 @@ function PostCardComponent({
     // Video — Pinkquill's own player (poster, play disc, gradient scrubber);
     // the clip is not fetched until the disc is tapped.
     if (post.type === "video") {
-      const poster = post.image || null;
+      const poster = videoMedia?.thumbnail_url || post.image || null;
       return (
         <article className="post type-video pq-feed-card pq-post-video" onClick={handleOpenModal}>
           <CardAuthorHeader {...headerProps} />
@@ -1010,7 +1011,7 @@ function PostCardComponent({
               >
                 {item.media_type === "video" ? (
                   <div className="unified-video-thumb">
-                    <video src={item.media_url} className="unified-media-image" preload="metadata" aria-label={item.caption || `Video ${idx + 1} in post by ${post.author.name}`} />
+                    <LazyVideoThumb src={item.media_url} className="unified-media-image" aria-label={item.caption || `Video ${idx + 1} in post by ${post.author.name}`} />
                     <div className="unified-video-play" aria-hidden="true">
                       <PlayGlyph size={18} />
                     </div>

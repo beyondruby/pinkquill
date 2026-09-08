@@ -23,6 +23,7 @@ import { firstVisualMedia } from "./useTileActions";
 import { useReaction } from "@/lib/engagement/reactions";
 import type { PostProps } from "./PostCard/types";
 import type { Post } from "@/lib/types";
+import { LazyVideoThumb } from "@/components/feed/LazyVideoThumb";
 
 export interface FeedItem {
   original: Post;
@@ -182,7 +183,7 @@ function StreamRow({
               <Image src={media.media_url} alt="" fill className="object-cover" sizes="48px" quality={60} />
             ) : (
               <>
-                <video src={media.media_url} muted playsInline preload="metadata" className="absolute inset-0 h-full w-full object-cover" />
+                <LazyVideoThumb src={media.media_url} className="absolute inset-0 h-full w-full object-cover" />
                 <span className="absolute inset-0 grid place-items-center bg-black/25 text-white">
                   <PlayIcon size="sm" />
                 </span>

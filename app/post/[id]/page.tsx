@@ -68,6 +68,7 @@ interface MediaItem {
   media_type: "image" | "video" | "audio";
   caption: string | null;
   position: number;
+  thumbnail_url?: string | null;
 }
 
 interface JournalMetadata {
@@ -1008,7 +1009,7 @@ export default function PostPage() {
                 <div className="mt-6">
                   <div className="relative rounded-xl overflow-hidden bg-subtle">
                     {visualMedia[currentMediaIndex]?.media_type === "video" ? (
-                      <VideoPlayer src={visualMedia[currentMediaIndex].media_url} title={post.title || undefined} maxHeight={500} />
+                      <VideoPlayer src={visualMedia[currentMediaIndex].media_url} poster={visualMedia[currentMediaIndex].thumbnail_url} title={post.title || undefined} maxHeight={500} />
                     ) : (
                       <img
                         src={visualMedia[currentMediaIndex]?.media_url}

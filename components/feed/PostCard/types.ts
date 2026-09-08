@@ -12,6 +12,8 @@ export interface MediaItem {
   media_type: "image" | "video" | "audio";
   caption: string | null;
   position: number;
+  /** Poster for video items; no column stores one yet (F-12), so usually null. */
+  thumbnail_url?: string | null;
 }
 
 export interface CommunityInfo {

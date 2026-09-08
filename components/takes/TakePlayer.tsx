@@ -2,7 +2,8 @@
 
 import "./takes.css";
 
-import { useRef, useState, useEffect, useCallback, type CSSProperties } from "react";
+import { useRef, useState, useEffect, useCallback, useId, type CSSProperties } from "react";
+import { announcePlayback, onOtherPlayback } from "@/lib/media/playback";
 
 interface TakePlayerProps {
   src: string;
@@ -43,6 +44,7 @@ export default function TakePlayer({
   soundVolume = 100,
   originalVolume = 100,
 }: TakePlayerProps) {
+  const playerId = useId();
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -75,6 +77,7 @@ export default function TakePlayer({
     if (!video) return;
 
     video.playbackRate = playbackRate;
+    announcePlayback(playerId);
     video.play().catch(() => {});
 
     if (audio && soundSrc) {
@@ -83,12 +86,15 @@ export default function TakePlayer({
       }
       audio.play().catch(() => {});
     }
-  }, [playbackRate, soundSrc, soundStartTime]);
+  }, [playerId, playbackRate, soundSrc, soundStartTime]);
 
   const pauseMedia = useCallback(() => {
     videoRef.current?.pause();
     audioRef.current?.pause();
   }, []);
+
+  // A feed video or audio post starting elsewhere pauses this take (F-33).
+  useEffect(() => onOtherPlayback(playerId, pauseMedia), [playerId, pauseMedia]);
 
   useEffect(() => {
     const video = videoRef.current;

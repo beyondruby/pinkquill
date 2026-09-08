@@ -22,6 +22,7 @@ import "./video-player.css";
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import Image from "next/image";
+import { announcePlayback, onOtherPlayback } from "@/lib/media/playback";
 
 interface VideoPlayerProps {
   src: string;
@@ -40,7 +41,6 @@ const VOLUME_KEY = "pq-video-volume";
 const RATES = [1, 1.25, 1.5, 2, 0.75];
 const HIDE_AFTER_MS = 2400;
 const SKIP_SECONDS = 10;
-const PLAY_EVENT = "pq-video-play";
 
 function formatTime(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
@@ -234,11 +234,7 @@ export function VideoPlayer({
 
   /* ---- One player at a time; pause when scrolled away --------------------- */
   useEffect(() => {
-    const onOther = (e: Event) => {
-      if ((e as CustomEvent<string>).detail !== id) videoRef.current?.pause();
-    };
-    window.addEventListener(PLAY_EVENT, onOther);
-    return () => window.removeEventListener(PLAY_EVENT, onOther);
+    return onOtherPlayback(id, () => videoRef.current?.pause());
   }, [id]);
 
   useEffect(() => {
@@ -266,7 +262,7 @@ export function VideoPlayer({
   const play = useCallback(() => {
     const v = videoRef.current;
     if (!v) return;
-    window.dispatchEvent(new CustomEvent(PLAY_EVENT, { detail: id }));
+    announcePlayback(id);
     setStarted(true);
     setEnded(false);
     void v.play().catch(() => setPlaying(false));

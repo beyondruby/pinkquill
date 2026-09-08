@@ -70,6 +70,7 @@ export interface PostMedia {
   media_type: "image" | "video" | "audio";
   caption: string | null;
   position: number;
+  thumbnail_url?: string | null;
 }
 
 export type PostType =

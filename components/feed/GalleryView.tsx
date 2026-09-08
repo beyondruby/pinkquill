@@ -23,6 +23,7 @@ import { getPostMetaString, readingMinutes, wordCount } from "./PostCard/FormBod
 import { useTileActions, firstVisualMedia } from "./useTileActions";
 import type { FeedItem } from "./StreamView";
 import type { PostProps, MediaItem } from "./PostCard/types";
+import { LazyVideoThumb } from "@/components/feed/LazyVideoThumb";
 
 // ---------------------------------------------------------------------------
 // Columns
@@ -113,11 +114,8 @@ function TileMedia({ media, post, extraCount }: { media: MediaItem; post: PostPr
         />
       ) : (
         <>
-          <video
+          <LazyVideoThumb
             src={media.media_url}
-            muted
-            playsInline
-            preload="metadata"
             className="absolute inset-0 h-full w-full object-cover"
             onLoadedMetadata={(e) => {
               const v = e.currentTarget;

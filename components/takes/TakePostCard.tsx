@@ -2,6 +2,7 @@
 
 import "./takes.css";
 import { formatCount } from "@/lib/utils/format";
+import { LazyVideoThumb } from "@/components/feed/LazyVideoThumb";
 
 import { useState, useEffect, useRef } from "react";
 import { getTimeAgoCompact as getTimeAgo } from "@/lib/utils/time";
@@ -275,12 +276,11 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
             src={take.thumbnail_url}
             alt=""
             className="take-grid-thumbnail"
+            loading="lazy"
+            decoding="async"
           />
         ) : (
-          <video
-            src={take.video_url}
-            className="take-grid-thumbnail"
-          />
+          <LazyVideoThumb src={take.video_url} className="take-grid-thumbnail" />
         )}
 
         {/* Hover overlay with engagement stats */}
@@ -371,6 +371,7 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
             ref={videoRef}
             src={take.video_url}
             poster={take.thumbnail_url || undefined}
+            preload={take.thumbnail_url ? "none" : "metadata"}
             muted
             loop
             playsInline

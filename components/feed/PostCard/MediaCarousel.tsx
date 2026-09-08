@@ -54,12 +54,13 @@ export function MediaCarousel({ items, authorName, onOpen }: MediaCarouselProps)
             key={item.id || idx}
             className="carousel-slide"
             aria-hidden={idx !== index}
+            inert={idx !== index}
             aria-roledescription="slide"
             aria-label={`${idx + 1} of ${count}`}
           >
             {item.media_type === "video" ? (
               <div className="carousel-video">
-                <VideoPlayer src={item.media_url} title={item.caption || undefined} />
+                <VideoPlayer src={item.media_url} poster={item.thumbnail_url} title={item.caption || undefined} />
               </div>
             ) : (
               <button

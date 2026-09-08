@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import Image from "next/image";
+import { announcePlayback, onOtherPlayback } from "@/lib/media/playback";
 
 // =============================================================================
 // AudioPlayer — a fully on-brand, reactive audio player for the "Sound" /
@@ -21,17 +22,8 @@ import Image from "next/image";
 //
 // Brand rules: full subtle bg + full matching border (no accent-line borders);
 // theme tokens only (the canvas reads --color-* live, so it adapts to themes).
-// Only one AudioPlayer plays at a time via a module-level registry.
+// Only one player (audio, video or take) plays at a time via lib/media/playback.
 // =============================================================================
-
-// --- Module-level "currently playing" coordination ---------------------------
-const activePlayers = new Set<() => void>();
-
-function pauseOthers(self: () => void) {
-  for (const pause of activePlayers) {
-    if (pause !== self) pause();
-  }
-}
 
 function formatTime(totalSeconds: number): string {
   if (!Number.isFinite(totalSeconds) || totalSeconds < 0) return "0:00";
@@ -114,6 +106,7 @@ export function AudioPlayer({
   durationSec,
   variant = "card",
 }: AudioPlayerProps): React.JSX.Element {
+  const playerId = useId();
   const audioRef = useRef<HTMLAudioElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -304,10 +297,7 @@ export function AudioPlayer({
 
   // Mount: register pause coordination, read colors, observe resize + theme.
   useEffect(() => {
-    const pause = () => {
-      audioRef.current?.pause();
-    };
-    activePlayers.add(pause);
+    const stopForOthers = onOtherPlayback(playerId, () => audioRef.current?.pause());
 
     readColors();
     ensureLoop();
@@ -332,7 +322,7 @@ export function AudioPlayer({
     }
 
     return () => {
-      activePlayers.delete(pause);
+      stopForOthers();
       resizeObs?.disconnect();
       themeObs?.disconnect();
       if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
@@ -345,7 +335,7 @@ export function AudioPlayer({
         // ignore teardown errors
       }
     };
-  }, [readColors, ensureLoop]);
+  }, [playerId, readColors, ensureLoop]);
 
   const togglePlay = useCallback(() => {
     const audio = audioRef.current;
@@ -353,14 +343,14 @@ export function AudioPlayer({
     if (audio.paused) {
       setupAudioGraph();
       void audioCtxRef.current?.resume();
-      pauseOthers(() => audio.pause());
+      announcePlayback(playerId);
       void audio.play().catch(() => {
         setIsPlaying(false);
       });
     } else {
       audio.pause();
     }
-  }, [setupAudioGraph]);
+  }, [playerId, setupAudioGraph]);
 
   const handleSeek = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const audio = audioRef.current;

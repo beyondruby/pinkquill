@@ -84,6 +84,7 @@ export function toPostProps(post: PostLike, overrides: Partial<PostProps> = {}):
       media_type: m.media_type,
       caption: m.caption ?? null,
       position: m.position ?? index,
+      thumbnail_url: m.thumbnail_url ?? null,
     })),
     stats: {
       // `undefined` = unknown; the engagement store fetches it.
