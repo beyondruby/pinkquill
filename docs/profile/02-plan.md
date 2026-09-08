@@ -473,3 +473,13 @@ Candidate changes, approved as one-sentence items first:
    icon-button style from `MobileHeader`.
 9. **1k** — cursor pagination changes feed ordering semantics slightly
    (strictly newest-first by `(created_at, id)`); confirm that is acceptable.
+10. **Private accounts at the database level** (found while preparing 1b).
+    Neither `posts_select_policy` nor the new `takes_select` has a
+    private-account clause: a private account's `public` posts and takes
+    are readable through the API by anyone, and appear in the home feed and
+    the takes feed. Only the profile page hides them, in the browser. The
+    1b policy mirrors posts exactly so the two content types agree. Decide
+    whether "private account" should mean "only accepted followers see any
+    of my content" server-side (one more clause in both policies, and the
+    home/takes feeds would stop showing private accounts' content to
+    non-followers) or keep today's behaviour.

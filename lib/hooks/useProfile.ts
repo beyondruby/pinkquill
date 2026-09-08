@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../supabase";
+import { PROFILE_CLIENT_COLUMNS } from "@/lib/profiles/columns";
 import { enrichPost, fetchUserPostFlags } from "@/lib/posts/enrich";
 import type { Profile, Post, FollowUser, FollowStatus, FollowRequest } from "../types";
 import { useUserEvent } from "@/components/providers/UserEventsProvider";
@@ -60,7 +61,7 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
       // Fetch profile
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
-        .select("*")
+        .select(PROFILE_CLIENT_COLUMNS)
         .eq("username", username)
         .abortSignal(signal)
         .single();

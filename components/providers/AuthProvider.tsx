@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
+import { PROFILE_CLIENT_COLUMNS } from "@/lib/profiles/columns";
 import { User, Session } from "@supabase/supabase-js";
 import { reportAuthDiagnostic } from "@/lib/diagnostics/authDiagnostics";
 import { isAbortError } from "@/lib/utils/retry";
@@ -30,7 +31,6 @@ interface Profile {
   id: string;
   username: string;
   display_name: string | null;
-  email: string | null;
   avatar_url: string | null;
   cover_url: string | null;
   bio: string | null;
@@ -117,7 +117,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const query = supabase
         .from("profiles")
-        .select("*")
+        .select(PROFILE_CLIENT_COLUMNS)
         .eq("id", userId);
       const { data, error } = await (signal ? query.abortSignal(signal) : query).single();
 
@@ -159,10 +159,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             id: authUser.id,
             username: username,
             display_name: displayName,
-            email: authUser.email?.toLowerCase() || null,
             avatar_url: '/defaultprofile.png',
           })
-          .select();
+          .select(PROFILE_CLIENT_COLUMNS);
         const { data, error } = await (signal ? query.abortSignal(signal) : query).single();
 
         if (!error) {
