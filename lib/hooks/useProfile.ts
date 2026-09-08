@@ -217,7 +217,7 @@ export function useProfile(
       }
 
       // Fetch counts and posts
-      const [followersResult, followingResult, postsData] = await Promise.all([
+      const [followersResult, followingResult, postsData, countsResult] = await Promise.all([
         supabase
           .from("follows")
           .select("*", { count: "exact", head: true })
@@ -231,24 +231,23 @@ export function useProfile(
           .eq("status", "accepted")
           .abortSignal(signal),
         postsQuery,
+        // Author totals from the server (P-9): every published post and every
+        // reaction on them, the same for every viewer and independent of how
+        // many rows this page happened to fetch.
+        supabase.rpc("get_profile_counts", { p_profile_id: profileData.id }).abortSignal(signal),
       ]);
 
       if (!mountedRef.current || signal.aborted) return;
 
-      const worksCount = postsData.data?.length || 0;
-
-      // Profile "admires" stat = every reaction received across these posts.
-      let totalAdmires = 0;
-      (postsData.data || []).forEach((post) => {
-        totalAdmires += Number((post as { reactions_count?: number | null }).reactions_count ?? 0);
-      });
+      const totals = (countsResult.data as { posts: number; admires: number }[] | null)?.[0];
+      if (countsResult.error) console.error("[useProfile] get_profile_counts:", countsResult.error.message);
 
       setProfile({
         ...profileData,
-        works_count: worksCount,
+        works_count: totals?.posts ?? postsData.data?.length ?? 0,
         followers_count: followersResult.count || 0,
         following_count: followingResult.count || 0,
-        admires_count: totalAdmires,
+        admires_count: totals?.admires ?? 0,
       });
 
       // Viewer flags + row → Post through the shared enrichment helper.
