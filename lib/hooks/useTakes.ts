@@ -2,11 +2,11 @@
 
 import type { ReactionType, ReactionCounts } from "@/lib/types";
 import { useState, useEffect, useCallback, useRef, type CSSProperties } from "react";
-import { submitReport } from "@/lib/reports";
 import { actionToast } from "@/lib/utils/toast";
 import { deleteOwnTake } from "@/lib/content-client";
 import { supabase } from "../supabase";
 import { followUserRecord, unfollowUserRecord } from "./useProfile";
+import { setTakeSaved, setTakeRelayed } from "@/lib/takes/interactions";
 import { sanitizePostgrestSearchTerm } from "../utils/postgrest";
 import { isAbortError } from "../utils/retry";
 
@@ -545,10 +545,7 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
     ));
 
     try {
-      const { error } = take.is_saved
-        ? await supabase.from("take_saves").delete().eq("take_id", takeId).eq("user_id", userId)
-        : await supabase.from("take_saves").insert({ take_id: takeId, user_id: userId });
-      if (error) throw error;
+      await setTakeSaved(takeId, userId, !take.is_saved);
     } catch {
       // Revert on error
       setTakes(prev => prev.map(t =>
@@ -578,11 +575,7 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
     ));
 
     try {
-      // The take_relays trigger notifies the author.
-      const { error } = take.is_relayed
-        ? await supabase.from("take_relays").delete().eq("take_id", takeId).eq("user_id", userId)
-        : await supabase.from("take_relays").insert({ take_id: takeId, user_id: userId });
-      if (error) throw error;
+      await setTakeRelayed(takeId, userId, !take.is_relayed);
     } catch {
       // Revert on error
       setTakes(prev => prev.map(t =>
@@ -618,20 +611,6 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
     }
   }, [userId]);
 
-  // Report take
-  const reportTake = useCallback(async (takeId: string, reason: string, details?: string) => {
-    if (!userId) return;
-
-    const take = takesRef.current.find(t => t.id === takeId);
-    const ok = await submitReport(
-      { type: "take", takeId, reportedUserId: take?.author_id ?? "" },
-      userId,
-      reason,
-      details,
-    );
-    if (!ok) throw new Error("Failed to submit report");
-  }, [userId]);
-
   return {
     takes,
     loading,
@@ -642,7 +621,6 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
     toggleSave,
     toggleRelay,
     deleteTake,
-    reportTake,
   };
 }
 

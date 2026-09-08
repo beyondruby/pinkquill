@@ -4,21 +4,10 @@ import dynamic from "next/dynamic";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import type { ModalPost } from "@/components/feed/PostCard/types";
 import type { PostDetailActions } from "./usePostDetailActions";
+import { BLOCK_COPY, DELETE_POST_COPY } from "./copy";
 
 const ShareModal = dynamic(() => import("@/components/ui/ShareModal"), { ssr: false });
 const ReportModal = dynamic(() => import("@/components/ui/ReportModal"), { ssr: false });
-
-export const BLOCK_COPY = {
-  title: (handle: string) => `Close the door on @${handle}?`,
-  description: "Their posts vanish from your feed and yours from theirs. They won't be able to follow you, message you, or knock again — and we won't tell them.",
-  confirm: "Block",
-};
-
-export const DELETE_POST_COPY = {
-  title: "Erase this from your studio?",
-  description: "The post, its admires, and the conversation around it will fade for good. This page won't remember it.",
-  confirm: "Erase it",
-};
 
 interface Props {
   post: ModalPost;

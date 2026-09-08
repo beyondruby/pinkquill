@@ -66,8 +66,8 @@ export function PostBody({ post, palette, titleAs = "h2" }: Props) {
     <>
       {post.type === "journal" && post.createdAt && (
         <div className={`journal-header mb-8 ${hasBackground ? text : hasDarkBg ? "text-white" : ""}`}>
-          <div className="flex items-center gap-4 mb-4">
-            <h2 className={`font-display text-3xl md:text-4xl font-normal tracking-tight ${hasBackground ? text : hasDarkBg ? "text-white" : "text-purple-primary"}`}>
+          <div className="journal-date-row flex items-center gap-4 mb-4">
+            <h2 className={`journal-date-title font-display text-3xl md:text-4xl font-normal tracking-tight ${hasBackground ? text : hasDarkBg ? "text-white" : "text-purple-primary"}`}>
               {formatDate(post.createdAt)}
             </h2>
             <span
@@ -90,7 +90,7 @@ export function PostBody({ post, palette, titleAs = "h2" }: Props) {
           </div>
 
           {(post.post_location || meta?.weather || meta?.temperature || meta?.mood) && (
-            <div className={`flex flex-wrap items-center gap-x-6 gap-y-3 mb-5 ${hasBackground ? muted : hasDarkBg ? "text-white/80" : "text-ink/70"}`}>
+            <div className={`journal-meta-row flex flex-wrap items-center gap-x-6 gap-y-3 mb-5 ${hasBackground ? muted : hasDarkBg ? "text-white/80" : "text-ink/70"}`}>
               {post.post_location && (
                 <div className="flex items-center gap-2">
                   <LocationGlyph className={`w-4 h-4 ${iconTone}`} />
@@ -129,7 +129,7 @@ export function PostBody({ post, palette, titleAs = "h2" }: Props) {
           )}
 
           <div
-            className={`h-px w-full ${
+            className={`journal-divider h-px w-full ${
               hasBackground
                 ? hasDarkBg
                   ? "bg-gradient-to-r from-white/25 via-white/10 to-transparent"
@@ -174,7 +174,7 @@ export function PostBody({ post, palette, titleAs = "h2" }: Props) {
 
       {post.title && (
         <Title
-          className={`font-display text-[1.5rem] md:text-[2.2rem] font-semibold mb-4 md:mb-5 leading-[1.2] tracking-tight ${text} ${
+          className={`post-detail-title font-display text-[1.5rem] md:text-[2.2rem] font-semibold mb-4 md:mb-5 leading-[1.2] tracking-tight ${text} ${
             post.type === "poem" || textAlignment === "center" ? "text-center" : alignmentClass
           }`}
         >

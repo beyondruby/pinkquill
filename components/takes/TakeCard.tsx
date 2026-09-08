@@ -2,9 +2,11 @@
 
 import "./takes.css";
 import { formatCount } from "@/lib/utils/format";
+import { useReportFlow } from "@/components/feed/post-detail/flows";
+import { DELETE_TAKE_COPY } from "@/components/feed/post-detail/copy";
+import { ContentWarningOverlay } from "@/components/feed/post-detail/ContentWarningOverlay";
 
 import { useState, useCallback, useRef, useEffect, useMemo, memo } from "react";
-import { actionToast } from "@/lib/utils/toast";
 import Link from "next/link";
 import TakePlayer from "./TakePlayer";
 import ReactionPicker from "@/components/feed/ReactionPicker";
@@ -33,7 +35,6 @@ interface TakeCardProps {
   onToggleFollow: () => void;
   onOpenComments: () => void;
   onDelete?: () => void;
-  onReport?: (reason: string, details?: string) => Promise<void>;
   onHide?: () => void;
 }
 
@@ -57,7 +58,6 @@ function TakeCard({
   onToggleFollow,
   onOpenComments,
   onDelete,
-  onReport,
   onHide,
 }: TakeCardProps) {
   const [showHeart, setShowHeart] = useState(false);
@@ -69,10 +69,7 @@ function TakeCard({
   const [captionExpanded, setCaptionExpanded] = useState(false);
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showReportModal, setShowReportModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
-  const [reportSubmitting, setReportSubmitting] = useState(false);
-  const [reportSubmitted, setReportSubmitted] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showContent, setShowContent] = useState(!take.content_warning);
   const { startWatching, stopWatching, recordLoop, recordCompletion } = useTrackTakeView(take.id, take.duration, "feed");
@@ -145,22 +142,7 @@ function TakeCard({
     setShowDeleteConfirm(false);
   };
 
-  const handleReport = async (reason: string, details?: string) => {
-    if (!onReport) return;
-    setReportSubmitting(true);
-    try {
-      await onReport(reason, details);
-      setReportSubmitted(true);
-      setTimeout(() => {
-        setShowReportModal(false);
-        setReportSubmitted(false);
-      }, 2000);
-    } catch (err) {
-      console.error("Failed to report take:", err);
-      actionToast.reportError();
-    }
-    setReportSubmitting(false);
-  };
+  const report = useReportFlow({ type: "take", takeId: take.id, reportedUserId: take.author_id });
 
   return (
     <div className="tiktok-take">
@@ -199,25 +181,7 @@ function TakeCard({
 
         {/* Content Warning Overlay */}
         {take.content_warning && !showContent && (
-          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/90">
-            <div className="flex flex-col items-center gap-4 p-6 max-w-[280px] text-center">
-              <div className="w-14 h-14 rounded-full bg-amber-500/20 flex items-center justify-center">
-                <svg className="w-7 h-7 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-              </div>
-              <div>
-                <h3 className="font-ui text-base font-semibold text-white mb-1">Content Warning</h3>
-                <p className="font-ui text-sm text-white/70">{take.content_warning}</p>
-              </div>
-              <button
-                onClick={() => setShowContent(true)}
-                className="px-6 py-2.5 rounded-full font-ui text-sm font-medium text-white bg-surface/20 hover:bg-surface/30 transition-colors"
-              >
-                Show Content
-              </button>
-            </div>
-          </div>
+          <ContentWarningOverlay variant="video" warning={take.content_warning} onShow={() => setShowContent(true)} className="bg-black/90" />
         )}
 
         {/* Bottom gradient */}
@@ -323,7 +287,7 @@ function TakeCard({
                 },
                 {
                   label: "Report",
-                  onSelect: () => setShowReportModal(true),
+                  onSelect: report.show,
                   hidden: isOwnTake,
                   tone: "danger",
                   dividerBefore: true,
@@ -472,21 +436,17 @@ function TakeCard({
         isOpen={showDeleteConfirm}
         onClose={() => setShowDeleteConfirm(false)}
         onConfirm={handleDelete}
-        title="Delete Take?"
-        description="This action cannot be undone. This will permanently delete your Take and remove all associated data including comments, reactions, and saves."
-        confirmText="Delete"
+        title={DELETE_TAKE_COPY.title}
+        description={DELETE_TAKE_COPY.description}
+        confirmText={DELETE_TAKE_COPY.confirm}
         isDanger
         loading={deleting}
       />
 
       {/* Report Modal */}
-      <ReportModal
-        isOpen={showReportModal}
-        onClose={() => setShowReportModal(false)}
-        onSubmit={handleReport}
-        submitting={reportSubmitting}
-        submitted={reportSubmitted}
-      />
+      {report.open && (
+        <ReportModal isOpen={report.open} onClose={report.hide} onSubmit={report.submit} submitting={report.submitting} submitted={report.submitted} />
+      )}
 
       {/* Share Modal */}
       <ShareModal

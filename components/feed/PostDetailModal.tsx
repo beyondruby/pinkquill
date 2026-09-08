@@ -13,7 +13,7 @@ import { PostDetailHeader } from "./post-detail/PostDetailHeader";
 import { PostBody } from "./post-detail/PostBody";
 import { PostMediaGallery } from "./post-detail/PostMediaGallery";
 import { ContentWarningOverlay } from "./post-detail/ContentWarningOverlay";
-import { PostActionRow } from "./post-detail/PostActionRow";
+import { DetailActionRow } from "./post-detail/DetailActionRow";
 import { DiscussionBody } from "./post-detail/DiscussionBody";
 import { PostDetailDialogs } from "./post-detail/PostDetailDialogs";
 
@@ -69,7 +69,7 @@ function PostDetailModalComponent({
   return (
     <>
       <Modal isOpen={isOpen} onClose={onClose}>
-        <div className="flex flex-col md:flex-row h-full w-full relative">
+        <div className="post-detail-modal flex flex-col md:flex-row h-full w-full relative">
           {hasBackground && (
             <div
               className="absolute inset-0 rounded-3xl"
@@ -114,8 +114,9 @@ function PostDetailModalComponent({
                 onNavigate={onClose}
               />
 
-              <PostActionRow
-                postId={post.id}
+              <DetailActionRow
+                kind="post"
+                contentId={post.id}
                 actions={actions}
                 onComment={() => setShowComments(true)}
                 hasDarkBg={hasDarkBg}
@@ -126,30 +127,34 @@ function PostDetailModalComponent({
 
           {showComments && (
             <div className="discussion-panel absolute md:relative inset-0 md:inset-auto w-full md:w-auto bg-elevated z-40">
-              <div className="p-4 md:p-5 border-b border-border-light bg-elevated/60 flex justify-between items-center">
+              <div className="discussion-header p-4 md:p-5 border-b border-border-light bg-elevated/60 flex justify-between items-center">
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setShowComments(false)}
                     aria-label="Close comments"
-                    className="md:hidden w-9 h-9 rounded-full flex items-center justify-center text-muted hover:text-ink transition-colors"
+                    className="discussion-close md:hidden w-9 h-9 rounded-full flex items-center justify-center text-muted hover:text-ink transition-colors"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                     </svg>
                   </button>
-                  <span className="font-ui text-[0.8rem] font-medium text-muted">Discussion</span>
+                  <span className="discussion-title font-ui text-[0.8rem] font-medium text-muted">Discussion</span>
                 </div>
                 <button
                   onClick={() => setShowComments(false)}
                   aria-label="Close comments"
-                  className="hidden md:flex w-9 h-9 rounded-full items-center justify-center text-muted hover:text-accent-2 hover:rotate-90 transition-colors"
+                  className="discussion-close hidden md:flex w-9 h-9 rounded-full items-center justify-center text-muted hover:text-accent-2 hover:rotate-90 transition-colors"
                 >
                   {icons.close}
                 </button>
               </div>
               <DiscussionBody
-                postId={post.id}
-                actions={actions}
+                kind="post"
+                contentId={post.id}
+                discussion={actions.comments}
+                currentUserId={actions.user?.id}
+                avatarUrl={actions.profile?.avatar_url}
+                canDeleteAny={actions.isOwner}
                 canModerateDeleteComments={canModerateDeleteComments}
                 onModeratorDeleteComment={onModeratorDeleteComment}
               />

@@ -12,7 +12,6 @@ import { useModal } from "@/components/providers/ModalProvider";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Take, RelayedTake } from "@/lib/hooks/useTakes";
 import { useReaction } from "@/lib/engagement/reactions";
-import { useBlock } from "@/lib/hooks/useInteractions";
 import { deleteOwnTake } from "@/lib/content-client";
 import ShareModal from "@/components/ui/ShareModal";
 import ReportModal from "@/components/ui/ReportModal";
@@ -20,11 +19,11 @@ import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import ActionMenu, { type ActionMenuItem } from "@/components/ui/ActionMenu";
 import ReactionPicker from "@/components/feed/ReactionPicker";
 import CommentCount from "@/components/feed/CommentCount";
-import { supabase } from "@/lib/supabase";
-import { submitReport } from "@/lib/reports";
+import { setTakeSaved, setTakeRelayed } from "@/lib/takes/interactions";
+import { useReportFlow, useBlockFlow } from "@/components/feed/post-detail/flows";
+import { BLOCK_COPY, DELETE_TAKE_COPY } from "@/components/feed/post-detail/copy";
 import { actionToast } from "@/lib/utils/toast";
 import {
-  HeartIcon,
   CommentIcon,
   RelayIcon,
   ShareIcon,
@@ -49,7 +48,6 @@ interface TakePostCardProps {
 export default function TakePostCard({ take, isRelayed, relayedBy, variant = "feed", onTakeDeleted }: TakePostCardProps) {
   const { openTakeModal, subscribeToTakeUpdates, notifyTakeUpdate } = useModal();
   const { user } = useAuth();
-  const { blockUser } = useBlock();
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const [isHovering, setIsHovering] = useState(false);
@@ -63,11 +61,6 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
   const [showShareModal, setShowShareModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [showReportModal, setShowReportModal] = useState(false);
-  const [reportSubmitting, setReportSubmitting] = useState(false);
-  const [reportSubmitted, setReportSubmitted] = useState(false);
-  const [showBlockConfirm, setShowBlockConfirm] = useState(false);
-  const [blockLoading, setBlockLoading] = useState(false);
 
   const isOwner = user && user.id === take.author_id;
   const takeUrl = typeof window !== 'undefined' ? `${window.location.origin}/take/${take.id}` : `/take/${take.id}`;
@@ -131,10 +124,7 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
     });
 
     try {
-      const { error } = newIsSaved
-        ? await supabase.from("take_saves").insert({ take_id: take.id, user_id: user.id })
-        : await supabase.from("take_saves").delete().eq("take_id", take.id).eq("user_id", user.id);
-      if (error) throw error;
+      await setTakeSaved(take.id, user.id, newIsSaved);
     } catch {
       setIsSaved(!newIsSaved);
       notifyTakeUpdate({ takeId: take.id, field: "saves", isActive: !newIsSaved, countChange: 0 });
@@ -160,10 +150,7 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
     });
 
     try {
-      const { error } = newIsRelayed
-        ? await supabase.from("take_relays").insert({ take_id: take.id, user_id: user.id })
-        : await supabase.from("take_relays").delete().eq("take_id", take.id).eq("user_id", user.id);
-      if (error) throw error;
+      await setTakeRelayed(take.id, user.id, newIsRelayed);
     } catch {
       setIsRelayedState(!newIsRelayed);
       setRelayCount(prev => prev - countChange);
@@ -188,52 +175,8 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
     }
   };
 
-  const handleReport = async (reason: string, details?: string) => {
-    if (!user) return;
-
-    setReportSubmitting(true);
-    try {
-      const ok = await submitReport(
-        { type: "take", takeId: take.id, reportedUserId: take.author_id },
-        user.id,
-        reason,
-        details,
-      );
-
-      if (!ok) {
-        actionToast.reportError();
-        setReportSubmitting(false);
-        return;
-      }
-
-      setReportSubmitted(true);
-      actionToast.reportSubmitted();
-      setTimeout(() => {
-        setShowReportModal(false);
-        setReportSubmitted(false);
-      }, 2000);
-    } catch (err) {
-      console.error("Failed to submit report:", err);
-      actionToast.reportError();
-    }
-    setReportSubmitting(false);
-  };
-
-  const handleBlockUser = async () => {
-    if (!user) return;
-
-    setBlockLoading(true);
-    const result = await blockUser(user.id, take.author_id);
-    if (result.success) {
-      setShowBlockConfirm(false);
-      if (onTakeDeleted) {
-        onTakeDeleted(take.id);
-      }
-    } else {
-      actionToast.blockError();
-    }
-    setBlockLoading(false);
-  };
+  const report = useReportFlow({ type: "take", takeId: take.id, reportedUserId: take.author_id });
+  const block = useBlockFlow(take.author_id, () => onTakeDeleted?.(take.id));
 
   const takeMenuItems: ActionMenuItem[] = isOwner
     ? [
@@ -248,12 +191,12 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
       ? [
           {
             label: `Block @${take.author.username}`,
-            onSelect: () => setShowBlockConfirm(true),
+            onSelect: block.show,
             icon: <BlockIcon />,
           },
           {
             label: "Report",
-            onSelect: () => setShowReportModal(true),
+            onSelect: report.show,
             icon: <FlagIcon />,
             tone: "danger",
             dividerBefore: true,
@@ -463,64 +406,29 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
         isOpen={showDeleteConfirm}
         onClose={() => setShowDeleteConfirm(false)}
         onConfirm={handleDelete}
-        title="Delete Take?"
-        description="This action cannot be undone. This will permanently delete your take and remove all associated data including comments and reactions."
-        confirmText="Delete"
+        title={DELETE_TAKE_COPY.title}
+        description={DELETE_TAKE_COPY.description}
+        confirmText={DELETE_TAKE_COPY.confirm}
         isDanger
         loading={deleting}
       />
 
       {/* Report Modal */}
-      {showReportModal && (
-        <ReportModal
-          isOpen={showReportModal}
-          onClose={() => setShowReportModal(false)}
-          onSubmit={handleReport}
-          submitting={reportSubmitting}
-          submitted={reportSubmitted}
-        />
+      {report.open && (
+        <ReportModal isOpen={report.open} onClose={report.hide} onSubmit={report.submit} submitting={report.submitting} submitted={report.submitted} />
       )}
 
-      {/* Block Confirmation Modal */}
-      {showBlockConfirm && (
-        <>
-          <div
-            className="fixed inset-0 bg-black/50 z-[1000]"
-            onClick={() => !blockLoading && setShowBlockConfirm(false)}
-          />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] bg-surface rounded-2xl shadow-2xl z-[1001] p-6">
-            <h3 className="font-display text-xl text-ink mb-3">
-              Block @{take.author.username}?
-            </h3>
-            <p className="font-body text-sm text-muted mb-6">
-              You won&apos;t see their posts anymore. They won&apos;t be able to see your posts, follow you, or message you.
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setShowBlockConfirm(false)}
-                disabled={blockLoading}
-                className="px-5 py-2.5 rounded-full font-ui text-sm text-muted bg-skeleton/70 hover:bg-skeleton transition-colors disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleBlockUser}
-                disabled={blockLoading}
-                className="px-5 py-2.5 rounded-full font-ui text-sm text-white bg-red-500 hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center gap-2"
-              >
-                {blockLoading ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Blocking...
-                  </>
-                ) : (
-                  "Block"
-                )}
-              </button>
-            </div>
-          </div>
-        </>
-      )}
+      {/* Block Confirmation Modal — same dialog and copy as every other surface (V-4) */}
+      <ConfirmationModal
+        isOpen={block.open}
+        onClose={block.hide}
+        onConfirm={block.confirm}
+        title={BLOCK_COPY.title(take.author.username)}
+        description={BLOCK_COPY.description}
+        confirmText={BLOCK_COPY.confirm}
+        isDanger
+        loading={block.loading}
+      />
     </>
   );
 }

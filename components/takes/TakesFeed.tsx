@@ -42,7 +42,6 @@ export default function TakesFeed({
     toggleSave,
     toggleRelay,
     deleteTake,
-    reportTake,
   } = useTakes(user?.id, { communityId, soundId, authorId, initialTakeId });
 
   const visibleTakes = useMemo(
@@ -373,7 +372,6 @@ export default function TakesFeed({
                 onToggleFollow={() => toggleFollow(take.author_id)}
                 onOpenComments={() => handleOpenComments(take.id)}
                 onDelete={() => deleteTake(take.id)}
-                onReport={(reason, details) => reportTake(take.id, reason, details)}
                 onHide={() => handleHideTake(take.id, index)}
               />
             ) : (

@@ -22,7 +22,7 @@ import { PostDetailHeader } from "@/components/feed/post-detail/PostDetailHeader
 import { PostBody } from "@/components/feed/post-detail/PostBody";
 import { PostMediaGallery } from "@/components/feed/post-detail/PostMediaGallery";
 import { ContentWarningOverlay } from "@/components/feed/post-detail/ContentWarningOverlay";
-import { PostActionRow } from "@/components/feed/post-detail/PostActionRow";
+import { DetailActionRow } from "@/components/feed/post-detail/DetailActionRow";
 import { DiscussionBody } from "@/components/feed/post-detail/DiscussionBody";
 import { PostDetailDialogs } from "@/components/feed/post-detail/PostDetailDialogs";
 
@@ -463,7 +463,7 @@ export default function PostPage() {
                 />
               </div>
 
-              <PostActionRow postId={post.id} actions={actions} onComment={focusDiscussion} hasDarkBg={false} className="px-4 md:px-6 py-3 md:py-4 border-t border-border-light" />
+              <DetailActionRow kind="post" contentId={post.id} actions={actions} onComment={focusDiscussion} className="px-4 md:px-6 py-3 md:py-4 border-t border-border-light" />
             </article>
           </div>
 
@@ -477,8 +477,12 @@ export default function PostPage() {
                 </h2>
               </div>
               <DiscussionBody
-                postId={post.id}
-                actions={actions}
+                kind="post"
+                contentId={post.id}
+                discussion={actions.comments}
+                currentUserId={actions.user?.id}
+                avatarUrl={actions.profile?.avatar_url}
+                canDeleteAny={actions.isOwner}
                 listClassName="p-4 max-h-[calc(100vh-320px)] overflow-y-auto"
                 composerClassName="p-3 md:p-4 border-t border-border-light bg-surface sticky bottom-0 z-10"
                 composerId="post-discussion-composer"

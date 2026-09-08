@@ -27,7 +27,7 @@ export function PostDetailHeader({ post, palette, menuItems, onNavigate, onBack,
   const { hasBackground, hasDarkBg, text, muted } = palette;
   const handle = post.author.handle.replace("@", "");
   return (
-    <div className={`post-detail-header flex items-center gap-3 md:gap-4 ${className}`}>
+    <div className={`post-detail-header flex items-center gap-3 md:gap-4 ${hasBackground && hasDarkBg ? "is-dark" : ""} ${className}`}>
       {onBack && (
         <button
           onClick={onBack}
@@ -47,19 +47,19 @@ export function PostDetailHeader({ post, palette, menuItems, onNavigate, onBack,
           alt={post.author.name}
           width={56}
           height={56}
-          className={`w-10 h-10 md:w-14 md:h-14 rounded-full object-cover border-2 md:border-[3px] shadow-lg hover:scale-110 transition-transform ${
+          className={`post-detail-avatar w-10 h-10 md:w-14 md:h-14 rounded-full object-cover border-2 md:border-[3px] shadow-lg hover:scale-110 transition-transform ${
             hasDarkBg ? "border-surface/30" : "border-white"
           }`}
           sizes="56px"
           quality={80}
         />
       </Link>
-      <div className="flex flex-col gap-0.5 md:gap-1 flex-1 min-w-0">
+      <div className="post-detail-author flex flex-col gap-0.5 md:gap-1 flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <Link
             href={`/studio/${handle}`}
             onClick={onNavigate}
-            className={`font-ui text-[0.95rem] md:text-[1.1rem] font-medium transition-colors truncate ${
+            className={`post-detail-name font-ui text-[0.95rem] md:text-[1.1rem] font-medium transition-colors truncate ${
               hasBackground ? `${text} hover:opacity-80` : "text-ink hover:text-accent"
             }`}
           >
@@ -70,7 +70,7 @@ export function PostDetailHeader({ post, palette, menuItems, onNavigate, onBack,
             <PostTypeChip type={post.type} variant="label" size="md" className="text-inherit" />
           </span>
         </div>
-        <span className={`font-ui text-[0.75rem] md:text-[0.85rem] ${muted}`}>{post.timeAgo}</span>
+        <span className={`post-detail-time font-ui text-[0.75rem] md:text-[0.85rem] ${muted}`}>{post.timeAgo}</span>
       </div>
       {discussion && (
         <button

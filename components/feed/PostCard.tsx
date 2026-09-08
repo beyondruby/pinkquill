@@ -21,7 +21,7 @@ const ShareModal = dynamic(() => import("@/components/ui/ShareModal"), { ssr: fa
 const ReportModal = dynamic(() => import("@/components/ui/ReportModal"), { ssr: false });
 const SendToDMModal = dynamic(() => import("@/components/messages/SendToDMModal"), { ssr: false });
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
-import { BLOCK_COPY, DELETE_POST_COPY } from "@/components/feed/post-detail/PostDetailDialogs";
+import { BLOCK_COPY, DELETE_POST_COPY } from "@/components/feed/post-detail/copy";
 import ActionMenu, { type ActionMenuItem } from "@/components/ui/ActionMenu";
 import Button from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Loading";

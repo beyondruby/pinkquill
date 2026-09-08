@@ -5,11 +5,18 @@ import { usePathname } from "next/navigation";
 import CommentItem from "@/components/feed/CommentItem";
 import CommentComposer from "@/components/feed/CommentComposer";
 import { CommentSkeleton } from "@/components/ui/Skeleton";
-import type { PostDetailActions } from "./usePostDetailActions";
+import type { EngagementKind } from "@/lib/engagement/store";
+import type { DiscussionApi } from "./flows";
 
 interface Props {
-  postId: string;
-  actions: PostDetailActions;
+  kind: EngagementKind;
+  contentId: string;
+  discussion: DiscussionApi;
+  /** Signed-in viewer; null renders the sign-in prompt instead of the composer. */
+  currentUserId?: string | null;
+  avatarUrl?: string | null;
+  /** The content's author (and moderators) may delete any comment. */
+  canDeleteAny?: boolean;
   canModerateDeleteComments?: boolean;
   onModeratorDeleteComment?: (commentId: string, reason?: string) => Promise<void>;
   listClassName?: string;
@@ -18,18 +25,21 @@ interface Props {
   composerId?: string;
 }
 
-/** Comment list, load-more, composer or sign-in prompt (V-52: five copies). */
+/** Comment list, load-more, composer or sign-in prompt — posts and takes (V-52: five copies). */
 export function DiscussionBody({
-  postId,
-  actions,
+  kind,
+  contentId,
+  discussion: comments,
+  currentUserId,
+  avatarUrl,
+  canDeleteAny = false,
   canModerateDeleteComments,
   onModeratorDeleteComment,
-  listClassName = "flex-1 overflow-y-auto p-6",
+  listClassName = "discussion-list flex-1 overflow-y-auto p-6",
   composerClassName = "p-3 md:p-4 bg-elevated border-t border-border-light",
   composerId,
 }: Props) {
   const pathname = usePathname();
-  const { user, profile, isOwner, comments } = actions;
   const signInHref = `/login?redirect=${encodeURIComponent(pathname || "/")}`;
   return (
     <>
@@ -56,10 +66,10 @@ export function DiscussionBody({
               <CommentItem
                 key={comment.id}
                 comment={comment}
-                kind="post"
-                contentId={postId}
-                currentUserId={user?.id}
-                canDeleteAny={isOwner}
+                kind={kind}
+                contentId={contentId}
+                currentUserId={currentUserId ?? undefined}
+                canDeleteAny={canDeleteAny}
                 onLike={comments.like}
                 onReply={comments.reply}
                 onLoadReplies={comments.fetchReplies}
@@ -81,12 +91,12 @@ export function DiscussionBody({
         )}
       </div>
 
-      {user ? (
-        <div className={composerClassName} id={composerId}>
-          <CommentComposer value={comments.text} onChange={comments.setText} onSubmit={comments.submit} submitting={comments.submitting} showAvatar avatarUrl={profile?.avatar_url} />
+      {currentUserId ? (
+        <div className={`discussion-composer ${composerClassName}`} id={composerId}>
+          <CommentComposer value={comments.text} onChange={comments.setText} onSubmit={comments.submit} submitting={comments.submitting} showAvatar avatarUrl={avatarUrl} />
         </div>
       ) : (
-        <div className="p-4 bg-elevated border-t border-border-light text-center">
+        <div className="discussion-composer p-4 bg-elevated border-t border-border-light text-center">
           <p className="font-ui text-[0.9rem] text-muted">
             <Link href={signInHref} className="text-purple-primary hover:underline">Sign in</Link> to comment
           </p>

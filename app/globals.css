@@ -2090,11 +2090,15 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 }
 
 /* ================================================
-   MOBILE POST DETAIL MODAL - COMPLETE REDESIGN
-   Only affects screens below 768px (md breakpoint)
+   MOBILE POST DETAIL MODAL
+   Screens below 768px. Every rule is keyed on a class the shared
+   post-detail components set on purpose (profile audit 2f, V-51): the old
+   block matched Tailwind utility strings, so any class edit silently
+   switched a rule off, and the shared components now also render the
+   /post/[id] page, which must not get the modal's fixed bars. Everything is
+   scoped to `.post-detail-modal` except the base modal shell.
    ================================================ */
 @media (max-width: 767px) {
-  /* Mobile Modal Slide-up Animation */
   @keyframes mobileSlideUp {
     from {
       transform: translateY(100%);
@@ -2106,13 +2110,11 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
     }
   }
 
-  /* Override base modal for mobile - full screen */
-  .fixed.inset-0.bg-black\/90 {
+  /* Base modal shell — full screen, slide from bottom (post and take modals) */
+  .pq-modal-backdrop {
     background: rgba(0, 0, 0, 0.98) !important;
   }
-
-  /* Mobile modal card - full screen, slide from bottom */
-  .fixed.inset-0.bg-black\/90 > div {
+  .pq-modal-card {
     width: 100% !important;
     height: 100% !important;
     max-width: 100% !important;
@@ -2121,24 +2123,21 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
     animation: mobileSlideUp 0.35s cubic-bezier(0.32, 0.72, 0, 1) forwards !important;
   }
 
-  /* Mobile content scrollable area */
-  .post-detail-content {
+  .post-detail-modal .post-detail-content {
     height: 100% !important;
     max-height: 100vh !important;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
     overflow-y: auto !important;
   }
-
-  /* Mobile content wrapper */
-  .post-detail-wrapper {
+  .post-detail-modal .post-detail-wrapper {
     padding: 0 !important;
-    padding-bottom: calc(110px + env(safe-area-inset-bottom)) !important; /* Space for bottom action bar + safe area */
+    padding-bottom: calc(110px + env(safe-area-inset-bottom)) !important; /* room for the fixed action bar */
     min-height: 100%;
   }
 
-  /* Mobile header - Sticky app-like top bar */
-  .post-detail-header {
+  /* Sticky app-like top bar */
+  .post-detail-modal .post-detail-header {
     position: sticky !important;
     top: 0 !important;
     z-index: 30 !important;
@@ -2148,145 +2147,98 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
     gap: 8px !important;
     border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
   }
-
-  /* Mobile header with dark background */
-  .post-detail-header[class*="border-white"] {
+  .post-detail-modal .post-detail-header.is-dark {
     background: rgba(30, 30, 30, 0.95) !important;
     backdrop-filter: blur(20px) !important;
     border-bottom-color: rgba(255, 255, 255, 0.1) !important;
   }
-
-  /* Mobile author avatar - smaller on mobile */
-  .post-detail-header img.rounded-full {
+  .post-detail-modal .post-detail-avatar {
     width: 36px !important;
     height: 36px !important;
     border-width: 2px !important;
   }
-
-  /* Mobile author info */
-  .post-detail-header .flex.flex-col {
+  .post-detail-modal .post-detail-author {
     gap: 2px !important;
     flex: 1;
     min-width: 0;
   }
-
-  .post-detail-header .font-ui.font-medium {
+  .post-detail-modal .post-detail-name {
     font-size: 0.95rem !important;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
-
-  .post-detail-header .font-ui.text-\[0\.75rem\] {
+  .post-detail-modal .post-detail-time {
     font-size: 0.8rem !important;
   }
 
-  /* Mobile discussion button - icon only */
-  .mobile-discussion-btn {
-    flex-shrink: 0 !important;
-  }
-
-  .mobile-discussion-btn svg {
-    width: 22px !important;
-    height: 22px !important;
-  }
-
-  /* Mobile journal header */
-  .journal-header {
+  /* Journal header */
+  .post-detail-modal .journal-header {
     padding: 16px !important;
     margin-bottom: 0 !important;
     background: linear-gradient(180deg, color-mix(in srgb, var(--color-purple-primary) 4%, transparent) 0%, transparent 100%);
   }
-
-  .journal-header h2.font-display {
+  .post-detail-modal .journal-date-title {
     font-size: 1.5rem !important;
     line-height: 1.3 !important;
   }
-
-  .journal-header .flex.items-center.gap-4 {
+  .post-detail-modal .journal-date-row {
     gap: 10px !important;
     flex-wrap: wrap;
   }
-
-  .journal-header .flex.flex-wrap.items-center {
+  .post-detail-modal .journal-meta-row {
     gap: 8px 16px !important;
   }
-
-  /* Mobile post content area */
-  .post-detail-wrapper .flex-1.relative {
-    padding: 16px !important;
+  .post-detail-modal .journal-divider {
+    margin: 12px 16px !important;
+    width: calc(100% - 32px) !important;
   }
 
-  /* Mobile post title */
-  .post-detail-wrapper h2.font-display {
+  /* Body */
+  .post-detail-modal .post-detail-wrapper > .flex-1.relative {
+    padding: 16px !important;
+  }
+  .post-detail-modal .post-detail-title {
     font-size: 1.3rem !important;
     margin-bottom: 14px !important;
     line-height: 1.35 !important;
   }
-
-  /* Mobile post content text */
-  .post-detail-wrapper .font-body.post-content {
+  .post-detail-modal .post-content {
     font-size: 0.95rem !important;
     line-height: 1.7 !important;
   }
-
-  /* Mobile Spotify embed */
-  .post-detail-wrapper iframe[src*="spotify"] {
+  .post-detail-modal iframe[src*="spotify"] {
     height: 80px !important;
   }
 
-  /* Mobile media gallery */
-  .post-detail-wrapper .mt-4.pb-6,
-  .post-detail-wrapper .mt-6.pb-6 {
+  /* Media gallery */
+  .post-detail-modal .post-media-gallery {
     margin-top: 12px !important;
     padding: 0 !important;
     padding-bottom: 40px !important;
   }
-
-  .post-detail-wrapper .relative.group.rounded-lg.overflow-hidden {
+  .post-detail-modal .post-media-frame {
     border-radius: 10px !important;
     margin: 0 !important;
   }
-
-  .post-detail-wrapper .relative.group.rounded-lg img,
-  .post-detail-wrapper .relative.group.rounded-lg video {
+  .post-detail-modal .post-media-frame img,
+  .post-detail-modal .post-media-frame video {
     max-height: 260px !important;
   }
-
-  /* Mobile thumbnail strip */
-  .post-detail-wrapper .flex.gap-2.justify-center.mt-4 {
+  .post-detail-modal .post-media-thumbs {
     margin-top: 10px !important;
     margin-bottom: 32px !important;
     gap: 6px !important;
     padding: 0;
   }
-
-  .post-detail-wrapper .flex.gap-2.justify-center.mt-4 button {
+  .post-detail-modal .post-media-thumb {
     width: 44px !important;
     height: 44px !important;
     border-radius: 6px !important;
   }
 
-  /* Mobile tags section */
-  .post-tags-section {
-    padding: 12px 16px !important;
-    margin: 0 !important;
-  }
-
-  /* Mobile divider */
-  .post-detail-wrapper .h-px.w-full {
-    margin: 12px 16px !important;
-    width: calc(100% - 32px) !important;
-  }
-
-  /* Mobile metadata row */
-  .post-detail-wrapper .flex.items-center.gap-4.flex-wrap {
-    padding: 0 16px 12px !important;
-    gap: 10px !important;
-  }
-
-  /* Mobile action bar - Fixed at bottom like native app */
-  .post-actions-bar {
+  /* Action bar fixed at the bottom like a native app */
+  .post-detail-modal .post-actions-bar {
     position: fixed !important;
     bottom: 0 !important;
     left: 0 !important;
@@ -2302,17 +2254,13 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
     flex-wrap: nowrap !important;
     gap: 6px !important;
   }
-
-  /* Mobile action bar with dark bg */
-  .post-actions-bar.dark-bg {
+  .post-detail-modal .post-actions-bar.dark-bg {
     background: rgba(25, 25, 25, 0.98) !important;
     border-top-color: rgba(255, 255, 255, 0.1) !important;
     backdrop-filter: blur(20px) !important;
   }
-
-  /* Mobile action buttons - Large touch targets */
-  .post-actions-bar button,
-  .post-actions-bar > div {
+  .post-detail-modal .post-actions-bar button,
+  .post-detail-modal .post-actions-bar > div {
     min-width: 44px !important;
     min-height: 44px !important;
     flex: 1;
@@ -2321,30 +2269,26 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
     align-items: center !important;
     justify-content: center !important;
   }
-
-  .post-actions-bar .flex.items-center.gap-1\.5 {
+  .post-detail-modal .post-actions-bar .engage-pill {
     padding: 10px 12px !important;
     font-size: 0.85rem !important;
     border-radius: 22px !important;
     flex: unset !important;
     max-width: none !important;
   }
-
-  .post-actions-bar .w-9,
-  .post-actions-bar .w-11 {
+  .post-detail-modal .post-actions-bar .post-action-icon {
     width: 44px !important;
     height: 44px !important;
     flex: unset !important;
     max-width: none !important;
   }
-
-  .post-actions-bar svg {
+  .post-detail-modal .post-actions-bar svg {
     width: 22px !important;
     height: 22px !important;
   }
 
-  /* Mobile Discussion Panel - Full screen slide-over */
-  .discussion-panel {
+  /* Discussion: full-screen slide-over */
+  .post-detail-modal .discussion-panel {
     position: fixed !important;
     top: 0 !important;
     left: 0 !important;
@@ -2356,9 +2300,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
     display: flex !important;
     flex-direction: column !important;
   }
-
-  /* Mobile discussion header - app-like */
-  .discussion-panel > div:first-child {
+  .post-detail-modal .discussion-header {
     position: sticky !important;
     top: 0 !important;
     z-index: 10 !important;
@@ -2367,31 +2309,24 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
     border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
     flex-shrink: 0 !important;
   }
-
-  .discussion-panel > div:first-child .font-ui {
+  .post-detail-modal .discussion-title {
     font-size: 1rem !important;
     font-weight: 600 !important;
     letter-spacing: 0.02em !important;
   }
-
-  /* Mobile back button in discussion */
-  .discussion-panel button.w-9.h-9.rounded-full {
+  .post-detail-modal .discussion-close {
     width: 40px !important;
     height: 40px !important;
     background: transparent !important;
   }
-
-  /* Mobile comments list */
-  .discussion-panel .flex-1.overflow-y-auto {
+  .post-detail-modal .discussion-list {
     flex: 1 !important;
     padding: 16px !important;
     padding-bottom: 90px !important;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
   }
-
-  /* Mobile comment input - Fixed bottom */
-  .discussion-panel > div:last-child {
+  .post-detail-modal .discussion-composer {
     position: fixed !important;
     bottom: 0 !important;
     left: 0 !important;
@@ -2403,42 +2338,26 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08) !important;
     z-index: 70 !important;
   }
-
-  .discussion-panel > div:last-child img {
+  .post-detail-modal .discussion-composer img {
     width: 36px !important;
     height: 36px !important;
     flex-shrink: 0 !important;
   }
-
-  .discussion-panel > div:last-child .flex-1.flex.items-center {
-    padding: 10px 16px !important;
-    border-radius: 24px !important;
+  .post-detail-modal .discussion-composer textarea {
+    font-size: 1rem !important; /* 16px keeps iOS from zooming the field */
   }
 
-  .discussion-panel > div:last-child input {
-    font-size: 1rem !important;
-  }
-
-  .discussion-panel > div:last-child button.w-\[42px\] {
-    width: 42px !important;
-    height: 42px !important;
-    flex-shrink: 0 !important;
-  }
-
-  /* Mobile reaction picker */
-  .reaction-picker-trigger {
+  /* Reaction picker: bigger targets, bar fixed above the thumb */
+  .post-detail-modal .reaction-picker-trigger {
     min-width: 44px !important;
     min-height: 44px !important;
     padding: 10px 14px !important;
   }
-
-  .reaction-picker-trigger svg {
+  .post-detail-modal .reaction-picker-trigger svg {
     width: 22px !important;
     height: 22px !important;
   }
-
-  /* Mobile reaction bar: fixed above the thumb, centred */
-  .reaction-picker-dropdown {
+  .post-detail-modal .reaction-picker-dropdown {
     position: fixed !important;
     bottom: 80px !important;
     left: 50% !important;
@@ -2449,23 +2368,19 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
     max-width: calc(100vw - 24px) !important;
     margin: 0 !important;
   }
-
-  .reaction-picker-dropdown .reaction-bar {
+  .post-detail-modal .reaction-picker-dropdown .reaction-bar {
     box-shadow: 0 8px 40px rgba(0, 0, 0, 0.2) !important;
   }
-
-  .reaction-picker-dropdown .reaction-option {
+  .post-detail-modal .reaction-picker-dropdown .reaction-option {
     width: 50px !important;
     height: 58px !important;
   }
-
-  /* The desktop arrow has no anchor once the bar is fixed at the bottom */
-  .reaction-picker-dropdown > .reaction-bar-arrow {
+  .post-detail-modal .reaction-picker-dropdown > .reaction-bar-arrow {
     display: none !important;
   }
 
-  /* Mobile menu - Bottom sheet style */
-  .post-detail-header .absolute.right-0.top-full.mt-2 {
+  /* Options menu as a bottom sheet */
+  .post-detail-modal .post-detail-header [role="menu"] {
     position: fixed !important;
     top: auto !important;
     bottom: 0 !important;
@@ -2478,26 +2393,23 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
     padding-bottom: env(safe-area-inset-bottom) !important;
     animation: mobileSlideUp 0.25s cubic-bezier(0.32, 0.72, 0, 1) forwards;
   }
-
-  .post-detail-header .absolute.right-0.top-full.mt-2 button {
+  .post-detail-modal .post-detail-header [role="menu"] button {
     padding: 18px 24px !important;
     font-size: 1rem !important;
     justify-content: flex-start !important;
   }
 
-  /* Mobile delete/block confirmation modals */
-  .fixed.inset-0.bg-black\/50 + div,
-  .fixed.top-1\/2.left-1\/2 {
+  /* Confirmation dialogs */
+  .pq-confirm-card {
     width: calc(100% - 32px) !important;
     max-width: 360px !important;
   }
 
-  /* Content warning overlay on mobile */
-  .post-detail-wrapper .absolute.inset-0.z-10 {
+  /* Content warning cover */
+  .post-detail-modal .content-warning-overlay {
     padding: 20px 16px !important;
   }
-
-  .post-detail-wrapper .absolute.inset-0.z-10 button {
+  .post-detail-modal .content-warning-show {
     padding: 12px 20px !important;
     font-size: 0.95rem !important;
   }

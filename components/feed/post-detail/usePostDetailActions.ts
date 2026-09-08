@@ -4,16 +4,15 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { removeSelfAsCollaborator } from "@/lib/hooks.legacy";
-import { useComments } from "@/lib/hooks/useComments";
-import { useToggleSave, useToggleRelay, useBlock } from "@/lib/hooks/useInteractions";
+import { useToggleSave, useToggleRelay } from "@/lib/hooks/useInteractions";
 import { useReaction } from "@/lib/engagement/reactions";
-import { submitReport } from "@/lib/reports";
 import { deleteOwnPost } from "@/lib/content-client";
 import { showToast, actionToast } from "@/lib/utils/toast";
 import type { ReactionType } from "@/lib/types";
 import type { PostUpdate } from "@/components/providers/ModalProvider";
 import type { ModalPost } from "@/components/feed/PostCard/types";
 import { buildPostMenuItems } from "./postMenu";
+import { useDiscussion, useReportFlow, useBlockFlow } from "./flows";
 
 interface Options {
   /** The page knows the id before the row arrives; the modal always has the row. */
@@ -42,7 +41,6 @@ export function usePostDetailActions(post: ModalPost | null, options: Options) {
   const { commentsEnabled = true, onPostUpdate, onDeleted, onBlocked, onCollabRemoved, onNavigate } = options;
   const router = useRouter();
   const { user, profile } = useAuth();
-  const { blockUser } = useBlock();
   const { toggle: toggleSaveRow } = useToggleSave();
   const { toggle: toggleRelayRow } = useToggleRelay();
 
@@ -53,20 +51,15 @@ export function usePostDetailActions(post: ModalPost | null, options: Options) {
   const [isRelayed, setIsRelayed] = useState(false);
   const [relayCount, setRelayCount] = useState(0);
   const [showContent, setShowContent] = useState(true);
-  const [commentText, setCommentText] = useState("");
-  const [submitting, setSubmitting] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [showReport, setShowReport] = useState(false);
-  const [reportSubmitting, setReportSubmitting] = useState(false);
-  const [reportSubmitted, setReportSubmitted] = useState(false);
-  const [showBlockConfirm, setShowBlockConfirm] = useState(false);
-  const [blocking, setBlocking] = useState(false);
   const [showRemoveCollabConfirm, setShowRemoveCollabConfirm] = useState(false);
   const [removingCollab, setRemovingCollab] = useState(false);
 
-  const commentsApi = useComments("post", postId, { authorId, live: true, enabled: commentsEnabled });
+  const comments = useDiscussion("post", postId, { authorId, enabled: commentsEnabled });
+  const report = useReportFlow(post ? { type: "post", postId: post.id, reportedUserId: post.authorId } : null);
+  const block = useBlockFlow(authorId, onBlocked);
 
   const reaction = useReaction("post", postId, {
     seed: post
@@ -93,13 +86,15 @@ export function usePostDetailActions(post: ModalPost | null, options: Options) {
   );
 
   // Sync from the row (the card that opened the modal, or the page fetch).
+  /* eslint-disable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
   useEffect(() => {
     if (!post) return;
     setIsSaved(post.isSaved || false);
     setIsRelayed(post.isRelayed || false);
     setRelayCount(post.stats.relays);
     setShowContent(!post.contentWarning);
-  }, [post?.id, post?.isSaved, post?.isRelayed, post?.stats.relays, post?.contentWarning]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [post?.id, post?.isSaved, post?.isRelayed, post?.stats.relays, post?.contentWarning]);
+  /* eslint-enable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
 
   const react = useCallback(async (type: ReactionType) => { if (post) await reaction.react(type); }, [post, reaction]);
   const unreact = useCallback(async () => { if (post) await reaction.unreact(); }, [post, reaction]);
@@ -135,30 +130,6 @@ export function usePostDetailActions(post: ModalPost | null, options: Options) {
     }
   }, [user, post, isRelayed, onPostUpdate, toggleRelayRow]);
 
-  const submitComment = useCallback(async () => {
-    if (!user || !post) return;
-    const text = commentText.trim();
-    if (!text || submitting) return;
-    setSubmitting(true);
-    setCommentText("");
-    const result = await commentsApi.addComment(text);
-    if (!result.success) {
-      setCommentText(text);
-      actionToast.genericError("post comment");
-    }
-    setSubmitting(false);
-  }, [user, post, commentText, submitting, commentsApi]);
-
-  const likeComment = useCallback((commentId: string) => { if (user) void commentsApi.toggleLike(commentId); }, [user, commentsApi]);
-  const replyToComment = useCallback(
-    async (parentId: string, content: string, replyToUserId: string | null) => {
-      if (!user) return { success: false };
-      return commentsApi.addComment(content, { parentId, replyToUserId });
-    },
-    [user, commentsApi],
-  );
-  const removeComment = useCallback((commentId: string) => { commentsApi.deleteComment(commentId); }, [commentsApi]);
-
   const edit = useCallback(() => {
     if (!post) return;
     onNavigate?.();
@@ -179,48 +150,6 @@ export function usePostDetailActions(post: ModalPost | null, options: Options) {
     }
   }, [post, user, onDeleted]);
 
-  const submitReportFlow = useCallback(async (reason: string, details?: string) => {
-    if (!user || !post) return;
-    setReportSubmitting(true);
-    try {
-      const ok = await submitReport({ type: "post", postId: post.id, reportedUserId: post.authorId }, user.id, reason, details);
-      if (!ok) {
-        actionToast.reportError();
-        setReportSubmitting(false);
-        return;
-      }
-      setReportSubmitted(true);
-      actionToast.reportSubmitted();
-      setTimeout(() => {
-        setShowReport(false);
-        setReportSubmitted(false);
-      }, 2000);
-    } catch (err) {
-      console.error("Failed to submit report:", err);
-      actionToast.reportError();
-    }
-    setReportSubmitting(false);
-  }, [user, post]);
-
-  const confirmBlock = useCallback(async () => {
-    if (!user || !post?.authorId) return;
-    setBlocking(true);
-    try {
-      const result = await blockUser(user.id, post.authorId);
-      if (!result.success) {
-        actionToast.blockError();
-        return;
-      }
-      setShowBlockConfirm(false);
-      onBlocked(post.authorId);
-    } catch (err) {
-      console.error("Failed to block user:", err);
-      actionToast.blockError();
-    } finally {
-      setBlocking(false);
-    }
-  }, [user, post?.authorId, blockUser, onBlocked]);
-
   const confirmRemoveCollab = useCallback(async () => {
     if (!user || !post?.id || !post?.authorId || !isAcceptedCollaborator) return;
     setRemovingCollab(true);
@@ -233,7 +162,7 @@ export function usePostDetailActions(post: ModalPost | null, options: Options) {
       showToast.error("Couldn't remove you from this post", "Please try again.");
     }
     setRemovingCollab(false);
-  }, [user, post?.id, post?.authorId, isAcceptedCollaborator, onCollabRemoved]);
+  }, [user, post, isAcceptedCollaborator, onCollabRemoved]);
 
   const menuItems = buildPostMenuItems({
     isOwner,
@@ -242,8 +171,8 @@ export function usePostDetailActions(post: ModalPost | null, options: Options) {
     onEdit: edit,
     onDelete: () => setShowDeleteConfirm(true),
     onRemoveCollab: () => setShowRemoveCollabConfirm(true),
-    onBlock: () => setShowBlockConfirm(true),
-    onReport: () => setShowReport(true),
+    onBlock: block.show,
+    onReport: report.show,
   });
 
   return {
@@ -263,21 +192,12 @@ export function usePostDetailActions(post: ModalPost | null, options: Options) {
     toggleRelay,
     showContent,
     revealContent: () => setShowContent(true),
-    comments: {
-      ...commentsApi,
-      text: commentText,
-      setText: setCommentText,
-      submitting,
-      submit: submitComment,
-      like: likeComment,
-      reply: replyToComment,
-      remove: removeComment,
-    },
+    comments,
     dialogs: {
       share: { open: showShare, show: () => setShowShare(true), hide: () => setShowShare(false) },
       del: { open: showDeleteConfirm, hide: () => setShowDeleteConfirm(false), confirm: confirmDelete, loading: deleting },
-      report: { open: showReport, hide: () => setShowReport(false), submit: submitReportFlow, submitting: reportSubmitting, submitted: reportSubmitted },
-      block: { open: showBlockConfirm, hide: () => setShowBlockConfirm(false), confirm: confirmBlock, loading: blocking },
+      report,
+      block,
       removeCollab: { open: showRemoveCollabConfirm, hide: () => setShowRemoveCollabConfirm(false), confirm: confirmRemoveCollab, loading: removingCollab },
     },
   };

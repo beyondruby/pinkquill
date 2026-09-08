@@ -33,8 +33,8 @@ export function PostMediaGallery({ media, index, onIndexChange, title, palette, 
   const current = media[index];
   if (!current) return null;
   return (
-    <div className="mt-4 md:mt-6 pb-6">
-      <div className={`relative group rounded-lg overflow-hidden border ${hasDarkBg ? "border-surface/20" : "border-ink/10"}`}>
+    <div className="post-media-gallery mt-4 md:mt-6 pb-6">
+      <div className={`post-media-frame relative group rounded-lg overflow-hidden border ${hasDarkBg ? "border-surface/20" : "border-ink/10"}`}>
         {current.media_type === "video" ? (
           <VideoPlayer src={current.media_url} poster={current.thumbnail_url} title={title} maxHeight={maxHeight} />
         ) : (
@@ -86,13 +86,13 @@ export function PostMediaGallery({ media, index, onIndexChange, title, palette, 
       )}
 
       {media.length > 1 && (
-        <div className="flex gap-2 justify-center mt-4">
+        <div className="post-media-thumbs flex gap-2 justify-center mt-4">
           {media.map((item, idx) => (
             <button
               key={item.id || idx}
               onClick={() => onIndexChange(idx)}
               aria-label={`Show media ${idx + 1} of ${media.length}`}
-              className={`relative w-14 h-14 md:w-16 md:h-16 rounded-lg overflow-hidden transition-colors duration-200 ${
+              className={`post-media-thumb relative w-14 h-14 md:w-16 md:h-16 rounded-lg overflow-hidden transition-colors duration-200 ${
                 idx === index ? "ring-2 ring-purple-primary/60 ring-offset-2" : "opacity-50 hover:opacity-80"
               }`}
             >
