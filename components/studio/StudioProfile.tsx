@@ -844,14 +844,17 @@ export default function StudioProfile({ username }: StudioProfileProps) {
   const shouldLoadRelayPosts = activeTab === "relays";
   const shouldLoadRelayTakes = activeTab === "relays" && relaySubTab === "takes";
   const shouldLoadCollections = activeTab === "collections";
-  const { profile, posts, loading, error, isBlockedByUser, isPrivateAccount, viewerFollowStatus, viewerHasBlocked, refetch: refetchProfile } = useProfile(username, user?.id, { ready: !authLoading });
+  const { profile, posts, hasMorePosts, loadingMorePosts, loadMorePosts, loading, error, isBlockedByUser, isPrivateAccount, viewerFollowStatus, viewerHasBlocked, refetch: refetchProfile } = useProfile(username, user?.id, { ready: !authLoading });
   const { follow, unfollow } = useFollow();
   const { blockUser, unblockUser } = useBlock();
-  const { relays, loading: relaysLoading, error: relaysError, refetch: refetchRelays } = useRelays(shouldLoadRelayPosts ? username : "", user?.id);
-  const { takes: userTakes, loading: takesLoading, error: takesError, refetch: refetchTakes } = useUserTakes(shouldLoadTakes ? username : "", user?.id);
-  const { takes: relayedTakes, loading: relayedTakesLoading, error: relayedTakesError, refetch: refetchRelayedTakes } = useRelayedTakes(shouldLoadRelayTakes ? username : "", user?.id);
-  const { communities: userCommunities } = useCommunities(profile?.id, 'joined');
-  const { collections, loading: collectionsLoading, error: collectionsError, refetch: refetchCollections } = useCollections(shouldLoadCollections ? profile?.id : undefined);
+  // Tab data loads when its tab opens and is kept when the tab is left (P-11).
+  const { relays, loading: relaysLoading, error: relaysError, refetch: refetchRelays } = useRelays(username, user?.id, { enabled: shouldLoadRelayPosts });
+  const { takes: userTakes, loading: takesLoading, error: takesError, refetch: refetchTakes } = useUserTakes(username, user?.id, { enabled: shouldLoadTakes });
+  const { takes: relayedTakes, loading: relayedTakesLoading, error: relayedTakesError, refetch: refetchRelayedTakes } = useRelayedTakes(username, user?.id, { enabled: shouldLoadRelayTakes });
+  // Only the About box shows communities; skip the two requests when there is no About box (P-12).
+  const hasAboutBox = !!(profile && (profile.bio || profile.role || profile.location || profile.education || profile.languages));
+  const { communities: userCommunities } = useCommunities(profile?.id, 'joined', { enabled: hasAboutBox });
+  const { collections, loading: collectionsLoading, error: collectionsError, refetch: refetchCollections } = useCollections(profile?.id, { enabled: shouldLoadCollections });
   const { toggleCollapse } = useToggleCollectionCollapse();
   const { reorderCollections } = useReorderCollections();
   const { pinnedPostIds, isPinned, canPin, pinPost, unpinPost } = usePinnedPosts(profile?.id);
@@ -933,6 +936,20 @@ export default function StudioProfile({ username }: StudioProfileProps) {
   // Post view modes
   type PostViewMode = "all" | "blog" | "gallery" | "poems" | "journals" | "communities";
   const [postViewMode, setPostViewMode] = useState<PostViewMode>("all");
+
+  // Infinite scroll for the posts tab (same sentinel pattern as the feed, P-10).
+  const [postsSentinel, setPostsSentinel] = useState<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!postsSentinel || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) void loadMorePosts();
+      },
+      { threshold: 0, rootMargin: "200px" },
+    );
+    observer.observe(postsSentinel);
+    return () => observer.disconnect();
+  }, [postsSentinel, loadMorePosts]);
 
 
   // Follow-status changes (e.g. a request being accepted/rejected) arrive on the
@@ -1646,7 +1663,15 @@ export default function StudioProfile({ username }: StudioProfileProps) {
 
               const filteredPosts = sortWithPinnedPosts(getFilteredPosts());
 
-              // Empty state
+              // Empty state — or, while later pages may still hold matches for
+              // this view, keep paging before declaring it empty (P-10).
+              if (filteredPosts.length === 0 && (hasMorePosts || loadingMorePosts)) {
+                return (
+                  <div ref={setPostsSentinel} className="py-12">
+                    <Loading text="Loading posts" size="medium" />
+                  </div>
+                );
+              }
               if (filteredPosts.length === 0) {
                 const emptyMessages: Record<string, { icon: React.ReactNode; text: string }> = {
                   all: {
@@ -2336,6 +2361,11 @@ export default function StudioProfile({ username }: StudioProfileProps) {
               // Fallback
               return null;
             })()}
+            {activeTab === "posts" && (hasMorePosts || loadingMorePosts) && (
+              <div ref={setPostsSentinel} className="py-8 flex justify-center">
+                {loadingMorePosts && <Loading text="Loading more" size="small" />}
+              </div>
+            )}
           </div>
         )}
 

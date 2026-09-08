@@ -1,6 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from "react";
+
+// Layout effect on the client, plain effect during SSR (avoids the React warning).
+const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 import { supabase } from "../supabase";
 import type { Post, PostMedia, PaginationState, RelayedPost, PostAuthor, PostType, PostVisibility } from "../types";
 import { categorizeError, retryWithBackoff, isRetryableError, isAbortError } from "../utils/retry";
@@ -22,6 +25,29 @@ interface FeedCursor {
   id: string;
 }
 
+/**
+ * Pages + scroll position survive leaving the feed (F-4): the hook used to
+ * keep everything in component state, so every trip to a profile or a post
+ * page came back to skeletons and page 0. Kept in memory per viewer for a
+ * short while; the focus refresh still pulls in anything newer.
+ */
+interface FeedSnapshot {
+  posts: Post[];
+  pagination: PaginationState;
+  scrollY: number;
+  savedAt: number;
+}
+const FEED_SNAPSHOT_TTL_MS = 5 * 60_000;
+const feedSnapshots = new Map<string, FeedSnapshot>();
+if (process.env.NODE_ENV !== "production" && typeof window !== "undefined") {
+  // Inspectable from devtools while developing.
+  (window as unknown as { __pqFeedSnapshots?: Map<string, FeedSnapshot> }).__pqFeedSnapshots = feedSnapshots;
+}
+/** Tests share one module; give each a clean slate. */
+export function clearFeedSnapshots() {
+  feedSnapshots.clear();
+}
+
 // ============================================================================
 // useFeed - Main feed hook with pagination
 // ============================================================================
@@ -39,6 +65,10 @@ interface UseFeedReturn {
   pagination: PaginationState;
   loadMore: () => Promise<void>;
   refresh: () => Promise<void>;
+  /** Drop rows locally (deleted post, blocked author) so the snapshot never resurrects them. */
+  removePosts: (predicate: (post: Post) => boolean) => void;
+  /** Scroll offset to restore once, when the list came back from a snapshot; null otherwise. */
+  restoreScrollY: number | null;
 }
 
 /**
@@ -55,23 +85,31 @@ interface UseFeedReturn {
 export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedReturn {
   const { pageSize = DEFAULT_PAGE_SIZE, communityId, enabled = true } = options;
 
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
+  const snapshotKey = `${userId ?? "guest"}:${communityId ?? ""}:${pageSize}`;
+  const snapshot = feedSnapshots.get(snapshotKey);
+  const snapshotFresh = !!snapshot && Date.now() - snapshot.savedAt < FEED_SNAPSHOT_TTL_MS && snapshot.posts.length > 0;
+  const [posts, setPosts] = useState<Post[]>(() => (snapshotFresh ? snapshot!.posts : []));
+  const [loading, setLoading] = useState(!snapshotFresh);
   const [error, setError] = useState<string | null>(null);
-  const [pagination, setPagination] = useState<PaginationState>({
-    page: 0,
-    pageSize,
-    hasMore: true,
-  });
+  const [pagination, setPagination] = useState<PaginationState>(() =>
+    snapshotFresh ? snapshot!.pagination : { page: 0, pageSize, hasMore: true },
+  );
+  const restoreScrollY = useRef<number | null>(snapshotFresh ? snapshot!.scrollY : null);
+  // Last scroll offset while the feed was on screen. Read at unmount it is
+  // already 0: the router scrolls the next page to the top in the same commit.
+  const lastScrollYRef = useRef(0);
 
   // Refs for managing async operations
   const mountedRef = useRef(true);
   const abortControllerRef = useRef<AbortController | null>(null);
   const fetchingRef = useRef(false);
   const requestIdRef = useRef(0);
-  // Mirror of `posts` for cursor maths without re-creating callbacks.
-  const postsRef = useRef<Post[]>([]);
+  // Mirror of `posts` / `pagination` for cursor maths and the unmount
+  // snapshot without re-creating callbacks.
+  const postsRef = useRef<Post[]>(posts);
   postsRef.current = posts;
+  const paginationRef = useRef<PaginationState>(pagination);
+  paginationRef.current = pagination;
 
   /**
    * `mode`:
@@ -277,13 +315,27 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
 
   // Refresh posts (full replace — manual retry / error recovery)
   const refresh = useCallback(async () => {
+    feedSnapshots.delete(snapshotKey);
     await fetchPosts(0, false, "replace");
-  }, [fetchPosts]);
+  }, [fetchPosts, snapshotKey]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onScroll = () => {
+      lastScrollYRef.current = window.scrollY;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   // Initial fetch and cleanup
   useEffect(() => {
     mountedRef.current = true;
-    if (enabled) {
+    if (enabled && postsRef.current.length > 0) {
+      // We already hold pages (a snapshot, or a strict-mode remount): keep
+      // them and pull in anything newer instead of starting over.
+      void fetchPosts(0, false, "newer");
+    } else if (enabled) {
       fetchPosts(0);
     } else {
       // CRITICAL: when the hook is disabled (e.g., auth still resolving),
@@ -300,7 +352,26 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
       }
       fetchingRef.current = false;
     };
-  }, [fetchPosts, enabled]);
+  }, [fetchPosts, enabled, snapshotKey]);
+
+  // Snapshot on the way out. This has to be a *layout* effect cleanup: it runs
+  // in the commit's mutation phase, before the incoming page's own layout
+  // effect scrolls the window to the top, so window.scrollY is still ours.
+  useIsomorphicLayoutEffect(() => {
+    return () => {
+      if (postsRef.current.length === 0 || typeof window === "undefined") return;
+      feedSnapshots.set(snapshotKey, {
+        posts: postsRef.current,
+        pagination: paginationRef.current,
+        scrollY: Math.max(window.scrollY, lastScrollYRef.current),
+        savedAt: Date.now(),
+      });
+    };
+  }, [snapshotKey]);
+
+  const removePosts = useCallback((predicate: (post: Post) => boolean) => {
+    setPosts((prev) => prev.filter((p) => !predicate(p)));
+  }, []);
 
   // Pull in posts published since the top of the list when the tab regains
   // focus (counts on already-loaded posts come through the engagement store).
@@ -329,7 +400,7 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
     };
   }, [enabled, fetchPosts]);
 
-  return { posts, loading, error, pagination, loadMore, refresh };
+  return { posts, loading, error, pagination, loadMore, refresh, removePosts, restoreScrollY: restoreScrollY.current };
 }
 
 // ============================================================================
@@ -497,7 +568,8 @@ export function useSavedPosts(userId?: string): UseSavedPostsReturn {
 // useRelays - Fetch relayed posts for a user
 // ============================================================================
 
-export function useRelays(username: string, viewerId?: string) {
+export function useRelays(username: string, viewerId?: string, options: { enabled?: boolean } = {}) {
+  const enabled = options.enabled ?? true;
   const [relays, setRelays] = useState<RelayedPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -506,16 +578,26 @@ export function useRelays(username: string, viewerId?: string) {
 
   const mountedRef = useRef(true);
   const abortControllerRef = useRef<AbortController | null>(null);
+  // Leaving the tab keeps the list; re-entering does not refetch (P-11).
+  const fetchedKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     mountedRef.current = true;
 
     const fetchRelays = async () => {
       if (!username) {
+        fetchedKeyRef.current = null;
         setRelays([]);
         setLoading(false);
         return;
       }
+      const key = `${username}:${viewerId ?? ""}:${attempt}`;
+      if (!enabled) {
+        if (fetchedKeyRef.current === null) setLoading(false);
+        return;
+      }
+      if (fetchedKeyRef.current === key) return;
+      fetchedKeyRef.current = key;
 
       // Abort any in-flight request
       if (abortControllerRef.current) {
@@ -648,7 +730,7 @@ export function useRelays(username: string, viewerId?: string) {
         abortControllerRef.current.abort();
       }
     };
-  }, [username, viewerId, attempt]);
+  }, [username, viewerId, attempt, enabled]);
 
   return { relays, loading, error, refetch };
 }

@@ -45,7 +45,19 @@ const RATIO_MAX = 1.5;
 const clampRatio = (r: number) => Math.min(RATIO_MAX, Math.max(RATIO_MIN, r));
 
 /** Rough tile height in column-width units, for balanced column assignment. */
+// Stripping HTML for every tile on every append is the expensive part; the
+// estimate only depends on the post, so remember it per id + content (F-26).
+const heightCache = new Map<string, number>();
 function estimateHeight(post: PostProps): number {
+  const key = `${post.id}:${post.content.length}:${post.title ? 1 : 0}:${post.contentWarning ? 1 : 0}`;
+  const cached = heightCache.get(key);
+  if (cached !== undefined) return cached;
+  const h = computeHeight(post);
+  if (heightCache.size > 2000) heightCache.clear();
+  heightCache.set(key, h);
+  return h;
+}
+function computeHeight(post: PostProps): number {
   const media = firstVisualMedia(post);
   const art = !media && post.spotify_track?.albumArt;
   const form = getPostTypeTheme(post.type).form;

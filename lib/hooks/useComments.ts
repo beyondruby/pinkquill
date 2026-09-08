@@ -115,6 +115,8 @@ export interface UseCommentsOptions {
   /** Refetch the first page when another user adds/removes a comment
    *  (`content-events` broadcast, Phase 5). */
   live?: boolean;
+  /** False while the comments panel is closed: nothing is fetched or subscribed until it opens (V-27). */
+  enabled?: boolean;
 }
 
 export interface UseCommentsReturn {
@@ -505,25 +507,26 @@ export function useComments(kind: EngagementKind, id: string, options: UseCommen
   );
 
   // ---- lifecycle -----------------------------------------------------------
+  const enabled = options.enabled ?? true;
   useEffect(() => {
     mountedRef.current = true;
     pageRef.current = 0;
-    if (id) {
+    if (id && enabled) {
       fetchComments(0, false);
-    } else {
+    } else if (!id) {
       setLoading(false);
     }
     return () => {
       mountedRef.current = false;
       if (abortControllerRef.current) abortControllerRef.current.abort();
     };
-  }, [id, fetchComments]);
+  }, [id, enabled, fetchComments]);
 
   // Live: another user's comment lands → reload page 0 (coalesced). Our own
   // writes are already applied optimistically, so events we caused are skipped.
   const live = !!options.live;
   useEffect(() => {
-    if (!live || !id) return;
+    if (!live || !id || !enabled) return;
     let timer: ReturnType<typeof setTimeout> | null = null;
     const unsubscribe = subscribeContentEvents(kind, id, (event) => {
       if (event.what !== "comment") return;
@@ -538,7 +541,7 @@ export function useComments(kind: EngagementKind, id: string, options: UseCommen
       if (timer) clearTimeout(timer);
       unsubscribe();
     };
-  }, [live, kind, id, fetchComments]);
+  }, [live, kind, id, fetchComments, enabled]);
 
   return {
     comments,

@@ -12,9 +12,63 @@ import { isAbortError } from "../utils/retry";
 // useProfile - Fetch user profile and posts
 // ============================================================================
 
+export const PROFILE_POSTS_PAGE = 24;
+
+/** The profile's posts query for one range; visibility rules match the first page. */
+function buildProfilePostsQuery(profileId: string, isOwnProfile: boolean, viewerFollowsProfile: boolean, from: number, to: number) {
+  let query = supabase
+    .from("posts")
+    .select(
+      `
+      *,
+      author:profiles!posts_author_id_fkey (
+        id,
+        username,
+        display_name,
+        avatar_url
+      ),
+      media:post_media (
+        id,
+        media_url,
+        media_type,
+        caption,
+        position
+      ),
+      community:communities (
+        id,
+        slug,
+        name,
+        avatar_url
+      ),
+      flair:community_flairs (
+        id,
+        community_id,
+        name,
+        color,
+        emoji,
+        position,
+        created_at
+      ),
+      ${POST_RELATIONS_SELECT},
+      ${POST_COUNTS_SELECT}
+    `
+    )
+    .eq("author_id", profileId)
+    .eq("status", "published");
+
+  if (!isOwnProfile) {
+    query = viewerFollowsProfile ? query.in("visibility", ["public", "followers"]) : query.eq("visibility", "public");
+  }
+  return query.order("created_at", { ascending: false }).range(from, to);
+}
+
 interface UseProfileReturn {
   profile: Profile | null;
   posts: Post[];
+  /** More pages of posts exist beyond what is loaded (P-10). */
+  hasMorePosts: boolean;
+  loadingMorePosts: boolean;
+  loadMorePosts: () => Promise<void>;
   loading: boolean;
   error: string | null;
   isBlockedByUser: boolean;
@@ -43,6 +97,12 @@ export function useProfile(
   const [isPrivateAccount, setIsPrivateAccount] = useState(false);
   const [viewerFollowStatus, setViewerFollowStatus] = useState<FollowStatus>(null);
   const [viewerHasBlocked, setViewerHasBlocked] = useState(false);
+  const [hasMorePosts, setHasMorePosts] = useState(false);
+  const [loadingMorePosts, setLoadingMorePosts] = useState(false);
+  // What the last first-page query filtered on, so loadMorePosts can ask
+  // for the next range with the same visibility rules.
+  const postsParamsRef = useRef<{ profileId: string; isOwnProfile: boolean; viewerFollowsProfile: boolean; viewerId?: string } | null>(null);
+  const loadingMoreRef = useRef(false);
 
   const mountedRef = useRef(true);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -164,57 +224,9 @@ export function useProfile(
         return;
       }
 
-      // Build posts query with visibility filter
-      let postsQuery = supabase
-        .from("posts")
-        .select(
-          `
-          *,
-          author:profiles!posts_author_id_fkey (
-            id,
-            username,
-            display_name,
-            avatar_url
-          ),
-          media:post_media (
-            id,
-            media_url,
-            media_type,
-            caption,
-            position
-          ),
-          community:communities (
-            id,
-            slug,
-            name,
-            avatar_url
-          ),
-          flair:community_flairs (
-            id,
-            community_id,
-            name,
-            color,
-            emoji,
-            position,
-            created_at
-          ),
-          ${POST_RELATIONS_SELECT},
-          ${POST_COUNTS_SELECT}
-        `
-        )
-        .eq("author_id", profileData.id)
-        .eq("status", "published")
-        .order("created_at", { ascending: false })
-        .abortSignal(signal);
-
-      // Apply visibility filter
-      if (!isOwnProfile) {
-        if (viewerFollowsProfile) {
-          postsQuery = postsQuery.in("visibility", ["public", "followers"]);
-        } else {
-          postsQuery = postsQuery.eq("visibility", "public");
-        }
-      }
+      // First page of posts (P-10: the list used to be unbounded).
+      postsParamsRef.current = { profileId: profileData.id, isOwnProfile: !!isOwnProfile, viewerFollowsProfile, viewerId: currentViewerId };
+      const postsQuery = buildProfilePostsQuery(profileData.id, !!isOwnProfile, viewerFollowsProfile, 0, PROFILE_POSTS_PAGE - 1).abortSignal(signal);
 
       // Fetch counts and posts
       const [followersResult, followingResult, postsData, countsResult] = await Promise.all([
@@ -258,6 +270,7 @@ export function useProfile(
 
       if (!mountedRef.current || signal.aborted) return;
       setPosts(postsWithStats as Post[]);
+      setHasMorePosts(postsWithStats.length === PROFILE_POSTS_PAGE);
     } catch (err: unknown) {
       if (isAbortError(err)) return;
       console.error("[useProfile] Error:", err);
@@ -274,6 +287,35 @@ export function useProfile(
     }
   }, [username, viewerId, ready]);
 
+  const loadMorePosts = useCallback(async () => {
+    const params = postsParamsRef.current;
+    if (!params || loadingMoreRef.current || !hasMorePosts) return;
+    loadingMoreRef.current = true;
+    setLoadingMorePosts(true);
+    try {
+      const from = posts.length;
+      const { data, error: pageError } = await buildProfilePostsQuery(
+        params.profileId, params.isOwnProfile, params.viewerFollowsProfile, from, from + PROFILE_POSTS_PAGE - 1,
+      );
+      if (!mountedRef.current) return;
+      if (pageError) throw pageError;
+      const rows = data || [];
+      const flags = await fetchUserPostFlags(params.viewerId, rows.map((p) => p.id));
+      if (!mountedRef.current) return;
+      const enriched = rows.map((row) => enrichPost(row, flags)) as Post[];
+      setPosts((prev) => {
+        const seen = new Set(prev.map((p) => p.id));
+        return [...prev, ...enriched.filter((p) => !seen.has(p.id))];
+      });
+      setHasMorePosts(rows.length === PROFILE_POSTS_PAGE);
+    } catch (err) {
+      console.error("[useProfile] loadMorePosts:", err);
+    } finally {
+      loadingMoreRef.current = false;
+      if (mountedRef.current) setLoadingMorePosts(false);
+    }
+  }, [posts.length, hasMorePosts]);
+
   useEffect(() => {
     mountedRef.current = true;
     fetchProfile();
@@ -286,7 +328,7 @@ export function useProfile(
     };
   }, [fetchProfile]);
 
-  return { profile, posts, loading, error, isBlockedByUser, isPrivateAccount, viewerFollowStatus, viewerHasBlocked, refetch: fetchProfile };
+  return { profile, posts, hasMorePosts, loadingMorePosts, loadMorePosts, loading, error, isBlockedByUser, isPrivateAccount, viewerFollowStatus, viewerHasBlocked, refetch: fetchProfile };
 }
 
 // ============================================================================
@@ -445,7 +487,8 @@ export function useFollow() {
 // useFollowList - Get followers or following list
 // ============================================================================
 
-export function useFollowList(userId: string, type: "followers" | "following", pageSize = 30) {
+export function useFollowList(userId: string, type: "followers" | "following", pageSize = 30, options: { enabled?: boolean } = {}) {
+  const enabled = options.enabled ?? true;
   const [users, setUsers] = useState<FollowUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(false);
@@ -458,7 +501,7 @@ export function useFollowList(userId: string, type: "followers" | "following", p
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchPage = useCallback(async (pageNum: number) => {
-    if (!userId) {
+    if (!userId || !enabled) {
       setLoading(false);
       return;
     }
@@ -540,7 +583,7 @@ export function useFollowList(userId: string, type: "followers" | "following", p
         setLoading(false);
       }
     }
-  }, [userId, type, pageSize]);
+  }, [userId, type, pageSize, enabled]);
 
   const loadMore = useCallback(() => {
     setPageState((prev) => ({ key: listKey, page: (prev.key === listKey ? prev.page : 0) + 1 }));

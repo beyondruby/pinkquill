@@ -138,7 +138,7 @@ function PostDetailModalComponent({
     toggleLike,
     deleteComment,
     fetchReplies,
-  } = useComments("post", post?.id || "", { authorId: post?.authorId, live: true });
+  } = useComments("post", post?.id || "", { authorId: post?.authorId, live: true, enabled: showComments });
   const { toggle: toggleSave } = useToggleSave();
   const { toggle: toggleRelay } = useToggleRelay();
 

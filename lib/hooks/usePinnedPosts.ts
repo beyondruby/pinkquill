@@ -132,13 +132,12 @@ export function usePinnedPosts(userId?: string): UsePinnedPostsReturn {
 
         setPinnedPosts(remaining);
 
-        // Update positions using post_id (reliable) instead of id (may be stale)
-        for (const pin of remaining) {
-          await supabase
+        // Renumber the rest in one request instead of one UPDATE per pin (P-15).
+        if (remaining.length > 0) {
+          const { error: renumberError } = await supabase
             .from("pinned_posts")
-            .update({ position: pin.position })
-            .eq("user_id", userId)
-            .eq("post_id", pin.post_id);
+            .upsert(remaining.map((pin) => ({ id: pin.id, user_id: userId, post_id: pin.post_id, position: pin.position })), { onConflict: "id" });
+          if (renumberError) throw renumberError;
         }
 
         return true;

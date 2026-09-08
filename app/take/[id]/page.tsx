@@ -9,7 +9,7 @@ import { followUserRecord, unfollowUserRecord } from "@/lib/hooks/useProfile";
 import type { FollowStatus } from "@/lib/types";
 import { submitReport } from "@/lib/reports";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useMuted, useVolume, TakeReactionType, type Take, takeFromTableRow, takeVideoStyle, TAKE_ROW_SELECT } from "@/lib/hooks/useTakes";
+import { useMuted, useVolume, TakeReactionType, type Take, type TakeTableRow, takeFromTableRow, takeVideoStyle, TAKE_ROW_SELECT } from "@/lib/hooks/useTakes";
 import TakePlayer from "@/components/takes/TakePlayer";
 import { useTrackTakeImpression, useTrackTakeView } from "@/lib/hooks/useTracking";
 import { useReaction } from "@/lib/engagement/reactions";
@@ -32,6 +32,13 @@ import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { CommentIcon, icons } from "@/components/ui/Icons";
 
 const LOAD_FAILED = "Failed to load take";
+
+type TakePageProfile = { id: string; username: string; display_name: string | null; avatar_url: string | null };
+type TakePageRow = TakeTableRow & {
+  tags: { tag: string }[] | null;
+  collaborators: { role: string | null; status: string; user: TakePageProfile | null }[] | null;
+  mentions: { user: TakePageProfile | null }[] | null;
+};
 
 
 interface PageProps {
@@ -151,11 +158,13 @@ export default function SingleTakePage({ params }: PageProps) {
       setError(null);
 
       // Fetch the take
+      // One request for the take, its author, sound, tags, collaborators and
+      // mentions (it used to be up to eleven, V-25).
       const { data: takeData, error: takeError } = await supabase
         .from("takes")
-        .select(TAKE_ROW_SELECT)
+        .select(`${TAKE_ROW_SELECT}, tags:take_tags(tag), collaborators:take_collaborators(role, status, user:profiles!take_collaborators_user_id_fkey(id, username, display_name, avatar_url)), mentions:take_mentions(user:profiles!take_mentions_user_id_fkey(id, username, display_name, avatar_url))`)
         .eq("id", id)
-        .single();
+        .single<TakePageRow>();
 
       if (takeError) {
         // supabase-js returns network failures as { error } too; only a
@@ -185,48 +194,13 @@ export default function SingleTakePage({ params }: PageProps) {
       // Set content warning state
       setShowContent(!takeData.content_warning);
 
-      // Counts come from the counter columns (Phase 5); fetch tags, collaborators, and mentions
-      const [tagsRes, collabRes, mentionsRes] = await Promise.all([
-        supabase.from("take_tags").select("tag").eq("take_id", id),
-        supabase.from("take_collaborators").select("role, user_id").eq("take_id", id).eq("status", "accepted"),
-        supabase.from("take_mentions").select("user_id").eq("take_id", id),
-      ]);
-
-      setSavesCount(takeData.saves_count ?? 0);
-      setRelaysCount(takeData.relays_count ?? 0);
-      setHashtags(tagsRes.data?.map(t => t.tag) || []);
-
-      // Fetch collaborator profiles
-      if (collabRes.data && collabRes.data.length > 0) {
-        const userIds = collabRes.data.map(c => c.user_id);
-        const { data: profiles } = await supabase
-          .from("profiles")
-          .select("id, username, display_name, avatar_url")
-          .in("id", userIds);
-
-        if (profiles) {
-          const profileMap = new Map(profiles.map(p => [p.id, p]));
-          setCollaborators(collabRes.data.map(c => ({
-            role: c.role,
-            user: profileMap.get(c.user_id) || { id: c.user_id, username: "unknown", display_name: null, avatar_url: null },
-          })));
-        }
-      } else {
-        setCollaborators([]);
-      }
-
-      // Fetch mention profiles
-      if (mentionsRes.data && mentionsRes.data.length > 0) {
-        const userIds = mentionsRes.data.map(m => m.user_id);
-        const { data: profiles } = await supabase
-          .from("profiles")
-          .select("id, username, display_name, avatar_url")
-          .in("id", userIds);
-
-        setMentions(profiles || []);
-      } else {
-        setMentions([]);
-      }
+      setHashtags((takeData.tags || []).map((t) => t.tag));
+      setCollaborators(
+        (takeData.collaborators || [])
+          .filter((c): c is typeof c & { user: TakePageProfile } => c.status === "accepted" && !!c.user)
+          .map((c) => ({ role: c.role, user: c.user })),
+      );
+      setMentions((takeData.mentions || []).map((m) => m.user).filter((u): u is NonNullable<typeof u> => !!u));
 
       // Fetch user interactions
       if (user) {

@@ -170,7 +170,33 @@ export default function Feed() {
     pagination,
     loadMore,
     refresh,
+    removePosts,
+    restoreScrollY,
   } = useFeed(user?.id, { pageSize: 10, enabled: !authLoading });
+
+  // Back from a post page or a profile: put the list where it was (F-4).
+  const restoredRef = useRef(false);
+  useEffect(() => {
+    if (restoredRef.current || restoreScrollY === null || feedPosts.length === 0) return;
+    // Two things fight this: the router scrolls the new page to the top on
+    // its own schedule, and the list is still short while cards mount, so an
+    // early scrollTo gets clamped. Keep re-applying until the page is tall
+    // enough and the offset sticks (bounded to ~1.5 s). "Restored" is only
+    // recorded once a scroll actually applied, so a strict-mode re-run of
+    // this effect reschedules instead of giving up.
+    const target = restoreScrollY;
+    const timers: number[] = [];
+    [0, 50, 100, 200, 350, 500, 750, 1000, 1500].forEach((ms) => {
+      timers.push(window.setTimeout(() => {
+        if (restoredRef.current) return;
+        const maxY = document.documentElement.scrollHeight - window.innerHeight;
+        if (maxY < target) return; // not tall enough yet; a later tick will try again
+        window.scrollTo(0, target);
+        if (Math.abs(window.scrollY - target) <= 2) restoredRef.current = true;
+      }, ms));
+    });
+    return () => timers.forEach((t) => window.clearTimeout(t));
+  }, [restoreScrollY, feedPosts.length]);
 
   // Local state for filtering deleted posts (cleared on refresh since fresh data is accurate)
   const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
@@ -240,12 +266,14 @@ export default function Feed() {
   useEffect(() => {
     const unsubPosts = subscribeToDeletes((id) => {
       setDeletedIds(prev => new Set(prev).add(id));
+      removePosts((p) => p.id === id);
     });
     const unsubBlocks = subscribeToAuthorBlocks((authorId) => {
       setBlockedAuthorIds(prev => new Set(prev).add(authorId));
+      removePosts((p) => p.author_id === authorId);
     });
     return () => { unsubPosts(); unsubBlocks(); };
-  }, [subscribeToDeletes, subscribeToAuthorBlocks]);
+  }, [subscribeToDeletes, subscribeToAuthorBlocks, removePosts]);
 
   // PERFORMANCE: Memoize filtered posts - only recalculate when feedPosts or
   // deletedIds change.
@@ -265,7 +293,8 @@ export default function Feed() {
 
   const handlePostDeleted = useCallback((postId: string) => {
     setDeletedIds(prev => new Set(prev).add(postId));
-  }, []);
+    removePosts((p) => p.id === postId);
+  }, [removePosts]);
 
   // Show skeletons while loading (only on initial load). Classic view uses
   // the rich PostSkeleton; other views show simple placeholder boxes sized

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
-import { useFeed, useSavedPosts, useRelays } from "../useFeed";
+import { useFeed, useSavedPosts, useRelays, clearFeedSnapshots } from "../useFeed";
 
 // Define types for the mock
 interface MockQueryBuilder {
@@ -116,6 +116,7 @@ const mockPosts = [
 
 describe("useFeed", () => {
   beforeEach(() => {
+    clearFeedSnapshots();
     vi.clearAllMocks();
 
     // Create fresh mock query builder with posts data

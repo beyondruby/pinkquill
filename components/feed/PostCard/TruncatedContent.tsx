@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useMemo } from "react";
-import { stripHtml, getExcerpt } from "@/lib/utils/sanitize";
+import { stripHtml } from "@/lib/utils/sanitize";
 
 interface TruncatedContentProps {
   content: string;
@@ -21,7 +21,8 @@ function TruncatedContentComponent({
   // Memoize expensive text processing
   const { plainText, truncatedText, isTruncated } = useMemo(() => {
     const plain = stripHtml(content);
-    const truncated = getExcerpt(content, maxChars);
+    // Same rule as getExcerpt, without stripping the HTML a second time (F-26).
+    const truncated = plain.length <= maxChars ? plain : plain.substring(0, maxChars).trim() + "...";
     return {
       plainText: plain,
       truncatedText: truncated,

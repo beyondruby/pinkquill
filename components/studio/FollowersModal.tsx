@@ -115,7 +115,8 @@ export default function FollowersModal({
   onUnfollowed,
 }: FollowersModalProps) {
   const { user } = useAuth();
-  const { users, loading, hasMore, loadMore } = useFollowList(userId, type);
+  // The modal is always mounted; fetch only while it is open (P-12).
+  const { users, loading, hasMore, loadMore } = useFollowList(userId, type, 30, { enabled: isOpen });
   const [removedIds, setRemovedIds] = useState<Set<string>>(new Set());
 
   // Reset removed IDs when modal closes or type changes

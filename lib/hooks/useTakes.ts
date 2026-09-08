@@ -1047,12 +1047,17 @@ export function useCreateTake() {
 // USER TAKES HOOK - Fetch takes by a specific user
 // ============================================================================
 
-export function useUserTakes(username: string, viewerId?: string) {
+export function useUserTakes(username: string, viewerId?: string, options: { enabled?: boolean } = {}) {
+  const enabled = options.enabled ?? true;
   const [takes, setTakes] = useState<Take[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const refetch = useCallback(() => setAttempt((a) => a + 1), []);
+  // Which (username, viewer, attempt) the current list belongs to. Leaving
+  // and re-entering the tab used to clear and refetch everything (P-11);
+  // now a disabled hook just keeps what it has.
+  const fetchedKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     // A run that has been superseded (username changed, tab left, retry)
@@ -1161,16 +1166,24 @@ export function useUserTakes(username: string, viewerId?: string) {
     };
 
     if (username) {
+      const key = `${username}:${viewerId ?? ""}:${attempt}`;
+      if (!enabled) {
+        if (fetchedKeyRef.current === null) setLoading(false);
+        return;
+      }
+      if (fetchedKeyRef.current === key) return;
+      fetchedKeyRef.current = key;
       fetchUserTakes();
       return () => {
         cancelled = true;
       };
     }
 
+    fetchedKeyRef.current = null;
     setTakes([]);
     setError(null);
     setLoading(false);
-  }, [username, viewerId, attempt]);
+  }, [username, viewerId, attempt, enabled]);
 
   return { takes, loading, error, refetch };
 }
@@ -1183,12 +1196,14 @@ export interface RelayedTake extends Take {
   relayed_at: string;
 }
 
-export function useRelayedTakes(username: string, viewerId?: string) {
+export function useRelayedTakes(username: string, viewerId?: string, options: { enabled?: boolean } = {}) {
+  const enabled = options.enabled ?? true;
   const [takes, setTakes] = useState<RelayedTake[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const refetch = useCallback(() => setAttempt((a) => a + 1), []);
+  const fetchedKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -1283,16 +1298,24 @@ export function useRelayedTakes(username: string, viewerId?: string) {
     };
 
     if (username) {
+      const key = `${username}:${viewerId ?? ""}:${attempt}`;
+      if (!enabled) {
+        if (fetchedKeyRef.current === null) setLoading(false);
+        return;
+      }
+      if (fetchedKeyRef.current === key) return;
+      fetchedKeyRef.current = key;
       fetchRelayedTakes();
       return () => {
         cancelled = true;
       };
     }
 
+    fetchedKeyRef.current = null;
     setTakes([]);
     setError(null);
     setLoading(false);
-  }, [username, viewerId, attempt]);
+  }, [username, viewerId, attempt, enabled]);
 
   return { takes, loading, error, refetch };
 }

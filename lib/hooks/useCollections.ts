@@ -35,17 +35,25 @@ interface UseCollectionsReturn {
   refetch: () => Promise<void>;
 }
 
-export function useCollections(userId?: string): UseCollectionsReturn {
+export function useCollections(userId?: string, options: { enabled?: boolean } = {}): UseCollectionsReturn {
+  const enabled = options.enabled ?? true;
   const [collections, setCollections] = useState<CollectionWithItems[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const fetchedRef = useRef(false);
   const mountedRef = useRef(true);
+  const fetchedUserRef = useRef<string | null>(null);
 
   const fetchCollections = useCallback(async () => {
     if (!userId) {
+      fetchedUserRef.current = null;
       setCollections([]);
       setLoading(false);
+      return;
+    }
+    // Disabled = the tab is not open: keep whatever is loaded (P-11).
+    if (!enabled) {
+      if (!fetchedRef.current) setLoading(false);
       return;
     }
 
@@ -98,10 +106,13 @@ export function useCollections(userId?: string): UseCollectionsReturn {
         setLoading(false);
       }
     }
-  }, [userId]);
+  }, [userId, enabled]);
 
   useEffect(() => {
     mountedRef.current = true;
+    // One fetch per user while enabled; mutations call refetch() explicitly.
+    if (enabled && userId && fetchedUserRef.current === userId) return;
+    if (enabled && userId) fetchedUserRef.current = userId;
     fetchCollections();
 
     return () => {
