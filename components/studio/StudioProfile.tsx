@@ -711,6 +711,13 @@ function CollectionCard({
 }
 
 
+// The image a tile can show: the first image item, not whatever is at
+// position 0 — an audio- or video-first post used to render a broken <img> (P-22).
+function tileImage(media: { media_type: string; media_url: string; position?: number }[] | null | undefined): string | null {
+  if (!media || media.length === 0) return null;
+  return [...media].sort((a, b) => (a.position ?? 0) - (b.position ?? 0)).find((m) => m.media_type === "image")?.media_url ?? null;
+}
+
 // Shown in place of a tab's empty state when its request failed (P-20).
 function TabErrorState({ what, onRetry }: { what: string; onRetry: () => void }) {
   return (
@@ -789,7 +796,7 @@ interface StudioProfileProps {
 export default function StudioProfile({ username }: StudioProfileProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { openPostModal, subscribeToDeletes, subscribeToUpdates, subscribeToTakeDeletes, subscribeToAuthorBlocks } = useModal();
 
   // What the modal did to a post since this page loaded (V-9, V-10, V-11,
@@ -837,10 +844,10 @@ export default function StudioProfile({ username }: StudioProfileProps) {
   const shouldLoadRelayPosts = activeTab === "relays";
   const shouldLoadRelayTakes = activeTab === "relays" && relaySubTab === "takes";
   const shouldLoadCollections = activeTab === "collections";
-  const { profile, posts, loading, error, isBlockedByUser, isPrivateAccount, viewerFollowStatus, viewerHasBlocked, refetch: refetchProfile } = useProfile(username, user?.id);
+  const { profile, posts, loading, error, isBlockedByUser, isPrivateAccount, viewerFollowStatus, viewerHasBlocked, refetch: refetchProfile } = useProfile(username, user?.id, { ready: !authLoading });
   const { follow, unfollow } = useFollow();
   const { blockUser, unblockUser } = useBlock();
-  const { relays, loading: relaysLoading, error: relaysError, refetch: refetchRelays } = useRelays(shouldLoadRelayPosts ? username : "");
+  const { relays, loading: relaysLoading, error: relaysError, refetch: refetchRelays } = useRelays(shouldLoadRelayPosts ? username : "", user?.id);
   const { takes: userTakes, loading: takesLoading, error: takesError, refetch: refetchTakes } = useUserTakes(shouldLoadTakes ? username : "", user?.id);
   const { takes: relayedTakes, loading: relayedTakesLoading, error: relayedTakesError, refetch: refetchRelayedTakes } = useRelayedTakes(shouldLoadRelayTakes ? username : "", user?.id);
   const { communities: userCommunities } = useCommunities(profile?.id, 'joined');
@@ -950,7 +957,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
     const loadCollaboratedPosts = async () => {
       if (profile?.id) {
         try {
-          const collabPosts = await fetchCollaboratedPosts(profile.id);
+          const collabPosts = await fetchCollaboratedPosts(profile.id, user?.id);
           setCollaboratedPosts(collabPosts);
         } catch (error) {
           console.error("Error fetching collaborated posts:", error);
@@ -958,7 +965,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
       }
     };
     loadCollaboratedPosts();
-  }, [profile?.id]);
+  }, [profile?.id, user?.id]);
 
   // Drop a post from the collaborated-posts grid as soon as the profile owner
   // removes themselves from it. The PostCard / PostDetailModal dispatches a
@@ -1319,7 +1326,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
         {(!isPrivateAccount || isOwnProfile || isFollowing) && (
         <div className={`studio-stats-enhanced mb-8 studio-section-animated ${pageLoaded ? 'loaded delay-2' : ''}`}>
           <div className="studio-stat-item">
-            <span className="studio-stat-value">{profile.works_count}</span>
+            <span className="studio-stat-value">{formatCount(profile.works_count)}</span>
             <span className="studio-stat-label">Posts</span>
           </div>
           <div
@@ -1608,7 +1615,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                     return allPosts.filter(p => p.community_id);
                   case "gallery":
                     // Only posts with media, exclude community posts
-                    return allPosts.filter(p => p.media && p.media.length > 0 && !p.community_id);
+                    return allPosts.filter(p => !!tileImage(p.media) && !p.community_id);
                   case "poems":
                     // Only poems, exclude community posts
                     return allPosts.filter(p => p.type === "poem" && !p.community_id);
@@ -1724,7 +1731,8 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                     {filteredPosts.map((work) => {
                       const isCollab = work.isCollaboration || collaboratedPostIds.has(work.id);
-                      const hasMedia = work.media && work.media.length > 0;
+                      const tileSrc = tileImage(work.media);
+                      const hasMedia = !!tileSrc;
                       const hasMultipleImages = work.media && work.media.length > 1;
                       const plainContent = work.content
                         ? stripHtml(work.content).substring(0, 100)
@@ -1752,7 +1760,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                               {hasMedia ? (
                                 <>
                                   <img
-                                    src={work.media[0].media_url}
+                                    src={tileSrc ?? ""}
                                     alt={work.title || ""}
                                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                   />
@@ -1965,7 +1973,8 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                   <div className="space-y-6">
                     {filteredPosts.map((work) => {
                       const isCollab = work.isCollaboration || collaboratedPostIds.has(work.id);
-                      const hasMedia = work.media && work.media.length > 0;
+                      const tileSrc = tileImage(work.media);
+                      const hasMedia = !!tileSrc;
                       const plainContent = work.content
                         ? stripHtml(work.content).substring(0, 300)
                         : '';
@@ -1981,7 +1990,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                           {hasMedia && (
                             <div className="relative h-48 sm:h-64 overflow-hidden">
                               <img
-                                src={work.media[0].media_url}
+                                src={tileSrc ?? ""}
                                 alt={work.title || ""}
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                               />
@@ -2056,6 +2065,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                   <div className="grid grid-cols-3 gap-1 sm:gap-2">
                     {filteredPosts.map((work) => {
                       const hasMultipleImages = work.media && work.media.length > 1;
+                      const tileSrc = tileImage(work.media);
 
                       return (
                         <div
@@ -2064,7 +2074,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                           className="group relative aspect-square cursor-pointer overflow-hidden bg-skeleton/60 rounded-sm sm:rounded-lg"
                         >
                           <img
-                            src={work.media[0].media_url}
+                            src={tileSrc ?? ""}
                             alt={work.title || ""}
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                           />
@@ -2181,7 +2191,8 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                         <div className="journals-date-label">{dateKey}</div>
                         <div className="journals-entries">
                           {dayPosts.map((work) => {
-                            const hasMedia = work.media && work.media.length > 0;
+                            const tileSrc = tileImage(work.media);
+                      const hasMedia = !!tileSrc;
                             const plainContent = work.content
                               ? stripHtml(work.content).substring(0, 120)
                               : '';
@@ -2201,7 +2212,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                               >
                                 {hasMedia && (
                                   <div className="journal-card-image">
-                                    <img src={work.media[0].media_url} alt="" />
+                                    <img src={tileSrc ?? ""} alt="" />
                                     {work.media.length > 1 && (
                                       <span className="journal-card-image-count">+{work.media.length - 1}</span>
                                     )}
@@ -2229,7 +2240,8 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 return (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {filteredPosts.map((work) => {
-                      const hasMedia = work.media && work.media.length > 0;
+                      const tileSrc = tileImage(work.media);
+                      const hasMedia = !!tileSrc;
                       const plainContent = work.content
                         ? stripHtml(work.content).substring(0, 120)
                         : '';
@@ -2245,7 +2257,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                           {hasMedia && (
                             <div className="relative h-44 overflow-hidden">
                               <img
-                                src={work.media[0].media_url}
+                                src={tileSrc ?? ""}
                                 alt=""
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                               />
@@ -2391,7 +2403,8 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                     {relays.filter((r) => !deletedPostIds.has(r.id) && !blockedAuthorIds.has(r.author_id)).map((relay) => {
                       const postForModal = openWithOverrides(relay);
 
-                      const hasMedia = relay.media && relay.media.length > 0;
+                      const tileSrc = tileImage(relay.media);
+                      const hasMedia = !!tileSrc;
                       const plainContent = relay.content
                         ? stripHtml(relay.content).substring(0, 200)
                         : '';
@@ -2441,7 +2454,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                           {hasMedia && (
                             <div className="studio-relay-image-wrap">
                               <img
-                                src={relay.media[0].media_url}
+                                src={tileSrc ?? ""}
                                 alt={relay.title || "Relayed work"}
                                 className="studio-relay-image"
                               />

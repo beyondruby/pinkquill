@@ -15,7 +15,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "./supabase";
 import { useUserEvent } from "@/components/providers/UserEventsProvider";
 import { useCommunityContext } from "@/components/communities/CommunityContext";
-import { enrichPost, fetchUserPostFlags } from "@/lib/posts/enrich";
+import { enrichPost, fetchUserPostFlags, POST_RELATIONS_SELECT, POST_COUNTS_SELECT } from "@/lib/posts/enrich";
 import { sanitizePostgrestSearchTerm } from "./utils/postgrest";
 import { retryWithBackoff, isRetryableError, isAbortError } from "./utils/retry";
 import type {
@@ -2283,19 +2283,55 @@ export async function removeSelfAsCollaborator(
 // HELPER: Fetch posts with collaborators for profile
 // ============================================
 
-export async function fetchCollaboratedPosts(userId: string) {
+export async function fetchCollaboratedPosts(userId: string, viewerId?: string) {
   try {
     const { data: collabData, error: collabError } = await supabase.from('post_collaborators').select('post_id').eq('user_id', userId).eq('status', 'accepted');
     if (collabError) throw collabError;
     if (!collabData || collabData.length === 0) return [];
+    const postIds = collabData.map(c => c.post_id);
+    // Same select + enrichment as every other post list (P-14): sorted
+    // media, counters, tags, and the viewer's own flags.
     const { data: posts, error: postsError } = await supabase
       .from('posts')
-      .select(`*, author:profiles!posts_author_id_fkey (username, display_name, avatar_url), media:post_media (id, media_url, media_type, caption, position), collaborators:post_collaborators (status, user:profiles!post_collaborators_user_id_fkey (id, username, display_name, avatar_url))`)
-      .in('id', collabData.map(c => c.post_id))
+      .select(`
+        *,
+        author:profiles!posts_author_id_fkey (
+          id,
+          username,
+          display_name,
+          avatar_url
+        ),
+        media:post_media (
+          id,
+          media_url,
+          media_type,
+          caption,
+          position
+        ),
+        community:communities (
+          id,
+          slug,
+          name,
+          avatar_url
+        ),
+        flair:community_flairs (
+          id,
+          community_id,
+          name,
+          color,
+          emoji,
+          position,
+          created_at
+        ),
+        ${POST_RELATIONS_SELECT},
+        ${POST_COUNTS_SELECT}
+      `)
+      .in('id', postIds)
       .eq('status', 'published')
       .order('created_at', { ascending: false });
     if (postsError) throw postsError;
-    return posts || [];
+    const flags = await fetchUserPostFlags(viewerId, postIds);
+    return (posts || []).map((row) => enrichPost(row, flags));
   } catch (err) {
     console.error('[fetchCollaboratedPosts] Error:', err);
     return [];

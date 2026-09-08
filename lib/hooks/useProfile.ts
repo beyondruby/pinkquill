@@ -26,7 +26,15 @@ interface UseProfileReturn {
   refetch: () => Promise<void>;
 }
 
-export function useProfile(username: string, viewerId?: string): UseProfileReturn {
+export function useProfile(
+  username: string,
+  viewerId?: string,
+  options: { ready?: boolean } = {},
+): UseProfileReturn {
+  // `ready` = the caller knows who the viewer is (auth settled). Fetching
+  // before that returned the guest view to a logged-in user and never
+  // re-ran when auth resolved (P-46).
+  const ready = options.ready ?? true;
   const [profile, setProfile] = useState<Profile | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,7 +47,6 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
   const mountedRef = useRef(true);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Use ref for viewerId to avoid re-fetching entire profile when auth resolves
   const viewerIdRef = useRef(viewerId);
   viewerIdRef.current = viewerId;
 
@@ -50,6 +57,7 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
       setLoading(false);
       return;
     }
+    if (!ready) return;
 
     // Abort any in-flight request
     if (abortControllerRef.current) {
@@ -265,7 +273,7 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
         setLoading(false);
       }
     }
-  }, [username]);
+  }, [username, viewerId, ready]);
 
   useEffect(() => {
     mountedRef.current = true;

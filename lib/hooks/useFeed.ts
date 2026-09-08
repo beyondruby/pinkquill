@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "../supabase";
 import type { Post, PostMedia, PaginationState, RelayedPost, PostAuthor, PostType, PostVisibility } from "../types";
 import { categorizeError, retryWithBackoff, isRetryableError, isAbortError } from "../utils/retry";
-import { enrichPost, fetchUserPostFlags, type UserPostFlags } from "@/lib/posts/enrich";
+import { enrichPost, fetchUserPostFlags, POST_RELATIONS_SELECT, POST_COUNTS_SELECT, type UserPostFlags } from "@/lib/posts/enrich";
 
 // ============================================================================
 // CONSTANTS
@@ -452,7 +452,7 @@ export function useSavedPosts(userId?: string): UseSavedPostsReturn {
 // useRelays - Fetch relayed posts for a user
 // ============================================================================
 
-export function useRelays(username: string) {
+export function useRelays(username: string, viewerId?: string) {
   const [relays, setRelays] = useState<RelayedPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -501,114 +501,83 @@ export function useRelays(username: string) {
           return;
         }
 
-        // Fetch relays with post data INCLUDING aggregate counts
-        // This eliminates the need for separate count queries
-        const { data: relaysData, error: relaysError } = await supabase
+        // The relay rows, then the posts through the same select + enrichment
+        // every other list uses. The old hand-built mapping never selected the
+        // counter columns (every relayed post read 0 reactions / 0 comments)
+        // and hard-coded the viewer's flags (P-3).
+        const { data: relayRows, error: relaysError } = await supabase
           .from("relays")
-          .select(
-            `
-            created_at,
-            post:posts (
-              id,
-              author_id,
-              type,
-              title,
-              content,
-              visibility,
-              created_at,
-              author:profiles!posts_author_id_fkey (
-                username,
-                display_name,
-                avatar_url
-              ),
-              media:post_media (
-                id,
-                media_url,
-                media_type,
-                caption,
-                position
-              ),
-              reactions:reactions(count),
-              comments:comments(count),
-              relays:relays(count)
-            )
-          `
-          )
+          .select("post_id, created_at")
           .eq("user_id", profileData.id)
           .order("created_at", { ascending: false })
           .abortSignal(signal);
 
         if (abortController.signal.aborted || !mountedRef.current) return;
-        if (relaysError || !relaysData || relaysData.length === 0) {
+        if (relaysError) throw relaysError;
+        if (!relayRows || relayRows.length === 0) {
           setRelays([]);
           return;
         }
 
-        // Type for relay post data from the query
-        interface RelayPostData {
-          id: string;
-          author_id: string;
-          type: string;
-          title: string | null;
-          content: string;
-          visibility: string;
-          created_at: string;
-          author: {
-            username: string;
-            display_name: string | null;
-            avatar_url: string | null;
-          };
-          media: {
-            id: string;
-            media_url: string;
-            media_type: string;
-            caption: string | null;
-            position: number;
-          }[];
-          reactions_count: number | null;
-          comments_count: number | null;
-          relays_count: number | null;
-          reaction_counts: Record<string, number> | null;
-        }
+        const postIds = relayRows.map((r) => r.post_id);
+        const relayedAt = new Map(relayRows.map((r) => [r.post_id, r.created_at]));
 
-        // Helper to extract post data - handles both object and array return types from Supabase
-        const getPostData = (post: unknown): RelayPostData | null => {
-          if (!post) return null;
-          if (Array.isArray(post)) return post[0] as RelayPostData;
-          return post as RelayPostData;
-        };
+        const { data: postsData, error: postsError } = await supabase
+          .from("posts")
+          .select(`
+            *,
+            author:profiles!posts_author_id_fkey (
+              id,
+              username,
+              display_name,
+              avatar_url
+            ),
+            media:post_media (
+              id,
+              media_url,
+              media_type,
+              caption,
+              position
+            ),
+            community:communities (
+              id,
+              slug,
+              name,
+              avatar_url
+            ),
+            flair:community_flairs (
+              id,
+              community_id,
+              name,
+              color,
+              emoji,
+              position,
+              created_at
+            ),
+            ${POST_RELATIONS_SELECT},
+            ${POST_COUNTS_SELECT}
+          `)
+          .in("id", postIds)
+          .abortSignal(signal);
 
-        const processedRelays = relaysData
-          .map((relay) => {
-            const post = getPostData(relay.post);
-            if (!post) return null;
+        if (abortController.signal.aborted || !mountedRef.current) return;
+        if (postsError) throw postsError;
 
-            // Extract only the fields we need, excluding the aggregate data
-            const relayedPost: RelayedPost = {
-              id: post.id,
-              author_id: post.author_id,
-              type: post.type as PostType,
-              title: post.title,
-              content: post.content,
-              visibility: post.visibility as PostVisibility,
-              created_at: post.created_at,
-              content_warning: null,
-              community_id: null,
-              author: post.author as PostAuthor,
-              media: (post.media || []).sort((a, b) => a.position - b.position) as PostMedia[],
-              relayed_at: relay.created_at,
-              original_author: post.author as PostAuthor,
-              // Use counts from the aggregate query - no separate queries needed!
-              comments_count: post.comments_count ?? 0,
-              relays_count: post.relays_count ?? 0,
-              reactions_count: post.reactions_count ?? 0,
-              user_has_saved: false,
-              user_has_relayed: false,
-              user_reaction_type: null,
+        const flags = await fetchUserPostFlags(viewerId, postIds, signal);
+        if (abortController.signal.aborted || !mountedRef.current) return;
+
+        const byId = new Map((postsData || []).map((row) => [row.id as string, row]));
+        const processedRelays: RelayedPost[] = postIds
+          .map((id) => byId.get(id))
+          .filter((row): row is NonNullable<typeof row> => !!row)
+          .map((row) => {
+            const post = enrichPost(row, flags);
+            return {
+              ...post,
+              relayed_at: relayedAt.get(post.id) ?? post.created_at,
+              original_author: post.author,
             };
-            return relayedPost;
-          })
-          .filter((relay): relay is RelayedPost => relay !== null);
+          });
 
         if (abortController.signal.aborted || !mountedRef.current) return;
         setRelays(processedRelays);
@@ -634,7 +603,7 @@ export function useRelays(username: string) {
         abortControllerRef.current.abort();
       }
     };
-  }, [username, attempt]);
+  }, [username, viewerId, attempt]);
 
   return { relays, loading, error, refetch };
 }
