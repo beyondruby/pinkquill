@@ -56,6 +56,11 @@ const mockRemoveChannel = vi.fn();
 vi.mock("@/lib/supabase", () => ({
   supabase: {
     from: (table: string) => mockFromImplementation(table),
+    // get_profile_counts (phase 1j): author totals; tests only need a resolvable shape.
+    rpc: () => {
+      const result = { data: [{ posts: 0, admires: 0 }], error: null };
+      return Object.assign(Promise.resolve(result), { abortSignal: vi.fn().mockResolvedValue(result) });
+    },
     channel: (...args: unknown[]) => mockChannel(...args),
     removeChannel: (...args: unknown[]) => mockRemoveChannel(...args),
   },
