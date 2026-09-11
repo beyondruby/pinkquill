@@ -1,52 +1,67 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { ProductWizardState, initialWizardState, ProductDelivery, Product, ProductPricing, ProductMedia } from "@/lib/types/store";
+import {
+  ProductWizardState,
+  initialWizardState,
+  ProductDelivery,
+  Product,
+  ProductPricing,
+  ProductMedia,
+} from "@/lib/types/store";
 import { getCategoryConfig } from "@/lib/store/categories";
 import { useCreateProduct, useUpdateProductListing } from "@/lib/hooks/useProducts";
-import { showToast } from "@/lib/utils/toast";
-import Loading from "@/components/ui/Loading";
-import ListingShell, { SignInGate, type ListingHeadline } from "@/components/listing/ListingShell";
-import TypeStep from "./steps/TypeStep";
-import MediaStep from "./steps/MediaStep";
-import DetailsStep, { TITLE_MAX } from "./steps/DetailsStep";
-import PricingStep from "./steps/PricingStep";
-import PreviewStep from "./steps/PreviewStep";
+import DeliveryTypeStep from "./steps/DeliveryTypeStep";
+import CategoryStep from "./steps/CategoryStep";
+import MediaUploadStep from "./steps/MediaUploadStep";
+import DetailsStep from "./steps/DetailsStep";
 
-/**
- * The product listing wizard. Five short steps on the shared listing shell,
- * a draft you can leave and come back to, and a preview before publishing.
- */
+export type WizardStep = "delivery" | "category" | "media" | "details";
 
-const STEPS = ["Type", "Photos", "Details", "Pricing", "Preview"] as const;
-const HEADLINES: ListingHeadline[] = [
-  { prefix: "Let's create your", highlight: "product" },
-  { prefix: "Show your", highlight: "work" },
-  { prefix: "Tell us", highlight: "about it" },
-  { prefix: "Set your", highlight: "price" },
-  { prefix: "Here's your", highlight: "listing" },
+const STEP_LABELS = [
+  { number: 1, label: "Choose Type" },
+  { number: 2, label: "Upload Media" },
+  { number: 3, label: "Fill Details" },
 ];
 
 function mapProductToWizardState(product: Product): ProductWizardState {
   const sortedMedia = [...(product.media || [])]
     .sort((a: ProductMedia, b: ProductMedia) => a.position - b.position)
-    .map((item) => ({ id: item.id, file: null, url: item.media_url, isPrimary: Boolean(item.is_primary), mediaType: item.media_type }));
-  if (sortedMedia.length > 0 && !sortedMedia.some((item) => item.isPrimary)) sortedMedia[0].isPrimary = true;
+    .map((item) => ({
+      id: item.id,
+      file: null,
+      url: item.media_url,
+      isPrimary: Boolean(item.is_primary),
+      mediaType: item.media_type,
+    }));
+
+  if (sortedMedia.length > 0 && !sortedMedia.some((item) => item.isPrimary)) {
+    sortedMedia[0].isPrimary = true;
+  }
 
   const pricingRows = product.pricing || [];
   const originalPricing = pricingRows.find((row) => row.pricing_type === "original");
   const digitalPricing = pricingRows.find((row) => row.pricing_type === "digital_download");
+  const reproductions = pricingRows
+    .filter((row) => row.pricing_type === "reproduction")
+    .map((row: ProductPricing, index) => {
+      const price = Number(row.price || 0);
+      const min = Number(row.min_price ?? row.price ?? 0);
+      return {
+        type: row.variant_name || `reproduction-${index + 1}`,
+        price,
+        min: min < price ? min : null,
+      };
+    });
+
   const pwywFloor = (row: ProductPricing | undefined): number | null => {
     if (!row) return null;
     const price = Number(row.price || 0);
     const min = Number(row.min_price ?? row.price ?? 0);
     return min < price ? min : null;
   };
-  const reproductions = pricingRows
-    .filter((row) => row.pricing_type === "reproduction")
-    .map((row: ProductPricing, index) => ({ type: row.variant_name || `reproduction-${index + 1}`, price: Number(row.price || 0), min: pwywFloor(row) }));
 
   return {
     deliveryType: product.delivery_type,
@@ -54,7 +69,14 @@ function mapProductToWizardState(product: Product): ProductWizardState {
     subcategory: product.subcategory || null,
     mediaFiles: [],
     mediaPreviews: sortedMedia,
-    digitalFiles: (product.files || []).map((file) => ({ id: file.id, file: null, name: file.file_name, type: file.file_type || undefined, size: file.file_size || 0, url: file.file_url })),
+    digitalFiles: (product.files || []).map((file) => ({
+      id: file.id,
+      file: null,
+      name: file.file_name,
+      type: file.file_type || undefined,
+      size: file.file_size || 0,
+      url: file.file_url,
+    })),
     title: product.title || "",
     description: product.description || "",
     yearCreated: product.year_created || null,
@@ -91,178 +113,386 @@ interface CreateProductWizardProps {
   initialProduct?: Product | null;
 }
 
-export default function CreateProductWizard({ mode = "create", productId, initialProduct = null }: CreateProductWizardProps = {}) {
+export default function CreateProductWizard({
+  mode = "create",
+  productId,
+  initialProduct = null,
+}: CreateProductWizardProps = {}) {
   const router = useRouter();
-  const mediaUrlsRef = useRef<string[]>([]);
-  const { user, loading: authLoading } = useAuth();
-  const { create, creating, error: createError } = useCreateProduct();
-  const { updateListing, updating, error: updateError } = useUpdateProductListing();
+  const { user, profile } = useAuth();
+  const { create, creating: creatingListing, error: createError } = useCreateProduct();
+  const { updateListing, updating: updatingListing, error: updateError } = useUpdateProductListing();
 
-  const isEdit = mode === "edit";
-  const [savedId, setSavedId] = useState<string | null>(productId ?? initialProduct?.id ?? null);
-  const [savedStatus, setSavedStatus] = useState<string | null>(initialProduct?.status ?? null);
-  const [step, setStep] = useState(1);
-  const [furthest, setFurthest] = useState(isEdit ? STEPS.length : 1);
+  const isEditMode = mode === "edit";
+  const [currentStep, setCurrentStep] = useState<WizardStep>("delivery");
+  const [wizardState, setWizardState] = useState<ProductWizardState>(() => (
+    mode === "edit" && initialProduct
+      ? mapProductToWizardState(initialProduct)
+      : initialWizardState
+  ));
   const [error, setError] = useState<string | null>(null);
-  const [savingDraft, setSavingDraft] = useState(false);
-  const [state, setState] = useState<ProductWizardState>(() => (isEdit && initialProduct ? mapProductToWizardState(initialProduct) : initialWizardState));
 
-  const busy = creating || updating || savingDraft;
-  const submitError = createError || updateError;
-  const config = state.category ? getCategoryConfig(state.category) : undefined;
+  const submitting = isEditMode ? updatingListing : creatingListing;
+  const submitError = isEditMode ? updateError : createError;
 
-  // Object URLs minted by the picker live as long as the wizard does.
-  useEffect(() => {
-    mediaUrlsRef.current = state.mediaPreviews.filter((m) => m.file instanceof File).map((m) => m.url);
-  }, [state.mediaPreviews]);
-  useEffect(() => () => { mediaUrlsRef.current.forEach((url) => URL.revokeObjectURL(url)); }, []);
-
-  const update = useCallback((patch: Partial<ProductWizardState>) => { setState((prev) => ({ ...prev, ...patch })); setError(null); }, []);
-
-  /** The publish checks, per step. Returns the first problem or null. */
-  const problemFor = useCallback((target: number): string | null => {
-    if (target === 1) {
-      if (!state.deliveryType) return "Choose how it reaches the buyer.";
-      if (!state.category) return "Pick a category.";
-    }
-    if (target === 2 && state.mediaPreviews.length === 0) return "Add at least one photo.";
-    if (target === 3) {
-      const title = state.title.trim();
-      if (!title) return "Give the piece a title.";
-      if (title.length < 3) return "The title needs at least 3 characters.";
-      if (title.length > TITLE_MAX) return `The title must be ${TITLE_MAX} characters or fewer.`;
-    }
-    if (target === 4) {
-      const priced =
-        (state.sellOriginal && state.originalPrice !== null) ||
-        (state.hasReproductions && state.reproductions.length > 0) ||
-        (state.hasDigitalDownload && state.digitalPrice !== null);
-      if (!priced) return "Set at least one price.";
-      const floorProblem = (label: string, min: number | null, price: number | null) =>
-        min !== null && price !== null && (min < 0 || min > price) ? `The minimum for ${label} must be between $0 and the suggested price.` : null;
-      if (state.sellOriginal) { const p = floorProblem("the original", state.originalMin, state.originalPrice); if (p) return p; }
-      if (state.hasDigitalDownload) { const p = floorProblem("the download", state.digitalMin, state.digitalPrice); if (p) return p; }
-      if (state.hasReproductions) for (const rep of state.reproductions) { const p = floorProblem(rep.type, rep.min, rep.price); if (p) return p; }
-    }
-    return null;
-  }, [state]);
-
-  const scrollTop = () => { if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" }); };
-  const goNext = () => {
-    const problem = problemFor(step);
-    if (problem) { setError(problem); scrollTop(); return; }
-    const next = Math.min(STEPS.length, step + 1);
-    setStep(next);
-    setFurthest((f) => Math.max(f, next));
-    scrollTop();
-  };
-  const goBack = () => { setStep((s) => Math.max(1, s - 1)); scrollTop(); };
-  const jump = (target: number) => { setStep(target); scrollTop(); };
-
-  const canSaveDraft = Boolean(state.deliveryType && state.category && state.title.trim()) && (savedStatus === null || savedStatus === "draft");
-
-  /** Save what exists as a draft: no publish checks, prices may be empty. */
-  const saveDraft = async () => {
-    if (!canSaveDraft) { setError("Pick a category and give the piece a title to save a draft."); scrollTop(); return; }
-    setSavingDraft(true);
+  const updateState = useCallback((updates: Partial<ProductWizardState>) => {
+    setWizardState(prev => ({ ...prev, ...updates }));
     setError(null);
-    try {
-      if (savedId) {
-        const ok = await updateListing(savedId, state, { status: "draft" });
-        if (ok) showToast.success("Draft saved");
-        else scrollTop();
-      } else {
-        const created = await create(state, { status: "draft" });
-        if (created) {
-          setSavedId(created.id);
-          setSavedStatus("draft");
-          showToast.success("Draft saved", "Find it under Listings whenever you want to continue.");
-          // Continue editing the saved row so later saves update instead of duplicating.
-          window.history.replaceState(null, "", `/sell/edit/${created.id}`);
-        } else scrollTop();
-      }
-    } finally {
-      setSavingDraft(false);
+  }, []);
+
+  const getStepNumber = (step: WizardStep): number => {
+    switch (step) {
+      case "delivery":
+      case "category":
+        return 1;
+      case "media":
+        return 2;
+      case "details":
+        return 3;
+      default:
+        return 1;
     }
   };
 
-  const publish = async () => {
-    if (!user) { setError("Sign in to publish."); scrollTop(); return; }
-    for (let i = 1; i < STEPS.length; i += 1) {
-      const problem = problemFor(i);
-      if (problem) { setError(problem); setStep(i); scrollTop(); return; }
+  const getStepTitle = (step: WizardStep): { prefix: string; highlight1: string; highlight2: string } => {
+    switch (step) {
+      case "delivery":
+        return { prefix: "Let's", highlight1: "create", highlight2: "your product" };
+      case "category":
+        return { prefix: "Choose a", highlight1: "category", highlight2: "for your product" };
+      case "media":
+        return { prefix: "Upload", highlight1: "media", highlight2: "for your product" };
+      case "details":
+        return { prefix: "Add the", highlight1: "final", highlight2: "details" };
+      default:
+        return { prefix: "Let's", highlight1: "create", highlight2: "your product" };
     }
-    if (savedId) {
-      const ok = await updateListing(savedId, state, savedStatus === "active" ? {} : { status: "active" });
-      if (!ok) { scrollTop(); return; }
-      showToast.success(savedStatus === "active" ? "Changes saved" : "Published — your listing is live");
-      router.push(`/product/${savedId}`);
+  };
+
+  const goToNextStep = useCallback(() => {
+    switch (currentStep) {
+      case "delivery":
+        setCurrentStep("category");
+        break;
+      case "category":
+        setCurrentStep("media");
+        break;
+      case "media":
+        setCurrentStep("details");
+        break;
+      default:
+        break;
+    }
+  }, [currentStep]);
+
+  const goToPreviousStep = useCallback(() => {
+    switch (currentStep) {
+      case "category":
+        setCurrentStep("delivery");
+        break;
+      case "media":
+        setCurrentStep("category");
+        break;
+      case "details":
+        setCurrentStep("media");
+        break;
+      default:
+        break;
+    }
+  }, [currentStep]);
+
+  const validateCurrentStep = useCallback((): boolean => {
+    switch (currentStep) {
+      case "delivery":
+        if (!wizardState.deliveryType) {
+          setError("Please select a product type");
+          return false;
+        }
+        return true;
+      case "category":
+        if (!wizardState.category) {
+          setError("Please select a category");
+          return false;
+        }
+        return true;
+      case "media":
+        if (wizardState.mediaPreviews.length === 0) {
+          setError("Please upload at least one image");
+          return false;
+        }
+        return true;
+      case "details": {
+        const trimmedTitle = wizardState.title.trim();
+        if (!trimmedTitle) {
+          setError("Please enter a title");
+          return false;
+        }
+        if (trimmedTitle.length < 3) {
+          setError("Title must be at least 3 characters");
+          return false;
+        }
+        if (trimmedTitle.length > 120) {
+          setError("Title must be 120 characters or fewer");
+          return false;
+        }
+        const hasPricing =
+          (wizardState.sellOriginal && wizardState.originalPrice !== null) ||
+          (wizardState.hasReproductions && wizardState.reproductions.length > 0) ||
+          (wizardState.hasDigitalDownload && wizardState.digitalPrice !== null);
+        if (!hasPricing) {
+          setError("Please set a price");
+          return false;
+        }
+
+        if (wizardState.sellOriginal && wizardState.originalMin !== null && wizardState.originalPrice !== null) {
+          if (wizardState.originalMin < 0 || wizardState.originalMin > wizardState.originalPrice) {
+            setError("Minimum price for the original must be between 0 and the suggested price");
+            return false;
+          }
+        }
+        if (wizardState.hasDigitalDownload && wizardState.digitalMin !== null && wizardState.digitalPrice !== null) {
+          if (wizardState.digitalMin < 0 || wizardState.digitalMin > wizardState.digitalPrice) {
+            setError("Minimum price for the digital download must be between 0 and the suggested price");
+            return false;
+          }
+        }
+        if (wizardState.hasReproductions) {
+          for (const rep of wizardState.reproductions) {
+            if (rep.min !== null && (rep.min < 0 || rep.min > rep.price)) {
+              setError(`Minimum price for ${rep.type} must be between 0 and the suggested price`);
+              return false;
+            }
+          }
+        }
+        return true;
+      }
+      default:
+        return true;
+    }
+  }, [currentStep, wizardState]);
+
+  const handleNext = useCallback(() => {
+    if (validateCurrentStep()) {
+      goToNextStep();
+    }
+  }, [validateCurrentStep, goToNextStep]);
+
+  const handleSubmit = async () => {
+    if (!user || !profile) {
+      setError(`Please sign in to ${isEditMode ? "edit" : "create"} a product`);
       return;
     }
-    const created = await create(state, { status: "active" });
-    if (!created) { scrollTop(); return; }
-    showToast.success("Published — your listing is live");
-    router.push(`/product/${created.id}`);
+
+    if (!validateCurrentStep()) {
+      return;
+    }
+
+    try {
+      if (isEditMode) {
+        const targetProductId = productId || initialProduct?.id;
+        if (!targetProductId) {
+          setError("Missing product id for edit.");
+          return;
+        }
+
+        const success = await updateListing(targetProductId, wizardState);
+        if (success) {
+          router.push(`/studio/${profile.username}?tab=store`);
+        }
+        return;
+      }
+
+      const product = await create(wizardState);
+      if (product) {
+        router.push(`/studio/${profile.username}?tab=store`);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : `Failed to ${isEditMode ? "update" : "create"} product`);
+    }
   };
 
-  if (isEdit && !initialProduct) {
-    return <div className="min-h-[60vh] flex items-center justify-center px-6"><Loading text="Opening your listing" /></div>;
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-subtle">
+        <div className="text-center px-6">
+          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-orange-warm/20 to-pink-vivid/20 flex items-center justify-center">
+            <svg className="w-10 h-10 text-purple-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-display font-bold text-ink mb-2">
+            {isEditMode ? "Sign in to edit listing" : "Sign in to sell"}
+          </h2>
+          <p className="text-muted font-body">
+            {isEditMode ? "You need an account to edit listings" : "Create an account to start selling your work"}
+          </p>
+        </div>
+      </div>
+    );
   }
 
-  if (!authLoading && !user) {
-    return <SignInGate title="Sign in to sell" description="List originals, prints and downloads, and let people who love your work buy it directly." redirect="/sell" />;
+  if (isEditMode && !initialProduct) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-subtle">
+        <div className="w-10 h-10 rounded-full border-2 border-border-strong border-t-[var(--color-pink-vivid)] animate-spin" />
+      </div>
+    );
   }
 
-  const isLive = savedStatus === "active";
-  const eyebrow = isEdit ? (isLive ? "Edit listing" : "Draft") : savedId ? "Draft" : "New product";
+  const categoryConfig = wizardState.category ? getCategoryConfig(wizardState.category) : undefined;
+  const stepNumber = getStepNumber(currentStep);
+  const stepTitle = getStepTitle(currentStep);
+
+  // Calculate progress percentage (aligns with step indicators)
+  // Step 1 = 16%, Step 2 = 50%, Step 3 = 100%
+  const progressPercent = stepNumber === 1 ? 16 : stepNumber === 2 ? 50 : 100;
 
   return (
-    <ListingShell
-      eyebrow={eyebrow}
-      steps={STEPS}
-      step={step}
-      furthest={furthest}
-      onJump={jump}
-      headline={HEADLINES[step - 1]}
-      error={error || submitError}
-      onBack={goBack}
-      onNext={goNext}
-      onPublish={publish}
-      onSaveDraft={saveDraft}
-      canSaveDraft={canSaveDraft}
-      savingDraft={savingDraft}
-      publishing={creating || updating}
-      busy={busy}
-      isLive={isLive}
-    >
-      {step === 1 && (
-        <TypeStep
-          deliveryType={state.deliveryType}
-          category={state.category}
-          subcategory={state.subcategory}
-          onDeliveryChange={(deliveryType) => update({ deliveryType, category: null, subcategory: null, attributes: {} })}
-          onCategoryChange={(category) => update({ category, subcategory: null, attributes: {} })}
-          onSubcategoryChange={(subcategory) => update({ subcategory })}
-        />
-      )}
-      {step === 2 && (
-        <MediaStep
-          deliveryType={state.deliveryType as ProductDelivery}
-          mediaPreviews={state.mediaPreviews}
-          digitalFiles={state.digitalFiles}
-          onMediaChange={(mediaPreviews) => update({ mediaPreviews })}
-          onDigitalFilesChange={(digitalFiles) => update({ digitalFiles })}
-          onError={setError}
-        />
-      )}
-      {step === 3 && config && (
-        <DetailsStep deliveryType={state.deliveryType as ProductDelivery} category={state.category!} subcategory={state.subcategory} categoryConfig={config} wizardState={state} updateState={update} />
-      )}
-      {step === 4 && config && (
-        <PricingStep deliveryType={state.deliveryType as ProductDelivery} categoryConfig={config} wizardState={state} updateState={update} />
-      )}
-      {step === 5 && config && <PreviewStep wizardState={state} categoryConfig={config} isLive={isLive} />}
-      {step >= 3 && !config && <p className="text-sm font-body text-muted text-center">Pick a category first.</p>}
-    </ListingShell>
+    <div className="min-h-screen bg-surface">
+      <div className="max-w-4xl mx-auto px-6 py-12">
+        {/* Step Label */}
+        <p className="text-center text-sm font-ui text-muted mb-4">
+          STEP {stepNumber}
+        </p>
+
+        {/* Title */}
+        <h1 className="text-center text-3xl md:text-4xl font-display font-bold text-ink mb-8">
+          {stepTitle.prefix}{" "}
+          <span className="bg-gradient-to-r from-orange-warm to-pink-vivid bg-clip-text text-transparent">
+            {stepTitle.highlight1}
+          </span>{" "}
+          <span className="bg-gradient-to-r from-pink-vivid to-purple-primary bg-clip-text text-transparent">
+            {stepTitle.highlight2}
+          </span>
+        </h1>
+
+        {/* Step Indicator */}
+        <div className="mb-12">
+          <div className="flex items-center justify-center gap-8 mb-4">
+            {STEP_LABELS.map((step) => (
+              <div key={step.number} className="flex items-center gap-2">
+                <div
+                  className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold
+                    ${stepNumber >= step.number
+                      ? "bg-gradient-to-r from-orange-warm to-pink-vivid text-white"
+                      : "bg-skeleton text-gray-500"
+                    }`}
+                >
+                  {step.number}
+                </div>
+                <span
+                  className={`text-sm font-ui ${
+                    stepNumber >= step.number ? "text-ink font-medium" : "text-muted"
+                  }`}
+                >
+                  {step.label}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Progress Bar */}
+          <div className="h-1.5 bg-skeleton rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm transition-all duration-500"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Error Message */}
+        {(error || submitError) && (
+          <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-xl text-center">
+            <p className="text-sm text-red-600 font-body">{error || submitError}</p>
+          </div>
+        )}
+
+        {/* Content */}
+        <div className="mb-12">
+          {currentStep === "delivery" && (
+            <DeliveryTypeStep
+              value={wizardState.deliveryType}
+              onChange={(deliveryType) => updateState({ deliveryType })}
+            />
+          )}
+
+          {currentStep === "category" && (
+            <CategoryStep
+              deliveryType={wizardState.deliveryType as ProductDelivery}
+              category={wizardState.category}
+              subcategory={wizardState.subcategory}
+              onCategoryChange={(category) =>
+                updateState({ category, subcategory: null, attributes: {} })
+              }
+              onSubcategoryChange={(subcategory) => updateState({ subcategory })}
+            />
+          )}
+
+          {currentStep === "media" && (
+            <MediaUploadStep
+              deliveryType={wizardState.deliveryType as ProductDelivery}
+              mediaPreviews={wizardState.mediaPreviews}
+              digitalFiles={wizardState.digitalFiles}
+              onMediaChange={(mediaPreviews) => updateState({ mediaPreviews })}
+              onDigitalFilesChange={(digitalFiles) => updateState({ digitalFiles })}
+            />
+          )}
+
+          {currentStep === "details" && categoryConfig && (
+            <DetailsStep
+              deliveryType={wizardState.deliveryType as ProductDelivery}
+              category={wizardState.category!}
+              subcategory={wizardState.subcategory}
+              categoryConfig={categoryConfig}
+              wizardState={wizardState}
+              updateState={updateState}
+            />
+          )}
+        </div>
+
+        {/* Navigation */}
+        <div className="flex items-center justify-between gap-4">
+          {currentStep !== "delivery" ? (
+            <button
+              onClick={goToPreviousStep}
+              className="flex items-center gap-2 px-6 py-3 rounded-full bg-purple-primary text-white font-ui font-semibold hover:bg-accent/90 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Previous Step
+            </button>
+          ) : (
+            <div />
+          )}
+
+          {currentStep !== "details" ? (
+            <button
+              onClick={handleNext}
+              disabled={submitting}
+              className="flex items-center gap-2 px-8 py-3 rounded-full bg-purple-primary text-white font-ui font-semibold hover:bg-accent/90 transition-colors"
+            >
+              Next Step
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          ) : (
+            <button
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="flex items-center gap-2 px-10 py-3 rounded-full border-2 border-transparent font-ui font-semibold text-orange-warm hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{
+                background: "linear-gradient(white, white) padding-box, linear-gradient(to right, #ff9f43, #ff007f) border-box",
+              }}
+            >
+              {submitting
+                ? (isEditMode ? "Saving..." : "Submitting...")
+                : (isEditMode ? "Save Changes" : "Submit")}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
