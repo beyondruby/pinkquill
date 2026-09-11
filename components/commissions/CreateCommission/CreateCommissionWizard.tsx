@@ -1,8 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useCreateCommission, useUpdateCommission, type SaveCommissionOptions } from "@/lib/hooks/useCommissions";
@@ -18,11 +17,15 @@ import { formatCurrency } from "@/lib/utils/currency";
 import { showToast } from "@/lib/utils/toast";
 import Button from "@/components/ui/Button";
 import Loading from "@/components/ui/Loading";
+import ListingShell, { SignInGate, type ListingHeadline } from "@/components/listing/ListingShell";
+import { Card, ChipChoice, Help, INPUT, Label, LineList, TagList } from "@/components/listing/form";
+import MediaPicker, { isVideoMedia } from "@/components/listing/MediaPicker";
 
 /**
- * The commission listing wizard (Phase 3f). Six short steps, a draft you can
- * leave and come back to, packages with names you choose, the question
- * builder, terms, availability, and a preview of the listing before publishing.
+ * The commission listing wizard (Phase 3f). Six short steps on the shared
+ * listing shell, a draft you can leave and come back to, packages with
+ * names you choose, the question builder, terms, availability, and a
+ * preview of the listing before publishing.
  */
 
 const MAX_MEDIA = 10;
@@ -32,6 +35,14 @@ const MAX_VIDEO_SIZE = 200 * 1024 * 1024;
 const MIN_PACKAGE_PRICE = 5;
 
 const STEPS = ["Basics", "Packages", "Portfolio", "Details", "Availability", "Preview"] as const;
+const HEADLINES: ListingHeadline[] = [
+  { prefix: "Let's open a", highlight: "commission" },
+  { prefix: "Set your", highlight: "packages" },
+  { prefix: "Show your", highlight: "work" },
+  { prefix: "Add the", highlight: "details" },
+  { prefix: "Set your", highlight: "availability" },
+  { prefix: "Here's your", highlight: "listing" },
+];
 type StepIndex = 1 | 2 | 3 | 4 | 5 | 6;
 
 const PACKAGE_PRESETS: Array<{ tier: CommissionPackageFormState["tier"]; name: string }> = [
@@ -39,14 +50,6 @@ const PACKAGE_PRESETS: Array<{ tier: CommissionPackageFormState["tier"]; name: s
   { tier: "standard", name: "Standard" },
   { tier: "premium", name: "Premium" },
 ];
-
-const INPUT = "w-full px-3.5 py-2.5 rounded-xl border border-border-light bg-surface text-sm font-body text-ink placeholder:text-muted/70 focus:outline-none focus:ring-2 focus:ring-purple-primary/25 focus:border-purple-primary/40 transition-shadow";
-
-function isVideoMedia(preview: { file?: File | null; mediaType?: string; url: string }): boolean {
-  if (preview.mediaType) return preview.mediaType === "video";
-  if (preview.file?.type) return preview.file.type.startsWith("video/");
-  return /\.(mp4|mov|m4v|webm)(\?.*)?$/i.test(preview.url);
-}
 
 function strings(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((v): v is string => typeof v === "string" && v.trim().length > 0) : [];
@@ -112,84 +115,7 @@ export function mapProductToCommissionState(product: Product): CommissionWizardS
   };
 }
 
-// ─── small pieces ───────────────────────────────────────────────────
-
-function Card({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
-  return (
-    <section className="rounded-2xl border border-border-light bg-surface p-4 sm:p-5">
-      <h2 className="font-display text-base font-semibold text-ink">{title}</h2>
-      {description && <p className="text-sm font-body text-muted mt-0.5">{description}</p>}
-      <div className="mt-4">{children}</div>
-    </section>
-  );
-}
-
-function Label({ text, required = false, right, htmlFor }: { text: string; required?: boolean; right?: ReactNode; htmlFor?: string }) {
-  return (
-    <label htmlFor={htmlFor} className="flex items-center justify-between gap-3 text-xs font-ui font-semibold text-ink mb-1">
-      <span>{text}{required && <span className="text-pink-vivid"> *</span>}</span>
-      {right && <span className="font-normal text-muted">{right}</span>}
-    </label>
-  );
-}
-
-function Help({ children }: { children: ReactNode }) {
-  return <p className="text-2xs font-body text-muted mt-1">{children}</p>;
-}
-
-function ChipChoice<T extends string>({ options, value, onChange }: { options: Array<{ value: T; label: string }>; value: T | null; onChange: (v: T) => void }) {
-  return (
-    <div className="flex flex-wrap gap-2">
-      {options.map((o) => {
-        const active = o.value === value;
-        return (
-          <button key={o.value} type="button" aria-pressed={active} onClick={() => onChange(o.value)}
-            className={`px-3 py-1.5 rounded-full text-xs font-ui border transition-colors ${active ? "border-purple-primary bg-purple-50 text-purple-primary font-semibold" : "border-border-light text-ink hover:border-border-strong"}`}>
-            {o.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-function StepRail({ current, furthest, onJump }: { current: StepIndex; furthest: number; onJump: (s: StepIndex) => void }) {
-  return (
-    <ol className="flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none]" aria-label="Steps">
-      {STEPS.map((label, i) => {
-        const n = (i + 1) as StepIndex;
-        const done = n < current;
-        const reachable = n <= furthest;
-        return (
-          <li key={label} className={`flex items-center gap-2 ${i < STEPS.length - 1 ? "sm:flex-1" : ""} shrink-0`}>
-            <button type="button" onClick={() => reachable && onJump(n)} disabled={!reachable} aria-current={n === current ? "step" : undefined} className="flex items-center gap-2 disabled:cursor-default">
-              <span className={`w-6 h-6 rounded-full text-2xs font-ui font-semibold inline-flex items-center justify-center shrink-0 ${done ? "bg-emerald-500 text-white" : n === current ? "bg-purple-primary text-white" : "bg-subtle text-muted"}`}>{done ? "✓" : n}</span>
-              <span className={`text-xs font-ui whitespace-nowrap ${n === current ? "text-ink font-semibold" : "text-muted"}`}>{label}</span>
-            </button>
-            {i < STEPS.length - 1 && <span className={`hidden sm:block h-px flex-1 ${done ? "bg-emerald-400" : "bg-skeleton"}`} />}
-          </li>
-        );
-      })}
-    </ol>
-  );
-}
-
 // ─── editors ────────────────────────────────────────────────────────
-
-function LineList({ values, placeholder, onChange, addLabel = "Add line" }: { values: string[]; placeholder: string; onChange: (v: string[]) => void; addLabel?: string }) {
-  return (
-    <div className="space-y-2">
-      {values.map((value, index) => (
-        // Items are only appended or removed, never reordered, so the index key is stable enough.
-        <div key={index} className="flex items-center gap-2">
-          <input value={value} placeholder={placeholder} onChange={(e) => onChange(values.map((v, i) => (i === index ? e.target.value : v)))} className={INPUT} />
-          <button type="button" onClick={() => onChange(values.filter((_, i) => i !== index))} aria-label="Remove" className="w-8 h-8 rounded-full text-muted hover:text-red-600 hover:bg-red-50 shrink-0">×</button>
-        </div>
-      ))}
-      <button type="button" onClick={() => onChange([...values, ""])} className="text-xs font-ui font-semibold text-purple-primary hover:underline">+ {addLabel}</button>
-    </div>
-  );
-}
 
 function PackageEditor({ index, pkg, canRemove, onRemove, onChange }: { index: number; pkg: CommissionPackageFormState; canRemove: boolean; onRemove: () => void; onChange: (u: Partial<CommissionPackageFormState>) => void }) {
   return (
@@ -305,24 +231,6 @@ function FaqEditor({ values, onChange }: { values: Array<{ question: string; ans
         </div>
       ))}
       <Button variant="secondary" size="sm" onClick={() => onChange([...values, { question: "", answer: "" }])}>Add a question</Button>
-    </div>
-  );
-}
-
-function TagList({ values, onChange, placeholder }: { values: string[]; onChange: (v: string[]) => void; placeholder: string }) {
-  const [draft, setDraft] = useState("");
-  const commit = () => {
-    const tag = draft.trim().toLowerCase().replace(/^#/, "");
-    if (!tag) return;
-    if (!values.includes(tag)) onChange([...values, tag]);
-    setDraft("");
-  };
-  return (
-    <div className="rounded-xl border border-border-light bg-surface px-2 py-1.5 flex flex-wrap gap-1.5 items-center focus-within:ring-2 focus-within:ring-purple-primary/25">
-      {values.map((t) => (
-        <span key={t} className="px-2.5 py-1 rounded-full bg-subtle text-xs font-ui text-ink inline-flex items-center gap-1">{t}<button type="button" aria-label={`Remove ${t}`} onClick={() => onChange(values.filter((v) => v !== t))} className="text-muted hover:text-red-600">×</button></span>
-      ))}
-      <input value={draft} placeholder={values.length ? "Add…" : placeholder} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === ",") { e.preventDefault(); commit(); } }} onBlur={commit} className="flex-1 min-w-[8rem] px-1.5 py-1 text-sm font-body text-ink placeholder:text-muted/70 bg-transparent focus:outline-none" />
     </div>
   );
 }
@@ -447,7 +355,6 @@ interface CreateCommissionWizardProps {
 
 export default function CreateCommissionWizard({ mode = "create", productId, initialProduct = null }: CreateCommissionWizardProps = {}) {
   const router = useRouter();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaUrlsRef = useRef<string[]>([]);
   const { user, loading: authLoading } = useAuth();
   const { createCommission, creating, error: createError } = useCreateCommission();
@@ -467,6 +374,7 @@ export default function CreateCommissionWizard({ mode = "create", productId, ini
   const categories = useMemo(() => getAllCommissionCategories(), []);
   const selectedCategory = state.category ? COMMISSION_CATEGORIES[state.category] : null;
 
+  // Object URLs minted by the picker live as long as the wizard does.
   useEffect(() => {
     mediaUrlsRef.current = state.mediaPreviews.filter((m) => m.file instanceof File).map((m) => m.url);
   }, [state.mediaPreviews]);
@@ -484,30 +392,6 @@ export default function CreateCommissionWizard({ mode = "create", productId, ini
     update({ packages: [...state.packages, { id: crypto.randomUUID(), tier: preset.tier, name: preset.name, description: "", price: null, deliveryDays: 7, revisions: 1, features: [] }] });
   };
   const removePackage = (id: string) => { if (state.packages.length > 1) update({ packages: state.packages.filter((p) => p.id !== id) }); };
-
-  const handleMediaUpload = (files: FileList | null) => {
-    if (!files) return;
-    const current = state.mediaPreviews.length;
-    const accepted: CommissionWizardState["mediaPreviews"] = [];
-    setError(null);
-    for (const file of Array.from(files)) {
-      if (!ACCEPTED_MEDIA_TYPES.includes(file.type)) { setError("Use JPG, PNG, WEBP, GIF, or MP4/MOV files."); continue; }
-      const isVideo = file.type.startsWith("video/");
-      const limit = isVideo ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE;
-      if (file.size > limit) { setError(`${isVideo ? "Videos" : "Images"} must be under ${Math.round(limit / 1048576)} MB.`); continue; }
-      if (current + accepted.length >= MAX_MEDIA) { setError(`Up to ${MAX_MEDIA} files.`); break; }
-      accepted.push({ file, url: URL.createObjectURL(file), isPrimary: current === 0 && accepted.length === 0, mediaType: isVideo ? "video" : "image" });
-    }
-    if (accepted.length) update({ mediaPreviews: [...state.mediaPreviews, ...accepted] });
-  };
-  const setCover = (index: number) => update({ mediaPreviews: state.mediaPreviews.map((m, i) => ({ ...m, isPrimary: i === index })) });
-  const removeMedia = (index: number) => {
-    const item = state.mediaPreviews[index];
-    if (item?.file) URL.revokeObjectURL(item.url);
-    const next = state.mediaPreviews.filter((_, i) => i !== index);
-    if (next.length && !next.some((m) => m.isPrimary)) next[0].isPrimary = true;
-    update({ mediaPreviews: next });
-  };
 
   /** The publish checks, per step. Returns the first problem or null. */
   const problemFor = useCallback((target: number): string | null => {
@@ -543,7 +427,7 @@ export default function CreateCommissionWizard({ mode = "create", productId, ini
     scrollTop();
   };
   const goBack = () => { setStep((s) => Math.max(1, s - 1) as StepIndex); scrollTop(); };
-  const jump = (target: StepIndex) => { setStep(target); scrollTop(); };
+  const jump = (target: number) => { setStep(target as StepIndex); scrollTop(); };
 
   const canSaveDraft = Boolean(state.category && state.title.trim()) && (savedStatus === null || savedStatus === "draft");
 
@@ -597,18 +481,7 @@ export default function CreateCommissionWizard({ mode = "create", productId, ini
   }
 
   if (!authLoading && !user) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center px-6">
-        <div className="max-w-md text-center">
-          <h1 className="font-display text-2xl font-semibold text-ink">Sign in to open commissions</h1>
-          <p className="text-sm font-body text-muted mt-2">Set your packages, questions and availability, and let people who love your work request it directly.</p>
-          <div className="mt-5 flex justify-center gap-2">
-            <Link href={`/login?redirect=${encodeURIComponent("/sell/service")}`}><Button>Sign in</Button></Link>
-            <Link href={`/signup?redirect=${encodeURIComponent("/sell/service")}`}><Button variant="secondary">Create an account</Button></Link>
-          </div>
-        </div>
-      </div>
-    );
+    return <SignInGate title="Sign in to open commissions" description="Set your packages, questions and availability, and let people who love your work request it directly." redirect="/sell/service" />;
   }
 
   const isLive = savedStatus === "active";
@@ -616,145 +489,113 @@ export default function CreateCommissionWizard({ mode = "create", productId, ini
   const priceFrom = state.packages.map((p) => p.price).filter((p): p is number => typeof p === "number" && p > 0).sort((a, b) => a - b)[0];
 
   return (
-    <div className="min-h-screen bg-canvas pb-28 md:pb-12">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-ui text-muted">{eyebrow}</p>
-            <h1 className="font-display text-xl sm:text-2xl font-semibold text-ink">{STEPS[step - 1]}</h1>
-          </div>
-          <span className="text-xs font-ui text-muted">Step {step} of {STEPS.length}</span>
-        </div>
-        <div className="mt-4"><StepRail current={step} furthest={furthest} onJump={jump} /></div>
-
-        {(error || submitError) && (
-          <div className="mt-4 rounded-xl border border-red-200 bg-red-50/60 px-4 py-3 text-sm font-body text-red-700" role="alert">{error || submitError}</div>
-        )}
-
-        <div className="mt-5 space-y-4">
-          {step === 1 && (
-            <Card title="Basics" description="What you make and how you describe it.">
-              <div className="space-y-4">
-                <div>
-                  <Label text="Category" required />
-                  <ChipChoice options={categories.map((c) => ({ value: c.id, label: c.name }))} value={state.category} onChange={(category) => update({ category, subcategory: null })} />
-                </div>
-                {selectedCategory && (
-                  <div>
-                    <Label text="Specialization" />
-                    <ChipChoice options={selectedCategory.subcategories.map((s) => ({ value: s.value, label: s.label }))} value={state.subcategory} onChange={(subcategory) => update({ subcategory })} />
-                  </div>
-                )}
-                <div>
-                  <Label text="Title" required htmlFor="title" right={`${state.title.trim().length}/80`} />
-                  <input id="title" maxLength={80} value={state.title} onChange={(e) => update({ title: e.target.value })} placeholder="Character illustration, full colour" className={INPUT} />
-                </div>
-                <div>
-                  <Label text="Headline" htmlFor="headline" right={`${state.headline.trim().length}/100`} />
-                  <input id="headline" maxLength={100} value={state.headline} onChange={(e) => update({ headline: e.target.value })} placeholder="One line under the title on cards and the listing." className={INPUT} />
-                </div>
-                <div>
-                  <Label text="Description" required htmlFor="description" right={`${state.description.trim().length}/1200`} />
-                  <textarea id="description" rows={6} maxLength={1200} value={state.description} onChange={(e) => update({ description: e.target.value })} placeholder="How you work, what you love making, what a buyer can expect." className={INPUT} />
-                </div>
+    <ListingShell
+      eyebrow={eyebrow}
+      steps={STEPS}
+      step={step}
+      furthest={furthest}
+      onJump={jump}
+      headline={HEADLINES[step - 1]}
+      error={error || submitError}
+      onBack={goBack}
+      onNext={goNext}
+      onPublish={publish}
+      onSaveDraft={saveDraft}
+      canSaveDraft={canSaveDraft}
+      savingDraft={savingDraft}
+      publishing={creating || updating}
+      busy={busy}
+      isLive={isLive}
+    >
+      {step === 1 && (
+        <Card title="Basics" description="What you make and how you describe it.">
+          <div className="space-y-4">
+            <div>
+              <Label text="Category" required />
+              <ChipChoice options={categories.map((c) => ({ value: c.id, label: c.name }))} value={state.category} onChange={(category) => update({ category, subcategory: null })} />
+            </div>
+            {selectedCategory && (
+              <div>
+                <Label text="Specialization" />
+                <ChipChoice options={selectedCategory.subcategories.map((s) => ({ value: s.value, label: s.label }))} value={state.subcategory} onChange={(subcategory) => update({ subcategory })} />
               </div>
-            </Card>
-          )}
-
-          {step === 2 && (
-            <Card title="Packages" description="Up to three. Name them however you like.">
-              <div className="space-y-3">
-                {state.packages.map((pkg, index) => (
-                  <PackageEditor key={pkg.id} index={index} pkg={pkg} canRemove={state.packages.length > 1} onRemove={() => removePackage(pkg.id)} onChange={(patch) => updatePackage(pkg.id, patch)} />
-                ))}
-                {state.packages.length < 3 && (
-                  <div className="flex items-center gap-3">
-                    <Button variant="secondary" size="sm" onClick={addPackage}>Add a package</Button>
-                    <span className="text-xs font-body text-muted">{3 - state.packages.length} more possible</span>
-                  </div>
-                )}
-              </div>
-            </Card>
-          )}
-
-          {step === 3 && (
-            <Card title="Portfolio" description={`Up to ${MAX_MEDIA} images or videos. The cover is what people see first.`}>
-              <input ref={fileInputRef} type="file" accept={ACCEPTED_MEDIA_TYPES.join(",")} multiple onChange={(e) => { handleMediaUpload(e.target.files); e.target.value = ""; }} className="sr-only" />
-              <button type="button" onClick={() => fileInputRef.current?.click()} className="w-full rounded-2xl border border-dashed border-border-strong bg-subtle p-8 text-center hover:border-purple-primary/40 transition-colors">
-                <p className="text-sm font-ui font-medium text-ink">Drop files or tap to choose</p>
-                <p className="text-2xs font-body text-muted mt-0.5">JPG, PNG, WEBP, GIF up to 10 MB · MP4, MOV up to 200 MB · {state.mediaPreviews.length}/{MAX_MEDIA}</p>
-              </button>
-              {state.mediaPreviews.length > 0 && (
-                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mt-4">
-                  {state.mediaPreviews.map((media, index) => (
-                    <div key={media.id || media.url} className="relative rounded-xl overflow-hidden bg-subtle aspect-square">
-                      {isVideoMedia(media) ? <video src={media.url} muted playsInline className="absolute inset-0 w-full h-full object-cover" /> : <Image src={media.url} alt="" fill unoptimized className="object-cover" sizes="200px" />}
-                      <button type="button" onClick={() => setCover(index)} className={`absolute left-2 top-2 px-2 py-0.5 rounded-full text-2xs font-ui ${media.isPrimary ? "bg-surface text-ink font-semibold" : "bg-surface/80 text-muted hover:text-ink"}`}>{media.isPrimary ? "Cover" : "Set cover"}</button>
-                      <button type="button" onClick={() => removeMedia(index)} aria-label="Remove" className="absolute right-2 top-2 w-6 h-6 rounded-full bg-surface/90 text-ink text-xs inline-flex items-center justify-center hover:bg-surface">×</button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </Card>
-          )}
-
-          {step === 4 && (
-            <>
-              <Card title="Questions for the buyer" description="Asked in the request sheet, before they pay. Answers land on the order page.">
-                <IntakeFieldsEditor fields={state.intakeFields} onChange={(intakeFields) => update({ intakeFields })} />
-              </Card>
-              <Card title="Includes and not included">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div><Label text="Includes" /><LineList values={state.includes} placeholder="e.g. A sketch for approval first" onChange={(includes) => update({ includes })} /></div>
-                  <div><Label text="Not included" /><LineList values={state.excludes} placeholder="e.g. Commercial use" onChange={(excludes) => update({ excludes })} /></div>
-                </div>
-              </Card>
-              <Card title="Terms" description="Shown on your listing. Buyers agree to them when they send a request.">
-                <Label text="" right={`${state.terms.length}/5000`} />
-                <textarea rows={5} maxLength={5000} value={state.terms} onChange={(e) => update({ terms: e.target.value })} placeholder="Usage rights, what counts as a revision, cancellation, anything buyers agree to before ordering." className={INPUT} />
-              </Card>
-              <Card title="FAQ">
-                <FaqEditor values={state.faqs} onChange={(faqs) => update({ faqs })} />
-              </Card>
-              <Card title="Tags" description="A few words that help people find this.">
-                <TagList values={state.keywords} onChange={(keywords) => update({ keywords })} placeholder="character, portrait, painterly" />
-              </Card>
-            </>
-          )}
-
-          {step === 5 && (
-            <Card title="Availability" description="The database enforces this: the request that would break it is refused.">
-              <AvailabilityEditor state={state} onChange={update} />
-            </Card>
-          )}
-
-          {step === 6 && (
-            <>
-              <div className="rounded-2xl border border-border-light bg-subtle px-4 py-3 text-sm font-body text-muted">
-                {isLive ? "This is your listing as buyers see it. Save changes to update it." : "This is your listing page as buyers will see it. Nothing is live until you publish."}
-                {priceFrom != null ? ` From ${formatCurrency(priceFrom)}.` : ""}
-              </div>
-              <ListingPreview state={state} />
-            </>
-          )}
-        </div>
-
-        {/* Footer: inline on desktop, docked above the bottom nav on phones */}
-        <div className="hidden md:flex items-center justify-between gap-2 mt-6">
-          <Button variant="secondary" onClick={goBack} disabled={step === 1 || busy}>Back</Button>
-          <div className="flex gap-2">
-            {!isLive && <Button variant="ghost" onClick={saveDraft} disabled={busy || !canSaveDraft} loading={savingDraft} loadingText="Saving…">Save draft</Button>}
-            {step < 6 ? <Button onClick={goNext} disabled={busy}>Continue</Button> : <Button onClick={publish} loading={creating || updating} loadingText={isLive ? "Saving…" : "Publishing…"} disabled={busy}>{isLive ? "Save changes" : "Publish"}</Button>}
+            )}
+            <div>
+              <Label text="Title" required htmlFor="title" right={`${state.title.trim().length}/80`} />
+              <input id="title" maxLength={80} value={state.title} onChange={(e) => update({ title: e.target.value })} placeholder="Character illustration, full colour" className={INPUT} />
+            </div>
+            <div>
+              <Label text="Headline" htmlFor="headline" right={`${state.headline.trim().length}/100`} />
+              <input id="headline" maxLength={100} value={state.headline} onChange={(e) => update({ headline: e.target.value })} placeholder="One line under the title on cards and the listing." className={INPUT} />
+            </div>
+            <div>
+              <Label text="Description" required htmlFor="description" right={`${state.description.trim().length}/1200`} />
+              <textarea id="description" rows={6} maxLength={1200} value={state.description} onChange={(e) => update({ description: e.target.value })} placeholder="How you work, what you love making, what a buyer can expect." className={INPUT} />
+            </div>
           </div>
-        </div>
-        <div className="md:hidden fixed inset-x-0 bottom-16 z-(--z-sticky) bg-surface/95 backdrop-blur-xl border-t border-border-light px-4 pt-3 pb-3 flex items-center gap-2">
-          <Button variant="secondary" size="sm" onClick={goBack} disabled={step === 1 || busy}>Back</Button>
-          <div className="ml-auto flex gap-2">
-            {!isLive && <Button variant="ghost" size="sm" onClick={saveDraft} disabled={busy || !canSaveDraft} loading={savingDraft} loadingText="Saving…">Save draft</Button>}
-            {step < 6 ? <Button size="sm" onClick={goNext} disabled={busy}>Continue</Button> : <Button size="sm" onClick={publish} loading={creating || updating} loadingText={isLive ? "Saving…" : "Publishing…"} disabled={busy}>{isLive ? "Save changes" : "Publish"}</Button>}
+        </Card>
+      )}
+
+      {step === 2 && (
+        <Card title="Packages" description="Up to three. Name them however you like.">
+          <div className="space-y-3">
+            {state.packages.map((pkg, index) => (
+              <PackageEditor key={pkg.id} index={index} pkg={pkg} canRemove={state.packages.length > 1} onRemove={() => removePackage(pkg.id)} onChange={(patch) => updatePackage(pkg.id, patch)} />
+            ))}
+            {state.packages.length < 3 && (
+              <div className="flex items-center gap-3">
+                <Button variant="secondary" size="sm" onClick={addPackage}>Add a package</Button>
+                <span className="text-xs font-body text-muted">{3 - state.packages.length} more possible</span>
+              </div>
+            )}
           </div>
-        </div>
-      </div>
-    </div>
+        </Card>
+      )}
+
+      {step === 3 && (
+        <Card title="Portfolio" description={`Up to ${MAX_MEDIA} images or videos. The cover is what people see first.`}>
+          <MediaPicker previews={state.mediaPreviews} onChange={(mediaPreviews) => update({ mediaPreviews })} onError={setError} max={MAX_MEDIA} accept={ACCEPTED_MEDIA_TYPES} maxImageBytes={MAX_IMAGE_SIZE} maxVideoBytes={MAX_VIDEO_SIZE} hint="JPG, PNG, WEBP, GIF up to 10 MB · MP4, MOV up to 200 MB" />
+        </Card>
+      )}
+
+      {step === 4 && (
+        <>
+          <Card title="Questions for the buyer" description="Asked in the request sheet, before they pay. Answers land on the order page.">
+            <IntakeFieldsEditor fields={state.intakeFields} onChange={(intakeFields) => update({ intakeFields })} />
+          </Card>
+          <Card title="Includes and not included">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div><Label text="Includes" /><LineList values={state.includes} placeholder="e.g. A sketch for approval first" onChange={(includes) => update({ includes })} /></div>
+              <div><Label text="Not included" /><LineList values={state.excludes} placeholder="e.g. Commercial use" onChange={(excludes) => update({ excludes })} /></div>
+            </div>
+          </Card>
+          <Card title="Terms" description="Shown on your listing. Buyers agree to them when they send a request." right={<span className="text-xs font-ui text-muted tabular-nums">{state.terms.length}/5000</span>}>
+            <textarea rows={5} maxLength={5000} value={state.terms} onChange={(e) => update({ terms: e.target.value })} placeholder="Usage rights, what counts as a revision, cancellation, anything buyers agree to before ordering." className={INPUT} />
+          </Card>
+          <Card title="FAQ">
+            <FaqEditor values={state.faqs} onChange={(faqs) => update({ faqs })} />
+          </Card>
+          <Card title="Tags" description="A few words that help people find this.">
+            <TagList values={state.keywords} onChange={(keywords) => update({ keywords })} placeholder="character, portrait, painterly" normalize />
+          </Card>
+        </>
+      )}
+
+      {step === 5 && (
+        <Card title="Availability" description="The database enforces this: the request that would break it is refused.">
+          <AvailabilityEditor state={state} onChange={update} />
+        </Card>
+      )}
+
+      {step === 6 && (
+        <>
+          <div className="rounded-2xl border border-border-light bg-subtle px-4 py-3 text-sm font-body text-muted">
+            {isLive ? "This is your listing as buyers see it. Save changes to update it." : "This is your listing page as buyers will see it. Nothing is live until you publish."}
+            {priceFrom != null ? ` From ${formatCurrency(priceFrom)}.` : ""}
+          </div>
+          <ListingPreview state={state} />
+        </>
+      )}
+    </ListingShell>
   );
 }

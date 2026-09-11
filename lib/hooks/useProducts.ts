@@ -235,8 +235,13 @@ export function useProduct(productId?: string): UseProductReturn {
 // useCreateProduct - Create a new product from wizard state
 // ============================================================================
 
+export interface SaveProductOptions {
+  /** "draft" keeps the listing private; "active" publishes. Omitted on update = keep the current status. */
+  status?: "draft" | "active";
+}
+
 interface UseCreateProductReturn {
-  create: (wizardState: ProductWizardState) => Promise<Product | null>;
+  create: (wizardState: ProductWizardState, options?: SaveProductOptions) => Promise<Product | null>;
   creating: boolean;
   error: string | null;
 }
@@ -245,7 +250,7 @@ export function useCreateProduct(): UseCreateProductReturn {
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const create = useCallback(async (wizardState: ProductWizardState): Promise<Product | null> => {
+  const create = useCallback(async (wizardState: ProductWizardState, options: SaveProductOptions = {}): Promise<Product | null> => {
     setCreating(true);
     setError(null);
 
@@ -288,7 +293,7 @@ export function useCreateProduct(): UseCreateProductReturn {
           subcategory: wizardState.subcategory || null,
           attributes: wizardState.attributes,
           year_created: wizardState.yearCreated || null,
-          status: "active", // Publish immediately
+          status: options.status ?? "active",
         })
         .select()
         .single();
@@ -480,7 +485,7 @@ export function useCreateProduct(): UseCreateProductReturn {
 // ============================================================================
 
 interface UseUpdateProductListingReturn {
-  updateListing: (productId: string, wizardState: ProductWizardState) => Promise<boolean>;
+  updateListing: (productId: string, wizardState: ProductWizardState, options?: SaveProductOptions) => Promise<boolean>;
   updating: boolean;
   error: string | null;
 }
@@ -520,7 +525,7 @@ export function useUpdateProductListing(): UseUpdateProductListingReturn {
   const [updating, setUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const updateListing = useCallback(async (productId: string, wizardState: ProductWizardState): Promise<boolean> => {
+  const updateListing = useCallback(async (productId: string, wizardState: ProductWizardState, options: SaveProductOptions = {}): Promise<boolean> => {
     setUpdating(true);
     setError(null);
 
@@ -583,7 +588,8 @@ export function useUpdateProductListing(): UseUpdateProductListingReturn {
         });
       }
 
-      if (desiredPricing.length === 0) {
+      // A draft may be saved without prices; publishing (or editing a live listing) needs at least one.
+      if (desiredPricing.length === 0 && options.status !== "draft") {
         throw new Error("At least one pricing option is required");
       }
 
@@ -607,6 +613,7 @@ export function useUpdateProductListing(): UseUpdateProductListingReturn {
           subcategory: wizardState.subcategory || null,
           attributes: wizardState.attributes || {},
           year_created: wizardState.yearCreated || null,
+          ...(options.status ? { status: options.status } : {}),
           updated_at: new Date().toISOString(),
         })
         .eq("id", productId)
