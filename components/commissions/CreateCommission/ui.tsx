@@ -244,3 +244,39 @@ export function LineList({ values, placeholder, onChange, addLabel = "Add line" 
     </div>
   );
 }
+
+/** The round glass category tile from the product's "choose a category" screen. */
+export function CategoryTile({ icon, label, selected, onClick, size = "md" }: { icon: ReactNode; label: string; selected: boolean; onClick: () => void; size?: "md" | "lg" }) {
+  const circle = size === "lg" ? "w-36 h-36 mb-6" : "w-24 h-24 mb-4";
+  return (
+    <button type="button" onClick={onClick} className="group flex flex-col items-center text-center">
+      <div
+        className={`relative ${circle} rounded-full flex items-center justify-center transition-all duration-300 backdrop-blur-sm bg-surface/80 ${selected ? "shadow-xl shadow-pink-vivid/20" : "shadow-lg shadow-black/5 group-hover:shadow-xl group-hover:shadow-pink-vivid/10"}`}
+        style={{
+          border: selected ? "2px solid transparent" : "1px solid rgba(0, 0, 0, 0.05)",
+          backgroundImage: selected ? GRADIENT_RING : undefined,
+          backgroundOrigin: "border-box",
+          backgroundClip: selected ? "padding-box, border-box" : undefined,
+        }}
+      >
+        <span className={`transition-colors duration-300 scale-110 ${selected ? "text-pink-vivid" : "text-pink-vivid/40 group-hover:text-pink-vivid/70"}`}>{icon}</span>
+      </div>
+      <h3 className={`font-semibold font-ui text-sm transition-colors duration-300 ${selected ? "text-pink-vivid" : "text-ink group-hover:text-pink-vivid/80"}`}>{label}</h3>
+    </button>
+  );
+}
+
+/** The "back to categories" row from the product's specialization screen. */
+export function BackRow({ onBack, icon, label }: { onBack: () => void; icon: ReactNode; label: string }) {
+  return (
+    <button type="button" onClick={onBack} className="flex items-center gap-3 mb-8 group">
+      <div className="w-10 h-10 rounded-full bg-surface shadow-md flex items-center justify-center group-hover:shadow-lg transition-shadow">
+        <svg className="w-5 h-5 text-pink-vivid" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+      </div>
+      <div className="flex items-center gap-2">
+        <div className="w-10 h-10 rounded-full bg-surface shadow-md flex items-center justify-center text-pink-vivid"><div className="scale-90">{icon}</div></div>
+        <span className="text-sm font-medium text-ink">{label}</span>
+      </div>
+    </button>
+  );
+}

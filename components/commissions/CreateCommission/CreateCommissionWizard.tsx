@@ -16,17 +16,18 @@ import { COMMISSION_CATEGORIES, getAllCommissionCategories, getCommissionSubcate
 import { formatCurrency } from "@/lib/utils/currency";
 import { showToast } from "@/lib/utils/toast";
 import TagInput from "@/components/store/CreateProduct/fields/TagInput";
+import { getCategoryIcon } from "@/lib/store/categories";
 import {
-  ErrorBanner, FieldLabel, GCheck, GInput, GNumber, GSelect, GTextarea, Hint, LineList, OptionBox, RemoveButton, Section, SectionHeader, StepHeader, TextLink, WizardNav,
+  BackRow, CategoryTile, ErrorBanner, FieldLabel, GCheck, GInput, GNumber, GSelect, GTextarea, Hint, LineList, OptionBox, RemoveButton, Section, SectionHeader, StepHeader, TextLink, WizardNav,
 } from "./ui";
 
 /**
- * The commission listing wizard, in the same style as the product wizard:
- * the STEP header with two-tone gradient words, gradient-ringed step
- * circles, gradient-bordered fields, glass option boxes and the purple pill
- * navigation. Six steps, a draft you can leave and come back to, packages
- * with names you choose, the question builder, terms, availability, and a
- * preview of the listing before publishing.
+ * The commission listing wizard, shaped like the product wizard: three
+ * steps. Choose Type (round category tiles, then specialization boxes),
+ * Upload Media (the circular upload and slot grid), and Fill Details (one
+ * sectioned form: basics, packages, questions, terms, FAQ, availability,
+ * keywords). Same STEP header, gradient-bordered fields, gradient checks
+ * and purple pill navigation. Drafts and the publish checks are unchanged.
  */
 
 const MAX_MEDIA = 10;
@@ -35,17 +36,25 @@ const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
 const MAX_VIDEO_SIZE = 200 * 1024 * 1024;
 const MIN_PACKAGE_PRICE = 5;
 
-const STEPS = ["Basics", "Packages", "Portfolio", "Details", "Availability", "Preview"] as const;
-type StepIndex = 1 | 2 | 3 | 4 | 5 | 6;
+const STEPS = ["Choose Type", "Upload Media", "Fill Details"] as const;
+type StepIndex = 1 | 2 | 3;
 
-const TITLES: Array<{ prefix: string; highlight1: string; highlight2: string }> = [
-  { prefix: "Let's", highlight1: "open", highlight2: "a commission" },
-  { prefix: "Set your", highlight1: "packages", highlight2: "and prices" },
-  { prefix: "Upload", highlight1: "media", highlight2: "for your commission" },
-  { prefix: "Add", highlight1: "questions", highlight2: "and terms" },
-  { prefix: "Set your", highlight1: "availability", highlight2: "for requests" },
-  { prefix: "Review", highlight1: "your", highlight2: "listing" },
-];
+const CATEGORY_ICONS: Record<string, React.ReactNode> = {
+  design: getCategoryIcon("sparkles"),
+  illustration: getCategoryIcon("palette"),
+  writing: getCategoryIcon("book"),
+  video: (
+    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+    </svg>
+  ),
+  audio_music: getCategoryIcon("music"),
+  crafts: (
+    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243 4.243 3 3 0 004.243-4.243zm0-5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z" />
+    </svg>
+  ),
+};
 
 const PACKAGE_PRESETS: Array<{ tier: CommissionPackageFormState["tier"]; name: string }> = [
   { tier: "basic", name: "Basic" },
@@ -127,9 +136,9 @@ export function mapProductToCommissionState(product: Product): CommissionWizardS
 
 function PackageEditor({ index, pkg, canRemove, onRemove, onChange }: { index: number; pkg: CommissionPackageFormState; canRemove: boolean; onRemove: () => void; onChange: (u: Partial<CommissionPackageFormState>) => void }) {
   return (
-    <Section first={index === 0}>
-      <div className="flex items-center justify-between gap-3 mb-6">
-        <h3 className="text-base font-display font-bold text-ink">Package {index + 1}:</h3>
+    <div className={index === 0 ? "" : "pt-8 border-t border-dashed border-gray-100"}>
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <span className="text-sm font-ui font-medium text-muted">Package {index + 1}</span>
         {canRemove && <TextLink onClick={onRemove} className="text-muted hover:text-red-500">Remove</TextLink>}
       </div>
       <div className="space-y-6">
@@ -162,7 +171,7 @@ function PackageEditor({ index, pkg, canRemove, onRemove, onChange }: { index: n
           <LineList values={pkg.features} placeholder="e.g. 3000 × 4000 px PNG" onChange={(features) => onChange({ features })} addLabel="Add highlight" />
         </div>
       </div>
-    </Section>
+    </div>
   );
 }
 
@@ -249,9 +258,9 @@ const AVAILABILITY_OPTIONS: Array<{ value: CommissionWizardState["availability"]
 function AvailabilityEditor({ state, onChange }: { state: CommissionWizardState; onChange: (u: Partial<CommissionWizardState>) => void }) {
   const unlimited = state.slotsTotal === null;
   return (
-    <div className="space-y-10">
+    <div className="space-y-8">
       <div>
-        <SectionHeader>Requests:</SectionHeader>
+        <FieldLabel>Requests</FieldLabel>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {AVAILABILITY_OPTIONS.map((o) => (
             <OptionBox key={o.value} selected={state.availability === o.value} onClick={() => onChange({ availability: o.value })} label={o.label} hint={o.hint} />
@@ -266,8 +275,7 @@ function AvailabilityEditor({ state, onChange }: { state: CommissionWizardState;
       </div>
 
       {state.availability !== "closed" && (
-        <Section>
-          <SectionHeader>Capacity:</SectionHeader>
+        <div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
               <FieldLabel htmlFor="slots">Slots at once</FieldLabel>
@@ -281,11 +289,11 @@ function AvailabilityEditor({ state, onChange }: { state: CommissionWizardState;
               <Hint>Added before the package days when the due date is set.</Hint>
             </div>
           </div>
-        </Section>
+        </div>
       )}
 
-      <Section>
-        <SectionHeader>Clock starts:</SectionHeader>
+      <div>
+        <FieldLabel>Clock starts</FieldLabel>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <OptionBox selected={state.turnaroundStarts === "payment"} onClick={() => onChange({ turnaroundStarts: "payment" })} label="When the buyer pays" />
           <OptionBox selected={state.turnaroundStarts === "acceptance"} onClick={() => onChange({ turnaroundStarts: "acceptance" })} label="When I accept the request" />
@@ -293,7 +301,7 @@ function AvailabilityEditor({ state, onChange }: { state: CommissionWizardState;
         <div className="mt-6">
           <GCheck checked={state.acceptsCustomQuotes} onChange={(acceptsCustomQuotes) => onChange({ acceptsCustomQuotes })} label="Open to custom requests" hint="Buyers can describe something outside your packages in the brief." />
         </div>
-      </Section>
+      </div>
     </div>
   );
 }
@@ -380,77 +388,6 @@ function MediaStep({ previews, onChange, onError }: { previews: CommissionWizard
   );
 }
 
-// ─── preview ────────────────────────────────────────────────────────
-
-function ListingPreview({ state }: { state: CommissionWizardState }) {
-  const cover = state.mediaPreviews.find((m) => m.isPrimary) ?? state.mediaPreviews[0];
-  const others = state.mediaPreviews.filter((m) => m !== cover).slice(0, 2);
-  const packages = [...state.packages].filter((p) => p.price != null).sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
-  const [sel, setSel] = useState(0);
-  const pkg = packages[Math.min(sel, Math.max(packages.length - 1, 0))];
-  const category = state.category ? [COMMISSION_CATEGORIES[state.category]?.name || state.category, state.subcategory ? getCommissionSubcategoryLabel(state.category, state.subcategory) : null].filter(Boolean).join(" · ") : "";
-  const days = (pkg?.deliveryDays ?? 0) + state.leadTimeDays;
-  const slotsLine = state.availability === "closed" ? "Closed" : state.availability === "waitlist" ? "Waitlist" : state.availability === "scheduled" ? `Opens ${state.opensAt || "…"}` : state.slotsTotal ? `${state.slotsTotal} of ${state.slotsTotal} slots open` : "Open";
-  const tile = (m: CommissionWizardState["mediaPreviews"][number] | undefined, cls: string) => (
-    <div className={`relative rounded-2xl overflow-hidden bg-gradient-to-br from-orange-warm/10 to-pink-vivid/10 ${cls}`}>
-      {m && (isVideoMedia(m) ? <video src={m.url} muted playsInline className="absolute inset-0 w-full h-full object-cover" /> : <Image src={m.url} alt="" fill unoptimized className="object-cover" sizes="600px" />)}
-    </div>
-  );
-  return (
-    <div className="rounded-2xl bg-surface shadow-lg shadow-black/5 p-5 sm:p-6 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_260px] gap-8" style={{ border: "1px solid rgba(0, 0, 0, 0.05)" }}>
-      <div>
-        <div className="grid grid-cols-4 grid-rows-2 gap-2 aspect-[16/9]">
-          {tile(cover, "col-span-3 row-span-2")}
-          {tile(others[0], "")}
-          {tile(others[1], "")}
-        </div>
-        <p className="text-xs font-ui text-muted mt-5">{category}</p>
-        <h3 className="font-display text-2xl font-bold text-ink mt-1">{state.title || "Untitled listing"}</h3>
-        {state.headline && <p className="text-sm font-body text-muted mt-1">{state.headline}</p>}
-        <div className="mt-4 space-y-2 text-sm font-body text-ink/90">
-          {state.description && <p className="whitespace-pre-line line-clamp-4">{state.description}</p>}
-          <p><span className="font-ui font-semibold">How it works</span> · Send your request · Pay · {pkg?.deliveryDays ?? 0} days from {state.turnaroundStarts} · 3-day review · paid 7 days after approval</p>
-          {state.intakeFields.length > 0 && <p><span className="font-ui font-semibold">You&apos;ll be asked</span> · {state.intakeFields.map((f) => `${f.label || "…"}${f.required ? "*" : ""}`).join(" · ")}</p>}
-          {state.includes.filter(Boolean).length > 0 && <p><span className="font-ui font-semibold">Includes</span> · {state.includes.filter(Boolean).join(" · ")}</p>}
-          {state.excludes.filter(Boolean).length > 0 && <p><span className="font-ui font-semibold">Not included</span> · {state.excludes.filter(Boolean).join(" · ")}</p>}
-          {state.terms.trim() && <p><span className="font-ui font-semibold">Terms</span> · <span className="line-clamp-2">{state.terms}</span></p>}
-        </div>
-        {state.keywords.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-4">
-            {state.keywords.map((k) => <span key={k} className="px-3 py-1 rounded-full bg-gradient-to-r from-orange-warm/10 to-pink-vivid/10 text-xs font-ui text-pink-vivid">#{k}</span>)}
-          </div>
-        )}
-      </div>
-      <aside>
-        <div className="space-y-3">
-          {packages.length === 0 && <p className="text-sm font-body text-muted">No priced packages yet.</p>}
-          {packages.map((p, i) => (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => setSel(i)}
-              className={`w-full text-left rounded-xl p-4 bg-surface transition-all ${i === sel ? "shadow-lg shadow-pink-vivid/10" : "shadow-sm hover:shadow-md"}`}
-              style={{
-                border: i === sel ? "1px solid transparent" : "1px solid rgba(0, 0, 0, 0.05)",
-                backgroundImage: i === sel ? "linear-gradient(white, white), linear-gradient(to right, #8e44ad, #ff007f, #ff9f43)" : undefined,
-                backgroundOrigin: "border-box",
-                backgroundClip: i === sel ? "padding-box, border-box" : undefined,
-              }}
-            >
-              <div className="flex justify-between gap-3"><span className={`text-sm font-ui font-semibold ${i === sel ? "text-pink-vivid" : "text-ink"}`}>{p.name || "Package"}</span><span className="font-display font-bold text-ink tabular-nums">{formatCurrency(p.price ?? 0)}</span></div>
-              <p className="text-xs font-body text-muted mt-0.5">{p.deliveryDays}-day delivery · {p.revisions} revision{p.revisions === 1 ? "" : "s"}</p>
-            </button>
-          ))}
-        </div>
-        <p className="mt-3 text-xs font-body text-muted">{slotsLine}{pkg ? ` · about ${days} days from ${state.turnaroundStarts}` : ""}</p>
-        <button type="button" disabled className="mt-4 w-full px-6 py-3 rounded-full bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm text-white font-ui font-semibold opacity-60 cursor-not-allowed">
-          Request{pkg ? ` · ${formatCurrency(pkg.price ?? 0)}` : ""}
-        </button>
-      </aside>
-    </div>
-  );
-}
-
 // ─── wizard ─────────────────────────────────────────────────────────
 
 interface CreateCommissionWizardProps {
@@ -470,6 +407,7 @@ export default function CreateCommissionWizard({ mode = "create", productId, ini
   const [savedId, setSavedId] = useState<string | null>(productId ?? initialProduct?.id ?? null);
   const [savedStatus, setSavedStatus] = useState<string | null>(initialProduct?.status ?? null);
   const [step, setStep] = useState<StepIndex>(1);
+  const [showSpecializations, setShowSpecializations] = useState<boolean>(Boolean(initialProduct?.category));
   const [error, setError] = useState<string | null>(null);
   const [savingDraft, setSavingDraft] = useState(false);
   const [state, setState] = useState<CommissionWizardState>(() => (isEdit && initialProduct ? mapProductToCommissionState(initialProduct) : initialCommissionWizardState));
@@ -500,12 +438,11 @@ export default function CreateCommissionWizard({ mode = "create", productId, ini
 
   /** The publish checks, per step. Returns the first problem or null. */
   const problemFor = useCallback((target: number): string | null => {
-    if (target === 1) {
-      if (!state.category) return "Pick a category.";
-      if (!state.title.trim()) return "Give the listing a title.";
-      if (!state.description.trim()) return "Describe the commission.";
-    }
-    if (target === 2) {
+    if (target === 1 && !state.category) return "Please select a category";
+    if (target === 2 && state.mediaPreviews.length === 0) return "Please upload at least one image or video";
+    if (target === 3) {
+      if (!state.title.trim()) return "Please enter a title";
+      if (!state.description.trim()) return "Please describe the commission";
       if (state.packages.length === 0) return "Add at least one package.";
       for (let i = 0; i < state.packages.length; i += 1) {
         const p = state.packages[i];
@@ -516,9 +453,8 @@ export default function CreateCommissionWizard({ mode = "create", productId, ini
         if (!p.description.trim()) return `Say what "${label}" includes, or remove it.`;
         if (!Number.isFinite(p.deliveryDays) || p.deliveryDays < 1) return `"${label}" needs a delivery time of at least 1 day.`;
       }
+      if (state.availability === "scheduled" && !state.opensAt) return "Pick the date this commission opens.";
     }
-    if (target === 3 && state.mediaPreviews.length === 0) return "Add at least one image or video.";
-    if (target === 5 && state.availability === "scheduled" && !state.opensAt) return "Pick the date this commission opens.";
     return null;
   }, [state]);
 
@@ -526,7 +462,7 @@ export default function CreateCommissionWizard({ mode = "create", productId, ini
   const goNext = () => {
     const problem = problemFor(step);
     if (problem) { setError(problem); scrollTop(); return; }
-    setStep((s) => Math.min(6, s + 1) as StepIndex);
+    setStep((s) => Math.min(3, s + 1) as StepIndex);
     scrollTop();
   };
   const goBack = () => { setStep((s) => Math.max(1, s - 1) as StepIndex); scrollTop(); };
@@ -560,7 +496,7 @@ export default function CreateCommissionWizard({ mode = "create", productId, ini
 
   const publish = async () => {
     if (!user) { setError("Sign in to publish."); scrollTop(); return; }
-    for (let i = 1; i <= 5; i += 1) {
+    for (let i = 1; i <= 3; i += 1) {
       const problem = problemFor(i);
       if (problem) { setError(problem); setStep(i as StepIndex); scrollTop(); return; }
     }
@@ -603,8 +539,13 @@ export default function CreateCommissionWizard({ mode = "create", productId, ini
   }
 
   const isLive = savedStatus === "active";
-  const title = TITLES[step - 1];
-  const priceFrom = state.packages.map((p) => p.price).filter((p): p is number => typeof p === "number" && p > 0).sort((a, b) => a - b)[0];
+  const title = step === 1
+    ? (showSpecializations && selectedCategory
+      ? { prefix: "Choose a", highlight1: "specialization", highlight2: "for your commission" }
+      : { prefix: "Let's", highlight1: "create", highlight2: "your commission" })
+    : step === 2
+      ? { prefix: "Upload", highlight1: "media", highlight2: "for your commission" }
+      : { prefix: "Add the", highlight1: "final", highlight2: "details" };
 
   return (
     <div className="min-h-screen bg-surface">
@@ -615,63 +556,59 @@ export default function CreateCommissionWizard({ mode = "create", productId, ini
 
         <div className="mb-12">
           {step === 1 && (
-            <div className="space-y-10">
-              <div>
-                <FieldLabel required>Category</FieldLabel>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="py-4">
+              {!showSpecializations || !selectedCategory ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
                   {categories.map((c) => (
-                    <OptionBox key={c.id} selected={state.category === c.id} onClick={() => update({ category: c.id, subcategory: null })} label={c.name} />
+                    <CategoryTile key={c.id} icon={CATEGORY_ICONS[c.id] ?? getCategoryIcon("sparkles")} label={c.name} selected={state.category === c.id} onClick={() => { update({ category: c.id, subcategory: null }); setShowSpecializations(true); }} />
                   ))}
                 </div>
-              </div>
-              {selectedCategory && (
+              ) : (
                 <div>
-                  <FieldLabel>Specialization</FieldLabel>
+                  <BackRow onBack={() => setShowSpecializations(false)} icon={CATEGORY_ICONS[selectedCategory.id] ?? getCategoryIcon("sparkles")} label={selectedCategory.name} />
+                  <p className="text-muted font-body text-sm mb-6 text-center">Select a more specific type</p>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {selectedCategory.subcategories.map((s) => (
-                      <OptionBox key={s.value} selected={state.subcategory === s.value} onClick={() => update({ subcategory: state.subcategory === s.value ? null : s.value })} label={s.label} />
+                    {selectedCategory.subcategories.map((sub) => (
+                      <OptionBox key={sub.value} selected={state.subcategory === sub.value} onClick={() => update({ subcategory: sub.value })} label={sub.label} />
                     ))}
+                  </div>
+                  <div className="mt-8 text-center">
+                    <button type="button" onClick={() => { update({ subcategory: null }); goNext(); }} className="text-sm text-muted hover:text-pink-vivid transition-colors font-body">Skip this step</button>
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {step === 2 && <MediaStep previews={state.mediaPreviews} onChange={(mediaPreviews) => update({ mediaPreviews })} onError={setError} />}
+
+          {step === 3 && (
+            <div className="space-y-10">
               <div>
-                <FieldLabel required htmlFor="title" right={`${state.title.trim().length} / 80`}>Title</FieldLabel>
-                <GInput id="title" strong pencil maxLength={80} value={state.title} onChange={(title) => update({ title })} placeholder="Character illustration, full colour" />
+                <FieldLabel required htmlFor="title">Title</FieldLabel>
+                <GInput id="title" strong pencil maxLength={80} value={state.title} onChange={(title) => update({ title })} placeholder={`Name your ${state.subcategory ? getCommissionSubcategoryLabel(state.category || "", state.subcategory).toLowerCase() : "commission"}`} />
               </div>
               <div>
-                <FieldLabel htmlFor="headline" right={`${state.headline.trim().length} / 100`}>Headline</FieldLabel>
+                <FieldLabel htmlFor="headline">Headline</FieldLabel>
                 <GInput id="headline" maxLength={100} value={state.headline} onChange={(headline) => update({ headline })} placeholder="One line under the title on cards and the listing." />
               </div>
-              <div>
-                <FieldLabel required htmlFor="description" right={`${state.description.trim().length} / 1200`}>Description</FieldLabel>
-                <GTextarea id="description" strong rows={6} maxLength={1200} value={state.description} onChange={(description) => update({ description })} placeholder="How you work, what you love making, what a buyer can expect." />
-              </div>
-            </div>
-          )}
 
-          {step === 2 && (
-            <div className="space-y-10">
-              {state.packages.map((pkg, index) => (
-                <PackageEditor key={pkg.id} index={index} pkg={pkg} canRemove={state.packages.length > 1} onRemove={() => removePackage(pkg.id)} onChange={(patch) => updatePackage(pkg.id, patch)} />
-              ))}
-              {state.packages.length < 3 && (
-                <div className="text-center">
-                  <TextLink onClick={addPackage}>+ Add a package</TextLink>
-                  <p className="text-xs font-body text-muted mt-1">Up to three. Name them however you like.</p>
+              <Section>
+                <SectionHeader>Packages:</SectionHeader>
+                <div className="space-y-8">
+                  {state.packages.map((pkg, index) => (
+                    <PackageEditor key={pkg.id} index={index} pkg={pkg} canRemove={state.packages.length > 1} onRemove={() => removePackage(pkg.id)} onChange={(patch) => updatePackage(pkg.id, patch)} />
+                  ))}
+                  {state.packages.length < 3 && <TextLink onClick={addPackage}>+ Add a package</TextLink>}
                 </div>
-              )}
-            </div>
-          )}
+              </Section>
 
-          {step === 3 && <MediaStep previews={state.mediaPreviews} onChange={(mediaPreviews) => update({ mediaPreviews })} onError={setError} />}
-
-          {step === 4 && (
-            <div className="space-y-10">
-              <div>
+              <Section>
                 <SectionHeader>Questions for the buyer:</SectionHeader>
                 <p className="text-sm font-body text-muted -mt-4 mb-6">Asked in the request sheet, before they pay. Answers land on the order page.</p>
                 <IntakeFieldsEditor fields={state.intakeFields} onChange={(intakeFields) => update({ intakeFields })} />
-              </div>
+              </Section>
+
               <Section>
                 <SectionHeader>Includes and not included:</SectionHeader>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -679,37 +616,39 @@ export default function CreateCommissionWizard({ mode = "create", productId, ini
                   <div><FieldLabel>Not included</FieldLabel><LineList values={state.excludes} placeholder="e.g. Commercial use" onChange={(excludes) => update({ excludes })} /></div>
                 </div>
               </Section>
+
+              <Section>
+                <SectionHeader>Availability:</SectionHeader>
+                <AvailabilityEditor state={state} onChange={update} />
+              </Section>
+
               <Section>
                 <SectionHeader>Terms:</SectionHeader>
                 <p className="text-sm font-body text-muted -mt-4 mb-6">Shown on your listing. Buyers agree to them when they send a request.</p>
                 <GTextarea strong rows={5} maxLength={5000} value={state.terms} onChange={(terms) => update({ terms })} placeholder="Usage rights, what counts as a revision, cancellation, anything buyers agree to before ordering." />
                 <div className="flex justify-end mt-2"><p className={`text-xs font-ui ${state.terms.length > 4500 ? "text-orange-warm" : "text-muted"}`}>{state.terms.length} / 5000</p></div>
               </Section>
+
               <Section>
                 <SectionHeader>FAQ:</SectionHeader>
                 <FaqEditor values={state.faqs} onChange={(faqs) => update({ faqs })} />
               </Section>
+
+              <Section>
+                <SectionHeader>Description:</SectionHeader>
+                <GTextarea id="description" strong rows={6} maxLength={1200} value={state.description} onChange={(description) => update({ description })} placeholder="How you work, what you love making, what a buyer can expect." />
+                <div className="flex justify-end mt-2"><p className={`text-xs font-ui ${state.description.length > 1080 ? "text-orange-warm" : "text-muted"}`}>{state.description.length} / 1200</p></div>
+              </Section>
+
               <Section>
                 <SectionHeader>Keywords:</SectionHeader>
-                <TagInput values={state.keywords} onChange={(keywords) => update({ keywords })} placeholder="character, portrait, painterly" helperText="Press Enter or comma to add" max={10} lowercase chipPrefix="#" />
+                <TagInput values={state.keywords} onChange={(keywords) => update({ keywords })} placeholder="Add keywords…" helperText="Press Enter or comma to add" max={10} lowercase chipPrefix="#" />
               </Section>
-            </div>
-          )}
-
-          {step === 5 && <AvailabilityEditor state={state} onChange={update} />}
-
-          {step === 6 && (
-            <div className="space-y-6">
-              <p className="text-center text-sm font-body text-muted">
-                {isLive ? "This is your listing as buyers see it. Save changes to update it." : "This is your listing page as buyers will see it. Nothing is live until you publish."}
-                {priceFrom != null ? ` From ${formatCurrency(priceFrom)}.` : ""}
-              </p>
-              <ListingPreview state={state} />
             </div>
           )}
         </div>
 
-        <WizardNav onBack={goBack} onNext={goNext} onPublish={publish} onSaveDraft={saveDraft} canSaveDraft={canSaveDraft} savingDraft={savingDraft} busy={busy} isFirst={step === 1} isLast={step === 6} isLive={isLive} />
+        <WizardNav onBack={goBack} onNext={goNext} onPublish={publish} onSaveDraft={saveDraft} canSaveDraft={canSaveDraft} savingDraft={savingDraft} busy={busy} isFirst={step === 1} isLast={step === 3} isLive={isLive} />
       </div>
     </div>
   );
