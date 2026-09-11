@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import { ProductDelivery } from "@/lib/types/store";
-import { Card } from "@/components/listing/form";
+import { Section } from "@/components/listing/form";
 import MediaPicker, { type MediaPreview } from "@/components/listing/MediaPicker";
 import Button from "@/components/ui/Button";
 
@@ -76,24 +76,24 @@ export default function MediaStep({ deliveryType, mediaPreviews, digitalFiles, o
 
   return (
     <>
-      <Card title="Photos" description={`Up to ${MAX_IMAGES}. The cover is what people see first.`}>
+      <Section title="Photos" description={`Up to ${MAX_IMAGES}. The cover is what people see first.`}>
         <MediaPicker previews={mediaPreviews} onChange={onMediaChange} onError={onError} max={MAX_IMAGES} accept={ACCEPTED_IMAGE_TYPES} maxImageBytes={MAX_IMAGE_BYTES} hint="PNG, JPG, GIF or WebP up to 10 MB" />
-      </Card>
+      </Section>
 
       {(deliveryType === "digital" || deliveryType === "both") && (
-        <Card title="Files buyers download" description="Delivered right after payment. Add them now or when you publish.">
+        <Section title="Files buyers download" description="Delivered right after payment. Add them now or when you publish.">
           <input ref={digitalInputRef} type="file" multiple onChange={(e) => { addDigital(e.target.files); e.target.value = ""; }} className="sr-only" />
           <button type="button" onDragEnter={onDrag} onDragLeave={onDrag} onDragOver={onDrag} onDrop={onDrop} onClick={() => digitalInputRef.current?.click()}
-            className={`w-full rounded-2xl border border-dashed p-6 text-center transition-colors ${dragActive ? "border-purple-primary/50 bg-purple-50" : "border-border-strong bg-subtle hover:border-purple-primary/40"}`}>
+            className={`w-full rounded-2xl border-2 border-dashed p-8 text-center transition-colors ${dragActive ? "border-pink-vivid/50 bg-pink-vivid/10" : "border-pink-vivid/25 bg-pink-vivid/5 hover:border-pink-vivid/50"}`}>
             <p className="text-sm font-ui font-medium text-ink">Drop files or tap to choose</p>
             <p className="text-2xs font-body text-muted mt-0.5">Up to {MAX_DIGITAL_FILES} files · {bytes(MAX_DIGITAL_FILE_BYTES)} each · {bytes(MAX_DIGITAL_TOTAL_BYTES)} total</p>
           </button>
           {digitalFiles.length > 0 && (
             <ul className="mt-3 space-y-2">
               {digitalFiles.map((file, index) => (
-                <li key={`${file.id || file.name}-${index}`} className="flex items-center justify-between gap-3 rounded-xl border border-border-light bg-surface px-3 py-2">
+                <li key={`${file.id || file.name}-${index}`} className="flex items-center justify-between gap-3 rounded-2xl bg-subtle/70 px-3 py-2.5">
                   <div className="flex items-center gap-3 min-w-0">
-                    <span className="w-9 h-9 rounded-lg bg-purple-50 text-purple-primary flex items-center justify-center shrink-0">
+                    <span className="w-9 h-9 rounded-lg pq-dot flex items-center justify-center shrink-0">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                     </span>
                     <div className="min-w-0">
@@ -106,7 +106,7 @@ export default function MediaStep({ deliveryType, mediaPreviews, digitalFiles, o
               ))}
             </ul>
           )}
-        </Card>
+        </Section>
       )}
     </>
   );

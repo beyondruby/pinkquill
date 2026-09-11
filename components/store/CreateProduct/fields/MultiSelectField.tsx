@@ -31,12 +31,12 @@ export default function MultiSelectField({ field, value, onChange }: MultiSelect
       <ChipMulti options={[...options, ...extras]} value={value} onChange={onChange} />
       {field.allowCustom && (
         showCustom ? (
-          <div className="mt-2 flex gap-2 sm:max-w-sm">
+          <div className="mt-3 flex gap-2 sm:max-w-sm">
             <input autoFocus value={custom} placeholder="Something else…" onChange={(e) => setCustom(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCustom(); } }} className={INPUT} />
             <Button size="sm" variant="secondary" onClick={addCustom}>Add</Button>
           </div>
         ) : (
-          <button type="button" onClick={() => setShowCustom(true)} className="mt-2 text-xs font-ui font-semibold text-purple-primary hover:underline">+ Add your own</button>
+          <button type="button" onClick={() => setShowCustom(true)} className="mt-3 text-sm font-ui font-semibold text-pink-vivid hover:text-purple-primary transition-colors">+ Add your own</button>
         )
       )}
       {field.helpText && <Help>{field.helpText}</Help>}

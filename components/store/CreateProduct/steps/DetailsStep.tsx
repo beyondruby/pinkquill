@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { ProductDelivery, ProductWizardState } from "@/lib/types/store";
 import { CategoryConfig, CategoryField, getFieldsForDelivery, getSubcategoryLabel, shouldShowField } from "@/lib/store/categories";
-import { Card, INPUT, Label, Select, TagList } from "@/components/listing/form";
+import { Section, INPUT, Label, Select, TagList } from "@/components/listing/form";
 import TextField from "../fields/TextField";
 import TextareaField from "../fields/TextareaField";
 import SelectField from "../fields/SelectField";
@@ -58,8 +58,8 @@ export default function DetailsStep({ deliveryType, category, subcategory, categ
 
   return (
     <>
-      <Card title="About the piece" description="The title and story buyers read first.">
-        <div className="space-y-4">
+      <Section title="About the piece" description="The title and story buyers read first.">
+        <div className="space-y-6">
           <div>
             <Label text="Title" required htmlFor="title" right={`${wizardState.title.trim().length}/${TITLE_MAX}`} />
             <input id="title" maxLength={TITLE_MAX} value={wizardState.title} onChange={(e) => updateState({ title: e.target.value })} placeholder={`Name your ${noun}`} className={INPUT} />
@@ -76,21 +76,21 @@ export default function DetailsStep({ deliveryType, category, subcategory, categ
             </Select>
           </div>
         </div>
-      </Card>
+      </Section>
 
       {groups.classification.length > 0 && (
-        <Card title="Classification"><div className="space-y-4">{groups.classification.map(render)}</div></Card>
+        <Section title="Classification"><div className="space-y-6">{groups.classification.map(render)}</div></Section>
       )}
       {deliveryType !== "digital" && groups.presentation.length > 0 && (
-        <Card title="Presentation"><div className="space-y-4">{groups.presentation.map(render)}</div></Card>
+        <Section title="Presentation"><div className="space-y-6">{groups.presentation.map(render)}</div></Section>
       )}
       {groups.details.length > 0 && (
-        <Card title="More details"><div className="space-y-4">{groups.details.map(render)}</div></Card>
+        <Section title="More details"><div className="space-y-6">{groups.details.map(render)}</div></Section>
       )}
 
-      <Card title="Tags" description="A few words that help people find this.">
+      <Section title="Tags" description="A few words that help people find this.">
         <TagList values={wizardState.keywords} onChange={(keywords) => updateState({ keywords })} placeholder="watercolour, portrait, botanical" max={10} normalize chipPrefix="#" />
-      </Card>
+      </Section>
     </>
   );
 }

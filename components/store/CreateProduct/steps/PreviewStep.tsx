@@ -41,11 +41,11 @@ export default function PreviewStep({ wizardState: s, categoryConfig, isLive }: 
 
   return (
     <>
-      <div className="rounded-2xl border border-border-light bg-subtle px-4 py-3 text-sm font-body text-muted">
+      <div className="rounded-2xl bg-gradient-to-r from-orange-warm/10 via-pink-vivid/10 to-purple-primary/10 px-5 py-3.5 text-sm font-body text-ink/80">
         {isLive ? "This is your listing as buyers see it. Save changes to update it." : "This is your listing as buyers will see it. Nothing is live until you publish."}
         {from !== null ? ` From ${formatCurrency(from)}.` : ""}
       </div>
-      <div className="rounded-2xl border border-border-light bg-surface p-4 sm:p-5 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_260px] gap-6">
+      <div className="pq-ring rounded-3xl p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_260px] gap-6">
         <div>
           <div className="grid grid-cols-4 grid-rows-2 gap-2 aspect-[16/9]">
             {tile(cover, "col-span-3 row-span-2")}
@@ -57,14 +57,14 @@ export default function PreviewStep({ wizardState: s, categoryConfig, isLive }: 
           {s.description && <p className="mt-3 text-sm font-body text-ink/90 whitespace-pre-line line-clamp-5">{s.description}</p>}
           <p className="mt-3 text-sm font-body text-muted">{shipping}</p>
           {s.keywords.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-1.5">{s.keywords.map((k) => <span key={k} className="px-2.5 py-1 rounded-full bg-subtle text-xs font-ui text-muted">#{k}</span>)}</div>
+            <div className="mt-3 flex flex-wrap gap-1.5">{s.keywords.map((k) => <span key={k} className="px-3 py-1 rounded-full bg-gradient-to-r from-orange-warm/10 to-pink-vivid/10 text-xs font-ui text-pink-vivid">#{k}</span>)}</div>
           )}
         </div>
         <aside>
           <div className="space-y-2">
             {lines.length === 0 && <p className="text-sm font-body text-muted">No prices set yet.</p>}
             {lines.map((l, i) => (
-              <div key={l.label} className={`rounded-2xl border p-3 ${i === 0 ? "border-purple-primary bg-purple-50/60" : "border-border-light"}`}>
+              <div key={l.label} className={`rounded-2xl p-3 ${i === 0 ? "pq-ring" : "border border-border-light"}`}>
                 <div className="flex justify-between gap-3"><span className="text-sm font-ui font-semibold text-ink">{l.label}</span><span className="font-display font-semibold text-ink tabular-nums">{formatCurrency(l.price)}</span></div>
                 {l.min !== null && l.min < l.price && <p className="text-2xs font-body text-muted">Pay what you want · from {formatCurrency(l.min)}</p>}
               </div>

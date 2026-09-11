@@ -3,7 +3,7 @@
 import { ProductDelivery, ProductWizardState } from "@/lib/types/store";
 import { CategoryConfig } from "@/lib/store/categories";
 import { formatCurrency } from "@/lib/utils/currency";
-import { Card, CheckRow, ChipMulti, Help, Label, PriceInput, Select, TagList, UnitInput } from "@/components/listing/form";
+import { Check, CheckRow, ChipMulti, Help, Label, PriceInput, Section, Select, TagList, UnitInput } from "@/components/listing/form";
 import DimensionsField from "../fields/DimensionsField";
 
 interface PricingStepProps {
@@ -22,7 +22,7 @@ const PACKAGING = [
 function PriceRow({ id, label, price, min, onPrice, onMin }: { id: string; label: string; price: number | null; min: number | null; onPrice: (v: number | null) => void; onMin: (v: number | null) => void }) {
   const pwyw = min !== null;
   return (
-    <div className="rounded-xl border border-border-light bg-subtle/60 p-3 sm:p-4 space-y-3">
+    <div className="rounded-2xl bg-subtle/70 p-4 sm:p-5 space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <Label text={pwyw ? `${label} · suggested price` : `${label} price`} required htmlFor={id} />
@@ -37,10 +37,7 @@ function PriceRow({ id, label, price, min, onPrice, onMin }: { id: string; label
           </div>
         )}
       </div>
-      <label className="flex items-center gap-2 text-xs font-ui text-ink cursor-pointer">
-        <input type="checkbox" checked={pwyw} onChange={(e) => onMin(e.target.checked ? 0 : null)} className="w-4 h-4 accent-[var(--color-purple-primary)]" />
-        Let buyers name their own price
-      </label>
+      <Check size="sm" checked={pwyw} onChange={(v) => onMin(v ? 0 : null)} label="Let buyers name their own price" />
     </div>
   );
 }
@@ -53,12 +50,12 @@ export default function PricingStep({ deliveryType, categoryConfig, wizardState,
 
   return (
     <>
-      <Card title="Pricing" description={`Pinkquill keeps 5%; you receive the rest. Set as ${formatCurrency(0)} to give it away.`}>
-        <div className="divide-y divide-border-light">
+      <Section title="Pricing" description={`Pinkquill keeps 5%; you receive the rest. Set as ${formatCurrency(0)} to give it away.`}>
+        <div className="space-y-2">
           {physical && pricingOptions.original && (
             <div className="py-1">
               <CheckRow label="Sell the original piece" hint="One of a kind; marked sold after the first order." checked={s.sellOriginal} onChange={(v) => updateState({ sellOriginal: v })} />
-              {s.sellOriginal && <div className="pb-3"><PriceRow id="price-original" label="Original" price={s.originalPrice} min={s.originalMin} onPrice={(v) => updateState({ originalPrice: v })} onMin={(v) => updateState({ originalMin: v })} /></div>}
+              {s.sellOriginal && <div className="pb-2 pl-8"><PriceRow id="price-original" label="Original" price={s.originalPrice} min={s.originalMin} onPrice={(v) => updateState({ originalPrice: v })} onMin={(v) => updateState({ originalMin: v })} /></div>}
             </div>
           )}
 
@@ -66,7 +63,7 @@ export default function PricingStep({ deliveryType, categoryConfig, wizardState,
             <div className="py-1">
               <CheckRow label="Offer reproductions" hint="Prints or copies, each with its own price." checked={s.hasReproductions} onChange={(v) => updateState({ hasReproductions: v })} />
               {s.hasReproductions && (
-                <div className="pb-3 space-y-3">
+                <div className="pb-2 pl-8 space-y-4">
                   <div>
                     <Label text="Types" />
                     <ChipMulti
@@ -95,7 +92,7 @@ export default function PricingStep({ deliveryType, categoryConfig, wizardState,
             <div className="py-1">
               <CheckRow label="Digital download" hint="Buyers get the files right after paying." checked={s.hasDigitalDownload} onChange={(v) => updateState({ hasDigitalDownload: v })} />
               {s.hasDigitalDownload && (
-                <div className="pb-3 space-y-3">
+                <div className="pb-2 pl-8 space-y-4">
                   <div className="sm:max-w-xs">
                     <Label text="Format" htmlFor="digital-format" />
                     <Select id="digital-format" value={s.digitalFormat || ""} onChange={(e) => updateState({ digitalFormat: e.target.value || null })}>
@@ -109,14 +106,14 @@ export default function PricingStep({ deliveryType, categoryConfig, wizardState,
             </div>
           )}
         </div>
-      </Card>
+      </Section>
 
       {physical && (
         <>
-          <Card title="Size and weight" description="Helps buyers picture it and you price the postage.">
+          <Section title="Size and weight" description="Helps buyers picture it and you price the postage.">
             <DimensionsField shipping={s.shipping} onChange={(shipping) => updateState({ shipping })} />
-          </Card>
-          <Card title="Shipping">
+          </Section>
+          <Section title="Shipping">
             <div className="space-y-4">
               <div>
                 <Label text="Carriers" />
@@ -144,7 +141,7 @@ export default function PricingStep({ deliveryType, categoryConfig, wizardState,
                 </div>
               </div>
             </div>
-          </Card>
+          </Section>
         </>
       )}
     </>

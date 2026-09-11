@@ -39,7 +39,7 @@ export default function TypeStep({ deliveryType, category, subcategory, onDelive
   const config = category ? getCategoryConfig(category) : undefined;
 
   return (
-    <div className="space-y-10 py-2">
+    <div className="space-y-12 py-2">
       <Group title="How does it reach the buyer?">
         <div className="flex justify-center gap-6 sm:gap-14">
           {DELIVERY.map((o) => (

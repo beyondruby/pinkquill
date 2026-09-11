@@ -1,0 +1,56 @@
+/* Listing wizards — the brand edge. A gradient ring on fields, chips, chosen
+   boxes and the step dots, drawn with the padding-box / border-box trick so
+   it follows the theme's brand variables. */
+
+.pq-field {
+  border: 1.5px solid transparent;
+  border-radius: 0.75rem;
+  background:
+    linear-gradient(var(--color-surface), var(--color-surface)) padding-box,
+    linear-gradient(90deg, var(--color-purple-primary), var(--color-pink-vivid), var(--color-orange-warm)) border-box;
+  transition: box-shadow 0.2s ease;
+}
+.pq-field:focus,
+.pq-field:focus-within {
+  outline: none;
+  box-shadow: 0 8px 24px -10px color-mix(in oklab, var(--color-pink-vivid) 55%, transparent);
+}
+.pq-field:disabled {
+  opacity: 0.6;
+}
+
+/* A chosen box (availability option, preview frame, selected package). */
+.pq-ring {
+  border: 2px solid transparent;
+  background:
+    linear-gradient(var(--color-surface), var(--color-surface)) padding-box,
+    linear-gradient(90deg, var(--color-purple-primary), var(--color-pink-vivid), var(--color-orange-warm)) border-box;
+  box-shadow: 0 10px 30px -18px color-mix(in oklab, var(--color-pink-vivid) 45%, transparent);
+}
+
+/* Toggle chips: quiet at rest, gradient ring + pink text when on. */
+.pq-chip {
+  border: 1px solid var(--color-border-light);
+  border-radius: 9999px;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
+}
+.pq-chip:hover {
+  border-color: color-mix(in oklab, var(--color-pink-vivid) 35%, transparent);
+}
+.pq-chip[aria-pressed="true"] {
+  border-color: transparent;
+  background:
+    linear-gradient(var(--color-surface), var(--color-surface)) padding-box,
+    linear-gradient(90deg, var(--color-purple-primary), var(--color-pink-vivid), var(--color-orange-warm)) border-box;
+  color: var(--color-pink-vivid);
+  font-weight: 600;
+  box-shadow: 0 6px 16px -10px color-mix(in oklab, var(--color-pink-vivid) 60%, transparent);
+}
+
+/* Step dots and checks: the warm gradient, white mark. */
+.pq-dot {
+  background: linear-gradient(90deg, var(--color-orange-warm), var(--color-pink-vivid));
+  color: var(--color-on-accent);
+}

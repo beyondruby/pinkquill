@@ -18,7 +18,7 @@ import { showToast } from "@/lib/utils/toast";
 import Button from "@/components/ui/Button";
 import Loading from "@/components/ui/Loading";
 import ListingShell, { SignInGate, type ListingHeadline } from "@/components/listing/ListingShell";
-import { Card, ChipChoice, Help, INPUT, Label, LineList, TagList } from "@/components/listing/form";
+import { Check, ChipChoice, Help, INPUT, Label, LineList, Section, TagList } from "@/components/listing/form";
 import MediaPicker, { isVideoMedia } from "@/components/listing/MediaPicker";
 
 /**
@@ -119,9 +119,9 @@ export function mapProductToCommissionState(product: Product): CommissionWizardS
 
 function PackageEditor({ index, pkg, canRemove, onRemove, onChange }: { index: number; pkg: CommissionPackageFormState; canRemove: boolean; onRemove: () => void; onChange: (u: Partial<CommissionPackageFormState>) => void }) {
   return (
-    <div className="rounded-2xl border border-border-light bg-surface p-4 space-y-3">
+    <div className="rounded-2xl bg-subtle/70 p-4 sm:p-5 space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <span className="px-2 py-0.5 rounded-full bg-subtle text-xs font-ui text-muted">Tier {index + 1}</span>
+        <span className="px-3 py-1 rounded-full bg-gradient-to-r from-orange-warm/10 to-pink-vivid/10 text-xs font-ui font-semibold text-pink-vivid">Tier {index + 1}</span>
         {canRemove && <button type="button" onClick={onRemove} className="text-xs font-ui text-muted hover:text-red-600">Remove</button>}
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -185,7 +185,7 @@ function IntakeFieldsEditor({ fields, onChange }: { fields: IntakeFieldDraft[]; 
       {fields.map((field, index) => {
         const hasOptions = field.field_type === "select" || field.field_type === "multi_select";
         return (
-          <div key={field.key} className="rounded-xl border border-border-light bg-surface p-3 space-y-2.5">
+          <div key={field.key} className="rounded-2xl bg-subtle/70 p-3 sm:p-4 space-y-3">
             <div className="flex items-start gap-2">
               <span className="mt-2.5 text-xs font-ui text-muted w-5 shrink-0 tabular-nums">{index + 1}.</span>
               <input value={field.label} maxLength={200} placeholder="e.g. What is this piece for?" onChange={(e) => update(field.key, { label: e.target.value })} className={INPUT} />
@@ -197,10 +197,7 @@ function IntakeFieldsEditor({ fields, onChange }: { fields: IntakeFieldDraft[]; 
             </div>
             <div className="flex flex-wrap items-center gap-2 pl-7">
               <ChipChoice options={INTAKE_TYPES} value={field.field_type} onChange={(field_type) => update(field.key, { field_type })} />
-              <label className="ml-auto flex items-center gap-2 text-xs font-ui text-ink whitespace-nowrap">
-                <input type="checkbox" checked={field.required} onChange={(e) => update(field.key, { required: e.target.checked })} className="accent-[var(--color-purple-primary)]" />
-                Required
-              </label>
+              <span className="ml-auto whitespace-nowrap"><Check size="sm" checked={field.required} onChange={(required) => update(field.key, { required })} label="Required" /></span>
             </div>
             <div className="pl-7 space-y-2">
               <input value={field.help_text} maxLength={500} placeholder="Help text (optional)" onChange={(e) => update(field.key, { help_text: e.target.value })} className={`${INPUT} text-xs`} />
@@ -213,7 +210,7 @@ function IntakeFieldsEditor({ fields, onChange }: { fields: IntakeFieldDraft[]; 
       })}
       <div className="flex flex-wrap gap-2">
         {INTAKE_TYPES.map((t) => (
-          <button key={t.value} type="button" onClick={() => add(t.value)} className="px-3 py-1.5 rounded-full border border-border-light text-xs font-ui text-ink hover:border-border-strong transition-colors">+ {t.label}</button>
+          <button key={t.value} type="button" onClick={() => add(t.value)} className="pq-chip px-3.5 py-2 text-sm font-ui">+ {t.label}</button>
         ))}
       </div>
     </div>
@@ -224,7 +221,7 @@ function FaqEditor({ values, onChange }: { values: Array<{ question: string; ans
   return (
     <div className="space-y-3">
       {values.map((item, index) => (
-        <div key={index} className="rounded-xl border border-border-light bg-surface p-3 space-y-2">
+        <div key={index} className="rounded-2xl bg-subtle/70 p-3 sm:p-4 space-y-2">
           <input value={item.question} placeholder="Question" onChange={(e) => onChange(values.map((v, i) => (i === index ? { ...v, question: e.target.value } : v)))} className={INPUT} />
           <textarea rows={2} value={item.answer} placeholder="Answer" onChange={(e) => onChange(values.map((v, i) => (i === index ? { ...v, answer: e.target.value } : v)))} className={INPUT} />
           <button type="button" onClick={() => onChange(values.filter((_, i) => i !== index))} className="text-xs font-ui text-muted hover:text-red-600">Remove</button>
@@ -250,8 +247,8 @@ function AvailabilityEditor({ state, onChange }: { state: CommissionWizardState;
         {AVAILABILITY_OPTIONS.map((o) => {
           const active = state.availability === o.value;
           return (
-            <button key={o.value} type="button" aria-pressed={active} onClick={() => onChange({ availability: o.value })} className={`text-left rounded-xl border px-4 py-3 transition-colors ${active ? "border-purple-primary bg-purple-50" : "border-border-light bg-surface hover:border-border-strong"}`}>
-              <p className={`text-sm font-ui font-semibold ${active ? "text-purple-primary" : "text-ink"}`}>{o.label}</p>
+            <button key={o.value} type="button" aria-pressed={active} onClick={() => onChange({ availability: o.value })} className={`text-left rounded-2xl px-4 py-3.5 transition-all ${active ? "pq-ring" : "border border-border-light bg-surface hover:border-pink-vivid/30 shadow-sm"}`}>
+              <p className={`text-sm font-ui font-semibold ${active ? "text-pink-vivid" : "text-ink"}`}>{o.label}</p>
               <p className="text-xs font-body text-muted mt-0.5">{o.hint}</p>
             </button>
           );
@@ -266,7 +263,7 @@ function AvailabilityEditor({ state, onChange }: { state: CommissionWizardState;
       {state.availability !== "closed" && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <Label text="Slots at once" htmlFor="slots" right={<label className="flex items-center gap-1.5 text-2xs font-ui text-muted"><input type="checkbox" checked={unlimited} onChange={(e) => onChange({ slotsTotal: e.target.checked ? null : 3 })} className="accent-[var(--color-purple-primary)]" />Unlimited</label>} />
+            <Label text="Slots at once" htmlFor="slots" right={<Check size="sm" checked={unlimited} onChange={(v) => onChange({ slotsTotal: v ? null : 3 })} label="Unlimited" />} />
             <input id="slots" type="number" min={1} max={500} disabled={unlimited} value={unlimited ? "" : state.slotsTotal ?? ""} placeholder={unlimited ? "Unlimited" : "e.g. 3"} onChange={(e) => { const v = Number(e.target.value); onChange({ slotsTotal: Number.isFinite(v) && v > 0 ? Math.min(500, Math.round(v)) : null }); }} className={`${INPUT} tabular-nums disabled:opacity-60`} />
             <Help>Active orders count against this. The request that would go over is refused.</Help>
           </div>
@@ -281,13 +278,7 @@ function AvailabilityEditor({ state, onChange }: { state: CommissionWizardState;
         <Label text="Clock starts" />
         <ChipChoice options={[{ value: "payment", label: "When the buyer pays" }, { value: "acceptance", label: "When I accept the request" }]} value={state.turnaroundStarts} onChange={(turnaroundStarts) => onChange({ turnaroundStarts })} />
       </div>
-      <label className="flex items-start justify-between gap-4 py-2 cursor-pointer">
-        <span>
-          <span className="block text-sm font-ui font-medium text-ink">Open to custom requests</span>
-          <span className="block text-xs font-body text-muted mt-0.5">Buyers can describe something outside your packages in the brief.</span>
-        </span>
-        <input type="checkbox" role="switch" checked={state.acceptsCustomQuotes} onChange={(e) => onChange({ acceptsCustomQuotes: e.target.checked })} className="mt-1 w-4 h-4 accent-[var(--color-purple-primary)]" />
-      </label>
+      <div className="py-2"><Check checked={state.acceptsCustomQuotes} onChange={(acceptsCustomQuotes) => onChange({ acceptsCustomQuotes })} label="Open to custom requests" hint="Buyers can describe something outside your packages in the brief." /></div>
     </div>
   );
 }
@@ -309,7 +300,7 @@ function ListingPreview({ state }: { state: CommissionWizardState }) {
     </div>
   );
   return (
-    <div className="rounded-2xl border border-border-light bg-surface p-4 sm:p-5 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_260px] gap-6">
+    <div className="pq-ring rounded-3xl p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_260px] gap-6">
       <div>
         <div className="grid grid-cols-4 grid-rows-2 gap-2 aspect-[16/9]">
           {tile(cover, "col-span-3 row-span-2")}
@@ -332,7 +323,7 @@ function ListingPreview({ state }: { state: CommissionWizardState }) {
         <div className="space-y-2">
           {packages.length === 0 && <p className="text-sm font-body text-muted">No priced packages yet.</p>}
           {packages.map((p, i) => (
-            <button key={p.id} type="button" onClick={() => setSel(i)} className={`w-full text-left rounded-2xl border p-3 ${i === sel ? "border-purple-primary bg-purple-50/60" : "border-border-light"}`}>
+            <button key={p.id} type="button" onClick={() => setSel(i)} className={`w-full text-left rounded-2xl p-3 ${i === sel ? "pq-ring" : "border border-border-light"}`}>
               <div className="flex justify-between gap-3"><span className="text-sm font-ui font-semibold text-ink">{p.name || "Package"}</span><span className="font-display font-semibold text-ink tabular-nums">{formatCurrency(p.price ?? 0)}</span></div>
               <p className="text-2xs font-body text-muted">{p.deliveryDays}-day delivery · {p.revisions} revision{p.revisions === 1 ? "" : "s"}</p>
             </button>
@@ -508,7 +499,7 @@ export default function CreateCommissionWizard({ mode = "create", productId, ini
       isLive={isLive}
     >
       {step === 1 && (
-        <Card title="Basics" description="What you make and how you describe it.">
+        <Section title="Basics" description="What you make and how you describe it.">
           <div className="space-y-4">
             <div>
               <Label text="Category" required />
@@ -533,11 +524,11 @@ export default function CreateCommissionWizard({ mode = "create", productId, ini
               <textarea id="description" rows={6} maxLength={1200} value={state.description} onChange={(e) => update({ description: e.target.value })} placeholder="How you work, what you love making, what a buyer can expect." className={INPUT} />
             </div>
           </div>
-        </Card>
+        </Section>
       )}
 
       {step === 2 && (
-        <Card title="Packages" description="Up to three. Name them however you like.">
+        <Section title="Packages" description="Up to three. Name them however you like.">
           <div className="space-y-3">
             {state.packages.map((pkg, index) => (
               <PackageEditor key={pkg.id} index={index} pkg={pkg} canRemove={state.packages.length > 1} onRemove={() => removePackage(pkg.id)} onChange={(patch) => updatePackage(pkg.id, patch)} />
@@ -549,47 +540,47 @@ export default function CreateCommissionWizard({ mode = "create", productId, ini
               </div>
             )}
           </div>
-        </Card>
+        </Section>
       )}
 
       {step === 3 && (
-        <Card title="Portfolio" description={`Up to ${MAX_MEDIA} images or videos. The cover is what people see first.`}>
+        <Section title="Portfolio" description={`Up to ${MAX_MEDIA} images or videos. The cover is what people see first.`}>
           <MediaPicker previews={state.mediaPreviews} onChange={(mediaPreviews) => update({ mediaPreviews })} onError={setError} max={MAX_MEDIA} accept={ACCEPTED_MEDIA_TYPES} maxImageBytes={MAX_IMAGE_SIZE} maxVideoBytes={MAX_VIDEO_SIZE} hint="JPG, PNG, WEBP, GIF up to 10 MB · MP4, MOV up to 200 MB" />
-        </Card>
+        </Section>
       )}
 
       {step === 4 && (
         <>
-          <Card title="Questions for the buyer" description="Asked in the request sheet, before they pay. Answers land on the order page.">
+          <Section title="Questions for the buyer" description="Asked in the request sheet, before they pay. Answers land on the order page.">
             <IntakeFieldsEditor fields={state.intakeFields} onChange={(intakeFields) => update({ intakeFields })} />
-          </Card>
-          <Card title="Includes and not included">
+          </Section>
+          <Section title="Includes and not included">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div><Label text="Includes" /><LineList values={state.includes} placeholder="e.g. A sketch for approval first" onChange={(includes) => update({ includes })} /></div>
               <div><Label text="Not included" /><LineList values={state.excludes} placeholder="e.g. Commercial use" onChange={(excludes) => update({ excludes })} /></div>
             </div>
-          </Card>
-          <Card title="Terms" description="Shown on your listing. Buyers agree to them when they send a request." right={<span className="text-xs font-ui text-muted tabular-nums">{state.terms.length}/5000</span>}>
+          </Section>
+          <Section title="Terms" description="Shown on your listing. Buyers agree to them when they send a request." right={<span className="text-xs font-ui text-muted tabular-nums">{state.terms.length}/5000</span>}>
             <textarea rows={5} maxLength={5000} value={state.terms} onChange={(e) => update({ terms: e.target.value })} placeholder="Usage rights, what counts as a revision, cancellation, anything buyers agree to before ordering." className={INPUT} />
-          </Card>
-          <Card title="FAQ">
+          </Section>
+          <Section title="FAQ">
             <FaqEditor values={state.faqs} onChange={(faqs) => update({ faqs })} />
-          </Card>
-          <Card title="Tags" description="A few words that help people find this.">
+          </Section>
+          <Section title="Tags" description="A few words that help people find this.">
             <TagList values={state.keywords} onChange={(keywords) => update({ keywords })} placeholder="character, portrait, painterly" normalize />
-          </Card>
+          </Section>
         </>
       )}
 
       {step === 5 && (
-        <Card title="Availability" description="The database enforces this: the request that would break it is refused.">
+        <Section title="Availability" description="The database enforces this: the request that would break it is refused.">
           <AvailabilityEditor state={state} onChange={update} />
-        </Card>
+        </Section>
       )}
 
       {step === 6 && (
         <>
-          <div className="rounded-2xl border border-border-light bg-subtle px-4 py-3 text-sm font-body text-muted">
+          <div className="rounded-2xl bg-gradient-to-r from-orange-warm/10 via-pink-vivid/10 to-purple-primary/10 px-5 py-3.5 text-sm font-body text-ink/80">
             {isLive ? "This is your listing as buyers see it. Save changes to update it." : "This is your listing page as buyers will see it. Nothing is live until you publish."}
             {priceFrom != null ? ` From ${formatCurrency(priceFrom)}.` : ""}
           </div>

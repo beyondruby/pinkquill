@@ -75,7 +75,7 @@ export default function MediaPicker({ previews, onChange, onError, max, accept, 
           onClick={() => inputRef.current?.click()}
           disabled={full}
           aria-label="Upload"
-          className={`w-40 h-40 rounded-full flex items-center justify-center transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 ${dragActive ? "bg-gradient-to-br from-orange-warm/20 to-pink-vivid/20" : "bg-pink-vivid/5 hover:bg-pink-vivid/10"} disabled:opacity-50 disabled:cursor-not-allowed`}
+          className={`w-40 h-40 rounded-full flex items-center justify-center transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-vivid/40 ${dragActive ? "bg-gradient-to-br from-orange-warm/20 to-pink-vivid/20" : "bg-pink-vivid/5 hover:bg-pink-vivid/10"} disabled:opacity-50 disabled:cursor-not-allowed`}
         >
           <span className={`w-28 h-28 rounded-full flex flex-col items-center justify-center transition-colors duration-300 ${dragActive ? "bg-gradient-to-br from-orange-warm/30 to-pink-vivid/30" : "bg-pink-vivid/10"}`}>
             <svg className={`w-9 h-9 mb-1 ${dragActive ? "text-pink-vivid" : "text-pink-vivid/60"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
@@ -84,18 +84,19 @@ export default function MediaPicker({ previews, onChange, onError, max, accept, 
             <span className={`text-xs font-ui font-semibold ${dragActive ? "text-pink-vivid" : "text-pink-vivid/70"}`}>{dragActive ? "Drop here" : "Upload"}</span>
           </span>
         </button>
-        <p className="text-sm font-body text-ink mt-3">Click or drag to upload</p>
-        <p className="text-2xs font-body text-muted mt-0.5">{hint} · {previews.length}/{max}</p>
+        <p className="text-sm font-body text-ink mt-4">Click or drag to upload</p>
+        <p className="text-xs font-body text-muted mt-1">{hint}</p>
+        <p className="text-sm font-body text-muted mt-2"><span className={previews.length ? "text-pink-vivid font-semibold" : ""}>{previews.length}</span> / {max}</p>
       </div>
 
       {previews.length > 0 && (
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mt-5">
           {previews.map((media, index) => (
-            <div key={media.id || media.url} className="relative rounded-xl overflow-hidden bg-subtle aspect-square group">
+            <div key={media.id || media.url} className={`relative rounded-xl overflow-hidden bg-subtle aspect-square group ${media.isPrimary ? "ring-2 ring-pink-vivid ring-offset-2" : ""}`}>
               {isVideoMedia(media)
                 ? <video src={media.url} muted playsInline className="absolute inset-0 w-full h-full object-cover" />
                 : <Image src={media.url} alt="" fill unoptimized className="object-cover" sizes="200px" />}
-              <button type="button" onClick={() => setCover(index)} className={`absolute left-2 top-2 px-2 py-0.5 rounded-full text-2xs font-ui transition-opacity ${media.isPrimary ? "bg-surface text-ink font-semibold" : "bg-surface/85 text-muted opacity-0 group-hover:opacity-100 focus-visible:opacity-100 hover:text-ink"}`}>
+              <button type="button" onClick={() => setCover(index)} className={`absolute left-2 top-2 px-2 py-0.5 rounded-full text-2xs font-ui transition-opacity ${media.isPrimary ? "pq-dot font-semibold" : "bg-surface/90 text-ink opacity-0 group-hover:opacity-100 focus-visible:opacity-100"}`}>
                 {media.isPrimary ? "Cover" : "Set cover"}
               </button>
               <button type="button" onClick={() => remove(index)} aria-label="Remove" className="absolute right-2 top-2 w-6 h-6 rounded-full bg-surface/90 text-ink text-xs inline-flex items-center justify-center hover:bg-surface">×</button>

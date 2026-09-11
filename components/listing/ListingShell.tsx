@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import Button from "@/components/ui/Button";
+import "./listing.css";
 
 /**
  * One shell for every listing wizard (products and commissions).
@@ -55,18 +56,18 @@ export default function ListingShell({
     : <Button size="sm" onClick={onNext} disabled={busy}>Continue</Button>;
 
   return (
-    <div className="min-h-screen bg-canvas pb-28 md:pb-12">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-6 sm:pt-10">
-        <p className="text-center text-xs font-ui text-muted">{eyebrow} · Step {step} of {steps.length}</p>
-        <h1 className="mt-2 text-center font-display text-3xl sm:text-4xl font-bold text-ink leading-tight">
+    <div className="min-h-screen bg-surface pb-28 md:pb-16">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-8 sm:pt-12">
+        <p className="text-center text-sm font-ui text-muted">{eyebrow} · Step {step} of {steps.length}</p>
+        <h1 className="mt-3 text-center font-display text-3xl md:text-4xl font-bold text-ink leading-tight">
           {headline.prefix}{" "}
           <span className="bg-gradient-to-r from-orange-warm via-pink-vivid to-purple-primary bg-clip-text text-transparent">{headline.highlight}</span>
           {headline.suffix ? ` ${headline.suffix}` : ""}
         </h1>
 
-        <div className="mt-6">
+        <div className="mt-8">
           <StepRail steps={steps} current={step} furthest={furthest} onJump={onJump} />
-          <div className="mt-3 h-1.5 rounded-full bg-skeleton overflow-hidden">
+          <div className="mt-4 h-1.5 rounded-full bg-skeleton overflow-hidden">
             <div className="h-full rounded-full bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm transition-[width] duration-500" style={{ width: `${progress}%` }} />
           </div>
         </div>
@@ -75,9 +76,9 @@ export default function ListingShell({
           <div role="alert" className="mt-5 rounded-xl border border-red-200 bg-red-50/60 px-4 py-3 text-sm font-body text-red-700">{error}</div>
         )}
 
-        <div className="mt-6 space-y-4">{children}</div>
+        <div className="mt-10 space-y-12">{children}</div>
 
-        <div className="hidden md:flex items-center justify-between gap-2 mt-6">
+        <div className="hidden md:flex items-center justify-between gap-2 mt-12">
           <Button variant="secondary" onClick={onBack} disabled={step === 1 || busy}>Back</Button>
           <div className="flex gap-2">
             {showDraft && <Button variant="ghost" onClick={onSaveDraft} disabled={busy || !canSaveDraft} loading={savingDraft} loadingText="Saving…">Save draft</Button>}
@@ -106,13 +107,13 @@ function StepRail({ steps, current, furthest, onJump }: { steps: readonly string
         const reachable = n <= furthest;
         return (
           <li key={label} className={`flex items-center gap-2 shrink-0 ${i < steps.length - 1 ? "sm:flex-1" : ""}`}>
-            <button type="button" onClick={() => reachable && onJump(n)} disabled={!reachable} aria-current={active ? "step" : undefined} className="flex items-center gap-2 disabled:cursor-default rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40">
-              <span className={`w-6 h-6 rounded-full text-2xs font-ui font-semibold inline-flex items-center justify-center shrink-0 transition-colors ${done || active ? "bg-gradient-to-r from-pink-vivid to-purple-primary text-white" : "bg-subtle text-muted"} ${active ? "ring-4 ring-pink-vivid/15" : ""}`}>
+            <button type="button" onClick={() => reachable && onJump(n)} disabled={!reachable} aria-current={active ? "step" : undefined} className="flex items-center gap-2 disabled:cursor-default rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-vivid/40">
+              <span className={`w-7 h-7 rounded-full text-xs font-ui font-bold inline-flex items-center justify-center shrink-0 transition-all ${done || active ? "pq-dot" : "bg-skeleton text-muted"} ${active ? "ring-4 ring-pink-vivid/15 scale-110" : ""}`}>
                 {done ? "✓" : n}
               </span>
-              <span className={`text-xs font-ui whitespace-nowrap ${active ? "text-ink font-semibold" : done ? "text-ink" : "text-muted"}`}>{label}</span>
+              <span className={`text-sm font-ui whitespace-nowrap ${active ? "text-ink font-semibold" : done ? "text-ink" : "text-muted"}`}>{label}</span>
             </button>
-            {i < steps.length - 1 && <span className={`hidden sm:block h-px flex-1 ${done ? "bg-pink-vivid/40" : "bg-skeleton"}`} />}
+            {i < steps.length - 1 && <span className={`hidden sm:block h-px flex-1 ${done ? "bg-gradient-to-r from-orange-warm/60 to-pink-vivid/60" : "bg-skeleton"}`} />}
           </li>
         );
       })}
