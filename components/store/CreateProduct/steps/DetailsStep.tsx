@@ -114,7 +114,7 @@ function PwywControls({
 // Section header component
 function SectionHeader({ children }: { children: React.ReactNode }) {
   return (
-    <h3 className="flex items-center gap-3 text-base font-display font-semibold text-ink mb-5 before:h-4 before:w-0.5 before:shrink-0 before:rounded-full before:bg-purple-primary/35">
+    <h3 className="text-base font-display font-semibold text-ink mb-5">
       {children}
     </h3>
   );
@@ -718,4 +718,3 @@ function PricingSection({
     </div>
   );
 }
-

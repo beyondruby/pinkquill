@@ -79,7 +79,7 @@ export function WizardNav({ onBack, onNext, onPublish, onSaveDraft, canSaveDraft
 }
 
 export function SectionHeader({ children }: { children: ReactNode }) {
-  return <h3 className="flex items-center gap-3 text-base font-display font-semibold text-ink mb-5 before:h-4 before:w-0.5 before:shrink-0 before:rounded-full before:bg-purple-primary/35">{children}</h3>;
+  return <h3 className="text-base font-display font-semibold text-ink mb-5">{children}</h3>;
 }
 
 /** A section after the first: top hairline and air, like the product details step. */

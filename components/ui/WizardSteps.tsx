@@ -8,7 +8,8 @@ import type { CSSProperties } from "react";
  *
  * Circle centers divide the full track into total - 1 equal intervals.
  * End labels get half an interval; interior labels get a whole interval.
- * Half-circle padding keeps the endpoint circles inside the container.
+ * The track and captions share the form's edges. Endpoint circles extend
+ * half their width into the page gutter so their centers stay on the track.
  */
 
 const CIRCLE_ON = "bg-gradient-to-r from-orange-warm to-pink-vivid text-white";
@@ -41,7 +42,6 @@ export default function WizardSteps({
       className={`relative transition-none ${className}`}
       style={{
         "--wizard-circle-size": "1.75rem",
-        paddingInline: "calc(var(--wizard-circle-size) / 2)",
         minHeight: "calc(var(--wizard-circle-size) + 0.875rem)",
       } as CSSProperties}
     >
@@ -71,11 +71,6 @@ export default function WizardSteps({
               className={`w-max max-w-full [overflow-wrap:anywhere] text-xs sm:text-sm leading-5 font-ui tracking-[0.01em] transition-colors ${hideLabelsOnMobile ? "hidden sm:inline" : ""} ${
                 current === n ? "text-ink font-semibold" : reached ? "text-subdued font-medium" : "text-muted font-medium"
               }`}
-              style={first || last ? {
-                maxWidth: "calc(100% + var(--wizard-circle-size) / 2)",
-                position: "relative",
-                left: `calc(var(--wizard-circle-size) / ${first ? -2 : 2})`,
-              } : undefined}
             >
               {label}
             </span>
@@ -111,7 +106,7 @@ export default function WizardSteps({
         className="absolute h-1.5 bg-skeleton rounded-full overflow-hidden transition-none"
         style={{
           top: "calc(var(--wizard-circle-size) + 0.5rem)",
-          insetInline: "calc(var(--wizard-circle-size) / 2)",
+          insetInline: 0,
         }}
       >
         <div
