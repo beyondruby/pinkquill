@@ -8,6 +8,8 @@ import { PostTypeChip } from "@/components/feed/PostTypeChip";
 import { icons } from "@/components/ui/Icons";
 import type { ModalPost } from "@/components/feed/PostCard/types";
 import type { PostPalette } from "./palette";
+import { usePostCollections } from "@/lib/hooks/useCollections";
+import { useModal } from "@/components/providers/ModalProvider";
 
 interface Props {
   post: ModalPost;
@@ -26,6 +28,8 @@ interface Props {
 export function PostDetailHeader({ post, palette, menuItems, onNavigate, onBack, discussion, className = "" }: Props) {
   const { hasBackground, hasDarkBg, text, muted } = palette;
   const handle = post.author.handle.replace("@", "");
+  const { refs: collections } = usePostCollections(post.id);
+  const { openCollectionModal } = useModal();
   return (
     <div className={`post-detail-header flex items-center gap-3 md:gap-4 ${hasBackground && hasDarkBg ? "is-dark" : ""} ${className}`}>
       {onBack && (
@@ -70,7 +74,26 @@ export function PostDetailHeader({ post, palette, menuItems, onNavigate, onBack,
             <PostTypeChip type={post.type} variant="label" size="md" className="text-inherit" />
           </span>
         </div>
-        <span className={`post-detail-time font-ui text-[0.75rem] md:text-[0.85rem] ${muted}`}>{post.timeAgo}</span>
+        <span className={`post-detail-time font-ui text-[0.75rem] md:text-[0.85rem] ${muted}`}>
+          {post.timeAgo}
+          {collections.length > 0 && (
+            <>
+              {" · Part of "}
+              {collections.map((c, i) => (
+                <span key={c.id}>
+                  {i > 0 && ", "}
+                  <button
+                    type="button"
+                    onClick={() => openCollectionModal({ username: c.username, slug: c.slug })}
+                    className={`underline-offset-2 hover:underline ${hasBackground ? text : "text-ink"}`}
+                  >
+                    {c.name}
+                  </button>
+                </span>
+              ))}
+            </>
+          )}
+        </span>
       </div>
       {discussion && (
         <button

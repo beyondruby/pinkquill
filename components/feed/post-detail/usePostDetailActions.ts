@@ -53,6 +53,7 @@ export function usePostDetailActions(post: ModalPost | null, options: Options) {
   const [showContent, setShowContent] = useState(true);
   const [showShare, setShowShare] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showCollectionPicker, setShowCollectionPicker] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showRemoveCollabConfirm, setShowRemoveCollabConfirm] = useState(false);
   const [removingCollab, setRemovingCollab] = useState(false);
@@ -170,6 +171,7 @@ export function usePostDetailActions(post: ModalPost | null, options: Options) {
     isAcceptedCollaborator,
     onEdit: edit,
     onDelete: () => setShowDeleteConfirm(true),
+    onAddToCollection: () => setShowCollectionPicker(true),
     onRemoveCollab: () => setShowRemoveCollabConfirm(true),
     onBlock: block.show,
     onReport: report.show,
@@ -196,6 +198,7 @@ export function usePostDetailActions(post: ModalPost | null, options: Options) {
     dialogs: {
       share: { open: showShare, show: () => setShowShare(true), hide: () => setShowShare(false) },
       del: { open: showDeleteConfirm, hide: () => setShowDeleteConfirm(false), confirm: confirmDelete, loading: deleting },
+      collection: { open: showCollectionPicker, hide: () => setShowCollectionPicker(false) },
       report,
       block,
       removeCollab: { open: showRemoveCollabConfirm, hide: () => setShowRemoveCollabConfirm(false), confirm: confirmRemoveCollab, loading: removingCollab },

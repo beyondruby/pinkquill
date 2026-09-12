@@ -21,6 +21,7 @@ const ShareModal = dynamic(() => import("@/components/ui/ShareModal"), { ssr: fa
 const ReportModal = dynamic(() => import("@/components/ui/ReportModal"), { ssr: false });
 const SendToDMModal = dynamic(() => import("@/components/messages/SendToDMModal"), { ssr: false });
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
+const CollectionPickerSheet = dynamic(() => import("@/components/collections/CollectionPickerSheet"), { ssr: false });
 import { BLOCK_COPY, DELETE_POST_COPY } from "@/components/feed/post-detail/copy";
 import ActionMenu, { type ActionMenuItem } from "@/components/ui/ActionMenu";
 import Button from "@/components/ui/Button";
@@ -353,6 +354,7 @@ function PostCardComponent({
   const [showShareModal, setShowShareModal] = useState(false);
   const [showSendToDMModal, setShowSendToDMModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showCollectionPicker, setShowCollectionPicker] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showModeratorDeleteConfirm, setShowModeratorDeleteConfirm] = useState(false);
   const [moderatorDeleting, setModeratorDeleting] = useState(false);
@@ -770,10 +772,19 @@ function PostCardComponent({
 
     if (isOwner) {
       items.push({
+        label: "Add to collection",
+        onSelect: () => setShowCollectionPicker(true),
+        icon: (
+          <svg className="w-4 h-4" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 7a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H6a2 2 0 01-2-2V7zM12 10v6m-3-3h6" />
+          </svg>
+        ),
+        dividerBefore: items.length > 0,
+      });
+      items.push({
         label: "Edit",
         onSelect: handleEdit,
         icon: <EditIcon aria-hidden="true" />,
-        dividerBefore: items.length > 0,
       });
       items.push({
         label: "Delete",
@@ -1159,6 +1170,7 @@ function PostCardComponent({
       )}
 
       {/* Delete Confirmation Modal */}
+      {showCollectionPicker && <CollectionPickerSheet isOpen onClose={() => setShowCollectionPicker(false)} postId={post.id} />}
       <ConfirmationModal
         isOpen={showDeleteConfirm}
         onClose={() => setShowDeleteConfirm(false)}

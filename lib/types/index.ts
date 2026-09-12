@@ -900,7 +900,8 @@ export function getAggregateCount(aggregate: AggregateCount[] | null | undefined
 // ============================================================================
 
 /**
- * Collection - A grouping of items (e.g., "Music", "Books", "Writings")
+ * Collection - a set of works (posts) on a studio, one level deep
+ * (docs/collections/01-design.md).
  */
 export interface Collection {
   id: string;
@@ -912,72 +913,28 @@ export interface Collection {
   icon_emoji: string | null;
   cover_url: string | null;
   position: number;
-  is_collapsed: boolean;
   created_at: string;
   updated_at: string;
-  // Computed/joined fields
-  items_count?: number;
-  items?: CollectionItem[];
+  // From get_studio_collections: only the works the viewer may see.
+  works_count?: number;
+  type_counts?: Record<string, number>;
+  previews?: CollectionPreview[];
 }
 
-/**
- * CollectionItem - An item within a collection (e.g., an album, a book, a journal series)
- */
-export interface CollectionItem {
+/** One of up to three cards on a collection's stack. */
+export interface CollectionPreview {
+  post_id: string;
+  kind: "image" | "text";
+  src: string | null;
+  text: string;
+}
+
+/** A collection a post sits in (get_post_collections). */
+export interface CollectionRef {
   id: string;
-  collection_id: string;
-  user_id: string;
   name: string;
   slug: string;
-  description: string | null;
-  cover_url: string | null;
-  icon_emoji: string | null;
-  position: number;
-  metadata: CollectionItemMetadata;
-  created_at: string;
-  updated_at: string;
-  // Computed/joined fields
-  posts_count?: number;
-  posts?: CollectionItemPost[];
-  collection?: Collection;
-}
-
-/**
- * CollectionItemMetadata - Flexible metadata for different item types
- */
-export interface CollectionItemMetadata {
-  // Music albums
-  artist?: string;
-  releaseYear?: number;
-  genre?: string;
-  // Books
-  author?: string;
-  publishedYear?: number;
-  isbn?: string;
-  // General
-  tags?: string[];
-  externalUrl?: string;
-  [key: string]: unknown;
-}
-
-/**
- * CollectionItemPost - Links a post to a collection item
- */
-export interface CollectionItemPost {
-  id: string;
-  collection_item_id: string;
-  post_id: string;
-  position: number;
-  created_at: string;
-  // Joined fields
-  post?: Post;
-}
-
-/**
- * CollectionWithItems - Collection with its items pre-loaded
- */
-export interface CollectionWithItems extends Collection {
-  items: CollectionItem[];
+  username: string;
 }
 
 // ============================================================================

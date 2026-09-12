@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef, ReactNode } from "react";
 import dynamic from "next/dynamic";
+import type { CollectionModalTarget } from "@/components/collections/CollectionModal";
 import Loading from "@/components/ui/Loading";
 import type { TakeUpdate } from "@/components/takes/TakeDetailModal";
 import { Take } from "@/lib/hooks/useTakes";
@@ -54,6 +55,9 @@ interface ModalContextType {
   setModerationContext: (context: ModerationContext | null) => void;
   /** The URL underneath an open modal (null when none is open). */
   modalReturnPath: string | null;
+  // Collection modal: a studio collection opened over the current page.
+  openCollectionModal: (target: CollectionModalTarget) => void;
+  closeCollectionModal: () => void;
 }
 
 // The two detail modals are ~2,000 lines together and only needed once a user
@@ -70,6 +74,7 @@ function ModalChunkLoading() {
 }
 const PostDetailModal = dynamic(() => import("@/components/feed/PostDetailModal"), { ssr: false, loading: ModalChunkLoading });
 const TakeDetailModal = dynamic(() => import("@/components/takes/TakeDetailModal"), { ssr: false, loading: ModalChunkLoading });
+const CollectionModal = dynamic(() => import("@/components/collections/CollectionModal"), { ssr: false, loading: ModalChunkLoading });
 
 /**
  * What we stamp on the one history entry a modal pushes. `pqReturn` is the
@@ -77,9 +82,11 @@ const TakeDetailModal = dynamic(() => import("@/components/takes/TakeDetailModal
  * bottom nav) can keep treating the page as the feed while it is open.
  */
 interface ModalHistoryState {
-  pqModal?: "post" | "take";
+  pqModal?: "post" | "take" | "collection";
   pqId?: string;
   pqReturn?: string;
+  /** A post/take entry pushed over an open collection: the collection's key. */
+  pqUnder?: string;
 }
 const readHistoryState = (): ModalHistoryState =>
   (typeof window !== "undefined" && window.history.state ? window.history.state : {}) as ModalHistoryState;
@@ -110,6 +117,13 @@ export function ModalProvider({ children }: { children: ReactNode }) {
   const takeDeleteSubscribersRef = useRef<Set<TakeDeleteCallback>>(new Set());
   const takeOriginalUrlRef = useRef<string | null>(null);
 
+  // Collection modal state. A post or take may open on top of it: that entry
+  // is pushed (not swapped) and stamped with `pqUnder`, so Back returns here.
+  const [collectionTarget, setCollectionTarget] = useState<CollectionModalTarget | null>(null);
+  const lastCollectionRef = useRef<CollectionModalTarget | null>(null);
+  const collectionOriginalUrlRef = useRef<string | null>(null);
+  const collectionKey = (t: CollectionModalTarget) => `${t.username}/${t.slug}`;
+
   // Moderation context state
   const [moderationContext, setModerationContext] = useState<ModerationContext | null>(null);
 
@@ -129,7 +143,9 @@ export function ModalProvider({ children }: { children: ReactNode }) {
   const openPostModal = useCallback((post: Post) => {
     const state = readHistoryState();
     const url = `/post/${post.id}`;
-    if (state.pqModal) {
+    if (state.pqModal === "collection") {
+      window.history.pushState({ ...state, pqModal: "post", pqId: post.id, pqUnder: state.pqId }, "", url);
+    } else if (state.pqModal) {
       window.history.replaceState({ ...state, pqModal: "post", pqId: post.id }, "", url);
     } else {
       const returnTo = window.location.pathname + window.location.search;
@@ -148,7 +164,7 @@ export function ModalProvider({ children }: { children: ReactNode }) {
     const state = readHistoryState();
     setIsModalOpen(false);
     setSelectedPost(null);
-    setModalReturnPath(null);
+    if (!state.pqUnder) setModalReturnPath(null);
     if (state.pqModal === "post") {
       // We own the current entry: pop it instead of pushing another.
       window.history.back();
@@ -162,7 +178,9 @@ export function ModalProvider({ children }: { children: ReactNode }) {
   const openTakeModal = useCallback((take: Take) => {
     const state = readHistoryState();
     const url = `/take/${take.id}`;
-    if (state.pqModal) {
+    if (state.pqModal === "collection") {
+      window.history.pushState({ ...state, pqModal: "take", pqId: take.id, pqUnder: state.pqId }, "", url);
+    } else if (state.pqModal) {
       window.history.replaceState({ ...state, pqModal: "take", pqId: take.id }, "", url);
     } else {
       const returnTo = window.location.pathname + window.location.search;
@@ -181,7 +199,7 @@ export function ModalProvider({ children }: { children: ReactNode }) {
     const state = readHistoryState();
     setIsTakeModalOpen(false);
     setSelectedTake(null);
-    setModalReturnPath(null);
+    if (!state.pqUnder) setModalReturnPath(null);
     if (state.pqModal === "take") {
       window.history.back();
     } else if (takeOriginalUrlRef.current) {
@@ -190,14 +208,59 @@ export function ModalProvider({ children }: { children: ReactNode }) {
     takeOriginalUrlRef.current = null;
   }, []);
 
+  const openCollectionModal = useCallback((target: CollectionModalTarget) => {
+    const state = readHistoryState();
+    const key = collectionKey(target);
+    const url = `/studio/${target.username}/collections/${target.slug}`;
+    if (state.pqModal) {
+      // Replace whatever modal entry is current (a post's "Part of" link, or
+      // another collection) so there is still exactly one entry of ours.
+      window.history.replaceState({ ...state, pqModal: "collection", pqId: key, pqUnder: undefined }, "", url);
+    } else {
+      const returnTo = window.location.pathname + window.location.search;
+      collectionOriginalUrlRef.current = returnTo;
+      window.history.pushState({ ...state, pqModal: "collection", pqId: key, pqReturn: returnTo }, "", url);
+    }
+    lastCollectionRef.current = target;
+    setSelectedPost(null);
+    setIsModalOpen(false);
+    setSelectedTake(null);
+    setIsTakeModalOpen(false);
+    setCollectionTarget(target);
+    setModalReturnPath(readHistoryState().pqReturn ?? collectionOriginalUrlRef.current);
+  }, []);
+
+  const closeCollectionModal = useCallback(() => {
+    const state = readHistoryState();
+    setCollectionTarget(null);
+    setModalReturnPath(null);
+    if (state.pqModal === "collection") {
+      window.history.back();
+    } else if (collectionOriginalUrlRef.current) {
+      window.history.replaceState({ ...state }, "", collectionOriginalUrlRef.current);
+    }
+    collectionOriginalUrlRef.current = null;
+  }, []);
+
   // Browser Back / Forward. Back out of our entry closes the modal; Forward
   // into it reopens the last item we showed.
   useEffect(() => {
     const handlePopState = (event: PopStateEvent) => {
       const state = (event.state ?? {}) as ModalHistoryState;
+      const underCollection = !!state.pqUnder && !!lastCollectionRef.current && state.pqUnder === collectionKey(lastCollectionRef.current);
+      if (state.pqModal === "collection" && lastCollectionRef.current && state.pqId === collectionKey(lastCollectionRef.current)) {
+        setSelectedPost(null);
+        setIsModalOpen(false);
+        setSelectedTake(null);
+        setIsTakeModalOpen(false);
+        setCollectionTarget(lastCollectionRef.current);
+        setModalReturnPath(state.pqReturn ?? null);
+        return;
+      }
       if (state.pqModal === "post" && lastPostRef.current && state.pqId === lastPostRef.current.id) {
         setSelectedTake(null);
         setIsTakeModalOpen(false);
+        setCollectionTarget(underCollection ? lastCollectionRef.current : null);
         setSelectedPost(lastPostRef.current);
         setIsModalOpen(true);
         setModalReturnPath(state.pqReturn ?? null);
@@ -206,6 +269,7 @@ export function ModalProvider({ children }: { children: ReactNode }) {
       if (state.pqModal === "take" && lastTakeRef.current && state.pqId === lastTakeRef.current.id) {
         setSelectedPost(null);
         setIsModalOpen(false);
+        setCollectionTarget(underCollection ? lastCollectionRef.current : null);
         setSelectedTake(lastTakeRef.current);
         setIsTakeModalOpen(true);
         setModalReturnPath(state.pqReturn ?? null);
@@ -218,6 +282,8 @@ export function ModalProvider({ children }: { children: ReactNode }) {
         setIsTakeModalOpen(false);
         setSelectedTake(null);
         takeOriginalUrlRef.current = null;
+        setCollectionTarget(null);
+        collectionOriginalUrlRef.current = null;
         setModalReturnPath(null);
       }
     };
@@ -351,6 +417,8 @@ export function ModalProvider({ children }: { children: ReactNode }) {
     notifyTakeDelete,
     setModerationContext,
     modalReturnPath,
+    openCollectionModal,
+    closeCollectionModal,
   }), [
     openPostModal,
     closePostModal,
@@ -368,11 +436,16 @@ export function ModalProvider({ children }: { children: ReactNode }) {
     notifyTakeDelete,
     setModerationContext,
     modalReturnPath,
+    openCollectionModal,
+    closeCollectionModal,
   ]);
 
   return (
     <ModalContext.Provider value={contextValue}>
       {children}
+      {collectionTarget && (
+        <CollectionModal target={collectionTarget} isOpen onClose={closeCollectionModal} />
+      )}
       {selectedPost && (
         <PostDetailModal
           post={selectedPost}

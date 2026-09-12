@@ -27,9 +27,10 @@ const PeoplePickerModal = dynamic(() => import("@/components/ui/PeoplePickerModa
 const FlairPicker = dynamic(() => import("@/components/communities/FlairPicker"), { ssr: false });
 const BackgroundPicker = dynamic(() => import("@/components/create/BackgroundPicker"), { ssr: false });
 const JournalMetadataPanel = dynamic(() => import("@/components/create/JournalMetadata"), { ssr: false });
-const CollectionSelector = dynamic(() => import("@/components/collections/CollectionSelector"), { ssr: false });
-import { useAddPostToCollectionItem } from "@/lib/hooks/useCollections";
-import type { Collection, CollectionItem } from "@/lib/types";
+const CollectionChips = dynamic(() => import("@/components/collections/CollectionChips"), { ssr: false });
+import { useCollectionMutations } from "@/lib/hooks/useCollections";
+import { showToast } from "@/lib/utils/toast";
+import { supabase as supabaseClient } from "@/lib/supabase";
 import { getBackgroundStyle, isDarkBackground } from "@/lib/utils/background";
 import { Spinner } from "@/components/ui/Loading";
 import Button from "@/components/ui/Button";
@@ -663,10 +664,9 @@ export default function CreatePost() {
   // Post flair (for community posts)
   const [selectedFlair, setSelectedFlair] = useState<CommunityFlair | null>(null);
 
-  // Collection selection
-  const [selectedCollection, setSelectedCollection] = useState<Collection | null>(null);
-  const [selectedCollectionItem, setSelectedCollectionItem] = useState<CollectionItem | null>(null);
-  const { addPost: addPostToCollectionItem } = useAddPostToCollectionItem();
+  // Collections this post sits in (multi-select; carried in the draft, applied after save)
+  const [selectedCollectionIds, setSelectedCollectionIds] = useState<string[]>([]);
+  const { setPostCollections } = useCollectionMutations();
 
   // Set community from URL param (wait for auth and communities to load)
   useEffect(() => {
@@ -884,8 +884,9 @@ export default function CreatePost() {
       postLocation,
       journalMetadata,
       spotifyTrack,
+      collectionIds: selectedCollectionIds,
     };
-  }, [isTakeMode, isEditing, selectedType, visibility, hasContentWarning, contentWarning, collaborators, taggedPeople, selectedCommunity, selectedFlair, tags, mediaItems, styling, textAlignment, lineSpacing, dropCapEnabled, postLocation, journalMetadata, spotifyTrack]);
+  }, [isTakeMode, isEditing, selectedType, visibility, hasContentWarning, contentWarning, collaborators, taggedPeople, selectedCommunity, selectedFlair, tags, mediaItems, styling, textAlignment, lineSpacing, dropCapEnabled, postLocation, journalMetadata, spotifyTrack, selectedCollectionIds]);
 
   // Auto-save every 30 seconds
   useAutoSave(getDraftData, {
@@ -1118,6 +1119,14 @@ export default function CreatePost() {
           }
         } catch (mentionErr) {
           console.warn("Could not load mentions:", mentionErr);
+        }
+
+        // Which collections it already sits in
+        try {
+          const { data: refs } = await supabaseClient.rpc("get_post_collections", { p_post_id: editPostId });
+          setSelectedCollectionIds(((refs as { id: string }[] | null) ?? []).map((r) => r.id));
+        } catch (collectionErr) {
+          console.warn("Could not load collections:", collectionErr);
         }
       } catch (err) {
         console.error("Error loading post:", err);
@@ -1761,6 +1770,8 @@ export default function CreatePost() {
       setSelectedCommunity(null);
     }
 
+    setSelectedCollectionIds(recoveredDraft.collectionIds ?? []);
+
     // Set current draft ID so we update instead of create new
     setCurrentDraftId(recoveredDraft.id);
     setShowDraftRecovery(false);
@@ -2292,13 +2303,10 @@ export default function CreatePost() {
       // Clear draft after successful publish
       clearCurrentDraft();
 
-      // Add post to collection item if selected
-      if (selectedCollectionItem && !isEditing) {
-        try {
-          await addPostToCollectionItem(selectedCollectionItem.id, postId);
-        } catch (collectionErr) {
-          console.warn("Could not add post to collection:", collectionErr);
-        }
+      // Put it on the chosen shelves (replaces memberships when editing)
+      if (selectedCollectionIds.length > 0 || isEditing) {
+        const placed = await setPostCollections(postId, selectedCollectionIds);
+        if (!placed) showToast.warning("Published, but not added to your collections", "You can add it from the post menu.");
       }
 
       // Navigate based on context
@@ -2496,18 +2504,13 @@ export default function CreatePost() {
         />
       )}
 
-      {/* Collection Selector (Step 1) */}
-      {!isEditing && !isTakeMode && step === 1 && (
+      {/* Collections (Step 1) */}
+      {!isTakeMode && step === 1 && user && (
         <div className="mb-8">
           <label className="block text-sm font-ui font-semibold text-ink mb-3">
-            Collection <span className="text-muted font-normal">(optional)</span>
+            Collections <span className="text-muted font-normal">(optional)</span>
           </label>
-          <CollectionSelector
-            selectedCollection={selectedCollection}
-            selectedItem={selectedCollectionItem}
-            onSelectCollection={setSelectedCollection}
-            onSelectItem={setSelectedCollectionItem}
-          />
+          <CollectionChips userId={user.id} selectedIds={selectedCollectionIds} onChange={setSelectedCollectionIds} />
         </div>
       )}
 

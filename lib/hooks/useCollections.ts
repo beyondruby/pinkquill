@@ -2,34 +2,20 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../supabase";
-import type {
-  Collection,
-  CollectionItem,
-  CollectionItemPost,
-  CollectionWithItems,
-  CollectionItemMetadata,
-} from "../types";
+import type { Collection, CollectionRef, Post } from "../types";
+import { POST_COUNTS_SELECT, enrichPost, fetchUserPostFlags } from "../posts/enrich";
+
+// Collections are one level deep: a collection holds works (posts) through
+// collection_posts. Every write goes through a SECURITY DEFINER RPC
+// (supabase/migrations/20260915_collections_phase1_flatten.sql); reads use
+// the shelf RPC or plain selects under RLS.
 
 // ============================================================================
-// SLUG HELPER
-// ============================================================================
-
-function generateSlug(name: string): string {
-  return name
-    .toLowerCase()
-    .trim()
-    .replace(/[^\w\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .substring(0, 50);
-}
-
-// ============================================================================
-// useCollections - Fetch all collections for a user
+// useCollections — a user's shelf (get_studio_collections)
 // ============================================================================
 
 interface UseCollectionsReturn {
-  collections: CollectionWithItems[];
+  collections: Collection[];
   loading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
@@ -37,7 +23,7 @@ interface UseCollectionsReturn {
 
 export function useCollections(userId?: string, options: { enabled?: boolean } = {}): UseCollectionsReturn {
   const enabled = options.enabled ?? true;
-  const [collections, setCollections] = useState<CollectionWithItems[]>([]);
+  const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const fetchedRef = useRef(false);
@@ -56,55 +42,20 @@ export function useCollections(userId?: string, options: { enabled?: boolean } =
       if (!fetchedRef.current) setLoading(false);
       return;
     }
-
     try {
-      if (!fetchedRef.current) {
-        setLoading(true);
-      }
+      if (!fetchedRef.current) setLoading(true);
       setError(null);
-
-      // Fetch collections with items
-      const { data: collectionsData, error: collectionsError } = await supabase
-        .from("collections")
-        .select(`
-          *,
-          items:collection_items (
-            *,
-            posts:collection_item_posts (count)
-          )
-        `)
-        .eq("user_id", userId)
-        .order("position", { ascending: true });
-
+      const { data, error: rpcError } = await supabase.rpc("get_studio_collections", { p_user_id: userId });
       if (!mountedRef.current) return;
-      if (collectionsError) throw collectionsError;
-
-      // Transform data
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const transformedCollections: CollectionWithItems[] = (collectionsData || []).map((col: any) => ({
-        ...col,
-        items_count: col.items?.length || 0,
-        items: (col.items || [])
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .map((item: any) => ({
-            ...item,
-            posts_count: item.posts?.[0]?.count || 0,
-          }))
-          .sort((a: CollectionItem, b: CollectionItem) => a.position - b.position),
-      }));
-
-      setCollections(transformedCollections);
+      if (rpcError) throw rpcError;
+      setCollections((data as Collection[] | null) ?? []);
       fetchedRef.current = true;
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       console.error("[useCollections] Error:", message);
-      if (mountedRef.current) {
-        setError(message || "Failed to fetch collections");
-      }
+      if (mountedRef.current) setError(message || "Failed to fetch collections");
     } finally {
-      if (mountedRef.current) {
-        setLoading(false);
-      }
+      if (mountedRef.current) setLoading(false);
     }
   }, [userId, enabled]);
 
@@ -114,28 +65,27 @@ export function useCollections(userId?: string, options: { enabled?: boolean } =
     if (enabled && userId && fetchedUserRef.current === userId) return;
     if (enabled && userId) fetchedUserRef.current = userId;
     fetchCollections();
-
     return () => {
       mountedRef.current = false;
     };
-  }, [fetchCollections]);
+  }, [fetchCollections, enabled, userId]);
 
   return { collections, loading, error, refetch: fetchCollections };
 }
 
 // ============================================================================
-// useCollection - Fetch a single collection by slug
+// useCollectionBySlug — one collection by owner + slug (public read)
 // ============================================================================
 
 interface UseCollectionReturn {
-  collection: CollectionWithItems | null;
+  collection: Collection | null;
   loading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
 }
 
-export function useCollection(userId?: string, slug?: string): UseCollectionReturn {
-  const [collection, setCollection] = useState<CollectionWithItems | null>(null);
+export function useCollectionBySlug(userId?: string, slug?: string): UseCollectionReturn {
+  const [collection, setCollection] = useState<Collection | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const mountedRef = useRef(true);
@@ -146,54 +96,21 @@ export function useCollection(userId?: string, slug?: string): UseCollectionRetu
       setLoading(false);
       return;
     }
-
     try {
       setLoading(true);
       setError(null);
-
-      const { data, error: fetchError } = await supabase
-        .from("collections")
-        .select(`
-          *,
-          items:collection_items (
-            *,
-            posts:collection_item_posts (count)
-          )
-        `)
-        .eq("user_id", userId)
-        .eq("slug", slug)
-        .maybeSingle();
-
+      // The shelf RPC already carries counts and previews; pick the one row.
+      const { data, error: rpcError } = await supabase.rpc("get_studio_collections", { p_user_id: userId });
       if (!mountedRef.current) return;
-      if (fetchError) throw fetchError;
-      if (!data) {
-        setCollection(null);
-        return;
-      }
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const col: any = data;
-      setCollection({
-        ...col,
-        items_count: col.items?.length || 0,
-        items: (col.items || [])
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .map((item: any) => ({
-            ...item,
-            posts_count: item.posts?.[0]?.count || 0,
-          }))
-          .sort((a: CollectionItem, b: CollectionItem) => a.position - b.position),
-      });
+      if (rpcError) throw rpcError;
+      const row = ((data as Collection[] | null) ?? []).find((c) => c.slug === slug) ?? null;
+      setCollection(row);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      console.error("[useCollection] Error:", message);
-      if (mountedRef.current) {
-        setError(message || "Failed to fetch collection");
-      }
+      console.error("[useCollectionBySlug] Error:", message);
+      if (mountedRef.current) setError(message || "Failed to fetch collection");
     } finally {
-      if (mountedRef.current) {
-        setLoading(false);
-      }
+      if (mountedRef.current) setLoading(false);
     }
   }, [userId, slug]);
 
@@ -209,576 +126,239 @@ export function useCollection(userId?: string, slug?: string): UseCollectionRetu
 }
 
 // ============================================================================
-// useCollectionItem - Fetch a single collection item by slug
+// useCollectionWorks — the posts in a collection, in shelf order, with the
+// viewer's flags (same load as the Saved page: enrichPost + fetchUserPostFlags)
 // ============================================================================
 
-interface UseCollectionItemReturn {
-  item: CollectionItem | null;
+interface UseCollectionWorksReturn {
+  posts: Post[];
+  setPosts: React.Dispatch<React.SetStateAction<Post[]>>;
   loading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
 }
 
-export function useCollectionItem(
-  userId?: string,
-  collectionSlug?: string,
-  itemSlug?: string
-): UseCollectionItemReturn {
-  const [item, setItem] = useState<CollectionItem | null>(null);
+const WORKS_SELECT = `
+  *,
+  author:profiles!posts_author_id_fkey ( id, username, display_name, avatar_url ),
+  media:post_media ( id, media_url, media_type, caption, position ),
+  community:communities ( slug, name, avatar_url ),
+  flair:community_flairs ( id, community_id, name, color, emoji, position, created_at ),
+  ${POST_COUNTS_SELECT}`;
+
+export function useCollectionWorks(collectionId?: string | null, viewerId?: string | null): UseCollectionWorksReturn {
+  const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const mountedRef = useRef(true);
 
-  const fetchItem = useCallback(async () => {
-    if (!userId || !collectionSlug || !itemSlug) {
-      setItem(null);
+  const fetchWorks = useCallback(async () => {
+    if (!collectionId) {
+      setPosts([]);
       setLoading(false);
       return;
     }
-
     try {
       setLoading(true);
       setError(null);
-
-      // First get the collection
-      const { data: collectionData, error: collectionError } = await supabase
-        .from("collections")
-        .select("id, name, slug")
-        .eq("user_id", userId)
-        .eq("slug", collectionSlug)
-        .single();
-
+      const { data: links, error: linksError } = await supabase
+        .from("collection_posts")
+        .select("post_id, position")
+        .eq("collection_id", collectionId)
+        .order("position", { ascending: true });
       if (!mountedRef.current) return;
-      if (collectionError) throw collectionError;
-
-      // Then get the item with posts
-      const { data: itemData, error: itemError } = await supabase
-        .from("collection_items")
-        .select(`
-          *,
-          posts:collection_item_posts (
-            *,
-            post:posts (
-              id, title, type, content, created_at, visibility,
-              styling, metadata, post_location,
-              author:profiles!posts_author_id_fkey (id, username, display_name, avatar_url, is_verified),
-              media:post_media (id, media_url, media_type, caption, position)
-            )
-          )
-        `)
-        .eq("collection_id", collectionData.id)
-        .eq("slug", itemSlug)
-        .maybeSingle();
-
+      if (linksError) throw linksError;
+      const ids = (links ?? []).map((l) => l.post_id as string);
+      if (ids.length === 0) {
+        setPosts([]);
+        return;
+      }
+      const [{ data: rows, error: postsError }, flags] = await Promise.all([
+        supabase.from("posts").select(WORKS_SELECT).in("id", ids),
+        fetchUserPostFlags(viewerId, ids),
+      ]);
       if (!mountedRef.current) return;
-      if (itemError) throw itemError;
-      if (!itemData) throw new Error("Item not found");
-
-      const transformedItem: CollectionItem = {
-        ...itemData,
-        collection: collectionData,
-        posts_count: itemData.posts?.length || 0,
-        posts: (itemData.posts || []).sort(
-          (a: CollectionItemPost, b: CollectionItemPost) => a.position - b.position
-        ),
-      };
-
-      setItem(transformedItem);
+      if (postsError) throw postsError;
+      const byId = new Map((rows ?? []).map((r) => [String((r as { id: string }).id), enrichPost(r, flags)]));
+      setPosts(ids.map((id) => byId.get(id)).filter((p): p is Post => !!p));
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      console.error("[useCollectionItem] Error:", message);
-      if (mountedRef.current) {
-        setError(message || "Failed to fetch collection item");
-      }
+      console.error("[useCollectionWorks] Error:", message);
+      if (mountedRef.current) setError(message || "Failed to load works");
     } finally {
-      if (mountedRef.current) {
-        setLoading(false);
-      }
+      if (mountedRef.current) setLoading(false);
     }
-  }, [userId, collectionSlug, itemSlug]);
+  }, [collectionId, viewerId]);
 
   useEffect(() => {
     mountedRef.current = true;
-    fetchItem();
-
+    fetchWorks();
     return () => {
       mountedRef.current = false;
     };
-  }, [fetchItem]);
+  }, [fetchWorks]);
 
-  return { item, loading, error, refetch: fetchItem };
+  return { posts, setPosts, loading, error, refetch: fetchWorks };
 }
 
 // ============================================================================
-// useCreateCollection - Create a new collection
+// usePostCollections — the collections a post sits in ("Part of …")
 // ============================================================================
 
-interface UseCreateCollectionReturn {
-  createCollection: (
-    name: string,
-    options?: {
-      description?: string;
-      iconUrl?: string;
-      iconEmoji?: string;
-      coverUrl?: string;
-    }
-  ) => Promise<Collection | null>;
-  creating: boolean;
-  error: string | null;
-}
+export function usePostCollections(postId?: string | null): { refs: CollectionRef[]; refetch: () => Promise<void> } {
+  const [refs, setRefs] = useState<CollectionRef[]>([]);
+  const [tick, setTick] = useState(0);
 
-export function useCreateCollection(userId?: string): UseCreateCollectionReturn {
-  const [creating, setCreating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const createCollection = useCallback(
-    async (
-      name: string,
-      options?: {
-        description?: string;
-        iconUrl?: string;
-        iconEmoji?: string;
-        coverUrl?: string;
+  useEffect(() => {
+    if (!postId) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase.rpc("get_post_collections", { p_post_id: postId });
+      if (cancelled) return;
+      if (error) {
+        console.error("[usePostCollections] Error:", error.message);
+        return;
       }
-    ): Promise<Collection | null> => {
-      if (!userId) {
-        setError("Not authenticated");
-        return null;
+      setRefs((data as CollectionRef[] | null) ?? []);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [postId, tick]);
+
+  const refetch = useCallback(async () => setTick((t) => t + 1), []);
+  return { refs: postId ? refs : [], refetch };
+}
+
+// ============================================================================
+// useOwnWorks — the signed-in user's own posts, for the "Add works" sheet
+// ============================================================================
+
+export interface OwnWork {
+  id: string;
+  type: string;
+  title: string | null;
+  content: string;
+  created_at: string;
+  image_url: string | null;
+}
+
+export function useOwnWorks(userId?: string | null, enabled = true): { works: OwnWork[]; loading: boolean } {
+  // null = not loaded yet; loading is derived from it (no setState in the effect body).
+  const [works, setWorks] = useState<OwnWork[] | null>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    if (!userId || !enabled) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("posts")
+        .select("id, type, title, content, created_at, media:post_media ( media_url, media_type, position )")
+        .eq("author_id", userId)
+        .eq("status", "published")
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (cancelled || !mountedRef.current) return;
+      if (error) {
+        console.error("[useOwnWorks] Error:", error.message);
+        setWorks([]);
+        return;
       }
-
-      try {
-        setCreating(true);
-        setError(null);
-
-        // Get current max position
-        const { data: existing } = await supabase
-          .from("collections")
-          .select("position")
-          .eq("user_id", userId)
-          .order("position", { ascending: false })
-          .limit(1);
-
-        const nextPosition = existing?.[0]?.position != null ? existing[0].position + 1 : 0;
-
-        // Generate unique slug
-        let slug = generateSlug(name);
-        let slugSuffix = 0;
-        let isUnique = false;
-
-        while (!isUnique) {
-          const testSlug = slugSuffix === 0 ? slug : `${slug}-${slugSuffix}`;
-          const { data: existingSlug } = await supabase
-            .from("collections")
-            .select("id")
-            .eq("user_id", userId)
-            .eq("slug", testSlug)
-            .maybeSingle();
-
-          if (!existingSlug) {
-            slug = testSlug;
-            isUnique = true;
-          } else {
-            slugSuffix++;
-          }
-        }
-
-        const { data, error: insertError } = await supabase
-          .from("collections")
-          .insert({
-            user_id: userId,
-            name,
-            slug,
-            description: options?.description || null,
-            icon_url: options?.iconUrl || null,
-            icon_emoji: options?.iconEmoji || null,
-            cover_url: options?.coverUrl || null,
-            position: nextPosition,
-          })
-          .select()
-          .single();
-
-        if (insertError) throw insertError;
-
-        return data;
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : String(err);
-        console.error("[useCreateCollection] Error:", message);
-        setError(message || "Failed to create collection");
-        return null;
-      } finally {
-        setCreating(false);
-      }
-    },
-    [userId]
-  );
-
-  return { createCollection, creating, error };
-}
-
-// ============================================================================
-// useCreateCollectionItem - Create a new item in a collection
-// ============================================================================
-
-interface UseCreateCollectionItemReturn {
-  createItem: (
-    collectionId: string,
-    name: string,
-    options?: {
-      description?: string;
-      coverUrl?: string;
-      iconEmoji?: string;
-      metadata?: CollectionItemMetadata;
-    }
-  ) => Promise<CollectionItem | null>;
-  creating: boolean;
-  error: string | null;
-}
-
-export function useCreateCollectionItem(userId?: string): UseCreateCollectionItemReturn {
-  const [creating, setCreating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const createItem = useCallback(
-    async (
-      collectionId: string,
-      name: string,
-      options?: {
-        description?: string;
-        coverUrl?: string;
-        iconEmoji?: string;
-        metadata?: CollectionItemMetadata;
-      }
-    ): Promise<CollectionItem | null> => {
-      if (!userId) {
-        setError("Not authenticated");
-        return null;
-      }
-
-      try {
-        setCreating(true);
-        setError(null);
-
-        // Get current max position in collection
-        const { data: existing } = await supabase
-          .from("collection_items")
-          .select("position")
-          .eq("collection_id", collectionId)
-          .order("position", { ascending: false })
-          .limit(1);
-
-        const nextPosition = existing?.[0]?.position != null ? existing[0].position + 1 : 0;
-
-        // Generate unique slug within collection
-        let slug = generateSlug(name);
-        let slugSuffix = 0;
-        let isUnique = false;
-
-        while (!isUnique) {
-          const testSlug = slugSuffix === 0 ? slug : `${slug}-${slugSuffix}`;
-          const { data: existingSlug } = await supabase
-            .from("collection_items")
-            .select("id")
-            .eq("collection_id", collectionId)
-            .eq("slug", testSlug)
-            .maybeSingle();
-
-          if (!existingSlug) {
-            slug = testSlug;
-            isUnique = true;
-          } else {
-            slugSuffix++;
-          }
-        }
-
-        const { data, error: insertError } = await supabase
-          .from("collection_items")
-          .insert({
-            collection_id: collectionId,
-            user_id: userId,
-            name,
-            slug,
-            description: options?.description || null,
-            cover_url: options?.coverUrl || null,
-            icon_emoji: options?.iconEmoji || null,
-            metadata: options?.metadata || {},
-            position: nextPosition,
-          })
-          .select()
-          .single();
-
-        if (insertError) throw insertError;
-
-        return data;
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : String(err);
-        console.error("[useCreateCollectionItem] Error:", message);
-        setError(message || "Failed to create collection item");
-        return null;
-      } finally {
-        setCreating(false);
-      }
-    },
-    [userId]
-  );
-
-  return { createItem, creating, error };
-}
-
-// ============================================================================
-// useAddPostToCollectionItem - Add a post to a collection item
-// ============================================================================
-
-interface UseAddPostToCollectionItemReturn {
-  addPost: (collectionItemId: string, postId: string) => Promise<boolean>;
-  removePost: (collectionItemId: string, postId: string) => Promise<boolean>;
-  loading: boolean;
-  error: string | null;
-}
-
-export function useAddPostToCollectionItem(): UseAddPostToCollectionItemReturn {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const addPost = useCallback(
-    async (collectionItemId: string, postId: string): Promise<boolean> => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        // Get current max position
-        const { data: existing } = await supabase
-          .from("collection_item_posts")
-          .select("position")
-          .eq("collection_item_id", collectionItemId)
-          .order("position", { ascending: false })
-          .limit(1);
-
-        const nextPosition = existing?.[0]?.position != null ? existing[0].position + 1 : 0;
-
-        const { error: insertError } = await supabase
-          .from("collection_item_posts")
-          .insert({
-            collection_item_id: collectionItemId,
-            post_id: postId,
-            position: nextPosition,
-          });
-
-        if (insertError) throw insertError;
-
-        return true;
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : String(err);
-        console.error("[useAddPostToCollectionItem] Error:", message);
-        setError(message || "Failed to add post to collection");
-        return false;
-      } finally {
-        setLoading(false);
-      }
-    },
-    []
-  );
-
-  const removePost = useCallback(
-    async (collectionItemId: string, postId: string): Promise<boolean> => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const { error: deleteError } = await supabase
-          .from("collection_item_posts")
-          .delete()
-          .eq("collection_item_id", collectionItemId)
-          .eq("post_id", postId);
-
-        if (deleteError) throw deleteError;
-
-        return true;
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : String(err);
-        console.error("[useAddPostToCollectionItem] Remove error:", message);
-        setError(message || "Failed to remove post from collection");
-        return false;
-      } finally {
-        setLoading(false);
-      }
-    },
-    []
-  );
-
-  return { addPost, removePost, loading, error };
-}
-
-// ============================================================================
-// useUpdateCollection - Update collection details
-// ============================================================================
-
-interface UseUpdateCollectionReturn {
-  updateCollection: (
-    collectionId: string,
-    updates: Partial<{
-      name: string;
-      description: string | null;
-      icon_url: string | null;
-      icon_emoji: string | null;
-      cover_url: string | null;
-      is_collapsed: boolean;
-    }>
-  ) => Promise<boolean>;
-  updating: boolean;
-  error: string | null;
-}
-
-export function useUpdateCollection(): UseUpdateCollectionReturn {
-  const [updating, setUpdating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const updateCollection = useCallback(
-    async (
-      collectionId: string,
-      updates: Partial<{
-        name: string;
-        description: string | null;
-        icon_url: string | null;
-        icon_emoji: string | null;
-        cover_url: string | null;
-        is_collapsed: boolean;
-      }>
-    ): Promise<boolean> => {
-      try {
-        setUpdating(true);
-        setError(null);
-
-        const { error: updateError } = await supabase
-          .from("collections")
-          .update({
-            ...updates,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", collectionId);
-
-        if (updateError) throw updateError;
-
-        return true;
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : String(err);
-        console.error("[useUpdateCollection] Error:", message);
-        setError(message || "Failed to update collection");
-        return false;
-      } finally {
-        setUpdating(false);
-      }
-    },
-    []
-  );
-
-  return { updateCollection, updating, error };
-}
-
-// ============================================================================
-// useUpdateCollectionItem - Update collection item details
-// ============================================================================
-
-interface UseUpdateCollectionItemReturn {
-  updateItem: (
-    itemId: string,
-    updates: Partial<{
-      name: string;
-      description: string | null;
-      cover_url: string | null;
-      icon_emoji: string | null;
-      metadata: CollectionItemMetadata;
-    }>
-  ) => Promise<boolean>;
-  updating: boolean;
-  error: string | null;
-}
-
-// ============================================================================
-// useDeleteCollection - Delete a collection
-// ============================================================================
-
-interface UseDeleteCollectionReturn {
-  deleteCollection: (collectionId: string) => Promise<boolean>;
-  deleting: boolean;
-  error: string | null;
-}
-
-// ============================================================================
-// useDeleteCollectionItem - Delete a collection item
-// ============================================================================
-
-interface UseDeleteCollectionItemReturn {
-  deleteItem: (itemId: string) => Promise<boolean>;
-  deleting: boolean;
-  error: string | null;
-}
-
-// ============================================================================
-// useReorderCollections - Reorder collections
-// ============================================================================
-
-interface UseReorderCollectionsReturn {
-  reorderCollections: (collectionIds: string[]) => Promise<boolean>;
-  reordering: boolean;
-  error: string | null;
-}
-
-export function useReorderCollections(): UseReorderCollectionsReturn {
-  const [reordering, setReordering] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const reorderCollections = useCallback(async (collectionIds: string[]): Promise<boolean> => {
-    try {
-      setReordering(true);
-      setError(null);
-
-      // Update positions for all collections
-      const updates = collectionIds.map((id, index) =>
-        supabase
-          .from("collections")
-          .update({ position: index, updated_at: new Date().toISOString() })
-          .eq("id", id)
+      setWorks(
+        ((data ?? []) as Array<OwnWork & { media?: { media_url: string; media_type: string; position: number }[] }>).map((row) => {
+          const image = [...(row.media ?? [])]
+            .sort((a, b) => a.position - b.position)
+            .find((m) => m.media_type === "image");
+          return { id: row.id, type: row.type, title: row.title, content: row.content, created_at: row.created_at, image_url: image?.media_url ?? null };
+        })
       );
+    })();
+    return () => {
+      cancelled = true;
+      mountedRef.current = false;
+    };
+  }, [userId, enabled]);
 
-      await Promise.all(updates);
+  return { works: works ?? [], loading: !!userId && enabled && works === null };
+}
 
-      return true;
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error("[useReorderCollections] Error:", message);
-      setError(message || "Failed to reorder collections");
-      return false;
+// ============================================================================
+// useCollectionMutations — every write, through the RPCs
+// ============================================================================
+
+export interface SaveCollectionInput {
+  id?: string;
+  name: string;
+  description?: string | null;
+  iconEmoji?: string | null;
+  iconUrl?: string | null;
+  coverUrl?: string | null;
+}
+
+interface UseCollectionMutationsReturn {
+  saveCollection: (input: SaveCollectionInput) => Promise<Collection | null>;
+  deleteCollection: (id: string) => Promise<boolean>;
+  reorderCollections: (ids: string[]) => Promise<boolean>;
+  setPostCollections: (postId: string, collectionIds: string[]) => Promise<boolean>;
+  addPostsToCollection: (collectionId: string, postIds: string[]) => Promise<boolean>;
+  removePostFromCollection: (collectionId: string, postId: string) => Promise<boolean>;
+  reorderCollectionPosts: (collectionId: string, postIds: string[]) => Promise<boolean>;
+  busy: boolean;
+  error: string | null;
+}
+
+export function useCollectionMutations(): UseCollectionMutationsReturn {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const run = useCallback(async (fn: string, args: Record<string, unknown>): Promise<{ data: unknown; ok: boolean }> => {
+    setBusy(true);
+    setError(null);
+    try {
+      const { data, error: rpcError } = await supabase.rpc(fn, args);
+      if (rpcError) {
+        console.error(`[useCollectionMutations] ${fn}:`, rpcError.message);
+        setError(rpcError.message);
+        return { data: null, ok: false };
+      }
+      return { data, ok: true };
     } finally {
-      setReordering(false);
+      setBusy(false);
     }
   }, []);
 
-  return { reorderCollections, reordering, error };
-}
+  const saveCollection = useCallback(async (input: SaveCollectionInput) => {
+    const { data, ok } = await run("save_collection", {
+      p_name: input.name,
+      p_id: input.id ?? null,
+      p_description: input.description ?? null,
+      p_icon_emoji: input.iconEmoji ?? null,
+      p_icon_url: input.iconUrl ?? null,
+      p_cover_url: input.coverUrl ?? null,
+    });
+    return ok ? (data as Collection) : null;
+  }, [run]);
 
-// ============================================================================
-// useReorderCollectionItems - Reorder items within a collection
-// ============================================================================
-
-interface UseReorderCollectionItemsReturn {
-  reorderItems: (itemIds: string[]) => Promise<boolean>;
-  reordering: boolean;
-  error: string | null;
-}
-
-// ============================================================================
-// useToggleCollectionCollapse - Toggle collection collapsed state
-// ============================================================================
-
-export function useToggleCollectionCollapse() {
-  const { updateCollection } = useUpdateCollection();
-
-  const toggleCollapse = useCallback(
-    async (collectionId: string, isCollapsed: boolean): Promise<boolean> => {
-      return updateCollection(collectionId, { is_collapsed: !isCollapsed });
-    },
-    [updateCollection]
+  const deleteCollection = useCallback(async (id: string) => (await run("delete_collection", { p_id: id })).ok, [run]);
+  const reorderCollections = useCallback(async (ids: string[]) => (await run("reorder_collections", { p_ids: ids })).ok, [run]);
+  const setPostCollections = useCallback(
+    async (postId: string, collectionIds: string[]) => (await run("set_post_collections", { p_post_id: postId, p_collection_ids: collectionIds })).ok,
+    [run]
+  );
+  const addPostsToCollection = useCallback(
+    async (collectionId: string, postIds: string[]) => (await run("add_posts_to_collection", { p_collection_id: collectionId, p_post_ids: postIds })).ok,
+    [run]
+  );
+  const removePostFromCollection = useCallback(
+    async (collectionId: string, postId: string) => (await run("remove_post_from_collection", { p_collection_id: collectionId, p_post_id: postId })).ok,
+    [run]
+  );
+  const reorderCollectionPosts = useCallback(
+    async (collectionId: string, postIds: string[]) => (await run("reorder_collection_posts", { p_collection_id: collectionId, p_post_ids: postIds })).ok,
+    [run]
   );
 
-  return { toggleCollapse };
+  return { saveCollection, deleteCollection, reorderCollections, setPostCollections, addPostsToCollection, removePostFromCollection, reorderCollectionPosts, busy, error };
 }

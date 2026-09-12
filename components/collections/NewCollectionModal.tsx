@@ -3,14 +3,18 @@
 import { useDialog } from "@/lib/hooks/useDialog";
 import React, { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useCreateCollection } from "@/lib/hooks/useCollections";
+import { useCollectionMutations } from "@/lib/hooks/useCollections";
+import Portal from "@/components/ui/Portal";
 import { supabase } from "@/lib/supabase";
 import type { Collection } from "@/lib/types";
 
 interface NewCollectionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreated: (collection: Collection) => void;
+  /** Fires with the saved row, for a new collection and for an edit. */
+  onSaved: (collection: Collection) => void;
+  /** Pass the row to edit it; leave out to start a new collection. */
+  collection?: Collection | null;
 }
 
 // Icons (stored as icon_emoji with "icon:" prefix)
@@ -298,9 +302,10 @@ const emojiCategories = [
   },
 ];
 
-export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCollectionModalProps) {
+export default function NewCollectionModal({ isOpen, onClose, onSaved, collection = null }: NewCollectionModalProps) {
   const { user } = useAuth();
-  const { createCollection, creating, error } = useCreateCollection(user?.id);
+  const { saveCollection, busy: creating, error } = useCollectionMutations();
+  const editing = !!collection;
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -317,19 +322,25 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
   const coverInputRef = useRef<HTMLInputElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
 
-  // Reset form when modal opens/closes
+  // Seed from the row being edited when opening; clear on close.
   useEffect(() => {
-    if (!isOpen) {
-      setUploadError(null);
-      retryUpload.current = null;
+    setUploadError(null);
+    retryUpload.current = null;
+    setShowEmojiPicker(false);
+    if (isOpen && collection) {
+      setName(collection.name);
+      setDescription(collection.description ?? "");
+      setIconEmoji(collection.icon_emoji);
+      setIconUrl(collection.icon_url);
+      setCoverUrl(collection.cover_url);
+    } else if (!isOpen) {
       setName("");
       setDescription("");
       setIconEmoji(null);
       setIconUrl(null);
       setCoverUrl(null);
-      setShowEmojiPicker(false);
     }
-  }, [isOpen]);
+  }, [isOpen, collection]);
 
   useDialog(isOpen, modalRef, onClose, creating || uploading || uploadingCover);
 
@@ -347,7 +358,7 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
     setUploading(true);
     try {
       const fileExt = file.name.split(".").pop();
-      const fileName = `collection-icon-${user.id}-${Date.now()}.${fileExt}`;
+      const fileName = `${user.id}/collections/icon-${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from("covers")
@@ -385,7 +396,7 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
     setUploadingCover(true);
     try {
       const fileExt = file.name.split(".").pop();
-      const fileName = `collection-cover-${user.id}-${Date.now()}.${fileExt}`;
+      const fileName = `${user.id}/collections/cover-${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from("covers")
@@ -420,15 +431,17 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
 
     if (!name.trim()) return;
 
-    const collection = await createCollection(name.trim(), {
-      description: description.trim() || undefined,
-      iconUrl: iconUrl || undefined,
-      iconEmoji: iconEmoji || undefined,
-      coverUrl: coverUrl || undefined,
+    const saved = await saveCollection({
+      id: collection?.id,
+      name: name.trim(),
+      description: description.trim() || null,
+      iconUrl: iconUrl || null,
+      iconEmoji: iconEmoji || null,
+      coverUrl: coverUrl || null,
     });
 
-    if (collection) {
-      onCreated(collection);
+    if (saved) {
+      onSaved(saved);
       onClose();
     }
   };
@@ -436,21 +449,22 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
   if (!isOpen) return null;
 
   return (
+    <Portal>
     <div
-      className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fadeIn"
+      className="fixed inset-0 z-(--z-modal) flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fadeIn"
       onClick={handleBackdropClick}
     >
       <div
         ref={modalRef}
         role="dialog"
         aria-modal="true"
-        aria-label="New collection"
+        aria-label={editing ? "Edit collection" : "New collection"}
         tabIndex={-1}
         className="w-full max-w-md bg-surface rounded-2xl shadow-2xl overflow-hidden animate-scaleIn"
       >
         {/* Header */}
         <div className="px-6 py-4 border-b border-border-light flex items-center justify-between">
-          <h2 className="font-display text-lg font-semibold text-ink">New Collection</h2>
+          <h2 className="font-display text-lg font-semibold text-ink">{editing ? "Edit collection" : "New collection"}</h2>
           <button
             onClick={onClose}
               disabled={creating || uploading || uploadingCover}
@@ -652,13 +666,13 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
           {/* Name Input */}
           <div>
             <label className="block font-ui text-sm font-medium text-ink mb-1.5">
-              Collection Name <span className="text-pink-vivid">*</span>
+              Name <span className="text-pink-vivid">*</span>
             </label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g., Music, Books, Writings..."
+              placeholder="e.g. Mornings, Notes to dancers"
               className="w-full px-4 py-3 rounded-xl border border-border-light bg-surface font-body text-15 text-ink placeholder:text-muted/50 focus:outline-none focus:border-purple-primary focus:ring-2 focus:ring-purple-primary/10 transition-all"
               required
             />
@@ -672,7 +686,7 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="What will this collection contain?"
+              placeholder="What gathers these works together?"
               rows={2}
               className="w-full px-4 py-3 rounded-xl border border-border-light bg-surface font-body text-15 text-ink placeholder:text-muted/50 focus:outline-none focus:border-purple-primary focus:ring-2 focus:ring-purple-primary/10 transition-all resize-none"
             />
@@ -704,11 +718,12 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
               disabled={!name.trim() || creating || uploading || uploadingCover}
               className="flex-1 px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-primary to-pink-vivid font-ui text-[0.9rem] font-medium text-white shadow-lg shadow-purple-primary/30 hover:-translate-y-0.5 hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
             >
-              {creating ? "Creating..." : "Create Collection"}
+              {creating ? "Saving…" : editing ? "Save" : "Create collection"}
             </button>
           </div>
         </form>
       </div>
     </div>
+    </Portal>
   );
 }

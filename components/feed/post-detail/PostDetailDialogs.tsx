@@ -8,6 +8,7 @@ import { BLOCK_COPY, DELETE_POST_COPY } from "./copy";
 
 const ShareModal = dynamic(() => import("@/components/ui/ShareModal"), { ssr: false });
 const ReportModal = dynamic(() => import("@/components/ui/ReportModal"), { ssr: false });
+const CollectionPickerSheet = dynamic(() => import("@/components/collections/CollectionPickerSheet"), { ssr: false });
 
 interface Props {
   post: ModalPost;
@@ -34,6 +35,8 @@ export function PostDetailDialogs({ post, actions }: Props) {
         authorAvatar={post.author.avatar}
         imageUrl={visual.length > 0 ? visual[0].media_url : ""}
       />
+
+      {dialogs.collection.open && <CollectionPickerSheet isOpen onClose={dialogs.collection.hide} postId={post.id} />}
 
       <ConfirmationModal
         isOpen={dialogs.del.open}

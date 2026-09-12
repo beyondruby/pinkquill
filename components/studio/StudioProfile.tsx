@@ -13,7 +13,7 @@ import { stripHtml } from "@/lib/utils/sanitize";
 import { getOrCreateConversation } from "@/lib/messaging/conversations";
 import { fetchCollaboratedPosts, useCommunities, COLLAB_SELF_REMOVED_EVENT } from "@/lib/hooks.legacy";
 import type { CollabSelfRemovedDetail } from "@/lib/hooks.legacy";
-import { useCollections, useReorderCollections } from "@/lib/hooks/useCollections";
+import { useCollections } from "@/lib/hooks/useCollections";
 import CollectionsShelf from "@/components/studio/CollectionsShelf";
 import { useRelays } from "@/lib/hooks/useFeed";
 import { useBlock } from "@/lib/hooks/useInteractions";
@@ -459,7 +459,6 @@ export default function StudioProfile({ username }: StudioProfileProps) {
   const hasAboutBox = !!(profile && (profile.bio || profile.role || profile.location || profile.education || profile.languages));
   const { communities: userCommunities } = useCommunities(profile?.id, 'joined', { enabled: hasAboutBox });
   const { collections, loading: collectionsLoading, error: collectionsError, refetch: refetchCollections } = useCollections(profile?.id, { enabled: shouldLoadCollections });
-  const { reorderCollections } = useReorderCollections();
   const { pinnedPostIds, isPinned, canPin, pinPost, unpinPost } = usePinnedPosts(profile?.id);
   const [pageLoaded, setPageLoaded] = useState(false);
   const [showCommunitiesModal, setShowCommunitiesModal] = useState(false);
@@ -2101,16 +2100,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 collections={collections}
                 isOwnProfile={isOwnProfile}
                 username={username}
-                onReorder={async (ids) => {
-                  await reorderCollections(ids);
-                  refetchCollections();
-                }}
-                onDelete={async (id) => {
-                  const { error } = await supabase.from("collections").delete().eq("id", id);
-                  if (error) actionToast.genericError("delete collection");
-                  else refetchCollections();
-                }}
-                onCreated={refetchCollections}
+                onChanged={refetchCollections}
               />
             )}
           </div>

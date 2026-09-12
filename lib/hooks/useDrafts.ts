@@ -68,6 +68,8 @@ export interface PostDraft {
   postLocation?: string;
   journalMetadata?: JournalMetadata;
   spotifyTrack?: SpotifyTrack | null;
+  /** Collections chosen in the composer (applied after publish). */
+  collectionIds?: string[];
   // Timestamps
   createdAt: string;
   updatedAt: string;
