@@ -6,9 +6,9 @@ import type { CSSProperties } from "react";
  * The creation wizards' step row: numbered gradient circles with labels and
  * the full-width gradient line beneath them.
  *
- * Each circle starts an equal-width grid column. Its center is therefore
- * (step - 1) / total of the row width plus half the circle's size. Use that
- * same position for the fill endpoint, while keeping the track full width.
+ * Circle centers divide the full track into total - 1 equal intervals.
+ * End labels get half an interval; interior labels get a whole interval.
+ * Half-circle padding keeps the endpoint circles inside the container.
  */
 
 const CIRCLE_ON = "bg-gradient-to-r from-orange-warm to-pink-vivid text-white";
@@ -34,23 +34,32 @@ export default function WizardSteps({
   if (total === 0) return null;
 
   const current = Math.min(Math.max(step, 1), total);
+  const progress = total > 1 ? ((current - 1) / (total - 1)) * 100 : 0;
 
   return (
     <div
       className={className}
-      style={{ "--wizard-circle-size": "1.75rem" } as CSSProperties}
+      style={{
+        "--wizard-circle-size": "1.75rem",
+        paddingInline: "calc(var(--wizard-circle-size) / 2)",
+      } as CSSProperties}
     >
-      <div
-        className="grid items-center mb-4"
-        style={{ gridTemplateColumns: `repeat(${total}, minmax(0, 1fr))` }}
-      >
+      <div className="flex items-start mb-4">
         {labels.map((label, i) => {
           const n = i + 1;
           const reached = current >= n;
+          const first = i === 0;
+          const last = i === total - 1;
+          const itemClassName = `flex flex-col gap-2 min-w-0 ${
+            first ? "items-start text-left" : last ? "items-end text-right" : "items-center text-center"
+          }`;
+          const itemStyle = { flex: first || last ? "0.5 1 0%" : "1 1 0%" };
           const circle = (
             <span
               className={`w-[var(--wizard-circle-size)] h-[var(--wizard-circle-size)] shrink-0 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${
                 reached ? CIRCLE_ON : CIRCLE_OFF
+              } ${
+                first ? "-translate-x-1/2" : last ? "translate-x-1/2" : ""
               }`}
             >
               {n}
@@ -58,7 +67,7 @@ export default function WizardSteps({
           );
           const text = (
             <span
-              className={`text-sm font-ui truncate ${hideLabelsOnMobile ? "hidden sm:inline" : ""} ${
+              className={`max-w-full text-sm font-ui truncate ${hideLabelsOnMobile ? "hidden sm:inline" : ""} ${
                 reached ? "text-ink font-medium" : "text-muted"
               }`}
             >
@@ -71,7 +80,8 @@ export default function WizardSteps({
               type="button"
               onClick={() => onSelect(n)}
               aria-current={current === n ? "step" : undefined}
-              className="flex items-center gap-2 min-w-0 pr-4 text-left"
+              className={itemClassName}
+              style={itemStyle}
             >
               {circle}
               {text}
@@ -80,7 +90,8 @@ export default function WizardSteps({
             <div
               key={label}
               aria-current={current === n ? "step" : undefined}
-              className="flex items-center gap-2 min-w-0 pr-4"
+              className={itemClassName}
+              style={itemStyle}
             >
               {circle}
               {text}
@@ -92,7 +103,7 @@ export default function WizardSteps({
       <div aria-hidden="true" className="h-1.5 bg-skeleton rounded-full overflow-hidden">
         <div
           className={`h-full rounded-full ${FILL} transition-[width] duration-500 motion-reduce:transition-none`}
-          style={{ width: `calc(${((current - 1) / total) * 100}% + var(--wizard-circle-size) / 2)` }}
+          style={{ width: `${progress}%` }}
         />
       </div>
     </div>
