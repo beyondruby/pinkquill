@@ -1,5 +1,6 @@
 "use client";
 
+import formStyles from "@/components/ui/CreationForm.module.css";
 import { CategoryField } from "@/lib/store/categories";
 
 interface BooleanFieldProps {
@@ -20,24 +21,8 @@ export default function BooleanField({ field, value, onChange }: BooleanFieldPro
         <button
           type="button"
           onClick={() => onChange(true)}
-          className={`
-            flex items-center gap-2.5 px-5 py-3 rounded-xl transition-all duration-200
-            bg-surface
-            ${value === true
-              ? "shadow-md shadow-pink-vivid/10"
-              : "shadow-sm hover:shadow-md"
-            }
-          `}
-          style={{
-            border: value === true
-              ? "1px solid transparent"
-              : "1px solid rgba(0, 0, 0, 0.05)",
-            backgroundImage: value === true
-              ? "linear-gradient(white, white), linear-gradient(to right, #8e44ad, #ff007f, #ff9f43)"
-              : undefined,
-            backgroundOrigin: "border-box",
-            backgroundClip: value === true ? "padding-box, border-box" : undefined,
-          }}
+          aria-pressed={value === true}
+          className={`${formStyles.choice} flex items-center gap-2.5 px-5 py-3 rounded-xl transition-colors duration-200`}
         >
           <div
             className={`
@@ -52,7 +37,7 @@ export default function BooleanField({ field, value, onChange }: BooleanFieldPro
               <div className="w-2 h-2 rounded-full bg-surface" />
             )}
           </div>
-          <span className={`text-sm font-ui ${value === true ? "text-pink-vivid font-medium" : "text-ink"}`}>
+          <span className={`text-sm font-ui ${value === true ? "text-ink font-medium" : "text-ink"}`}>
             Yes
           </span>
         </button>
@@ -60,24 +45,8 @@ export default function BooleanField({ field, value, onChange }: BooleanFieldPro
         <button
           type="button"
           onClick={() => onChange(false)}
-          className={`
-            flex items-center gap-2.5 px-5 py-3 rounded-xl transition-all duration-200
-            bg-surface
-            ${value === false
-              ? "shadow-md shadow-pink-vivid/10"
-              : "shadow-sm hover:shadow-md"
-            }
-          `}
-          style={{
-            border: value === false
-              ? "1px solid transparent"
-              : "1px solid rgba(0, 0, 0, 0.05)",
-            backgroundImage: value === false
-              ? "linear-gradient(white, white), linear-gradient(to right, #8e44ad, #ff007f, #ff9f43)"
-              : undefined,
-            backgroundOrigin: "border-box",
-            backgroundClip: value === false ? "padding-box, border-box" : undefined,
-          }}
+          aria-pressed={value === false}
+          className={`${formStyles.choice} flex items-center gap-2.5 px-5 py-3 rounded-xl transition-colors duration-200`}
         >
           <div
             className={`
@@ -92,7 +61,7 @@ export default function BooleanField({ field, value, onChange }: BooleanFieldPro
               <div className="w-2 h-2 rounded-full bg-surface" />
             )}
           </div>
-          <span className={`text-sm font-ui ${value === false ? "text-pink-vivid font-medium" : "text-ink"}`}>
+          <span className={`text-sm font-ui ${value === false ? "text-ink font-medium" : "text-ink"}`}>
             No
           </span>
         </button>

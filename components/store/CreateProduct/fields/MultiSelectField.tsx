@@ -1,5 +1,6 @@
 "use client";
 
+import CreationFieldFrame from "@/components/ui/CreationFieldFrame";
 import { useState } from "react";
 import { CategoryField } from "@/lib/store/categories";
 
@@ -45,11 +46,7 @@ export default function MultiSelectField({ field, value, onChange }: MultiSelect
       </label>
 
       {/* Gradient border wrapper - contains both button and options */}
-      <div className="relative">
-        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm p-[1px]">
-          <div className="w-full h-full rounded-xl bg-surface" />
-        </div>
-
+      <CreationFieldFrame>
         <div className="relative">
           {/* Select button */}
           <button
@@ -63,7 +60,7 @@ export default function MultiSelectField({ field, value, onChange }: MultiSelect
               {value.length > 0 ? `${value.length} selected` : "Select options..."}
             </span>
             <svg
-              className={`w-5 h-5 text-pink-vivid transition-transform ${isOpen ? "rotate-180" : ""}`}
+              className={`w-5 h-5 text-muted/70 transition-transform ${isOpen ? "rotate-180" : ""}`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -140,8 +137,8 @@ export default function MultiSelectField({ field, value, onChange }: MultiSelect
                     onChange={(e) => setCustomValue(e.target.value)}
                     placeholder="Custom"
                     className="flex-1 px-3 py-2 rounded-lg text-sm
-                      border border-pink-200 bg-surface
-                      focus:border-pink-vivid focus:outline-none
+                      min-w-0 border border-border-light bg-surface
+                      focus:border-purple-primary/50 focus:outline-none
                       transition-all font-body"
                     autoFocus
                     onKeyDown={(e) => {
@@ -154,8 +151,8 @@ export default function MultiSelectField({ field, value, onChange }: MultiSelect
                   <button
                     type="button"
                     onClick={handleCustomSubmit}
-                    className="px-4 py-2 bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm
-                      text-white text-sm rounded-lg font-ui font-medium"
+                    className="px-4 py-2 bg-purple-primary/10 hover:bg-purple-primary/15
+                      text-ink text-sm rounded-lg font-ui font-medium transition-colors"
                   >
                     Add
                   </button>
@@ -164,7 +161,7 @@ export default function MultiSelectField({ field, value, onChange }: MultiSelect
             </div>
           )}
         </div>
-      </div>
+      </CreationFieldFrame>
 
       {/* Selected tags */}
       {value.length > 0 && (
@@ -173,8 +170,8 @@ export default function MultiSelectField({ field, value, onChange }: MultiSelect
             <span
               key={val}
               className="inline-flex items-center gap-2 px-3 py-1.5
-                bg-surface border border-pink-vivid/20 rounded-full shadow-sm
-                text-sm font-ui text-pink-vivid"
+                bg-purple-primary/5 border border-purple-primary/10 rounded-full
+                text-sm font-ui text-subdued"
             >
               {getLabel(val)}
               <button

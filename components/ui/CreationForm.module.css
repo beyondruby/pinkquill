@@ -1,0 +1,66 @@
+.field {
+  --edge-strength: 22%;
+  position: relative;
+  min-width: 0;
+  max-width: 100%;
+  border: 1px solid transparent;
+  border-radius: 0.75rem;
+  background:
+    linear-gradient(
+      110deg,
+      color-mix(in srgb, var(--color-surface) 98%, var(--color-purple-primary)),
+      var(--color-surface)
+    ) padding-box,
+    linear-gradient(
+      110deg,
+      color-mix(in srgb, var(--color-purple-primary) var(--edge-strength), var(--color-surface)),
+      color-mix(in srgb, var(--color-pink-vivid) var(--edge-strength), var(--color-surface)),
+      color-mix(in srgb, var(--color-orange-warm) var(--edge-strength), var(--color-surface))
+    ) border-box;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 2%);
+  transition: box-shadow 180ms ease;
+}
+
+.emphasis {
+  --edge-strength: 30%;
+}
+
+.field:hover {
+  --edge-strength: 38%;
+}
+
+.field:focus-within {
+  --edge-strength: 65%;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-purple-primary) 9%, transparent);
+}
+
+.choice {
+  border: 1px solid var(--color-border-light);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 2%);
+}
+
+.choice:hover {
+  border-color: color-mix(in srgb, var(--color-purple-primary) 25%, var(--color-surface));
+}
+
+.choice[aria-pressed="true"] {
+  border-color: color-mix(in srgb, var(--color-purple-primary) 30%, var(--color-surface));
+  background: linear-gradient(
+    110deg,
+    color-mix(in srgb, var(--color-purple-primary) 7%, var(--color-surface)),
+    color-mix(in srgb, var(--color-pink-vivid) 4%, var(--color-surface))
+  );
+}
+
+.choice:focus-visible {
+  outline: 2px solid var(--color-purple-primary);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .field {
+    transition: none;
+  }
+}

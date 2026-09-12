@@ -1,5 +1,6 @@
 "use client";
 
+import CreationFieldFrame from "@/components/ui/CreationFieldFrame";
 import { useState } from "react";
 import { CategoryField } from "@/lib/store/categories";
 
@@ -22,11 +23,7 @@ export default function SelectField({ field, value, onChange }: SelectFieldProps
       </label>
 
       {/* Gradient border wrapper - contains both button and options */}
-      <div className="relative">
-        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm p-[1px]">
-          <div className="w-full h-full rounded-xl bg-surface" />
-        </div>
-
+      <CreationFieldFrame>
         <div className="relative">
           {/* Select button */}
           <button
@@ -40,7 +37,7 @@ export default function SelectField({ field, value, onChange }: SelectFieldProps
               {selectedLabel || field.placeholder || "Select..."}
             </span>
             <svg
-              className={`w-5 h-5 text-pink-vivid transition-transform ${isOpen ? "rotate-180" : ""}`}
+              className={`w-5 h-5 text-muted/70 transition-transform ${isOpen ? "rotate-180" : ""}`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -98,7 +95,7 @@ export default function SelectField({ field, value, onChange }: SelectFieldProps
             </div>
           )}
         </div>
-      </div>
+      </CreationFieldFrame>
 
       {field.helpText && (
         <p className="text-xs text-muted mt-2">{field.helpText}</p>

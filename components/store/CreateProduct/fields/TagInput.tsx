@@ -1,5 +1,6 @@
 "use client";
 
+import CreationFieldFrame from "@/components/ui/CreationFieldFrame";
 import { useState } from "react";
 
 interface TagInputProps {
@@ -66,10 +67,7 @@ export default function TagInput({
 
   return (
     <div>
-      <div className="relative">
-        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-warm to-pink-vivid p-[2px]">
-          <div className="w-full h-full rounded-xl bg-surface" />
-        </div>
+      <CreationFieldFrame emphasis>
         <div className="relative flex items-center">
           <input
             type="text"
@@ -85,13 +83,13 @@ export default function TagInput({
               font-body text-ink placeholder:text-gray-400
               disabled:opacity-60"
           />
-          <div className="absolute right-4 text-orange-warm">
+          <div className="absolute right-4 text-muted/70">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z" />
             </svg>
           </div>
         </div>
-      </div>
+      </CreationFieldFrame>
 
       <div className="flex justify-between items-center mt-2">
         {helperText && <p className="text-xs text-muted">{helperText}</p>}
@@ -108,8 +106,8 @@ export default function TagInput({
             <span
               key={tag}
               className="inline-flex items-center gap-2 px-3 py-1.5
-                bg-gradient-to-r from-orange-warm/10 to-pink-vivid/10 rounded-full
-                text-sm font-ui text-pink-vivid"
+                bg-gradient-to-r from-orange-warm/5 to-pink-vivid/5 rounded-full
+                text-sm font-ui text-subdued"
             >
               {chipPrefix}
               {formatChip ? formatChip(tag) : tag}

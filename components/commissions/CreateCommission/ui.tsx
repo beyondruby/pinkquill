@@ -2,13 +2,14 @@
 
 import type { ReactNode, SelectHTMLAttributes } from "react";
 import WizardSteps from "@/components/ui/WizardSteps";
+import CreationFieldFrame from "@/components/ui/CreationFieldFrame";
+import formStyles from "@/components/ui/CreationForm.module.css";
 
 /**
  * The commission wizard's building blocks, copied from the product wizard so
  * both flows look the same: the STEP header with two-tone gradient words,
- * gradient-ringed circles for reached steps, gradient-bordered inputs with
- * the pencil icon, gradient checkbox squares, glass option boxes, colon
- * section headers, and the purple pill navigation.
+ * gradient circles for reached steps, softly bordered inputs, gradient check
+ * squares, tinted option boxes, and the purple pill navigation.
  */
 
 const TRI = "bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm";
@@ -78,12 +79,12 @@ export function WizardNav({ onBack, onNext, onPublish, onSaveDraft, canSaveDraft
 }
 
 export function SectionHeader({ children }: { children: ReactNode }) {
-  return <h3 className="text-base font-display font-bold text-ink mb-6">{children}</h3>;
+  return <h3 className="flex items-center gap-3 text-base font-display font-semibold text-ink mb-5 before:h-4 before:w-0.5 before:shrink-0 before:rounded-full before:bg-purple-primary/35">{children}</h3>;
 }
 
 /** A section after the first: top hairline and air, like the product details step. */
 export function Section({ first = false, children }: { first?: boolean; children: ReactNode }) {
-  return <div className={first ? "" : "pt-6 border-t border-gray-100"}>{children}</div>;
+  return <div className={first ? "" : "pt-8 border-t border-border-light"}>{children}</div>;
 }
 
 export function FieldLabel({ children, required = false, right, htmlFor, muted = false }: { children: ReactNode; required?: boolean; right?: ReactNode; htmlFor?: string; muted?: boolean }) {
@@ -99,20 +100,17 @@ export function Hint({ children }: { children: ReactNode }) {
   return <p className="text-xs text-muted mt-2">{children}</p>;
 }
 
-/** The gradient border box every field sits in. `strong` is the 2px warm ring used on the title and description. */
+/** Soft gradient fields; title and description get a little extra definition. */
 export function Ring({ strong = false, children, className = "" }: { strong?: boolean; children: ReactNode; className?: string }) {
   return (
-    <div className={`relative ${className}`}>
-      <div className={`absolute inset-0 rounded-xl ${strong ? `${WARM} p-[2px]` : `${TRI} p-[1px]`}`}>
-        <div className="w-full h-full rounded-xl bg-surface" />
-      </div>
+    <CreationFieldFrame emphasis={strong} className={className}>
       <div className="relative">{children}</div>
-    </div>
+    </CreationFieldFrame>
   );
 }
 
 const PENCIL = (
-  <div className="absolute right-4 top-1/2 -translate-y-1/2 text-orange-warm pointer-events-none">
+  <div className="absolute right-4 top-1/2 -translate-y-1/2 text-muted/70 pointer-events-none">
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
   </div>
 );
@@ -130,7 +128,7 @@ export function GTextarea({ id, value, onChange, placeholder, maxLength, rows = 
   return (
     <Ring strong={strong}>
       <textarea id={id} rows={rows} value={value} maxLength={maxLength} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} className={`${FIELD} pr-12 resize-none`} />
-      <div className="absolute right-4 top-4 text-orange-warm pointer-events-none">
+      <div className="absolute right-4 top-4 text-muted/70 pointer-events-none">
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
       </div>
     </Ring>
@@ -142,11 +140,11 @@ export function GNumber({ id, value, onChange, prefix, suffix, placeholder = "0"
   return (
     <Ring className={className}>
       <div className="flex items-center">
-        {prefix && <span className="absolute left-4 text-pink-vivid font-medium">{prefix}</span>}
+        {prefix && <span className="absolute left-4 text-muted font-medium">{prefix}</span>}
         <input id={id} type="number" min={min} step={step} inputMode="decimal" value={value ?? ""} placeholder={placeholder}
           onChange={(e) => { const raw = e.target.value; if (raw === "") { onChange(null); return; } const n = parseFloat(raw); if (Number.isFinite(n)) onChange(n); }}
           className={`w-full ${prefix ? "pl-10" : "px-4"} ${suffix ? "pr-14" : "pr-4"} py-3 rounded-xl bg-transparent outline-none font-body text-ink placeholder:text-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`} />
-        {suffix && <span className="absolute right-4 text-pink-vivid text-sm font-ui">{suffix}</span>}
+        {suffix && <span className="absolute right-4 text-muted text-sm font-ui">{suffix}</span>}
       </div>
     </Ring>
   );
@@ -156,7 +154,7 @@ export function GSelect({ className = "w-48", children, ...rest }: SelectHTMLAtt
   return (
     <Ring className={className}>
       <select {...rest} className={`${FIELD} pr-10 appearance-none cursor-pointer`}>{children}</select>
-      <svg className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-orange-warm pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+      <svg className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted/70 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
     </Ring>
   );
 }
@@ -185,19 +183,13 @@ export function OptionBox({ selected, onClick, label, hint }: { selected: boolea
       type="button"
       aria-pressed={selected}
       onClick={onClick}
-      className={`relative px-5 py-4 rounded-xl text-left transition-all duration-300 flex items-center gap-3 bg-surface ${selected ? "shadow-lg shadow-pink-vivid/10" : "shadow-sm hover:shadow-md"}`}
-      style={{
-        border: selected ? "1px solid transparent" : "1px solid rgba(0, 0, 0, 0.05)",
-        backgroundImage: selected ? GRADIENT_RING : undefined,
-        backgroundOrigin: "border-box",
-        backgroundClip: selected ? "padding-box, border-box" : undefined,
-      }}
+      className={`${formStyles.choice} relative px-5 py-4 rounded-xl text-left transition-colors duration-200 flex items-center gap-3`}
     >
       <div className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 transition-all ${selected ? TRI : "border border-muted/30"}`}>
         {selected && <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
       </div>
       <span className="min-w-0">
-        <span className={`block font-medium font-ui text-sm ${selected ? "text-pink-vivid" : "text-ink"}`}>{label}</span>
+        <span className="block font-medium font-ui text-sm text-ink">{label}</span>
         {hint && <span className="block text-xs font-body text-muted mt-0.5">{hint}</span>}
       </span>
     </button>

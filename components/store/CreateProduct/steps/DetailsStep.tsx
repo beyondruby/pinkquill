@@ -1,5 +1,6 @@
 "use client";
 
+import CreationFieldFrame from "@/components/ui/CreationFieldFrame";
 import { useMemo } from "react";
 import { ProductDelivery, ProductWizardState } from "@/lib/types/store";
 import {
@@ -74,10 +75,7 @@ function PwywControls({
       {enabled && (
         <div className="pl-6 space-y-1">
           <label className="block text-xs font-ui text-muted">Minimum they must pay</label>
-          <div className="relative w-40">
-            <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-orange-warm/40 to-pink-vivid/40 p-[1px]">
-              <div className="w-full h-full rounded-lg bg-surface" />
-            </div>
+          <CreationFieldFrame className="w-40">
             <div className="relative flex items-center">
               <span className="absolute left-3 text-pink-vivid font-medium text-sm">$</span>
               <input
@@ -100,7 +98,7 @@ function PwywControls({
                   [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
             </div>
-          </div>
+          </CreationFieldFrame>
           {min === 0 && (
             <p className="text-[11px] font-body text-green-700">Buyers can take this for free.</p>
           )}
@@ -116,7 +114,7 @@ function PwywControls({
 // Section header component
 function SectionHeader({ children }: { children: React.ReactNode }) {
   return (
-    <h3 className="text-base font-display font-bold text-ink mb-6">
+    <h3 className="flex items-center gap-3 text-base font-display font-semibold text-ink mb-5 before:h-4 before:w-0.5 before:shrink-0 before:rounded-full before:bg-purple-primary/35">
       {children}
     </h3>
   );
@@ -204,10 +202,7 @@ export default function DetailsStep({
           Title <span className="text-pink-vivid">*</span>
         </label>
         {/* Gradient border wrapper */}
-        <div className="relative">
-          <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-warm to-pink-vivid p-[2px]">
-            <div className="w-full h-full rounded-xl bg-surface" />
-          </div>
+        <CreationFieldFrame emphasis>
           <div className="relative flex items-center">
             <input
               type="text"
@@ -219,13 +214,13 @@ export default function DetailsStep({
                 outline-none transition-all duration-300
                 font-body text-ink placeholder:text-gray-400"
             />
-            <div className="absolute right-4 text-orange-warm">
+            <div className="absolute right-4 text-muted/70">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
               </svg>
             </div>
           </div>
-        </div>
+        </CreationFieldFrame>
       </div>
 
       {/* Year */}
@@ -233,10 +228,7 @@ export default function DetailsStep({
         <label className="block text-sm font-ui font-semibold text-ink mb-3">
           Year created
         </label>
-        <div className="relative w-48">
-          <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-warm to-pink-vivid p-[2px]">
-            <div className="w-full h-full rounded-xl bg-surface" />
-          </div>
+        <CreationFieldFrame emphasis className="w-48">
           <select
             value={wizardState.yearCreated || ""}
             onChange={(e) => updateState({ yearCreated: e.target.value ? parseInt(e.target.value) : null })}
@@ -250,16 +242,16 @@ export default function DetailsStep({
               <option key={year} value={year}>{year}</option>
             ))}
           </select>
-          <svg className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-orange-warm pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted/70 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
-        </div>
+        </CreationFieldFrame>
       </div>
 
       {/* Classification Section */}
       {fieldsByGroup.classification.length > 0 && (
         <div>
-          <SectionHeader>Classification:</SectionHeader>
+          <SectionHeader>Classification</SectionHeader>
           <div className="space-y-6">
             {fieldsByGroup.classification.map(renderField)}
           </div>
@@ -269,7 +261,7 @@ export default function DetailsStep({
       {/* Presentation Section (physical only) */}
       {deliveryType !== "digital" && fieldsByGroup.presentation.length > 0 && (
         <div>
-          <SectionHeader>Presentation:</SectionHeader>
+          <SectionHeader>Presentation</SectionHeader>
           <div className="space-y-6">
             {fieldsByGroup.presentation.map(renderField)}
           </div>
@@ -279,7 +271,7 @@ export default function DetailsStep({
       {/* Dimensions Section (physical only) */}
       {deliveryType !== "digital" && (
         <div>
-          <SectionHeader>Dimensions:</SectionHeader>
+          <SectionHeader>Dimensions</SectionHeader>
           <DimensionsField
             shipping={wizardState.shipping}
             onChange={(shipping) => updateState({ shipping })}
@@ -288,8 +280,8 @@ export default function DetailsStep({
       )}
 
       {/* Pricing Section */}
-      <div className="pt-6 border-t border-gray-100">
-        <SectionHeader>Pricing:</SectionHeader>
+      <div className="pt-8 border-t border-border-light">
+        <SectionHeader>Pricing</SectionHeader>
         <PricingSection
           deliveryType={deliveryType}
           categoryConfig={categoryConfig}
@@ -300,8 +292,8 @@ export default function DetailsStep({
 
       {/* Shipping Section (physical only) */}
       {deliveryType !== "digital" && (
-        <div className="pt-6 border-t border-gray-100">
-          <SectionHeader>Shipping:</SectionHeader>
+        <div className="pt-8 border-t border-border-light">
+          <SectionHeader>Shipping</SectionHeader>
           <div className="space-y-5">
             <div>
               <label className="block text-sm font-ui font-semibold text-ink mb-3">
@@ -342,10 +334,7 @@ export default function DetailsStep({
                 <label className="block text-sm font-ui font-semibold text-ink mb-3">
                   Packaging
                 </label>
-                <div className="relative">
-                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-warm to-pink-vivid p-[2px]">
-                    <div className="w-full h-full rounded-xl bg-surface" />
-                  </div>
+                <CreationFieldFrame emphasis>
                   <select
                     value={wizardState.shipping.packaging || ""}
                     onChange={(e) =>
@@ -369,7 +358,7 @@ export default function DetailsStep({
                     <option value="padded_envelope">Padded envelope</option>
                     <option value="custom">Custom</option>
                   </select>
-                </div>
+                </CreationFieldFrame>
               </div>
             </div>
 
@@ -378,12 +367,9 @@ export default function DetailsStep({
                 <label className="block text-sm font-ui font-semibold text-ink mb-3">
                   Shipping price (USD)
                 </label>
-                <div className="relative">
-                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-warm to-pink-vivid p-[2px]">
-                    <div className="w-full h-full rounded-xl bg-surface" />
-                  </div>
+                <CreationFieldFrame emphasis>
                   <div className="relative flex items-center">
-                    <span className="absolute left-4 text-pink-vivid font-medium">$</span>
+                    <span className="absolute left-4 text-muted font-medium">$</span>
                     <input
                       type="number"
                       min="0"
@@ -404,17 +390,14 @@ export default function DetailsStep({
                         [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                   </div>
-                </div>
+                </CreationFieldFrame>
               </div>
 
               <div>
                 <label className="block text-sm font-ui font-semibold text-ink mb-3">
                   Processing days
                 </label>
-                <div className="relative">
-                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-warm to-pink-vivid p-[2px]">
-                    <div className="w-full h-full rounded-xl bg-surface" />
-                  </div>
+                <CreationFieldFrame emphasis>
                   <input
                     type="number"
                     min="0"
@@ -434,7 +417,7 @@ export default function DetailsStep({
                       outline-none transition-all duration-300
                       font-body text-ink"
                   />
-                </div>
+                </CreationFieldFrame>
               </div>
             </div>
           </div>
@@ -443,8 +426,8 @@ export default function DetailsStep({
 
       {/* Details Section */}
       {fieldsByGroup.details.length > 0 && (
-        <div className="pt-6 border-t border-gray-100">
-          <SectionHeader>Additional Details:</SectionHeader>
+        <div className="pt-8 border-t border-border-light">
+          <SectionHeader>Additional Details</SectionHeader>
           <div className="space-y-6">
             {fieldsByGroup.details.map(renderField)}
           </div>
@@ -452,12 +435,9 @@ export default function DetailsStep({
       )}
 
       {/* Description Section */}
-      <div className="pt-6 border-t border-gray-100">
-        <SectionHeader>Description:</SectionHeader>
-        <div className="relative">
-          <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-warm to-pink-vivid p-[2px]">
-            <div className="w-full h-full rounded-xl bg-surface" />
-          </div>
+      <div className="pt-8 border-t border-border-light">
+        <SectionHeader>Description</SectionHeader>
+        <CreationFieldFrame emphasis>
           <div className="relative">
             <textarea
               value={wizardState.description}
@@ -470,13 +450,13 @@ export default function DetailsStep({
                 outline-none transition-all duration-300
                 font-body text-ink placeholder:text-gray-400"
             />
-            <div className="absolute right-4 top-4 text-orange-warm">
+            <div className="absolute right-4 top-4 text-muted/70">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
               </svg>
             </div>
           </div>
-        </div>
+        </CreationFieldFrame>
         <div className="flex justify-end mt-2">
           <p className={`text-xs font-ui ${wizardState.description.length > 1800 ? 'text-orange-warm' : 'text-muted'}`}>
             {wizardState.description.length} / 2000
@@ -486,7 +466,7 @@ export default function DetailsStep({
 
       {/* Keywords Section */}
       <div>
-        <SectionHeader>Keywords:</SectionHeader>
+        <SectionHeader>Keywords</SectionHeader>
         <TagInput
           values={wizardState.keywords}
           onChange={(keywords) => updateState({ keywords })}
@@ -548,12 +528,9 @@ function PricingSection({
               <label className="block text-sm font-ui text-muted mb-2">
                 {wizardState.originalMin !== null ? "Suggested price" : "Price"}
               </label>
-              <div className="relative w-48">
-                <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-warm to-pink-vivid p-[2px]">
-                  <div className="w-full h-full rounded-xl bg-surface" />
-                </div>
+              <CreationFieldFrame emphasis className="w-48">
                 <div className="relative flex items-center">
-                  <span className="absolute left-4 text-pink-vivid font-medium">$</span>
+                  <span className="absolute left-4 text-muted font-medium">$</span>
                   <input
                     type="number"
                     min="0"
@@ -567,7 +544,7 @@ function PricingSection({
                       [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                 </div>
-              </div>
+              </CreationFieldFrame>
               <PwywControls
                 min={wizardState.originalMin}
                 price={wizardState.originalPrice}
@@ -630,12 +607,9 @@ function PricingSection({
                     {pricingOptions.reproduction!.types.find((t) => t.value === reproduction.type)?.label}{" "}
                     {reproduction.min !== null ? "suggested price" : "price"}
                   </label>
-                  <div className="relative w-48">
-                    <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-warm to-pink-vivid p-[2px]">
-                      <div className="w-full h-full rounded-xl bg-surface" />
-                    </div>
+                  <CreationFieldFrame emphasis className="w-48">
                     <div className="relative flex items-center">
-                      <span className="absolute left-4 text-pink-vivid font-medium">$</span>
+                      <span className="absolute left-4 text-muted font-medium">$</span>
                       <input
                         type="number"
                         min="0"
@@ -653,7 +627,7 @@ function PricingSection({
                           [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       />
                     </div>
-                  </div>
+                  </CreationFieldFrame>
                   <PwywControls
                     min={reproduction.min}
                     price={reproduction.price}
@@ -714,12 +688,9 @@ function PricingSection({
                 <label className="block text-sm font-ui text-muted mb-2">
                   {wizardState.digitalMin !== null ? "Suggested price" : "Price"}
                 </label>
-                <div className="relative w-48">
-                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-warm to-pink-vivid p-[2px]">
-                    <div className="w-full h-full rounded-xl bg-surface" />
-                  </div>
+                <CreationFieldFrame emphasis className="w-48">
                   <div className="relative flex items-center">
-                    <span className="absolute left-4 text-pink-vivid font-medium">$</span>
+                    <span className="absolute left-4 text-muted font-medium">$</span>
                     <input
                       type="number"
                       min="0"
@@ -733,7 +704,7 @@ function PricingSection({
                         [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                   </div>
-                </div>
+                </CreationFieldFrame>
                 <PwywControls
                   min={wizardState.digitalMin}
                   price={wizardState.digitalPrice}

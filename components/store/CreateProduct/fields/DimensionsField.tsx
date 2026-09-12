@@ -1,5 +1,7 @@
 "use client";
 
+import CreationFieldFrame from "@/components/ui/CreationFieldFrame";
+import formStyles from "@/components/ui/CreationForm.module.css";
 import { CreateShippingData, DimensionsUnit } from "@/lib/types/store";
 
 interface DimensionsFieldProps {
@@ -27,19 +29,9 @@ export default function DimensionsField({ shipping, onChange }: DimensionsFieldP
             <button
               key={unit.value}
               type="button"
+              aria-pressed={shipping.dimensions_unit === unit.value}
               onClick={() => updateField("dimensions_unit", unit.value)}
-              className={`
-                px-4 py-2 rounded-xl text-sm font-ui transition-all duration-200
-                ${shipping.dimensions_unit === unit.value
-                  ? "bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm text-white"
-                  : "bg-surface text-muted hover:bg-pink-vivid/5"
-                }
-              `}
-              style={{
-                border: shipping.dimensions_unit === unit.value
-                  ? "none"
-                  : "1px solid rgba(255, 0, 127, 0.2)",
-              }}
+              className={`${formStyles.choice} px-4 py-2 rounded-lg text-sm font-ui font-medium transition-colors duration-200`}
             >
               {unit.label}
             </button>
@@ -71,10 +63,7 @@ export default function DimensionsField({ shipping, onChange }: DimensionsFieldP
         {/* Weight */}
         <div>
           <label className="block text-sm font-ui text-muted mb-2">Weight</label>
-          <div className="relative">
-            <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm p-[1px]">
-              <div className="w-full h-full rounded-xl bg-surface" />
-            </div>
+          <CreationFieldFrame>
             <div className="relative flex items-center">
               <input
                 type="number"
@@ -88,11 +77,11 @@ export default function DimensionsField({ shipping, onChange }: DimensionsFieldP
                   outline-none transition-all duration-300 font-body
                   [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
-              <span className="absolute right-4 text-pink-vivid text-sm font-ui">
+              <span className="absolute right-4 text-muted text-sm font-ui">
                 {shipping.weight_unit || "kg"}
               </span>
             </div>
-          </div>
+          </CreationFieldFrame>
         </div>
       </div>
     </div>
@@ -113,10 +102,7 @@ function DimensionInput({
   return (
     <div>
       <label className="block text-sm font-ui text-muted mb-2">{label}</label>
-      <div className="relative">
-        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm p-[1px]">
-          <div className="w-full h-full rounded-xl bg-surface" />
-        </div>
+      <CreationFieldFrame>
         <div className="relative flex items-center">
           <input
             type="number"
@@ -130,11 +116,11 @@ function DimensionInput({
               outline-none transition-all duration-300 font-body
               [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           />
-          <span className="absolute right-4 text-pink-vivid text-sm font-ui">
+          <span className="absolute right-4 text-muted text-sm font-ui">
             {unit}
           </span>
         </div>
-      </div>
+      </CreationFieldFrame>
     </div>
   );
 }

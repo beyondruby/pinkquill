@@ -38,19 +38,20 @@ export default function WizardSteps({
 
   return (
     <div
-      className={className}
+      className={`relative transition-none ${className}`}
       style={{
         "--wizard-circle-size": "1.75rem",
         paddingInline: "calc(var(--wizard-circle-size) / 2)",
+        minHeight: "calc(var(--wizard-circle-size) + 0.875rem)",
       } as CSSProperties}
     >
-      <div className="flex items-start mb-4">
+      <div className="flex items-start transition-none">
         {labels.map((label, i) => {
           const n = i + 1;
           const reached = current >= n;
           const first = i === 0;
           const last = i === total - 1;
-          const itemClassName = `flex flex-col gap-2 min-w-0 ${
+          const itemClassName = `flex flex-col gap-6 min-w-0 rounded-sm transition-none focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-purple-primary ${
             first ? "items-start text-left" : last ? "items-end text-right" : "items-center text-center"
           }`;
           const itemStyle = { flex: first || last ? "0.5 1 0%" : "1 1 0%" };
@@ -67,9 +68,14 @@ export default function WizardSteps({
           );
           const text = (
             <span
-              className={`max-w-full text-sm font-ui truncate ${hideLabelsOnMobile ? "hidden sm:inline" : ""} ${
-                reached ? "text-ink font-medium" : "text-muted"
+              className={`w-max max-w-full [overflow-wrap:anywhere] text-xs sm:text-sm leading-5 font-ui tracking-[0.01em] transition-colors ${hideLabelsOnMobile ? "hidden sm:inline" : ""} ${
+                current === n ? "text-ink font-semibold" : reached ? "text-subdued font-medium" : "text-muted font-medium"
               }`}
+              style={first || last ? {
+                maxWidth: "calc(100% + var(--wizard-circle-size) / 2)",
+                position: "relative",
+                left: `calc(var(--wizard-circle-size) / ${first ? -2 : 2})`,
+              } : undefined}
             >
               {label}
             </span>
@@ -100,7 +106,14 @@ export default function WizardSteps({
         })}
       </div>
 
-      <div aria-hidden="true" className="h-1.5 bg-skeleton rounded-full overflow-hidden">
+      <div
+        aria-hidden="true"
+        className="absolute h-1.5 bg-skeleton rounded-full overflow-hidden transition-none"
+        style={{
+          top: "calc(var(--wizard-circle-size) + 0.5rem)",
+          insetInline: "calc(var(--wizard-circle-size) / 2)",
+        }}
+      >
         <div
           className={`h-full rounded-full ${FILL} transition-[width] duration-500 motion-reduce:transition-none`}
           style={{ width: `${progress}%` }}
