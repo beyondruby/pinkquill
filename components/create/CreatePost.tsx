@@ -33,6 +33,7 @@ import type { Collection, CollectionItem } from "@/lib/types";
 import { getBackgroundStyle, isDarkBackground } from "@/lib/utils/background";
 import { Spinner } from "@/components/ui/Loading";
 import Button from "@/components/ui/Button";
+import WizardSteps from "@/components/ui/WizardSteps";
 import {
   POST_CATEGORIES,
   CATEGORY_ORDER,
@@ -44,6 +45,8 @@ import {
   type FormatSpec,
 } from "@/lib/feed-view/formats";
 import DOMPurify from "dompurify";
+
+const POST_STEP_LABELS = ["Create", "Format"] as const;
 
 interface PostTypeOption {
   id: string;
@@ -2481,48 +2484,16 @@ export default function CreatePost() {
         </div>
       )}
 
-      {/* Wizard step indicator (normal posts only) — matches the product /
-          commission creation wizard: gradient circles + gradient progress bar. */}
+      {/* Wizard step indicator (normal posts only) — the same measured
+          step row the product / commission wizards use. */}
       {!isTakeMode && (
-        <div className="mb-8">
-          <div className="flex items-center justify-center gap-8 mb-4">
-            {([
-              { n: 1 as const, label: "Create" },
-              { n: 2 as const, label: "Format" },
-            ]).map((s) => (
-              <button
-                key={s.n}
-                onClick={() => setStep(s.n)}
-                className="flex items-center gap-2"
-              >
-                <span
-                  className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${
-                    step >= s.n
-                      ? "bg-gradient-to-r from-orange-warm to-pink-vivid text-white"
-                      : "bg-skeleton text-gray-500"
-                  }`}
-                >
-                  {s.n}
-                </span>
-                <span
-                  className={`text-sm font-ui hidden sm:inline ${
-                    step >= s.n ? "text-ink font-medium" : "text-muted"
-                  }`}
-                >
-                  {s.label}
-                </span>
-              </button>
-            ))}
-          </div>
-
-          {/* Progress Bar */}
-          <div className="h-1.5 bg-skeleton rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm transition-all duration-500"
-              style={{ width: `${(step / 2) * 100}%` }}
-            />
-          </div>
-        </div>
+        <WizardSteps
+          step={step}
+          labels={POST_STEP_LABELS}
+          onSelect={(n) => setStep(n as 1 | 2)}
+          hideLabelsOnMobile
+          className="mb-8"
+        />
       )}
 
       {/* Collection Selector (Step 1) */}

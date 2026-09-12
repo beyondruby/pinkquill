@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode, SelectHTMLAttributes } from "react";
+import WizardSteps from "@/components/ui/WizardSteps";
 
 /**
  * The commission wizard's building blocks, copied from the product wizard so
@@ -16,7 +17,7 @@ const GRADIENT_RING = "linear-gradient(white, white), linear-gradient(to right, 
 
 export const FIELD = "w-full px-4 py-3.5 rounded-xl bg-transparent outline-none transition-all duration-300 font-body text-ink placeholder:text-gray-400";
 
-export function StepHeader({ step, total, labels, prefix, highlight1, highlight2 }: { step: number; total: number; labels: readonly string[]; prefix: string; highlight1: string; highlight2: string }) {
+export function StepHeader({ step, labels, prefix, highlight1, highlight2 }: { step: number; labels: readonly string[]; prefix: string; highlight1: string; highlight2: string }) {
   return (
     <>
       <p className="text-center text-sm font-ui text-muted mb-4">STEP {step}</p>
@@ -25,22 +26,7 @@ export function StepHeader({ step, total, labels, prefix, highlight1, highlight2
         <span className={`${WARM} bg-clip-text text-transparent`}>{highlight1}</span>{" "}
         <span className="bg-gradient-to-r from-pink-vivid to-purple-primary bg-clip-text text-transparent">{highlight2}</span>
       </h1>
-      <div className="mb-12">
-        <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 mb-4">
-          {labels.map((label, i) => {
-            const n = i + 1;
-            return (
-              <div key={label} className="flex items-center gap-2">
-                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold ${step >= n ? `${WARM} text-white` : "bg-skeleton text-gray-500"}`}>{n}</div>
-                <span className={`text-sm font-ui ${step >= n ? "text-ink font-medium" : "text-muted"}`}>{label}</span>
-              </div>
-            );
-          })}
-        </div>
-        <div className="h-1.5 bg-skeleton rounded-full overflow-hidden">
-          <div className={`h-full ${TRI} transition-all duration-500`} style={{ width: `${Math.round((step / total) * 100)}%` }} />
-        </div>
-      </div>
+      <WizardSteps step={step} labels={labels} />
     </>
   );
 }

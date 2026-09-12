@@ -17,14 +17,11 @@ import DeliveryTypeStep from "./steps/DeliveryTypeStep";
 import CategoryStep from "./steps/CategoryStep";
 import MediaUploadStep from "./steps/MediaUploadStep";
 import DetailsStep from "./steps/DetailsStep";
+import WizardSteps from "@/components/ui/WizardSteps";
 
 export type WizardStep = "delivery" | "category" | "media" | "details";
 
-const STEP_LABELS = [
-  { number: 1, label: "Choose Type" },
-  { number: 2, label: "Upload Media" },
-  { number: 3, label: "Fill Details" },
-];
+const STEP_LABELS = ["Choose Type", "Upload Media", "Fill Details"] as const;
 
 function mapProductToWizardState(product: Product): ProductWizardState {
   const sortedMedia = [...(product.media || [])]
@@ -343,10 +340,6 @@ export default function CreateProductWizard({
   const stepNumber = getStepNumber(currentStep);
   const stepTitle = getStepTitle(currentStep);
 
-  // Calculate progress percentage (aligns with step indicators)
-  // Step 1 = 16%, Step 2 = 50%, Step 3 = 100%
-  const progressPercent = stepNumber === 1 ? 16 : stepNumber === 2 ? 50 : 100;
-
   return (
     <div className="min-h-screen bg-surface">
       <div className="max-w-4xl mx-auto px-6 py-12">
@@ -366,39 +359,7 @@ export default function CreateProductWizard({
           </span>
         </h1>
 
-        {/* Step Indicator */}
-        <div className="mb-12">
-          <div className="flex items-center justify-center gap-8 mb-4">
-            {STEP_LABELS.map((step) => (
-              <div key={step.number} className="flex items-center gap-2">
-                <div
-                  className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold
-                    ${stepNumber >= step.number
-                      ? "bg-gradient-to-r from-orange-warm to-pink-vivid text-white"
-                      : "bg-skeleton text-gray-500"
-                    }`}
-                >
-                  {step.number}
-                </div>
-                <span
-                  className={`text-sm font-ui ${
-                    stepNumber >= step.number ? "text-ink font-medium" : "text-muted"
-                  }`}
-                >
-                  {step.label}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          {/* Progress Bar */}
-          <div className="h-1.5 bg-skeleton rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm transition-all duration-500"
-              style={{ width: `${progressPercent}%` }}
-            />
-          </div>
-        </div>
+        <WizardSteps step={stepNumber} labels={STEP_LABELS} />
 
         {/* Error Message */}
         {(error || submitError) && (

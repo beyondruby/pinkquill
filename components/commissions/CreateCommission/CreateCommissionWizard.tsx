@@ -550,7 +550,7 @@ export default function CreateCommissionWizard({ mode = "create", productId, ini
   return (
     <div className="min-h-screen bg-surface">
       <div className="max-w-4xl mx-auto px-6 py-12">
-        <StepHeader step={step} total={STEPS.length} labels={STEPS} prefix={title.prefix} highlight1={title.highlight1} highlight2={title.highlight2} />
+        <StepHeader step={step} labels={STEPS} prefix={title.prefix} highlight1={title.highlight1} highlight2={title.highlight2} />
 
         {(error || submitError) && <ErrorBanner message={(error || submitError) as string} />}
 
