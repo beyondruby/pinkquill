@@ -1,13 +1,14 @@
 "use client";
 
+import type { CSSProperties } from "react";
+
 /**
  * The creation wizards' step row: numbered gradient circles with labels and
  * the full-width gradient line beneath them.
  *
- * The row is a grid with one equal column per step and the line is split the
- * same way, so circle N sits exactly at the start of segment N. The fill for
- * step N covers segments 1..N, which means it begins under the first circle
- * and ends right where the next circle starts (or at the end on the last step).
+ * Each circle starts an equal-width grid column. Its center is therefore
+ * (step - 1) / total of the row width plus half the circle's size. Use that
+ * same position for the fill endpoint, while keeping the track full width.
  */
 
 const CIRCLE_ON = "bg-gradient-to-r from-orange-warm to-pink-vivid text-white";
@@ -30,10 +31,15 @@ export default function WizardSteps({
   className?: string;
 }) {
   const total = labels.length;
+  if (total === 0) return null;
+
   const current = Math.min(Math.max(step, 1), total);
 
   return (
-    <div className={className}>
+    <div
+      className={className}
+      style={{ "--wizard-circle-size": "1.75rem" } as CSSProperties}
+    >
       <div
         className="grid items-center mb-4"
         style={{ gridTemplateColumns: `repeat(${total}, minmax(0, 1fr))` }}
@@ -43,7 +49,7 @@ export default function WizardSteps({
           const reached = current >= n;
           const circle = (
             <span
-              className={`w-7 h-7 shrink-0 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${
+              className={`w-[var(--wizard-circle-size)] h-[var(--wizard-circle-size)] shrink-0 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${
                 reached ? CIRCLE_ON : CIRCLE_OFF
               }`}
             >
@@ -83,10 +89,10 @@ export default function WizardSteps({
         })}
       </div>
 
-      <div className="h-1.5 bg-skeleton rounded-full overflow-hidden">
+      <div aria-hidden="true" className="h-1.5 bg-skeleton rounded-full overflow-hidden">
         <div
-          className={`h-full rounded-full ${FILL} transition-[width] duration-500`}
-          style={{ width: `${(current / total) * 100}%` }}
+          className={`h-full rounded-full ${FILL} transition-[width] duration-500 motion-reduce:transition-none`}
+          style={{ width: `calc(${((current - 1) / total) * 100}% + var(--wizard-circle-size) / 2)` }}
         />
       </div>
     </div>
