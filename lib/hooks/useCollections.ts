@@ -134,6 +134,80 @@ interface UseCollectionReturn {
   refetch: () => Promise<void>;
 }
 
+export function useCollection(userId?: string, slug?: string): UseCollectionReturn {
+  const [collection, setCollection] = useState<CollectionWithItems | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const mountedRef = useRef(true);
+
+  const fetchCollection = useCallback(async () => {
+    if (!userId || !slug) {
+      setCollection(null);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const { data, error: fetchError } = await supabase
+        .from("collections")
+        .select(`
+          *,
+          items:collection_items (
+            *,
+            posts:collection_item_posts (count)
+          )
+        `)
+        .eq("user_id", userId)
+        .eq("slug", slug)
+        .maybeSingle();
+
+      if (!mountedRef.current) return;
+      if (fetchError) throw fetchError;
+      if (!data) {
+        setCollection(null);
+        return;
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const col: any = data;
+      setCollection({
+        ...col,
+        items_count: col.items?.length || 0,
+        items: (col.items || [])
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .map((item: any) => ({
+            ...item,
+            posts_count: item.posts?.[0]?.count || 0,
+          }))
+          .sort((a: CollectionItem, b: CollectionItem) => a.position - b.position),
+      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("[useCollection] Error:", message);
+      if (mountedRef.current) {
+        setError(message || "Failed to fetch collection");
+      }
+    } finally {
+      if (mountedRef.current) {
+        setLoading(false);
+      }
+    }
+  }, [userId, slug]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    fetchCollection();
+    return () => {
+      mountedRef.current = false;
+    };
+  }, [fetchCollection]);
+
+  return { collection, loading, error, refetch: fetchCollection };
+}
+
 // ============================================================================
 // useCollectionItem - Fetch a single collection item by slug
 // ============================================================================

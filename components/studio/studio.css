@@ -194,3 +194,248 @@
     height: 3px;
   }
 }
+
+
+/* ============================================================================
+   Collections tab — a shelf of fanned stacks. Each collection is three
+   preview cards dropped on the table (no container box: the stack is the
+   object), a title and a count hanging under it. Ported from the
+   quill-studio reference (Sep 2026).
+   ========================================================================== */
+.studio-collections {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2rem 1.5rem;
+}
+
+@media (max-width: 900px) {
+  .studio-collections {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .studio-collections {
+    gap: 1.5rem 1rem;
+  }
+}
+
+.studio-collection {
+  position: relative;
+  min-width: 0;
+}
+
+.studio-collection-link {
+  display: block;
+  cursor: pointer;
+  color: inherit;
+  text-decoration: none;
+  border-radius: 12px;
+  outline: none;
+}
+
+.studio-collection-link:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-purple-primary) 35%, transparent);
+}
+
+.studio-collection-stack {
+  position: relative;
+  aspect-ratio: 8 / 5;
+  width: 100%;
+  margin-bottom: 0.75rem;
+}
+
+.studio-collection-card {
+  position: absolute;
+  width: 66%;
+  height: 82%;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--color-surface);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--color-ink) 10%, transparent);
+  transition: transform 0.5s ease;
+}
+
+.studio-collection-card img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.studio-collection-card:nth-child(1) { left: 0;   top: 14%; transform: rotate(-5deg); z-index: 1; }
+.studio-collection-card:nth-child(2) { left: 17%; top: 6%;  transform: rotate(1deg);  z-index: 2; }
+.studio-collection-card:nth-child(3) { left: 34%; top: 0;   transform: rotate(5deg);  z-index: 3; }
+
+@media (hover: hover) {
+  .studio-collection-link:hover .studio-collection-card:nth-child(1) { transform: rotate(-8deg) translateX(-8px); }
+  .studio-collection-link:hover .studio-collection-card:nth-child(3) { transform: rotate(8deg) translateX(8px); }
+}
+
+/* A piece with no cover: its name set in italic on paper. */
+.studio-collection-card--text {
+  padding: 0.9rem 1rem;
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--color-ink);
+  border: 1px solid var(--color-border-light);
+  background: linear-gradient(135deg, var(--color-surface), color-mix(in srgb, var(--color-purple-primary) 4%, var(--color-surface)));
+}
+
+.studio-collection-card--text span {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* The collection's own cover: its icon and name on the brand gradient. */
+.studio-collection-card--cover {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.75rem;
+  text-align: center;
+  color: var(--color-on-accent);
+  background: linear-gradient(145deg, var(--color-purple-primary), var(--color-pink-vivid));
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  line-height: 1.3;
+}
+
+.studio-collection-card--cover .studio-collection-cover-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.studio-collection-card--cover .studio-collection-cover-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.studio-collection-card--cover .studio-collection-cover-icon img {
+  width: 100%;
+  height: 100%;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.studio-collection-card--cover span {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Blank paper, filling out a stack that has fewer than three pieces. */
+.studio-collection-card--blank {
+  border: 1px solid var(--color-border-light);
+}
+
+.studio-collection-title {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  color: var(--color-ink);
+  padding: 0 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.studio-collection-meta {
+  font-family: var(--font-ui);
+  font-size: 0.8rem;
+  font-weight: 300;
+  color: var(--color-muted);
+  padding: 0 4px;
+  margin-top: 2px;
+}
+
+.studio-collection-desc {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  color: var(--color-muted);
+  padding: 0 4px;
+  margin-top: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Owner menu: sits over the front card's corner, shown on hover. */
+.studio-collection-menu {
+  position: absolute;
+  top: 0;
+  right: 4px;
+  z-index: 5;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.studio-collection:hover .studio-collection-menu,
+.studio-collection:focus-within .studio-collection-menu,
+.studio-collection-menu:has([aria-expanded="true"]) {
+  opacity: 1;
+}
+
+.studio-collection-menu-btn {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-ink);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-light);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--color-ink) 12%, transparent);
+  transition: transform 0.2s ease;
+}
+
+.studio-collection-menu-btn:hover {
+  transform: translateY(-1px);
+}
+
+/* "New collection": the same stack shape, three dashed empty sheets with a
+   plus on the front one — an empty shelf rather than a call-to-action box. */
+.studio-collection--new .studio-collection-link {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+}
+
+.studio-collection--new .studio-collection-card {
+  background: transparent;
+  box-shadow: none;
+  border: 1.5px dashed color-mix(in srgb, var(--color-purple-primary) 30%, transparent);
+}
+
+.studio-collection--new .studio-collection-card:nth-child(3) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-purple-primary);
+}
+
+.studio-collection--new .studio-collection-card:nth-child(3) svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+@media (hover: hover) {
+  .studio-collection--new .studio-collection-link:hover .studio-collection-card {
+    border-color: color-mix(in srgb, var(--color-purple-primary) 55%, transparent);
+  }
+}

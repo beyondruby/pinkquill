@@ -13,7 +13,8 @@ import { stripHtml } from "@/lib/utils/sanitize";
 import { getOrCreateConversation } from "@/lib/messaging/conversations";
 import { fetchCollaboratedPosts, useCommunities, COLLAB_SELF_REMOVED_EVENT } from "@/lib/hooks.legacy";
 import type { CollabSelfRemovedDetail } from "@/lib/hooks.legacy";
-import { useCollections, useToggleCollectionCollapse, useReorderCollections } from "@/lib/hooks/useCollections";
+import { useCollections, useReorderCollections } from "@/lib/hooks/useCollections";
+import CollectionsShelf from "@/components/studio/CollectionsShelf";
 import { useRelays } from "@/lib/hooks/useFeed";
 import { useBlock } from "@/lib/hooks/useInteractions";
 import { usePinnedPosts } from "@/lib/hooks/usePinnedPosts";
@@ -46,8 +47,7 @@ import StoreTab from "@/components/store/StoreTab";
 import CommissionsTab from "@/components/commissions/CommissionsTab";
 import { useHasCommissions } from "@/lib/hooks/useCommissions";
 import ActionMenu from "@/components/ui/ActionMenu";
-import type { Collection, Post } from "@/lib/types";
-import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
+import type { Post } from "@/lib/types";
 import ReactionCount from "@/components/feed/ReactionCount";
 import CommentCount from "@/components/feed/CommentCount";
 
@@ -293,392 +293,6 @@ const icons = {
   ),
 };
 
-// Branded icons for collections (matching NewCollectionModal)
-const brandedCollectionIcons: Record<string, React.ReactNode> = {
-  quill: (
-    <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/>
-      <line x1="16" y1="8" x2="2" y2="22"/>
-    </svg>
-  ),
-  sparkle: (
-    <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5L12 3z"/>
-      <path d="M5 3l.5 2L7 5.5 5.5 6 5 8l-.5-2L3 5.5 4.5 5 5 3z"/>
-      <path d="M19 17l.5 2 1.5.5-1.5.5-.5 2-.5-2-1.5-.5 1.5-.5.5-2z"/>
-    </svg>
-  ),
-  heart: (
-    <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-    </svg>
-  ),
-  book: (
-    <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-    </svg>
-  ),
-  music: (
-    <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9 18V5l12-2v13"/>
-      <circle cx="6" cy="18" r="3"/>
-      <circle cx="18" cy="16" r="3"/>
-    </svg>
-  ),
-  camera: (
-    <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-      <circle cx="12" cy="13" r="4"/>
-    </svg>
-  ),
-  folder: (
-    <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-    </svg>
-  ),
-  star: (
-    <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-    </svg>
-  ),
-};
-
-// Collection Card Component with glass effect
-interface CollectionCardProps {
-  collection: Collection;
-  isOwnProfile: boolean;
-  username: string;
-  onToggleCollapse: () => void;
-  onDelete: () => void;
-  onDeleteItem: (itemId: string) => void;
-  router: AppRouterInstance;
-  // Reordering props
-  index: number;
-  totalCount: number;
-  onMoveUp?: () => void;
-  onMoveDown?: () => void;
-}
-
-function CollectionCard({
-  collection,
-  isOwnProfile,
-  username,
-  onToggleCollapse,
-  onDelete,
-  onDeleteItem,
-  router,
-  index,
-  totalCount,
-  onMoveUp,
-  onMoveDown,
-}: CollectionCardProps) {
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [deleteItemTarget, setDeleteItemTarget] = useState<string | null>(null);
-  const [collectionDeleting, setCollectionDeleting] = useState(false);
-  const [itemDeleting, setItemDeleting] = useState(false);
-
-  // Render collection icon
-  const renderIcon = () => {
-    if (collection.icon_emoji?.startsWith("icon:")) {
-      const iconKey = collection.icon_emoji.replace("icon:", "");
-      const icon = brandedCollectionIcons[iconKey];
-      if (icon) {
-        return <div className="w-8 h-8 text-purple-primary">{icon}</div>;
-      }
-    }
-    if (collection.icon_emoji) {
-      // Check if it's a hex code point (all hex characters)
-      if (/^[0-9A-Fa-f]+$/.test(collection.icon_emoji)) {
-        try {
-          const codePoint = parseInt(collection.icon_emoji, 16);
-          if (!isNaN(codePoint) && codePoint > 0) {
-            return <span className="text-3xl">{String.fromCodePoint(codePoint)}</span>;
-          }
-        } catch {
-          // Fall through to display as-is
-        }
-      }
-      // Display emoji as-is (it's already a unicode character)
-      return <span className="text-3xl">{collection.icon_emoji}</span>;
-    }
-    if (collection.icon_url) {
-      return <img src={collection.icon_url} alt="" className="w-10 h-10 rounded-lg object-cover" />;
-    }
-    // Default icon
-    return (
-      <div className="w-8 h-8 text-purple-primary/60">
-        <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-        </svg>
-      </div>
-    );
-  };
-
-  return (
-    <div className="group relative">
-      {/* Glass effect container */}
-      <div className="relative overflow-hidden rounded-3xl">
-        {/* Background gradient layers */}
-        <div className="absolute inset-0 bg-gradient-to-br from-surface/80 via-surface/60 to-purple-primary/5" />
-        <div className="absolute inset-0 bg-gradient-to-tr from-purple-primary/[0.03] via-transparent to-pink-vivid/[0.05]" />
-        <div className="absolute inset-0 backdrop-blur-xl" />
-
-        {/* Shimmer effect on hover */}
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-surface/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out" />
-
-        {/* Content */}
-        <div className="relative p-6">
-          {/* Header */}
-          <div className="flex items-start gap-4">
-            {/* Icon */}
-            <div className="shrink-0 w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-primary/10 to-pink-vivid/10 flex items-center justify-center shadow-sm">
-              {renderIcon()}
-            </div>
-
-            {/* Title & Description */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <h3 className="font-display text-xl font-semibold text-ink truncate">
-                  {collection.name}
-                </h3>
-                {collection.items_count !== undefined && collection.items_count > 0 && (
-                  <span className="shrink-0 px-2 py-0.5 rounded-full bg-purple-primary/10 text-purple-primary text-xs font-medium">
-                    {collection.items_count} {collection.items_count === 1 ? 'item' : 'items'}
-                  </span>
-                )}
-              </div>
-              {collection.description && (
-                <p className="mt-1 font-body text-sm text-muted line-clamp-2">
-                  {collection.description}
-                </p>
-              )}
-            </div>
-
-            {/* Actions */}
-            <div className="shrink-0 flex items-center gap-1">
-              {/* Reorder buttons - only for owner */}
-              {isOwnProfile && totalCount > 1 && (
-                <div className="flex items-center gap-0.5 mr-1">
-                  <button
-                    onClick={onMoveUp}
-                    disabled={index === 0}
-                    className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${
-                      index === 0
-                        ? 'text-muted/30 cursor-not-allowed'
-                        : 'text-muted hover:text-ink hover:bg-skeleton'
-                    }`}
-                    title="Move up"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={onMoveDown}
-                    disabled={index === totalCount - 1}
-                    className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${
-                      index === totalCount - 1
-                        ? 'text-muted/30 cursor-not-allowed'
-                        : 'text-muted hover:text-ink hover:bg-skeleton'
-                    }`}
-                    title="Move down"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                </div>
-              )}
-
-              {/* Collapse toggle */}
-              <button
-                onClick={onToggleCollapse}
-                className="w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-skeleton transition-all"
-                title={collection.is_collapsed ? "Expand" : "Collapse"}
-              >
-                <svg
-                  className={`w-5 h-5 transition-transform duration-300 ${collection.is_collapsed ? "" : "rotate-180"}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-
-              {/* Owner menu */}
-              {isOwnProfile && (
-                <ActionMenu
-                  widthClassName="w-44"
-                  buttonClassName="w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-skeleton transition-all"
-                  buttonIconClassName="w-5 h-5"
-                  items={[
-                    {
-                      label: "Edit",
-                      onSelect: () => router.push(`/studio/${username}/collections/${collection.slug}/edit`),
-                      icon: (
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                      ),
-                    },
-                    {
-                      label: "Delete",
-                      onSelect: () => setShowDeleteConfirm(true),
-                      tone: "danger",
-                      dividerBefore: true,
-                      icon: (
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      ),
-                    },
-                  ]}
-                />
-              )}
-            </div>
-          </div>
-
-          {/* Items Grid */}
-          {!collection.is_collapsed && collection.items && collection.items.length > 0 && (
-            <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-              {collection.items.map((item) => (
-                <div
-                  key={item.id}
-                  className="group/item relative cursor-pointer"
-                  onClick={() => router.push(`/studio/${username}/collections/${collection.slug}/${item.slug}`)}
-                >
-                  {/* Item Card */}
-                  <div className="relative aspect-square rounded-2xl overflow-hidden bg-gradient-to-br from-purple-primary/5 to-pink-vivid/5 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-                    {item.cover_url ? (
-                      <img
-                        src={item.cover_url}
-                        alt={item.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <div className="w-12 h-12 text-purple-primary/30">
-                          <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Overlay with name */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover/item:opacity-100 studio-touch-reveal transition-opacity duration-300">
-                      <div className="absolute bottom-0 left-0 right-0 p-3">
-                        <p className="font-ui text-sm font-medium text-white truncate">
-                          {item.name}
-                        </p>
-                        {item.posts_count !== undefined && item.posts_count > 0 && (
-                          <p className="text-xs text-white/70 mt-0.5">
-                            {item.posts_count} {item.posts_count === 1 ? 'post' : 'posts'}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Delete button for owner */}
-                    {isOwnProfile && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDeleteItemTarget(item.id);
-                        }}
-                        className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white opacity-0 group-hover/item:opacity-100 studio-touch-reveal hover:bg-red-500 transition-all"
-                        title="Delete item"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Item name below card */}
-                  <p className="mt-2 font-ui text-sm font-medium text-ink truncate text-center">
-                    {item.name}
-                  </p>
-                  {item.description && (
-                    <p className="font-body text-xs text-muted truncate text-center">
-                      {item.description}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Empty items state */}
-          {!collection.is_collapsed && (!collection.items || collection.items.length === 0) && (
-            <div className="mt-6 py-8 text-center">
-              <div className="w-12 h-12 mx-auto rounded-full bg-purple-primary/10 flex items-center justify-center mb-3">
-                <svg className="w-6 h-6 text-purple-primary/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                </svg>
-              </div>
-              <p className="font-body text-sm text-muted">
-                {isOwnProfile
-                  ? "No items yet. Add items when creating posts!"
-                  : "No items in this collection yet."
-                }
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Glass border */}
-        <div className="absolute inset-0 rounded-3xl border border-surface/60 pointer-events-none" />
-
-        {/* Subtle inner shadow */}
-        <div className="absolute inset-0 rounded-3xl shadow-inner pointer-events-none" style={{ boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.5)' }} />
-      </div>
-
-      {/* Decorative gradient glow on hover */}
-      <div className="absolute -inset-1 bg-gradient-to-r from-purple-primary/20 to-pink-vivid/20 rounded-media opacity-0 group-hover:opacity-50 blur-xl transition-opacity duration-500 -z-10" />
-
-      {/* Delete Collection Confirmation */}
-      <ConfirmationModal
-        isOpen={showDeleteConfirm}
-        onClose={() => setShowDeleteConfirm(false)}
-        onConfirm={async () => {
-          setCollectionDeleting(true);
-          await onDelete();
-          setCollectionDeleting(false);
-          setShowDeleteConfirm(false);
-        }}
-        title="Pull this collection from your studio?"
-        description="The collection and every piece inside it will leave your shelves for good. No way to set it back up."
-        confirmText="Erase it"
-        isDanger
-        loading={collectionDeleting}
-      />
-
-      {/* Delete Item Confirmation */}
-      <ConfirmationModal
-        isOpen={!!deleteItemTarget}
-        onClose={() => setDeleteItemTarget(null)}
-        onConfirm={async () => {
-          if (!deleteItemTarget) return;
-          setItemDeleting(true);
-          await onDeleteItem(deleteItemTarget);
-          setItemDeleting(false);
-          setDeleteItemTarget(null);
-        }}
-        title="Delete Item?"
-        description="This action cannot be undone. This item will be permanently removed from the collection."
-        confirmText="Delete"
-        isDanger
-        loading={itemDeleting}
-      />
-    </div>
-  );
-}
-
-
 // Plain-text excerpts, remembered per post: stripping HTML for every tile on
 // every render was the profile's biggest render cost (P-28).
 const excerptCache = new Map<string, string>();
@@ -845,7 +459,6 @@ export default function StudioProfile({ username }: StudioProfileProps) {
   const hasAboutBox = !!(profile && (profile.bio || profile.role || profile.location || profile.education || profile.languages));
   const { communities: userCommunities } = useCommunities(profile?.id, 'joined', { enabled: hasAboutBox });
   const { collections, loading: collectionsLoading, error: collectionsError, refetch: refetchCollections } = useCollections(profile?.id, { enabled: shouldLoadCollections });
-  const { toggleCollapse } = useToggleCollectionCollapse();
   const { reorderCollections } = useReorderCollections();
   const { pinnedPostIds, isPinned, canPin, pinPost, unpinPost } = usePinnedPosts(profile?.id);
   const [pageLoaded, setPageLoaded] = useState(false);
@@ -2472,79 +2085,33 @@ export default function StudioProfile({ username }: StudioProfileProps) {
               </div>
             ) : collectionsError ? (
               <TabErrorState what="collections" onRetry={refetchCollections} />
-            ) : collections.length === 0 ? (
-              /* Empty State - Glass Card */
-              <div className="relative rounded-3xl overflow-hidden">
-                {/* Glass background */}
-                <div className="absolute inset-0 bg-gradient-to-br from-purple-primary/5 via-surface/80 to-pink-vivid/5 backdrop-blur-xl" />
-                <div className="absolute inset-0 bg-surface/40" />
-
-                {/* Content */}
-                <div className="relative p-10 md:p-16 text-center">
-                  {/* Decorative circles */}
-                  <div className="absolute top-8 left-8 w-24 h-24 rounded-full bg-gradient-to-br from-purple-primary/10 to-pink-vivid/10 blur-2xl" />
-                  <div className="absolute bottom-8 right-8 w-32 h-32 rounded-full bg-gradient-to-br from-pink-vivid/10 to-orange-warm/10 blur-2xl" />
-
-                  <div className="relative">
-                    <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-purple-primary/20 to-pink-vivid/20 flex items-center justify-center backdrop-blur-sm border border-surface/50">
-                      <svg className="w-10 h-10 text-purple-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                      </svg>
-                    </div>
-                    <h3 className="font-display text-2xl md:text-3xl text-ink mb-3">No Collections Yet</h3>
-                    <p className="font-body text-muted max-w-md mx-auto">
-                      {isOwnProfile
-                        ? "Create a collection to organize your works. Go to Create Post and select a collection to get started!"
-                        : `${profile?.display_name || profile?.username} hasn't created any collections yet.`}
-                    </p>
-                  </div>
+            ) : collections.length === 0 && !isOwnProfile ? (
+              <div className="studio-works-empty">
+                <div className="studio-works-empty-icon">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                  </svg>
                 </div>
-
-                {/* Border */}
-                <div className="absolute inset-0 rounded-3xl border border-surface/60 pointer-events-none" />
+                <p className="studio-works-empty-text">
+                  {`${profile?.display_name || profile?.username} hasn't started a collection yet.`}
+                </p>
               </div>
             ) : (
-              <div className="space-y-6">
-                {collections.map((collection, index) => (
-                  <CollectionCard
-                    key={collection.id}
-                    collection={collection}
-                    isOwnProfile={isOwnProfile}
-                    username={username}
-                    index={index}
-                    totalCount={collections.length}
-                    onMoveUp={async () => {
-                      if (index === 0) return;
-                      const newOrder = [...collections];
-                      [newOrder[index - 1], newOrder[index]] = [newOrder[index], newOrder[index - 1]];
-                      await reorderCollections(newOrder.map(c => c.id));
-                      refetchCollections();
-                    }}
-                    onMoveDown={async () => {
-                      if (index === collections.length - 1) return;
-                      const newOrder = [...collections];
-                      [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
-                      await reorderCollections(newOrder.map(c => c.id));
-                      refetchCollections();
-                    }}
-                    onToggleCollapse={async () => {
-                      await toggleCollapse(collection.id, collection.is_collapsed);
-                      refetchCollections();
-                    }}
-                    onDelete={async () => {
-                      const { error } = await supabase.from("collections").delete().eq("id", collection.id);
-                      if (error) actionToast.genericError("delete collection");
-                      else refetchCollections();
-                    }}
-                    onDeleteItem={async (itemId: string) => {
-                      const { error } = await supabase.from("collection_items").delete().eq("id", itemId);
-                      if (error) actionToast.genericError("remove item");
-                      else refetchCollections();
-                    }}
-                    router={router}
-                  />
-                ))}
-              </div>
+              <CollectionsShelf
+                collections={collections}
+                isOwnProfile={isOwnProfile}
+                username={username}
+                onReorder={async (ids) => {
+                  await reorderCollections(ids);
+                  refetchCollections();
+                }}
+                onDelete={async (id) => {
+                  const { error } = await supabase.from("collections").delete().eq("id", id);
+                  if (error) actionToast.genericError("delete collection");
+                  else refetchCollections();
+                }}
+                onCreated={refetchCollections}
+              />
             )}
           </div>
         )}
