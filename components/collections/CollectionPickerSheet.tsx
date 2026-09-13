@@ -127,7 +127,7 @@ export default function CollectionPickerSheet({ isOpen, onClose, postId }: Props
                     {c.cover_url ? <img src={c.cover_url} alt="" /> : <CollectionIcon collection={c} />}
                   </div>
                   <div className="collection-pick-body">
-                    <div className="collection-pick-name">{c.name}</div>
+                    <div className="collection-pick-name">{c.parent_id && <>{collections.find((parent) => parent.id === c.parent_id)?.name} / </>}{c.name}</div>
                     <div className="collection-pick-sub">{collectionCountLabel(c)}</div>
                   </div>
                   <span className="collection-pick-check" aria-hidden="true">

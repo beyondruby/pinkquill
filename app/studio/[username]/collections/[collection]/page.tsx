@@ -21,7 +21,7 @@ export default function CollectionPage() {
           Collections
         </Link>
       </nav>
-      <CollectionView username={username} slug={slug} />
+      <CollectionView key={slug} username={username} slug={slug} />
     </div>
   );
 }

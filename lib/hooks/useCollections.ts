@@ -5,7 +5,7 @@ import { supabase } from "../supabase";
 import type { Collection, CollectionRef, Post } from "../types";
 import { POST_COUNTS_SELECT, enrichPost, fetchUserPostFlags } from "../posts/enrich";
 
-// Collections are one level deep: a collection holds works (posts) through
+// Collections and their subcollections hold works (posts) through
 // collection_posts. Every write goes through a SECURITY DEFINER RPC
 // (supabase/migrations/20260915_collections_phase1_flatten.sql); reads use
 // the shelf RPC or plain selects under RLS.
@@ -290,6 +290,7 @@ export function useOwnWorks(userId?: string | null, enabled = true): { works: Ow
 
 export interface SaveCollectionInput {
   id?: string;
+  parentId?: string | null;
   name: string;
   description?: string | null;
   iconEmoji?: string | null;
@@ -330,7 +331,8 @@ export function useCollectionMutations(): UseCollectionMutationsReturn {
   }, []);
 
   const saveCollection = useCallback(async (input: SaveCollectionInput) => {
-    const { data, ok } = await run("save_collection", {
+    const { data, ok } = await run(input.parentId ? "save_subcollection" : "save_collection", {
+      ...(input.parentId ? { p_parent_id: input.parentId } : {}),
       p_name: input.name,
       p_id: input.id ?? null,
       p_description: input.description ?? null,

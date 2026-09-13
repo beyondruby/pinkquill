@@ -58,7 +58,8 @@ interface CollectionsShelfProps {
   onChanged: () => void;
 }
 
-export default function CollectionsShelf({ collections, isOwnProfile, username, onChanged }: CollectionsShelfProps) {
+export default function CollectionsShelf({ collections: allCollections, isOwnProfile, username, onChanged }: CollectionsShelfProps) {
+  const collections = allCollections.filter((collection) => !collection.parent_id);
   const { openCollectionModal } = useModal();
   const { reorderCollections, deleteCollection, busy } = useCollectionMutations();
   const [deleteTarget, setDeleteTarget] = useState<Collection | null>(null);
@@ -164,7 +165,7 @@ export default function CollectionsShelf({ collections, isOwnProfile, username, 
           notifyCollectionsChanged();
         }}
         title="Pull this collection from your studio?"
-        description="The collection leaves your shelves for good. The works inside it stay published."
+        description="The collection and its subcollections leave your shelves for good. The works inside stay published."
         confirmText="Erase it"
         isDanger
         loading={busy}

@@ -439,3 +439,16 @@
     border-color: color-mix(in srgb, var(--color-purple-primary) 55%, transparent);
   }
 }
+
+/* Keep the fanned prints, with the studio's quiet frosted frame. */
+.studio-collection {
+  padding: 1.25rem;
+  border: 1px solid var(--color-border-light);
+  border-radius: 1.5rem;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--color-surface) 80%, transparent), color-mix(in srgb, var(--color-purple-primary) 4%, transparent));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 8px 28px color-mix(in srgb, var(--color-ink) 4%, transparent), inset 0 1px 0 color-mix(in srgb, var(--color-surface) 75%, transparent);
+}
+.studio-collection-menu { top: .5rem; right: .5rem; }
+@media (max-width: 600px) { .studio-collection { padding: .9rem; border-radius: 1.1rem; } }

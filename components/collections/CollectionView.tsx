@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useModal } from "@/components/providers/ModalProvider";
 import { useProfile } from "@/lib/hooks/useProfile";
-import { useCollectionBySlug, useCollectionWorks, useCollectionMutations } from "@/lib/hooks/useCollections";
+import { useCollections, useCollectionBySlug, useCollectionWorks, useCollectionMutations } from "@/lib/hooks/useCollections";
 import { toModalPost } from "@/lib/posts/toPostProps";
 import { stripHtml } from "@/lib/utils/sanitize";
 import { collectionCountLabel, notifyCollectionsChanged, COLLECTIONS_CHANGED_EVENT } from "@/lib/utils/collections";
@@ -79,16 +79,20 @@ function WorkTile({ post, onOpen }: { post: Post; onOpen: () => void }) {
 export default function CollectionView({ username, slug, initial = null, onClose }: Props) {
   const router = useRouter();
   const { user } = useAuth();
-  const { openPostModal, subscribeToDeletes, subscribeToAuthorBlocks } = useModal();
+  const { openCollectionModal, openPostModal, subscribeToDeletes, subscribeToAuthorBlocks } = useModal();
   const { profile, loading: profileLoading } = useProfile(username, user?.id);
   const { collection: fetched, loading: collectionLoading, refetch: refetchCollection } = useCollectionBySlug(profile?.id, slug);
   const collection = fetched ?? initial;
+  const { collections, refetch: refetchShelf } = useCollections(profile?.id);
+  const children = collections.filter((item) => item.parent_id === collection?.id);
+  const parent = collections.find((item) => item.id === collection?.parent_id);
   const { posts, setPosts, loading: worksLoading, refetch: refetchWorks } = useCollectionWorks(collection?.id, user?.id);
   const { removePostFromCollection, addPostsToCollection, reorderCollectionPosts, deleteCollection, busy } = useCollectionMutations();
 
   const isOwner = !!user && !!collection && user.id === collection.user_id;
   const [arranging, setArranging] = useState(false);
   const [order, setOrder] = useState<Post[]>([]);
+  const [showNewChild, setShowNewChild] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
@@ -109,10 +113,11 @@ export default function CollectionView({ username, slug, initial = null, onClose
     const handler = () => {
       refetchCollection();
       refetchWorks();
+      refetchShelf();
     };
     window.addEventListener(COLLECTIONS_CHANGED_EVENT, handler);
     return () => window.removeEventListener(COLLECTIONS_CHANGED_EVENT, handler);
-  }, [refetchCollection, refetchWorks]);
+  }, [refetchCollection, refetchWorks, refetchShelf]);
 
   const open = useCallback((post: Post) => openPostModal(toModalPost(post)), [openPostModal]);
 
@@ -211,6 +216,22 @@ export default function CollectionView({ username, slug, initial = null, onClose
 
   return (
     <div className="collection-view">
+      <div className="collection-view-toolbar">
+        <nav aria-label="Collection breadcrumb" className="collection-view-breadcrumb">
+          <a href={`/studio/${username}?tab=collections`} onClick={onClose}>Collections</a>
+          {parent && <><span>/</span><button type="button" onClick={() => onClose ? openCollectionModal({ username, slug: parent.slug, collection: parent }) : router.push(`/studio/${username}/collections/${parent.slug}`)}>{parent.name}</button></>}
+        </nav>
+        <div className="collection-view-actions">
+          {isOwner && <ActionMenu widthClassName="w-56" align="end" label="Collection options" buttonAriaLabel="Collection options" buttonClassName="collection-header-button" buttonIconClassName="w-5 h-5" portal items={[
+            { label: "Add works", onSelect: () => setShowAdd(true), icon: PlusIcon },
+            ...(!collection.parent_id ? [{ label: "New subcollection", onSelect: () => setShowNewChild(true), icon: PlusIcon }] : []),
+            { label: "Edit collection", onSelect: () => setShowEdit(true), icon: icons.edit },
+            { label: "Arrange works", onSelect: startArrange, icon: ArrangeIcon, disabled: posts.length < 2 || arranging },
+            { label: "Delete collection", onSelect: () => setShowDelete(true), tone: "danger", icon: icons.trash, dividerBefore: true },
+          ]} />}
+          {onClose && <button type="button" onClick={onClose} aria-label="Close collection" className="collection-header-button">{icons.close}</button>}
+        </div>
+      </div>
       <div className="collection-view-head">
         <div className="collection-view-cover">
           {collection.cover_url ? <img src={collection.cover_url} alt="" /> : <CollectionIcon collection={collection} />}
@@ -232,64 +253,28 @@ export default function CollectionView({ username, slug, initial = null, onClose
                 )}
               </p>
             </div>
-            {onClose && (
-              <button
-                type="button"
-                onClick={onClose}
-                aria-label="Close collection"
-                className="w-9 h-9 -mr-1 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-skeleton transition-colors shrink-0"
-              >
-                {icons.close}
-              </button>
-            )}
+
           </div>
-          {isOwner && (
-            <div className="collection-view-actions mt-3">
-              {arranging ? (
-                <button type="button" onClick={finishArrange} disabled={busy} className="collection-pill collection-pill--primary">
-                  Done arranging
-                </button>
-              ) : (
-                <>
-                  <button type="button" onClick={() => setShowAdd(true)} className="collection-pill collection-pill--primary">
-                    {PlusIcon} Add works
-                  </button>
-                  <button type="button" onClick={() => setShowEdit(true)} className="collection-pill">
-                    {icons.edit} Edit
-                  </button>
-                  {posts.length > 1 && (
-                    <button type="button" onClick={startArrange} className="collection-pill">
-                      {ArrangeIcon} Arrange
-                    </button>
-                  )}
-                  <ActionMenu
-                    widthClassName="w-44"
-                    align="end"
-                    label="More"
-                    buttonClassName="collection-pill"
-                    buttonIconClassName="w-4 h-4"
-                    portal
-                    items={[{ label: "Delete collection", onSelect: () => setShowDelete(true), tone: "danger", icon: icons.trash }]}
-                  />
-                </>
-              )}
-            </div>
-          )}
+
         </div>
       </div>
 
+      {children.length > 0 && <section aria-label="Subcollections" className="collection-subcollections">
+        {children.map((child) => <button type="button" key={child.id} className="collection-subcollection" onClick={() => onClose ? openCollectionModal({ username, slug: child.slug, collection: child }) : router.push(`/studio/${username}/collections/${child.slug}`)}>
+          <span className="collection-pick-thumb">{child.cover_url ? <img src={child.cover_url} alt="" /> : <CollectionIcon collection={child} />}</span>
+          <span className="collection-pick-body"><span className="collection-subcollection-name">{child.name}</span><span className="collection-pick-sub">{collectionCountLabel(child)}</span></span>
+          <span className="w-4 h-4 text-muted">{icons.chevronRight}</span>
+        </button>)}
+      </section>}
+      <div className="collection-section-heading"><h2>Works</h2>{arranging && <button type="button" onClick={finishArrange} disabled={busy} className="collection-pill collection-pill--primary">Done arranging</button>}</div>
       {worksLoading && posts.length === 0 ? (
         <div className="flex items-center justify-center py-16">
           <Loading />
         </div>
       ) : shown.length === 0 ? (
         <div className="collection-empty">
-          <p>Nothing here yet.</p>
-          {isOwner && (
-            <button type="button" onClick={() => setShowAdd(true)} className="collection-pill collection-pill--primary mt-4">
-              {PlusIcon} Add works
-            </button>
-          )}
+          <p>{children.length ? "Explore a subcollection above, or gather works here." : "A little space for something worth keeping."}</p>
+          {isOwner && <p className="mt-2 text-sm">Choose Add works from the three-dot menu to begin.</p>}
         </div>
       ) : (
         <div className={`collection-works ${arranging ? "collection-works--arranging" : ""}`}>
@@ -330,6 +315,7 @@ export default function CollectionView({ username, slug, initial = null, onClose
 
       {isOwner && (
         <>
+          <NewCollectionModal isOpen={showNewChild} onClose={() => setShowNewChild(false)} parentId={collection.id} onSaved={() => { refetchShelf(); notifyCollectionsChanged(); }} />
           <NewCollectionModal
             isOpen={showEdit}
             onClose={() => setShowEdit(false)}
@@ -355,7 +341,7 @@ export default function CollectionView({ username, slug, initial = null, onClose
               onClose={() => setShowDelete(false)}
               onConfirm={confirmDelete}
               title="Pull this collection from your studio?"
-              description="The collection leaves your shelves for good. The works inside it stay published."
+              description="The collection and its subcollections leave your shelves for good. The works inside stay published."
               confirmText="Erase it"
               isDanger
               loading={deleting}

@@ -486,3 +486,34 @@
 .collection-pick-search:focus {
   border-color: color-mix(in srgb, var(--color-purple-primary) 40%, transparent);
 }
+
+/* Shared editorial surface for the full page and open collection. */
+.collection-view {
+  padding: clamp(1.1rem, 3vw, 2rem);
+  border: 1px solid var(--color-border-light);
+  border-radius: 1.5rem;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--color-purple-primary) 5%, var(--color-surface)), color-mix(in srgb, var(--color-surface) 90%, transparent));
+  box-shadow: 0 16px 48px color-mix(in srgb, var(--color-ink) 4%, transparent);
+}
+.collection-view-toolbar, .collection-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.collection-view-breadcrumb { display: flex; flex-wrap: wrap; gap: .5rem; font-family: var(--font-ui); font-size: .8rem; color: var(--color-muted); }
+.collection-view-breadcrumb a:hover, .collection-view-breadcrumb button:hover { color: var(--color-purple-primary); }
+.collection-header-button { display: flex; align-items: center; justify-content: center; width: 2.25rem; height: 2.25rem; border-radius: 50%; color: var(--color-muted); transition: background .2s; }
+.collection-header-button:hover { background: var(--color-subtle); color: var(--color-ink); }
+.collection-header-button svg { width: 1.25rem; height: 1.25rem; }
+.collection-view-head { align-items: center; padding: 1rem 0 1.75rem; border-bottom: 1px solid var(--color-border-light); }
+.collection-view-title { font-size: clamp(1.8rem, 4vw, 2.6rem); }
+.collection-view-desc { max-width: 38rem; line-height: 1.65; }
+.collection-section-heading h2 { font-family: var(--font-display); font-size: 1.2rem; color: var(--color-ink); }
+.collection-subcollections { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
+.collection-subcollection { display: flex; align-items: center; gap: .85rem; padding: 1rem; border: 1px solid var(--color-border-light); border-radius: 1rem; background: color-mix(in srgb, var(--color-surface) 75%, transparent); text-align: left; transition: border-color .2s, transform .2s; }
+.collection-subcollection:hover { border-color: var(--color-purple-primary); transform: translateY(-2px); }
+.collection-subcollection-name { display: block; font-family: var(--font-display); color: var(--color-ink); overflow-wrap: anywhere; }
+.collection-subcollection .collection-pick-sub { display: block; margin-top: .2rem; }
+@media (max-width: 600px) { .collection-subcollections { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { .collection-view * { transition: none; } }

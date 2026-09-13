@@ -37,7 +37,7 @@ export default function CollectionChips({ userId, selectedIds, onChange }: Props
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             )}
-            {c.name}
+            {c.parent_id && <>{collections.find((parent) => parent.id === c.parent_id)?.name} / </>}{c.name}
           </button>
         ))}
         <button type="button" onClick={() => setShowNew(true)} className="collection-chip collection-chip--new">

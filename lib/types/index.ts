@@ -904,6 +904,7 @@ export function getAggregateCount(aggregate: AggregateCount[] | null | undefined
  * (docs/collections/01-design.md).
  */
 export interface Collection {
+  parent_id?: string | null;
   id: string;
   user_id: string;
   name: string;

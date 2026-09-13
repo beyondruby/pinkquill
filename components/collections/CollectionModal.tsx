@@ -21,7 +21,7 @@ export default function CollectionModal({ target, isOpen, onClose }: Props) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} ariaLabel={target.collection ? `${target.collection.name}, a collection` : "Collection"}>
       <div className="h-full w-full overflow-y-auto overscroll-contain">
-        <div className="p-5 md:p-8">
+        <div className="p-3 md:p-5">
           <CollectionView key={`${target.username}/${target.slug}`} username={target.username} slug={target.slug} initial={target.collection ?? null} onClose={onClose} />
         </div>
       </div>
